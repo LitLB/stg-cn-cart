@@ -18,6 +18,8 @@ export const syncController = async (req: Request, res: Response) => {
     res.status(400).send('Bad request: No Pub/Sub message was received')
   }
 
+  logger.info(JSON.stringify(req.body))
+
   try {
     const message = JSON.stringify(req.body.message.data)
     const data = JSON.parse(Buffer.from(message, 'base64').toString())
@@ -50,12 +52,14 @@ export const syncController = async (req: Request, res: Response) => {
     }
 
     if (!payload)
-      res.status(404).send(payload)
+      res.status(404).send()
 
     const result = await syncCartItemCatalog(payload)
+    logger.info(`Payload: ${JSON.stringify(payload)}`)
     res.status(200).send(result)
 
   } catch (error) {
-    throw new CustomError(400, `Bad request: ${error}`)
+    logger.info(`Bad request: ${error}`)
+    res.status(400).send()
   }
 }

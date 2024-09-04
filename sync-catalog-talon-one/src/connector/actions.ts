@@ -46,7 +46,7 @@ export async function createProductSubscription(
         messages: [
           {
             resourceTypeId: 'product',
-            types: ['ProductDeleted'],
+            types: ['ProductVariantDeleted'],
           },
         ],
         changes: [
