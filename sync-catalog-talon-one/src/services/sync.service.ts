@@ -32,7 +32,14 @@ export const buildRemoveManyData = (productID: string) => {
 }
 
 const wrapPayload = (id: string, name: string, variant: any) => {
-    return {
+    const attributes: { commercetools_product_id: string; capacity?: string } = {
+        commercetools_product_id: id
+    }
+    const capacity = variant.attributes.find((item: any) => item.name === 'capacity')?.value?.label || null
+    if (capacity)
+        attributes.capacity = capacity
+
+    return{
         payload: {
             replaceIfExists: true,
             sku: variant.sku,
@@ -40,10 +47,7 @@ const wrapPayload = (id: string, name: string, variant: any) => {
             product: {
                 name
             },
-            attributes: {
-                commercetools_product_id: id,
-                capacity: variant.attributes.find((item: any) => item.name === 'capacity')?.value?.label || null
-            }
+            attributes
         },
         type: "ADD"
     }

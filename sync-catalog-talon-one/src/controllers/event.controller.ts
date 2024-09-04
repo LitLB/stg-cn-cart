@@ -14,8 +14,9 @@ import { buildData, buildRemoveData, buildRemoveManyData } from '../services/syn
  */
 export const syncController = async (req: Request, res: Response) => {
   if (!req.body?.message?.data) {
-    logger.error('Missing request body.')
+    logger.error('Missing request body')
     res.status(400).send('Bad request: No Pub/Sub message was received')
+    return
   }
 
   logger.info(JSON.stringify(req.body))
@@ -30,36 +31,43 @@ export const syncController = async (req: Request, res: Response) => {
 
     } else {
       const productID = data.resource.id
-      switch(data.notificationType) {
+      switch (data.notificationType) {
         case 'ResourceCreated' || 'ResourceUpdated':
           const products = await queryProducts(productID)
-          if (products.length > 0) {
-            const product = products[0]?.masterData
-
-            if (product.published && !product.hasStagedChanges) {
-              logger.info(productID, 'Product has been Published')
-              res.status(204).send()
-            }
-
-            payload = buildData(productID, product?.staged)
+          if (products.length < 1) {
+            res.status(404).send('No Products found')
+            return
           }
+          const product = products[0]?.masterData
+
+          if (product.published && !product.hasStagedChanges) {
+            logger.info(productID, 'Product has been Published')
+            res.status(204).send()
+            return
+          }
+
+          payload = buildData(productID, product?.staged)
           break
-          
+
         case 'ResourceDeleted':
           payload = buildRemoveManyData(productID)
           break
       }
     }
 
-    if (!payload)
-      res.status(404).send()
+    if (!payload) {
+      res.status(204).send()
+      return
+    }
 
     const result = await syncCartItemCatalog(payload)
     logger.info(`Payload: ${JSON.stringify(payload)}`)
+    logger.info(`Result: ${JSON.stringify(result)}`)
     res.status(200).send(result)
 
   } catch (error) {
-    logger.info(`Bad request: ${error}`)
+    logger.error(`Bad request: ${error}`)
     res.status(400).send()
+    return
   }
 }
