@@ -1,6 +1,6 @@
-  - name: sync-catalog-talon-one
+  - name: sync-catalog
     applicationType: event
-    endpoint: /sync-catalog-talon-one
+    endpoint: /
     scripts:
       postDeploy: npm install && npm run build && npm run connector:post-deploy
       preUndeploy: npm install && npm run build && npm run connector:pre-undeploy
