@@ -13,13 +13,13 @@ import { buildData, buildRemoveData, buildRemoveManyData } from '../services/syn
  * @param res The express response
  */
 export const syncController = async (req: Request, res: Response) => {
+  logger.info(JSON.stringify(req.body))
+  
   if (!req.body?.message?.data) {
     logger.error('Missing request body')
-    res.status(400).send('Bad request: No Pub/Sub message was received')
+    res.status(200).send('Bad request: No Pub/Sub message was received')
     return
   }
-
-  logger.info(JSON.stringify(req.body))
 
   try {
     const message = JSON.stringify(req.body.message.data)
@@ -35,14 +35,14 @@ export const syncController = async (req: Request, res: Response) => {
         case 'ResourceCreated' || 'ResourceUpdated':
           const products = await queryProducts(productID)
           if (products.length < 1) {
-            res.status(404).send('No Products found')
+            res.status(200).send('No Products found')
             return
           }
           const product = products[0]?.masterData
 
           if (product.published && !product.hasStagedChanges) {
             logger.info(productID, 'Product has been Published')
-            res.status(204).send()
+            res.status(200).send()
             return
           }
 
@@ -56,7 +56,7 @@ export const syncController = async (req: Request, res: Response) => {
     }
 
     if (!payload) {
-      res.status(204).send()
+      res.status(200).send()
       return
     }
 
@@ -67,7 +67,7 @@ export const syncController = async (req: Request, res: Response) => {
 
   } catch (error) {
     logger.error(`Bad request: ${error}`)
-    res.status(400).send()
+    res.status(500).send()
     return
   }
 }
