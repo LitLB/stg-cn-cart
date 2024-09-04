@@ -14,7 +14,6 @@ deployAs:
         - key: TALON_ONE_CATALOG_ID
           description: talon.one catalog id for sync cart item catalog
           required: true
-          default: 1
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: commercetools Composable Commerce project key
