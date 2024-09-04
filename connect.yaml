@@ -1,15 +1,18 @@
   - name: sync-catalog
     applicationType: event
-    endpoint: /
+    endpoint: /sync-catalog
     scripts:
-      postDeploy: npm install && npm run build && npm run connector:post-deploy
-      preUndeploy: npm install && npm run build && npm run connector:pre-undeploy
+      postDeploy: npm install && npm run connector:post-deploy
+      preUndeploy: npm install && npm run connector:pre-undeploy
     configuration:
       standardConfiguration:
         - key: CTP_REGION
           description: commercetools Composable Commerce API region
           required: true
           default: "europe-west1.gcp"
+        - key: TALON_ONE_CATALOG_ID
+          description: talon.one catalog id for sync cart catalog item api
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: commercetools Composable Commerce project key
@@ -22,4 +25,14 @@
           required: true
         - key: CTP_SCOPE
           description: commercetools Composable Commerce client scope
+          required: true
+        - key: TALON_ONE_URL
+          description: talon.one base url
+          required: true
+          default: "https://truecorp.asia-southeast1.talon.one"
+        - key: TALON_ONE_API_KEY
+          description: talon.one api key
+          required: true
+        - key: TALON_ONE_API_KEY_PREFIX
+          description: talon.one api key prefix
           required: true
