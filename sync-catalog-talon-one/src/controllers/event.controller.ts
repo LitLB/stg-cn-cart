@@ -1,66 +1,61 @@
-import { Request, Response } from 'express';
-import { createApiRoot } from '../client/create.client';
-import CustomError from '../errors/custom.error';
-import { logger } from '../utils/logger.utils';
+import { Request, Response } from 'express'
+import CustomError from '../errors/custom.error'
+import { logger } from '../utils/logger.utils'
+import { syncCartItemCatalog } from '../services/talon-one.service'
+import { queryProducts } from '../services/commercetools.service'
+import { buildData, buildRemoveData, buildRemoveManyData } from '../services/sync.service'
 
 /**
  * Exposed event POST endpoint.
  * Receives the Pub/Sub message and works with it
  *
- * @param {Request} request The express request
- * @param {Response} response The express response
- * @returns
+ * @param req The express request
+ * @param res The express response
  */
-export const post = async (request: Request, response: Response) => {
-  let customerId = undefined;
-
-  // Check request body
-  if (!request.body) {
-    logger.error('Missing request body.');
-    throw new CustomError(400, 'Bad request: No Pub/Sub message was received');
-  }
-
-  // Check if the body comes in a message
-  if (!request.body.message) {
-    logger.error('Missing body message');
-    throw new CustomError(400, 'Bad request: Wrong No Pub/Sub message format');
-  }
-
-  // Receive the Pub/Sub message
-  const pubSubMessage = request.body.message;
-
-  // For our example we will use the customer id as a var
-  // and the query the commercetools sdk with that info
-  const decodedData = pubSubMessage.data
-    ? Buffer.from(pubSubMessage.data, 'base64').toString().trim()
-    : undefined;
-
-  if (decodedData) {
-    const jsonData = JSON.parse(decodedData);
-
-    customerId = jsonData.customer.id;
-  }
-
-  if (!customerId) {
-    throw new CustomError(
-      400,
-      'Bad request: No customer id in the Pub/Sub message'
-    );
+export const syncController = async (req: Request, res: Response) => {
+  if (!req.body?.message?.data) {
+    logger.error('Missing request body.')
+    res.status(400).send('Bad request: No Pub/Sub message was received')
   }
 
   try {
-    const customer = await createApiRoot()
-      .customers()
-      .withId({ ID: Buffer.from(customerId).toString() })
-      .get()
-      .execute();
+    const message = JSON.stringify(req.body.message.data)
+    const data = JSON.parse(Buffer.from(message, 'base64').toString())
+    let payload
 
-    // Execute the tasks in need
-    logger.info(customer);
+    if (data.notificationType === 'Message' && data.type === 'ProductVariantDeleted') {
+      payload = buildRemoveData([data.variant])
+
+    } else {
+      const productID = data.resource.id
+      switch(data.notificationType) {
+        case 'ResourceCreated' || 'ResourceUpdated':
+          const products = await queryProducts(productID)
+          if (products.length > 0) {
+            const product = products[0]?.masterData
+
+            if (product.published && !product.hasStagedChanges) {
+              logger.info(productID, 'Product has been Published')
+              res.status(204).send()
+            }
+
+            payload = buildData(productID, product?.staged)
+          }
+          break
+          
+        case 'ResourceDeleted':
+          payload = buildRemoveManyData(productID)
+          break
+      }
+    }
+
+    if (!payload)
+      res.status(404).send(payload)
+
+    const result = await syncCartItemCatalog(payload)
+    res.status(200).send(result)
+
   } catch (error) {
-    throw new CustomError(400, `Bad request: ${error}`);
+    throw new CustomError(400, `Bad request: ${error}`)
   }
-
-  // Return the response for the client
-  response.status(204).send();
-};
+}

@@ -14,7 +14,7 @@ export const readConfiguration = () => {
     clientSecret: process.env.CTP_CLIENT_SECRET as string,
     projectKey: process.env.CTP_PROJECT_KEY as string,
     scope: process.env.CTP_SCOPE,
-    region: process.env.CTP_REGION as string,
+    region: process.env.CTP_REGION as string
   };
 
   const validationErrors = getValidateMessages(envValidators, envVars);
@@ -28,4 +28,13 @@ export const readConfiguration = () => {
   }
 
   return envVars;
-};
+}
+
+export const talonOneConfig = () => {
+  return {
+    url: process.env.TALON_ONE_URL as string,
+    apiKey: process.env.TALON_ONE_API_KEY as string,
+    apiKeyPrefix: process.env.TALON_ONE_API_KEY_PREFIX as string,
+    catalogId: Number(process.env.TALON_ONE_CATALOG_ID)
+  }
+}
