@@ -1,5 +1,4 @@
 import { Request, Response } from 'express'
-import CustomError from '../errors/custom.error'
 import { logger } from '../utils/logger.utils'
 import { syncCartItemCatalog } from '../services/talon-one.service'
 import { queryProducts } from '../services/commercetools.service'
@@ -13,7 +12,7 @@ import { buildData, buildRemoveData, buildRemoveManyData } from '../services/syn
  * @param res The express response
  */
 export const syncController = async (req: Request, res: Response) => {
-  logger.info(JSON.stringify(req.body))
+  logger.info(`Message: ${JSON.stringify(req.body)}`)
   
   if (!req.body?.message?.data) {
     logger.error('Missing request body')
@@ -24,6 +23,7 @@ export const syncController = async (req: Request, res: Response) => {
   try {
     const message = JSON.stringify(req.body.message.data)
     const data = JSON.parse(Buffer.from(message, 'base64').toString())
+    logger.info(`Data: ${JSON.stringify(data)}`)
     let payload
 
     if (data.notificationType === 'Message' && data.type === 'ProductVariantDeleted') {
@@ -32,7 +32,8 @@ export const syncController = async (req: Request, res: Response) => {
     } else {
       const productID = data.resource.id
       switch (data.notificationType) {
-        case 'ResourceCreated' || 'ResourceUpdated':
+        case 'ResourceCreated':
+        case 'ResourceUpdated':
           const products = await queryProducts(productID)
           if (products.length < 1) {
             res.status(200).send('No Products found')

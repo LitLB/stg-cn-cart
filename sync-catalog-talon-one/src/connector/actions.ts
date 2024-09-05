@@ -1,7 +1,7 @@
 import { ByProjectKeyRequestBuilder } from '@commercetools/platform-sdk/dist/declarations/src/generated/client/by-project-key-request-builder';
 
 const PRODUCT_SUBSCRIPTION_KEY =
-  'connector-sync-product-subscription';
+  'connector-sync-product';
 
 export async function createProductSubscription(
   apiRoot: ByProjectKeyRequestBuilder,
