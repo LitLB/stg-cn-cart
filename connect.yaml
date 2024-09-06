@@ -52,9 +52,6 @@
         - key: CTP_REGION
           description: commercetools Composable Commerce API region
           required: true
-        - key: TALON_ONE_CATALOG_ID
-          description: talon.one catalog id for sync cart catalog item api
-          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: commercetools Composable Commerce project key
