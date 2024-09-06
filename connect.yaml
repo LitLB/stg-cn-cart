@@ -10,6 +10,9 @@
         - key: CTP_REGION
           description: commercetools Composable Commerce API region
           required: true
+        - key: TALON_ONE_URL
+          description: talon.one base url
+          required: true
         - key: TALON_ONE_CATALOG_ID
           description: talon.one catalog id for sync cart catalog item api
           required: true
@@ -32,9 +35,6 @@
         - key: CONNECT_GCP_PROJECT_ID_KEY
           description: connect Pub/Sub project id
           required: true
-        - key: TALON_ONE_URL
-          description: talon.one base url
-          required: true
         - key: TALON_ONE_API_KEY
           description: talon.one api key
           required: true
@@ -51,6 +51,18 @@
       standardConfiguration:
         - key: CTP_REGION
           description: commercetools Composable Commerce API region
+          required: true
+        - key: CS_ENVIRONMENRS
+          description: content stack env
+          required: true
+        - key: CS_BRANCH
+          description: content stack branch
+          required: true
+        - key: CS_CONTENT_TYPE_UID
+          description: content stack content type uid
+          required: true
+        - key: CS_BASE_URL
+          description: content stack base url
           required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
@@ -71,21 +83,9 @@
         - key: CONNECT_GCP_PROJECT_ID_KEY
           description: connect Pub/Sub project id
           required: true
-        - key: CS_BASE_URL
-          description: content stack base url
-          required: true
         - key: CS_API_KEY
           description: content stack api key
           required: true
         - key: CS_AUTHORIZATION
           description: content stack authorization
-          required: true
-        - key: CS_ENVIRONMENRS
-          description: content stack env
-          required: true
-        - key: CS_BRANCH
-          description: content stack branch
-          required: true
-        - key: CS_CONTENT_TYPE_UID
-          description: content stack content type uid
           required: true

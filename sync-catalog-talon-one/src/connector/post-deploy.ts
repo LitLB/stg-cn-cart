@@ -12,7 +12,6 @@ async function postDeploy(properties: Map<string, unknown>): Promise<void> {
   const topicName = properties.get(CONNECT_GCP_TOPIC_NAME_KEY);
   const projectId = properties.get(CONNECT_GCP_PROJECT_ID_KEY);
 
-  // console.log(projectId)
   assertString(topicName, CONNECT_GCP_TOPIC_NAME_KEY);
   assertString(projectId, CONNECT_GCP_PROJECT_ID_KEY);
 
