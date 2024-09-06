@@ -1,7 +1,7 @@
 import { ByProjectKeyRequestBuilder } from '@commercetools/platform-sdk/dist/declarations/src/generated/client/by-project-key-request-builder';
 
 const PRODUCT_SUBSCRIPTION_KEY =
-  'connector-sync-product';
+  'connector-sync-cs-product';
 
 export async function createProductSubscription(
   apiRoot: ByProjectKeyRequestBuilder,
@@ -43,12 +43,6 @@ export async function createProductSubscription(
           topic: topicName,
           projectId,
         },
-        messages: [
-          {
-            resourceTypeId: 'product',
-            types: ['ProductVariantDeleted'],
-          },
-        ],
         changes: [
           {
             resourceTypeId: 'product',

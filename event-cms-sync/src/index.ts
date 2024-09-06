@@ -25,7 +25,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Define routes
-app.use('/event', EventRoutes);
+app.use('/syncCMS', EventRoutes);
 
 // Global error handler
 app.use(errorMiddleware);
