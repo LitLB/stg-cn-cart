@@ -1,5 +1,5 @@
 export const buildData = (id: string, product: any) => {
-    const productName = product.name['en-US'] || ''
+    const productName = getProductName(product.name)
     const actions = [
         wrapPayload(id, productName, product.masterVariant)
     ]
@@ -31,7 +31,7 @@ export const buildRemoveManyData = (productID: string) => {
     return { actions }
 }
 
-const wrapPayload = (id: string, name: string, variant: any) => {
+const wrapPayload = (id: string, name: string | null, variant: any) => {
     const attributes: { commercetools_product_id: string; capacity?: string } = {
         commercetools_product_id: id
     }
@@ -39,14 +39,14 @@ const wrapPayload = (id: string, name: string, variant: any) => {
     if (capacity)
         attributes.capacity = capacity
 
-    return{
+    const product = name ? { name } : null;
+
+    return {
         payload: {
             replaceIfExists: true,
             sku: variant.sku,
             price: 0,
-            product: {
-                name
-            },
+            ...(product ? { product } : {}),
             attributes
         },
         type: "ADD"
@@ -75,4 +75,11 @@ const wrapRemoveManyPayload = (productID: string) => {
         },
         type: "REMOVE_MANY"
     }
+}
+
+const getProductName = (obj: any) => {
+    let productName = obj['th-TH'] ? obj['th-TH'] : obj['en-US']
+    if (!productName)
+        return null
+    return productName.length > 50 ? productName.substring(0, 47) + '...' : productName
 }
