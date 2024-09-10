@@ -1,4 +1,5 @@
 import { createApiRoot } from '../client/create.client.js';
+import { logger } from '../utils/logger.utils';
 import { 
   publish,
   unPublish,
@@ -13,7 +14,6 @@ import {
 
 export class cmsServices {
   async resourceCreated(productID: string) {
-
     const product = await this.getCommerceToolsProduct(productID);
     const productStaged = product.data.masterData.staged; 
     const entry = await getContentStackEntry(productID);
@@ -152,17 +152,20 @@ export class cmsServices {
       }
     }
 
+    const productName = newData.name['th-TH'] ?? newData.name['en-US'] ?? '';
+    if (!productName) {
+      logger.info(`Data: ${JSON.stringify(newData)}`);
+      throw new Error('Product name is not available.');
+    }
+
     return {
-      product_name: newData.name['en-US'],
-      main_image_group: {
-        main_image: 'blt5b7e15ee492a2fe4',
-      },
-      variant_images: newResult,
+      product_name: productName,
+      variant_images: newResult
     };
   }
   
   async buildData(id: string, product: any) {
-    const { masterVariant, variants, name } = product;
+    const { masterVariant, variants, name, slug } = product;
     const commerceToolsData = [masterVariant, ...variants];
     let variantImages: any[] = [];
   
@@ -188,18 +191,23 @@ export class cmsServices {
       });
     }
   
+    const slugUrl = slug['en-US'] ?? slug['th-TH'] ?? '';
+    const productName = name['th-TH'] ?? name['en-US'] ?? '';
+
+    if (!productName) {
+      logger.info(`Data: ${JSON.stringify(product)}`);
+      throw new Error('Product name is not available.');
+    }
+
     return {
-        title: name['en-US'],
-        product_name: name['en-US'],
-        url: `/${name['en-US'].toLowerCase()}`,
+        title: productName,
+        product_name: productName,
+        url: `/${slugUrl}`, // TODO :: catogory
         commerce_tools_id: id,
         taxonomies: [{
           taxonomy_uid: "campaign_group",
           term_uid: "mass"
         }],
-        main_image_group: {
-          main_image: 'blt5b7e15ee492a2fe4',
-        },
         variant_images: variantImages,
     };
   }
