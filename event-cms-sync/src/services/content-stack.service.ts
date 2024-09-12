@@ -26,25 +26,28 @@ export const createEntry = async (payload: any): Promise<any> => {
     logger.info(`Response: ${JSON.stringify(response)}`)
     return;
   } catch (error) {
+    logger.info(`Request: ${JSON.stringify(payload)}`)
     logger.error(`Error create entry: ${error}`);
   }
 }
 
 export const updateEntry = async (entryUID: string, payload: any): Promise<any> => {
   try {
-    const response = await client.stack(stack).contentType(content_type_uid).entry(entryUID)
-    .fetch()
-    .then((entry) => {
-      entry.product_name = payload.product_name;
-      entry.main_image_group = payload.main_image_group;
-      entry.variant_images = payload.variant_images;
-      return entry.update()
-    })
+    const locales = await getLocales();
+    const entry = await client.stack(stack).contentType(content_type_uid).entry(entryUID).fetch();
+    const response = await Promise.all(locales.map(async (locale: string) => {
+      entry.product_name = payload[locale]?.product_name;
+      entry.main_image_group = payload[locale]?.main_image_group;
+      entry.variant_images = payload[locale]?.variant_images;
+    
+      return entry.update({ locale });
+    }));
 
     logger.info(`Request: ${JSON.stringify(payload)}`)
     logger.info(`Response: ${JSON.stringify(response)}`)
     return;
   } catch (error) {
+    logger.info(`Request: ${JSON.stringify(payload)}`)
     logger.error(`Error update entry: ${error}`);
   }
 }
@@ -57,6 +60,7 @@ export const deleteEntry = async (entryUID: string): Promise<any> => {
     logger.info(`Response: ${JSON.stringify(response)}`)
     return;
   } catch (error) {
+    logger.info(`Request: ${JSON.stringify(entryUID)}`)
     logger.error(`Error delete entry: ${error}`);
   }
 }
@@ -75,6 +79,7 @@ export const getContentStackEntry = async (productID: string): Promise<any> => {
   
       return entry.items;
     } catch (error) {
+      logger.info(`Request: ${JSON.stringify(productID)}`)
       logger.error(`Error fetching entry: ${error}`);
     }
 };
@@ -89,6 +94,7 @@ export const getTermsOfTaxonomy = async (taxonomyUid: string): Promise<any> => {
       
       return term.items.map((term) => term.name);
     } catch (error) {
+      logger.info(`Request: ${JSON.stringify(taxonomyUid)}`)
       logger.error(`Error fetching taxonomy: ${error}`);
     }
 };
@@ -127,6 +133,7 @@ export const publish = async (entryUID: string): Promise<any> => {
     logger.info(`Response: ${JSON.stringify(response)}`)
     return;
   } catch (error) {
+    logger.info(`Request: ${JSON.stringify(entryUID)}`)
     logger.error(`Error publish entry: ${error}`);
   }
 }
@@ -146,6 +153,7 @@ export const unPublish = async (entryUID: string): Promise<any> => {
     logger.info(`Response: ${JSON.stringify(response)}`)
     return;
   } catch (error) {
+    logger.info(`Request: ${JSON.stringify(entryUID)}`)
     logger.error(`Error unPublish entry: ${error}`);
   }
 }

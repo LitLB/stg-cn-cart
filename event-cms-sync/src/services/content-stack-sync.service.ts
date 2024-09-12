@@ -79,10 +79,12 @@ export class cmsServices {
       .get({
         queryArgs: {
           where: `id = "${productID}"`,
+          expand: [`masterData.staged.categories[*]`,
+           `masterData.staged.categories[*].parent.id`]
         },
       })
       .execute();
-  
+
     return {
       id: response.body.results[0]?.id,
       data: response.body.results[0],
@@ -94,7 +96,9 @@ export class cmsServices {
     const variants = newData.variants;
     const commerceToolsData = [masterVariant, ...variants];
     const contentStackData = oldData[0]?.variant_images || [];
-    
+    const productNameTH = newData.name['th-TH'] ?? ''; // Default language
+    const productNameUS = newData.name['en-US'] ?? ''; 
+
     let newResult = [...contentStackData]; // Deep copy for manipulation
 
     // Find updates and deletions
@@ -152,15 +156,15 @@ export class cmsServices {
       }
     }
 
-    const productName = newData.name['th-TH'] ?? newData.name['en-US'] ?? '';
-    if (!productName) {
-      logger.info(`Data: ${JSON.stringify(newData)}`);
-      throw new Error('Product name is not available.');
-    }
-
     return {
-      product_name: productName,
-      variant_images: newResult
+      'th-th': {
+        product_name: productNameTH,
+        variant_images: newResult
+      },
+      'en-us': {
+        product_name: productNameUS,
+        variant_images: newResult
+      },
     };
   }
   
@@ -168,6 +172,21 @@ export class cmsServices {
     const { masterVariant, variants, name, slug } = product;
     const commerceToolsData = [masterVariant, ...variants];
     let variantImages: any[] = [];
+
+    const slugUrl = slug['en-US'] ?? slug['th-TH'] ?? '';
+    const productName = name['th-TH'] ?? name['en-US'] ?? '';
+
+    const objCategory = product?.categories[0]?.obj;
+    let category = objCategory.name['en-US'] ?? objCategory.name['th-TH'] ?? 'category';
+    let subCategory = objCategory.parent?.obj?.name['en-US'] ?? objCategory.parent?.obj?.name['th-TH'] ?? 'sub-category';
+
+    category = category.toLowerCase();
+    subCategory = subCategory.toLowerCase();
+
+    if (!productName) {
+      logger.info(`Data: ${JSON.stringify(product)}`);
+      throw new Error('Product name is not available.');
+    }
   
     for (const item of commerceToolsData) {
       const statusAttribute = item.attributes.find((attr: any) => attr.name === 'status');
@@ -190,19 +209,11 @@ export class cmsServices {
         });
       });
     }
-  
-    const slugUrl = slug['en-US'] ?? slug['th-TH'] ?? '';
-    const productName = name['th-TH'] ?? name['en-US'] ?? '';
-
-    if (!productName) {
-      logger.info(`Data: ${JSON.stringify(product)}`);
-      throw new Error('Product name is not available.');
-    }
 
     return {
         title: productName,
         product_name: productName,
-        url: `/${slugUrl}`, // TODO :: catogory
+        url: `/${category}/${subCategory}/${slugUrl}`,
         commerce_tools_id: id,
         taxonomies: [{
           taxonomy_uid: "campaign_group",
