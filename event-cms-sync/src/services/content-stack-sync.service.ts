@@ -169,13 +169,19 @@ export class cmsServices {
   }
   
   async buildData(id: string, product: any) {
-    const { masterVariant, variants, name, slug } = product;
+    const { 
+      masterVariant,
+      variants,
+      name,
+      slug,
+      description
+    } = product;
     const commerceToolsData = [masterVariant, ...variants];
     let variantImages: any[] = [];
 
     const slugUrl = slug['en-US'] ?? slug['th-TH'] ?? '';
     const productName = name['th-TH'] ?? name['en-US'] ?? '';
-
+    const shortDescription = masterVariant.attributes.find((attr: { name: string }) => attr.name === 'short_description');
     const objCategory = product?.categories[0]?.obj;
     let category = objCategory.name['en-US'] ?? objCategory.name['th-TH'] ?? 'category';
     let subCategory = objCategory.parent?.obj?.name['en-US'] ?? objCategory.parent?.obj?.name['th-TH'] ?? 'sub-category';
@@ -220,7 +226,14 @@ export class cmsServices {
           term_uid: "mass"
         }],
         variant_images: variantImages,
-    };
+        product_short_description: shortDescription.value['th-TH'],
+        description: [{
+                tab: {
+                    name: "ภาพรวม",
+                    description: description["th-TH"],
+                }
+            }]
+      };
   }
   
   async decodedData(request: any) {
