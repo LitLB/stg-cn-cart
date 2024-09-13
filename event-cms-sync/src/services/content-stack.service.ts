@@ -22,11 +22,11 @@ export const createEntry = async (payload: any): Promise<any> => {
     const entry = payload;
     const response = await client.stack(stack).contentType(content_type_uid).entry().create({ entry });
 
-    logger.info(`Request: ${JSON.stringify(entry)}`)
-    logger.info(`Response: ${JSON.stringify(response)}`)
+    logger.info(`Request create entry: ${JSON.stringify(entry)}`)
+    logger.info(`Response create entry: ${JSON.stringify(response)}`)
     return;
   } catch (error) {
-    logger.info(`Request: ${JSON.stringify(payload)}`)
+    logger.info(`Request create entry: ${JSON.stringify(payload)}`)
     logger.error(`Error create entry: ${error}`);
   }
 }
@@ -43,11 +43,11 @@ export const updateEntry = async (entryUID: string, payload: any): Promise<any> 
       return entry.update({ locale });
     }));
 
-    logger.info(`Request: ${JSON.stringify(payload)}`)
-    logger.info(`Response: ${JSON.stringify(response)}`)
+    logger.info(`Request update entry: ${JSON.stringify(payload)}`)
+    logger.info(`Response update entry: ${JSON.stringify(response)}`)
     return;
   } catch (error) {
-    logger.info(`Request: ${JSON.stringify(payload)}`)
+    logger.info(`Request update entry: ${JSON.stringify(payload)}`)
     logger.error(`Error update entry: ${error}`);
   }
 }
@@ -56,11 +56,11 @@ export const deleteEntry = async (entryUID: string): Promise<any> => {
   try {
     const response = await client.stack(stack).contentType(content_type_uid).entry(entryUID).delete();
 
-    logger.info(`Request: ${JSON.stringify(entryUID)}`)
-    logger.info(`Response: ${JSON.stringify(response)}`)
+    logger.info(`Request delete entry: ${JSON.stringify(entryUID)}`)
+    logger.info(`Response delete entry: ${JSON.stringify(response)}`)
     return;
   } catch (error) {
-    logger.info(`Request: ${JSON.stringify(entryUID)}`)
+    logger.info(`Request delete entry: ${JSON.stringify(entryUID)}`)
     logger.error(`Error delete entry: ${error}`);
   }
 }
@@ -119,41 +119,55 @@ export const getLocales = async (): Promise<any> => {
 }
 
 export const publish = async (entryUID: string): Promise<any> => {
-  try {
-    const entry = {
-      locales: await getLocales(),
-      environments: environments
-    }; 
-    const response = await client.stack(stack)
-      .contentType(content_type_uid)
-      .entry(entryUID)
-      .publish({ publishDetails: entry})
+  const locales = await getLocales();
 
-    logger.info(`Request: ${JSON.stringify(entry)}`)
-    logger.info(`Response: ${JSON.stringify(response)}`)
-    return;
-  } catch (error) {
-    logger.info(`Request: ${JSON.stringify(entryUID)}`)
-    logger.error(`Error publish entry: ${error}`);
+  for (const locale of locales) { 
+    const data = { 
+      publishDetails: {
+        locales: [locale],
+        environments: environments 
+      },
+      locale: locale 
+    };
+
+    try {
+      const response = await client.stack(stack)
+        .contentType(content_type_uid)
+        .entry(entryUID)
+        .publish(data);
+  
+      logger.info(`Request publish: ${JSON.stringify(data)}`);
+      logger.info(`Response publish: ${JSON.stringify(response)}`);
+    } catch (error) {
+      logger.info(`Request publish: ${JSON.stringify(entryUID)}`)
+      logger.error(`Error publishing entry for locale: ${locale}, Error: ${error}`);
+    }
   }
 }
 
 export const unPublish = async (entryUID: string): Promise<any> => {
-  try {
-    const entry = {
-      locales: await getLocales(),
-      environments: environments
-    }; 
-    const response = await client.stack(stack)
-      .contentType(content_type_uid)
-      .entry(entryUID)
-      .unpublish({ publishDetails: entry})
- 
-    logger.info(`Request: ${JSON.stringify(entry)}`)
-    logger.info(`Response: ${JSON.stringify(response)}`)
-    return;
-  } catch (error) {
-    logger.info(`Request: ${JSON.stringify(entryUID)}`)
-    logger.error(`Error unPublish entry: ${error}`);
+  const locales = await getLocales();
+
+  for (const locale of locales) {
+    const data = { 
+      publishDetails: {
+        locales: [locale],
+        environments: environments 
+      },
+      locale: locale 
+    };
+
+    try {
+      const response = await client.stack(stack)
+        .contentType(content_type_uid)
+        .entry(entryUID)
+        .unpublish(data);
+  
+      logger.info(`Request unpublish: ${JSON.stringify(data)}`);
+      logger.info(`Response unpublish: ${JSON.stringify(response)}`);
+    } catch (error) {
+      logger.info(`Request unpublish: ${JSON.stringify(entryUID)}`)
+      logger.error(`Error unpublish entry for locale: ${locale}, Error: ${error}`);
+    }
   }
 }
