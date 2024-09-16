@@ -179,15 +179,15 @@ export class cmsServices {
     const commerceToolsData = [masterVariant, ...variants];
     let variantImages: any[] = [];
 
-    const slugUrl = slug['en-US'] ?? slug['th-TH'] ?? '';
+    const productSlug = slug['th-TH'] ?? slug['en-US'] ?? '';
     const productName = name['th-TH'] ?? name['en-US'] ?? '';
     const shortDescription = masterVariant.attributes.find((attr: { name: string }) => attr.name === 'short_description');
     const objCategory = product?.categories[0]?.obj;
-    let category = objCategory.name['en-US'] ?? objCategory.name['th-TH'] ?? 'category';
-    let subCategory = objCategory.parent?.obj?.name['en-US'] ?? objCategory.parent?.obj?.name['th-TH'] ?? 'sub-category';
+    let subCategory = objCategory.name['en-US'] ?? objCategory.name['th-TH'] ?? 'category';
+    let category = objCategory.parent?.obj?.name['en-US'] ?? objCategory.parent?.obj?.name['th-TH'] ?? 'sub-category';
 
-    category = category.toLowerCase();
-    subCategory = subCategory.toLowerCase();
+    const categorySlug = category.toLowerCase().replace(/\s+/g, "-");
+    const subCategorySlug = subCategory.toLowerCase().replace(/\s+/g, "-");
 
     if (!productName) {
       logger.info(`Data: ${JSON.stringify(product)}`);
@@ -217,23 +217,23 @@ export class cmsServices {
     }
 
     return {
-        title: productName,
-        product_name: productName,
-        url: `/${category}/${subCategory}/${slugUrl}`,
-        commerce_tools_id: id,
-        taxonomies: [{
-          taxonomy_uid: "campaign_group",
-          term_uid: "mass"
-        }],
-        variant_images: variantImages,
-        product_short_description: shortDescription.value['th-TH'],
-        description: [{
-                tab: {
-                    name: "ภาพรวม",
-                    description: description["th-TH"],
-                }
-            }]
-      };
+      title: productName,
+      product_name: productName,
+      url: `/${categorySlug}/${subCategorySlug}/${productSlug}`,
+      commerce_tools_id: id,
+      taxonomies: [{
+        taxonomy_uid: "campaign_group",
+        term_uid: "mass"
+      }],
+      variant_images: variantImages,
+      product_short_description: shortDescription.value['th-TH'],
+      description: [{
+              tab: {
+                  name: "ภาพรวม",
+                  description: description["th-TH"],
+              }
+          }]
+    };
   }
   
   async decodedData(request: any) {
