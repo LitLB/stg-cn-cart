@@ -27,7 +27,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Define routes
-app.use('/service', ServiceRoutes);
+app.use('/strikeThrough', ServiceRoutes);
 
 // Global error handler
 app.use(errorMiddleware);
