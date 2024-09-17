@@ -37,6 +37,8 @@ export const updateEntry = async (entryUID: string, payload: any): Promise<any> 
     const entry = await client.stack(stack).contentType(content_type_uid).entry(entryUID).fetch();
     const response = await Promise.all(locales.map(async (locale: string) => {
       entry.product_name = payload[locale]?.product_name;
+      entry.main_category = payload[locale]?.main_category;
+      entry.sub_category = payload[locale]?.sub_category;
       entry.main_image_group = payload[locale]?.main_image_group;
       entry.variant_images = payload[locale]?.variant_images;
     
@@ -72,8 +74,7 @@ export const getContentStackEntry = async (productID: string): Promise<any> => {
         .entry().query({
           query: {
             'commerce_tools_id': productID,
-            'taxonomies.term_uid': 'mass',
-            'taxonomies.taxonomy_uid': 'campaign_group'
+            'campaign_group': 'mass'
           }
         }).find();
   
@@ -84,19 +85,79 @@ export const getContentStackEntry = async (productID: string): Promise<any> => {
     }
 };
 
-export const getTermsOfTaxonomy = async (taxonomyUid: string): Promise<any> => {
-    try {
-      const term = await client.stack(stack)
-          .taxonomy(taxonomyUid)
-          .terms()
-          .query()
-          .find();
-      
-      return term.items.map((term) => term.name);
-    } catch (error) {
-      logger.info(`Request: ${JSON.stringify(taxonomyUid)}`)
-      logger.error(`Error fetching taxonomy: ${error}`);
+export const createTaxonomy = async (taxonomyUid: string): Promise<any> => {
+  try {
+    const taxonomy = {
+      uid: taxonomyUid,
+      name: taxonomyUid,
+      description: '-'
     }
+    await client.stack(stack)
+    .taxonomy()
+    .create({taxonomy});
+
+    logger.info(`Response: Successfully created Taxonomy: ${JSON.stringify(taxonomy)}`);
+    return;
+
+  } catch (error) {
+    logger.info(`Request: ${JSON.stringify(taxonomyUid)}`);
+    logger.error(`Error creating taxonomy: ${error}`);
+    throw error;
+  }
+}
+
+export const getTaxonomy = async (taxonomyUid: string): Promise<any> => {
+  try {
+    const term = await client.stack(stack)
+        .taxonomy(taxonomyUid)
+        .terms()
+        .query()
+        .find();
+    
+    return term;
+  } catch (error) {
+    return;
+  }
+}
+
+export const getTermsOfTaxonomy = async (taxonomyUid: string): Promise<any> => {
+  try {
+    const term = await client.stack(stack)
+        .taxonomy(taxonomyUid)
+        .terms()
+        .query()
+        .find();
+    
+    return term.items.map((term) => term.name);
+  } catch (error) {
+    logger.info(`Request: ${JSON.stringify(taxonomyUid)}`)
+    logger.error(`Error fetching term taxonomy: ${error}`);
+  }
+};
+
+export const createTermsOfTaxonomy = async (taxonomyUid: string, termUid: string = 'mass'): Promise<any> => {
+  try {
+    const term = {
+      term: {
+        uid: termUid,
+        name: termUid,
+        order: 1 
+      }
+    };
+
+    const result = await client.stack(stack)
+      .taxonomy(taxonomyUid)
+      .terms()
+      .create(term);
+
+    logger.info(`Response: Successfully created term: ${JSON.stringify(result)}`);
+    return result; 
+
+  } catch (error) {
+    logger.info(`Request: ${JSON.stringify(taxonomyUid)}`);
+    logger.error(`Error creating term in taxonomy: ${error}`);
+    throw error;
+  }
 };
 
 export const getLocales = async (): Promise<any> => {

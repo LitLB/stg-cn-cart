@@ -6,7 +6,10 @@ import {
   createEntry,
   updateEntry,
   deleteEntry,
+  getTaxonomy,
+  createTaxonomy,
   getTermsOfTaxonomy,
+  createTermsOfTaxonomy,
   getContentStackEntry
 } from '../services/content-stack.service';
 
@@ -99,6 +102,12 @@ export class cmsServices {
     const productNameTH = newData.name['th-TH'] ?? ''; // Default language
     const productNameUS = newData.name['en-US'] ?? ''; 
 
+    const objCategory = newData?.categories[0]?.obj;
+    let subCategory = objCategory.name['en-US'] ?? objCategory.name['th-TH'] ?? 'category';
+    let category = objCategory.parent?.obj?.name['en-US'] ?? objCategory.parent?.obj?.name['th-TH'] ?? 'sub-category';
+    const mainCategorySlug = category.toLowerCase().replace(/\s+/g, "-");
+    const subCategorySlug = subCategory.toLowerCase().replace(/\s+/g, "-");
+
     let newResult = [...contentStackData]; // Deep copy for manipulation
 
     // Find updates and deletions
@@ -159,10 +168,14 @@ export class cmsServices {
     return {
       'th-th': {
         product_name: productNameTH,
+        main_category: mainCategorySlug,
+        sub_category: subCategorySlug,
         variant_images: newResult
       },
       'en-us': {
         product_name: productNameUS,
+        main_category: mainCategorySlug,
+        sub_category: subCategorySlug,
         variant_images: newResult
       },
     };
@@ -178,6 +191,8 @@ export class cmsServices {
     } = product;
     const commerceToolsData = [masterVariant, ...variants];
     let variantImages: any[] = [];
+    const taxonomyUID = 'campaign_group_argus_01';
+    const termUID = 'mass';
 
     const productSlug = slug['th-TH'] ?? slug['en-US'] ?? '';
     const productName = name['th-TH'] ?? name['en-US'] ?? '';
@@ -186,7 +201,7 @@ export class cmsServices {
     let subCategory = objCategory.name['en-US'] ?? objCategory.name['th-TH'] ?? 'category';
     let category = objCategory.parent?.obj?.name['en-US'] ?? objCategory.parent?.obj?.name['th-TH'] ?? 'sub-category';
 
-    const categorySlug = category.toLowerCase().replace(/\s+/g, "-");
+    const mainCategorySlug = category.toLowerCase().replace(/\s+/g, "-");
     const subCategorySlug = subCategory.toLowerCase().replace(/\s+/g, "-");
 
     if (!productName) {
@@ -201,8 +216,14 @@ export class cmsServices {
       const status = statusAttribute?.value?.label.toLowerCase() === 'enabled';
       const color = colorAttribute?.value?.label || '';
   
+      const taxonomy = await getTaxonomy(taxonomyUID);
+      if (!taxonomy) {
+        await createTaxonomy(taxonomyUID);
+        await createTermsOfTaxonomy(taxonomyUID, termUID);
+      }
+       
       const channels = await getTermsOfTaxonomy('display_channel');
-  
+
       channels.forEach((channel: string) => {
         variantImages.push({
           image_color: {
@@ -219,14 +240,13 @@ export class cmsServices {
     return {
       title: productName,
       product_name: productName,
-      url: `/${categorySlug}/${subCategorySlug}/${productSlug}`,
+      url: `/${mainCategorySlug}/${subCategorySlug}/${productSlug}`,
       commerce_tools_id: id,
-      taxonomies: [{
-        taxonomy_uid: "campaign_group",
-        term_uid: "mass"
-      }],
+      main_category: mainCategorySlug,
+      sub_category: subCategorySlug,
+      campaign_group: termUID,
       variant_images: variantImages,
-      product_short_description: shortDescription.value['th-TH'],
+      product_short_description: shortDescription?.value['th-TH'],
       description: [{
               tab: {
                   name: "ภาพรวม",
