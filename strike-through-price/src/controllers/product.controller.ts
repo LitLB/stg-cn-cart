@@ -25,7 +25,7 @@ let productsDraft: ProductsDraft = {}
 export const productController = async (req: Request, res: Response) => {
     try {
         const body = req.body
-        logger.info(`Strike through: ${body}`)
+        logger.info(`Strike through: ${JSON.stringify(body)}`)
         const campaignID = body.trigger.payload.campaignId
         const items = req.body.changedItems.flatMap((item: any) => item.effects)
         const effects = (body.trigger.type === 'CAMPAIGN_UPDATE') 
@@ -36,13 +36,13 @@ export const productController = async (req: Request, res: Response) => {
 
         let customerGroup: { [key: string]: any } = {}
         query.forEach((q: any) => {
-            customerGroup[q.key] = q.id
+            customerGroup[q.key.toLowerCase()] = q.id
         })
 
-        const rrpID = customerGroup['RRP']
+        const rrpID = customerGroup['rrp']
         if (!rrpID) {
-            res.status(200).send(`No RRP in customer group list`)
             logger.error(`No RRP in customer group list`)
+            res.status(200).send()
             return
         }
 
@@ -51,10 +51,10 @@ export const productController = async (req: Request, res: Response) => {
             if (effect.company === '' || effect.journey === '') continue
 
             const customerGroupKey = getCustomerGroupKey(effect)
-            const customerGroupID = customerGroup[customerGroupKey]
+            const customerGroupID = customerGroup[customerGroupKey.toLocaleLowerCase()]
 
             if (!customerGroupID) {
-                logger.error(`Not found Customer group key: ${customerGroupKey}`)
+                logger.error(`No Customer group key: ${customerGroupKey}`)
                 continue
             }
 
@@ -62,21 +62,23 @@ export const productController = async (req: Request, res: Response) => {
             const product = (productID in products) ? products[productID] : await buildProduct(productID, rrpID)
             const sku = product[effect.sku]
             if (!sku) {
-                logger.error(`Not found Product: ${productID} - sku: ${effect.sku}`)
+                logger.error(`No Product: ${productID} - ${effect.sku}`)
                 continue
             }
 
-            if (sku.otherPrices.length > 0) {
+            if (sku.otherPrices.length > 0 && sku.rrpPrices.length > 0)
                 for (const price of sku.otherPrices) {
                     const action = await wrapRemovePayload(customerGroupID, price)
                     if (action) productsDraft[productID].actions.push(action)
                 }
-            }
 
-            for (const price of sku.rrpPrices) {
-                const action = await wrapPayload(customerGroupID, sku.id, price, Number(effect.total_discount_amount))
-                productsDraft[productID].actions.push(action)
-            }
+            if (sku.rrpPrices.length > 0)
+                for (const price of sku.rrpPrices) {
+                    const action = await wrapPayload(customerGroupID, sku.id, price, Number(effect.total_discount_amount))
+                    productsDraft[productID].actions.push(action)
+                }
+            else
+                logger.info(`No RRP prices Product: ${productID} - ${effect.sku}`)
         }
 
         for (const productID in productsDraft) {
