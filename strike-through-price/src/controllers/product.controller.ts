@@ -25,7 +25,7 @@ let productsDraft: ProductsDraft = {}
 export const productController = async (req: Request, res: Response) => {
     try {
         const body = req.body
-        
+        logger.info(`Strike through: ${body}`)
         const campaignID = body.trigger.payload.campaignId
         const items = req.body.changedItems.flatMap((item: any) => item.effects)
         const effects = (body.trigger.type === 'CAMPAIGN_UPDATE') 
@@ -50,13 +50,21 @@ export const productController = async (req: Request, res: Response) => {
             const effect = e.props.payload
             if (effect.company === '' || effect.journey === '') continue
 
-            const customerGroupID = customerGroup[getCustomerGroupKey(effect)]
-            if (!customerGroupID) continue
+            const customerGroupKey = getCustomerGroupKey(effect)
+            const customerGroupID = customerGroup[customerGroupKey]
+
+            if (!customerGroupID) {
+                logger.error(`Not found Customer group key: ${customerGroupKey}`)
+                continue
+            }
 
             const productID = effect.commercetools_product_id
             const product = (productID in products) ? products[productID] : await buildProduct(productID, rrpID)
             const sku = product[effect.sku]
-            if (!sku) continue
+            if (!sku) {
+                logger.error(`Not found Product: ${productID} - sku: ${effect.sku}`)
+                continue
+            }
 
             if (sku.otherPrices.length > 0) {
                 for (const price of sku.otherPrices) {
