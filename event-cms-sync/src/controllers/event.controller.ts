@@ -11,12 +11,16 @@ import { cmsService } from '../services/content-stack-sync.service';
  * @returns
  */
 export const eventController = async (request: Request, response: Response) => {
+  const data = await cmsService.decodedData(request);
   try {
-    const data = await cmsService.decodedData(request);
     const productID: string = data.resource?.id;
 
     if (!data) {
       throw new Error('Missing request body');
+    }
+
+    if (data.resource?.typeId !== 'product') {
+      throw new Error('Invalid resource type: Expected product');
     }
 
     if (!productID) {
@@ -41,7 +45,8 @@ export const eventController = async (request: Request, response: Response) => {
         throw new Error('Invalid notification type');
     }
   } catch (error) {
-    logger.error(`Error request: ${error}`);
+    logger.error(`Error ${data.notificationType} : ${data.resource}`);
+    logger.error(`Error request : ${error}`);
     response.status(200).send()
     return;
   }

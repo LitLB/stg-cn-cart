@@ -41,7 +41,7 @@ export class cmsServices {
     const isPublished = product.data.masterData.published;
     const hasStagedChanges = product.data.masterData.hasStagedChanges;
     const entry = await getContentStackEntry(productID);
-    const entryUID = entry[0]?.uid;
+    const entryUID = entry?.[0]?.uid;
 
     if (isPublished && !hasStagedChanges) {
       await publish(entryUID);
@@ -98,15 +98,16 @@ export class cmsServices {
     const masterVariant = newData.masterVariant;
     const variants = newData.variants;
     const commerceToolsData = [masterVariant, ...variants];
-    const contentStackData = oldData[0]?.variant_images || [];
-    const productNameTH = newData.name['th-TH'] ?? ''; // Default language
-    const productNameUS = newData.name['en-US'] ?? ''; 
+    const contentStackData = oldData?.[0]?.variant_images ?? [];
+    const productNameTH = newData?.name?.['th-TH'] ?? ''; // Default language
+    const productNameUS = newData?.name?.['en-US'] ?? ''; 
+    const brandName = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'brand_name');
+    const objCategory = newData?.categories?.[0]?.obj;
 
-    const objCategory = newData?.categories[0]?.obj;
-    let subCategory = objCategory.name['en-US'] ?? objCategory.name['th-TH'] ?? 'category';
-    let category = objCategory.parent?.obj?.name['en-US'] ?? objCategory.parent?.obj?.name['th-TH'] ?? 'sub-category';
-    const mainCategorySlug = category.toLowerCase().replace(/\s+/g, "-");
-    const subCategorySlug = subCategory.toLowerCase().replace(/\s+/g, "-");
+    let subCategory = objCategory?.name?.['en-US'] ?? objCategory?.name?.['th-TH'] ?? 'category';
+    let category = objCategory?.parent?.obj?.name?.['en-US'] ?? objCategory?.parent?.obj?.name?.['th-TH'] ?? 'sub-category';
+    const mainCategorySlug = category?.toLowerCase().replace(/\s+/g, "-");
+    const subCategorySlug = subCategory?.toLowerCase().replace(/\s+/g, "-");
 
     let newResult = [...contentStackData]; // Deep copy for manipulation
 
@@ -115,8 +116,8 @@ export class cmsServices {
       const newItem = commerceToolsData.find(item => item.sku === oldItem.image_color.sku);
       if (!newItem) return false; // Delete
   
-      const colorAttribute = newItem.attributes.find((attr: { name: string }) => attr.name === 'color'); 
-      const statusAttribute = newItem.attributes.find((attr: { name: string }) => attr.name === 'status');
+      const colorAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'color'); 
+      const statusAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'status');
   
       // Update images
       oldItem.image_color.images?.forEach((item: { uid: string }, idx: number) => {
@@ -140,10 +141,10 @@ export class cmsServices {
     for (const newItem of commerceToolsData) {
       const oldItem = newResult.find(item => item?.image_color?.sku === newItem.sku);
       if (!oldItem) {
-        const colorAttribute = newItem.attributes.find((attr: { name: string }) => attr.name === 'color');
-        const statusAttribute = newItem.attributes.find((attr: { name: string }) => attr.name === 'status');
+        const colorAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'color');
+        const statusAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'status');
   
-        const color = colorAttribute?.value?.label || '';
+        const color = colorAttribute?.value?.label ?? '';
         const status = statusAttribute?.value?.label.toLowerCase() === 'enabled';
   
         const imageColor = {
@@ -170,12 +171,14 @@ export class cmsServices {
         product_name: productNameTH,
         main_category: mainCategorySlug,
         sub_category: subCategorySlug,
+        brand_name: brandName?.value?.label ?? '',
         variant_images: newResult
       },
       'en-us': {
         product_name: productNameUS,
         main_category: mainCategorySlug,
         sub_category: subCategorySlug,
+        brand_name: brandName?.value?.label ?? '',
         variant_images: newResult
       },
     };
@@ -191,18 +194,19 @@ export class cmsServices {
     } = product;
     const commerceToolsData = [masterVariant, ...variants];
     let variantImages: any[] = [];
-    const taxonomyUID = 'campaign_group_argus_01';
+    const taxonomyUID = 'campaign_group';
     const termUID = 'mass';
 
-    const productSlug = slug['th-TH'] ?? slug['en-US'] ?? '';
-    const productName = name['th-TH'] ?? name['en-US'] ?? '';
-    const shortDescription = masterVariant.attributes.find((attr: { name: string }) => attr.name === 'short_description');
-    const objCategory = product?.categories[0]?.obj;
-    let subCategory = objCategory.name['en-US'] ?? objCategory.name['th-TH'] ?? 'category';
-    let category = objCategory.parent?.obj?.name['en-US'] ?? objCategory.parent?.obj?.name['th-TH'] ?? 'sub-category';
-
-    const mainCategorySlug = category.toLowerCase().replace(/\s+/g, "-");
-    const subCategorySlug = subCategory.toLowerCase().replace(/\s+/g, "-");
+    const productSlug = slug?.['th-TH'] ?? slug?.['en-US'] ?? '';
+    const productName = name?.['th-TH'] ?? name?.['en-US'] ?? '';
+    const shortDescription = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'short_description');
+    const brandName = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'brand_name');
+    const productId = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'product_id');
+    const objCategory = product?.categories?.[0]?.obj;
+    let subCategory = objCategory?.name?.['en-US'] ?? objCategory?.name?.['th-TH'] ?? 'category';
+    let category = objCategory?.parent?.obj?.name?.['en-US'] ?? objCategory?.parent?.obj?.name?.['th-TH'] ?? 'sub-category';
+    const mainCategorySlug = category?.toLowerCase().replace(/\s+/g, "-");
+    const subCategorySlug = subCategory?.toLowerCase().replace(/\s+/g, "-");
 
     if (!productName) {
       logger.info(`Data: ${JSON.stringify(product)}`);
@@ -210,11 +214,11 @@ export class cmsServices {
     }
   
     for (const item of commerceToolsData) {
-      const statusAttribute = item.attributes.find((attr: any) => attr.name === 'status');
-      const colorAttribute = item.attributes.find((attr: any) => attr.name === 'color');
+      const statusAttribute = item.attributes.find((attr: any) => attr?.name === 'status');
+      const colorAttribute = item.attributes.find((attr: any) => attr?.name === 'color');
       
       const status = statusAttribute?.value?.label.toLowerCase() === 'enabled';
-      const color = colorAttribute?.value?.label || '';
+      const color = colorAttribute?.value?.label ?? '';
   
       const taxonomy = await getTaxonomy(taxonomyUID);
       if (!taxonomy) {
@@ -228,7 +232,7 @@ export class cmsServices {
         variantImages.push({
           image_color: {
             status: status,
-            sku: item.sku,
+            sku: item?.sku ?? '',
             color: color,
             display_channel: channel,
             images: [],
@@ -242,15 +246,17 @@ export class cmsServices {
       product_name: productName,
       url: `/${mainCategorySlug}/${subCategorySlug}/${productSlug}`,
       commerce_tools_id: id,
+      product_id: productId?.value ?? '',
       main_category: mainCategorySlug,
       sub_category: subCategorySlug,
       campaign_group: termUID,
+      brand_name: brandName?.value?.label ?? '',
       variant_images: variantImages,
-      product_short_description: shortDescription?.value['th-TH'],
+      product_short_description: shortDescription?.value?.['th-TH'] ?? '',
       description: [{
               tab: {
                   name: "ภาพรวม",
-                  description: description["th-TH"],
+                  description: description?.["th-TH"] ?? '',
               }
           }]
     };

@@ -37,6 +37,7 @@ export const updateEntry = async (entryUID: string, payload: any): Promise<any> 
     const entry = await client.stack(stack).contentType(content_type_uid).entry(entryUID).fetch();
     const response = await Promise.all(locales.map(async (locale: string) => {
       entry.product_name = payload[locale]?.product_name;
+      entry.brand_name = payload[locale]?.brand_name
       entry.main_category = payload[locale]?.main_category;
       entry.sub_category = payload[locale]?.sub_category;
       entry.main_image_group = payload[locale]?.main_image_group;
@@ -55,15 +56,21 @@ export const updateEntry = async (entryUID: string, payload: any): Promise<any> 
 }
 
 export const deleteEntry = async (entryUID: string): Promise<any> => {
-  try {
-    const response = await client.stack(stack).contentType(content_type_uid).entry(entryUID).delete();
+  const locales = await getLocales();
+  
+  for (const locale of locales) {
+    try {
+      const response = await client.stack(stack)
+      .contentType(content_type_uid)
+      .entry(entryUID)
+      .delete({ locale: locale });
 
-    logger.info(`Request delete entry: ${JSON.stringify(entryUID)}`)
-    logger.info(`Response delete entry: ${JSON.stringify(response)}`)
-    return;
-  } catch (error) {
-    logger.info(`Request delete entry: ${JSON.stringify(entryUID)}`)
-    logger.error(`Error delete entry: ${error}`);
+      logger.info(`Request delete entry: ${JSON.stringify(entryUID)}`)
+      logger.info(`Response deleted entry for locale: ${locale} : ${JSON.stringify(response)}`)
+    } catch (error) {
+      logger.info(`Request delete entry: ${JSON.stringify(entryUID)}`)
+      logger.error(`Error delete entry: ${error}`);
+    }
   }
 }
 
