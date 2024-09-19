@@ -104,9 +104,9 @@ export class cmsServices {
     const brandName = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'brand_name');
     const objCategory = newData?.categories?.[0]?.obj;
 
-    let subCategory = objCategory?.name?.['en-US'] ?? objCategory?.name?.['th-TH'] ?? 'category';
-    let category = objCategory?.parent?.obj?.name?.['en-US'] ?? objCategory?.parent?.obj?.name?.['th-TH'] ?? 'sub-category';
-    const mainCategorySlug = category?.toLowerCase().replace(/\s+/g, "-");
+    let mainCategory = objCategory?.parent?.obj?.name?.['en-US'] ?? objCategory?.parent?.obj?.name?.['th-TH'] ?? 'category';
+    let subCategory = objCategory?.name?.['en-US'] ?? objCategory?.name?.['th-TH'] ?? 'sub-category';
+    const mainCategorySlug = mainCategory?.toLowerCase().replace(/\s+/g, "-");
     const subCategorySlug = subCategory?.toLowerCase().replace(/\s+/g, "-");
 
     let newResult = [...contentStackData]; // Deep copy for manipulation
