@@ -26,6 +26,12 @@ export const productController = async (req: Request, res: Response) => {
     try {
         const body = req.body
         logger.info(`Strike through: ${JSON.stringify(body)}`)
+
+        if (body.trigger.type !== 'CAMPAIGN_UPDATE' && body.trigger.type !== 'CATALOG_SYNC') {
+            res.status(200).send()
+            return
+        }
+        
         const campaignID = body.trigger.payload.campaignId
         const items = req.body.changedItems.flatMap((item: any) => item.effects)
         const effects = (body.trigger.type === 'CAMPAIGN_UPDATE') 
@@ -74,7 +80,7 @@ export const productController = async (req: Request, res: Response) => {
 
             if (sku.rrpPrices.length > 0)
                 for (const price of sku.rrpPrices) {
-                    const action = await wrapPayload(customerGroupID, sku.id, price, Number(effect.total_discount_amount))
+                    const action = await wrapPayload(customerGroupID, sku.id, price, effect)
                     productsDraft[productID].actions.push(action)
                 }
             else
@@ -110,10 +116,19 @@ const wrapRemovePayload = async (customerGroupID: string, price: any) => {
     }
 }
 
-const wrapPayload = async (customerGroupID: string, variantID: number, price: any, discount: number) => {
-    const amount = price.value.centAmount - (discount * (10 ** price.value.fractionDigits))
-    const validFrom = { validFrom: price.validFrom || null }
-    const validUntil = { validUntil: price.validUntil || null }
+const wrapPayload = async (customerGroupID: string, variantID: number, price: any, effect: any) => {
+    const amount = price.value.centAmount - (effect.total_discount_amount * (10 ** price.value.fractionDigits))
+    const validFrom = price.validFrom
+    const validUntil = price.validUntil
+    const hasFreeGift = effect.has_free_gift === "true"
+    const custom = hasFreeGift ? {
+        type: {
+            typeId: "type",
+            key: "productAudiencePriceAdditionalField"
+        },
+        fields: { hasFreeGift }
+    } : null
+
     return {
         action: 'addPrice',
         variantId: variantID,
@@ -126,8 +141,9 @@ const wrapPayload = async (customerGroupID: string, variantID: number, price: an
                 typeId: 'customer-group',
                 id: customerGroupID
             },
-            ...validFrom,
-            ...validUntil
+            ...{ validFrom },
+            ...{ validUntil },
+            ...{ custom }
         }
     }
 }
