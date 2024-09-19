@@ -1,13 +1,20 @@
-export const buildData = (id: string, product: any) => {
-    const productName = getProductName(product.name)
-    const actions = [
-        wrapPayload(id, productName, product.masterVariant)
-    ]
+import { logger } from '../utils/logger.utils'
+import { queryProducts, queryCustomerGroup } from '../services/commercetools.service'
 
-    product.variants.forEach((variant: any) => {
-        const action = wrapPayload(id, productName, variant)
-        actions.push(action)
-    })
+export const buildData = (id: string, product: any, variantID?: number) => {
+    const productName = getProductName(product.name)
+    const actions: Array<any> = []
+
+    const variants = [product.masterVariant].concat(product.variants)
+    if (variantID) {
+        const variant = variants.find((variant: any) => variant.id === variantID)
+        actions.push(wrapPayload(id, productName, variant))
+    } else {
+        variants.forEach((variant: any) => {
+            const action = wrapPayload(id, productName, variant)
+            actions.push(action)
+        })
+    }
 
     return { actions }
 }
@@ -35,7 +42,7 @@ const wrapPayload = (id: string, name: string | null, variant: any) => {
     const attributes: { commercetools_product_id: string; capacity?: string } = {
         commercetools_product_id: id
     }
-    const capacity = variant.attributes.find((item: any) => item.name === 'capacity')?.value?.label || null
+    const capacity = variant.attributes.find((item: any) => item.name === 'capacity')?.value?.label || '11'
     if (capacity)
         attributes.capacity = capacity
 
@@ -83,3 +90,19 @@ const getProductName = (obj: any) => {
         return null
     return productName.length > 50 ? productName.substring(0, 47) + '...' : productName
 }
+
+export const getProduct = (async (id: string) => {
+    const products = await queryProducts(id)
+    if (products.length < 1) {
+        logger.info(`No Product: ${id}`)
+        return
+    }
+    return products[0]?.masterData
+})
+
+export const isRRP = ( async (customerGroupID: string) => {
+    if (!customerGroupID) return false
+    const customerGroup = await queryCustomerGroup(customerGroupID)
+    if (!customerGroup) return false
+    return customerGroup.key?.toLocaleLowerCase() === 'rrp'
+})

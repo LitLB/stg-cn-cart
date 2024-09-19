@@ -11,6 +11,19 @@ export const queryProducts = async (productID: string) => {
             },
         })
         .execute()
-        
+
     return products
+}
+
+export const queryCustomerGroup = async (customerGroupID: string) => {
+    const { body: { results: customerGroups } } = await apiRoot
+        .customerGroups()
+        .get({
+            queryArgs: {
+                where: `id = "${customerGroupID}"`,
+            },
+        })
+        .execute()
+
+    return customerGroups[0]
 }
