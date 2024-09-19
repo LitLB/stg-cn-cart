@@ -43,17 +43,18 @@ export async function createProductSubscription(
           topic: topicName,
           projectId,
         },
-        messages: [
-          {
-            resourceTypeId: 'product',
-            types: ["ProductVariantDeleted"]
-          },
-        ],
-        changes: [
-          {
-            resourceTypeId: 'product',
-          },
-        ],
+        messages: [{
+          resourceTypeId: 'product',
+          types: [
+            'ProductCreated',
+            'ProductDeleted',
+            'ProductPriceAdded',
+            'ProductPriceChanged',
+            'ProductPriceRemoved',
+            'ProductVariantAdded',
+            'ProductVariantDeleted'
+          ]
+        }],
       },
     })
     .execute();
