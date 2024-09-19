@@ -42,7 +42,7 @@ const wrapPayload = (id: string, name: string | null, variant: any) => {
     const attributes: { commercetools_product_id: string; capacity?: string } = {
         commercetools_product_id: id
     }
-    const capacity = variant.attributes.find((item: any) => item.name === 'capacity')?.value?.label || '11'
+    const capacity = variant.attributes.find((item: any) => item.name === 'capacity')?.value?.label || null
     if (capacity)
         attributes.capacity = capacity
 
