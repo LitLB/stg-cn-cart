@@ -31,7 +31,7 @@ export const productController = async (req: Request, res: Response) => {
             res.status(200).send()
             return
         }
-console.log(11)
+
         if (!body.changedItems.length || body.changedItems.length < 1) {
             res.status(200).send()
             return
