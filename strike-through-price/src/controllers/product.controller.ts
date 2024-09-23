@@ -83,18 +83,19 @@ export const productController = async (req: Request, res: Response) => {
                 continue
             }
 
-            if (sku.otherPrices.length > 0 && sku.rrpPrices.length > 0)
+            if (sku.otherPrices.length > 0) {
                 for (const price of sku.otherPrices) {
                     const action = await wrapRemovePayload(customerGroupID, price)
                     if (action) productsDraft[productID].actions.push(action)
                 }
+            }
 
-            if (sku.rrpPrices.length > 0)
+            if (sku.rrpPrices.length > 0) {
                 for (const price of sku.rrpPrices) {
                     const action = await wrapPayload(customerGroupID, sku.id, price, effect)
                     productsDraft[productID].actions.push(action)
                 }
-            else
+            } else
                 logger.info(`No RRP prices Product: ${productID} - ${effect.sku}`)
         }
 
