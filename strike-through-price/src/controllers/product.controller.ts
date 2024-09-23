@@ -27,13 +27,18 @@ export const productController = async (req: Request, res: Response) => {
         const body = req.body
         logger.info(`Strike through: ${JSON.stringify(body)}`)
 
-        if (body.trigger.type !== 'CAMPAIGN_UPDATE' && body.trigger.type !== 'CATALOG_SYNC') {
+        if (!body || (body.trigger?.type !== 'CAMPAIGN_UPDATE' && body.trigger?.type !== 'CATALOG_SYNC')) {
+            res.status(200).send()
+            return
+        }
+console.log(11)
+        if (!body.changedItems.length || body.changedItems.length < 1) {
             res.status(200).send()
             return
         }
         
         const campaignID = body.trigger.payload.campaignId
-        const items = req.body.changedItems.flatMap((item: any) => item.effects)
+        const items = body.changedItems.flatMap((item: any) => item.effects)
         const effects = (body.trigger.type === 'CAMPAIGN_UPDATE') 
             ? items.filter((effect: any) => effect.campaignId === campaignID)
             : items
@@ -66,6 +71,12 @@ export const productController = async (req: Request, res: Response) => {
 
             const productID = effect.commercetools_product_id
             const product = (productID in products) ? products[productID] : await buildProduct(productID, rrpID)
+
+            if (!product) {
+                logger.error(`No Product: ${productID}`)
+                continue
+            }
+
             const sku = product[effect.sku]
             if (!sku) {
                 logger.error(`No Product: ${productID} - ${effect.sku}`)
@@ -150,6 +161,8 @@ const wrapPayload = async (customerGroupID: string, variantID: number, price: an
 
 const buildProduct = async (id: string, rrpID: string) => {
     const query = await queryProducts(id)
+    if (query.length < 1) return
+
     const data = query[0].masterData.staged
     const variants = [data.masterVariant].concat(data.variants)
 
