@@ -59,7 +59,7 @@ export const productController = async (req: Request, res: Response) => {
 
         for (const e of effects) {
             const effect = e.props.payload
-            if (effect.company === '' || effect.journey === '') continue
+            if (!effect.company || !effect.journey || effect.company === 'null' || effect.journey === 'null') continue
 
             const customerGroupKey = getCustomerGroupKey(effect)
             const customerGroupID = customerGroup[customerGroupKey.toLocaleLowerCase()]
@@ -194,7 +194,6 @@ const buildProduct = async (id: string, rrpID: string) => {
 }
 
 const getCustomerGroupKey = (effect: any): string => {
-    return [effect.journey, effect.loyalty_tier].join('_')
-        .toLowerCase()
-        .replace(/[_\s]+(.)?/g, (_, char) => char ? char.toUpperCase() : '');
+    const key: string = effect.loyalty_tier === 'null' ? effect.journey : [effect.journey, effect.loyalty_tier].join('_')
+    return key.replace(/[_\s]+(.)?/g, (_, char) => char ? char.toUpperCase() : '')
 }
