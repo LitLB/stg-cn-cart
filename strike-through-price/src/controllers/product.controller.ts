@@ -132,13 +132,13 @@ const wrapPayload = async (customerGroupID: string, variantID: number, price: an
     const amount = price.value.centAmount - (effect.total_discount_amount * (10 ** price.value.fractionDigits))
     const validFrom = price.validFrom
     const validUntil = price.validUntil
-    const hasFreeGift = effect.has_free_gift === "true"
+    const hasFreeGift = effect?.has_free_gift || null
     const custom = hasFreeGift ? {
         type: {
             typeId: "type",
             key: "productAudiencePriceAdditionalField"
         },
-        fields: { hasFreeGift }
+        fields: { hasFreeGift: hasFreeGift === "true" }
     } : null
 
     return {
