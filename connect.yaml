@@ -100,6 +100,9 @@ deployAs:
         - key: CTP_REGION
           description: commercetools Composable Commerce API region
           required: true
+        - key: ETL_CLIENT_URL
+          description: ETL client url for run workflow
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: commercetools Composable Commerce project key
