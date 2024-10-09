@@ -25,7 +25,11 @@ export const queryCustomerGroupList = async () => {
     try {
         const { body: { results: customerGroups } } = await apiRoot
             .customerGroups()
-            .get()
+            .get({
+                queryArgs: {
+                    limit: 500,
+                },
+            })
             .execute()
 
         return customerGroups

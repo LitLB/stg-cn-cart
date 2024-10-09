@@ -29,3 +29,9 @@ export const readConfiguration = () => {
 
   return envVars;
 };
+
+export const ETLConfig = () => {
+  return {
+    clientUrl: process.env.ETL_CLIENT_URL as string
+  }
+}

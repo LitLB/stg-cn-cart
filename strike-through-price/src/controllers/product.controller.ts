@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { logger } from '../utils/logger.utils'
 import { queryProducts, queryCustomerGroupList, updateProduct } from '../services/commercetools.service'
+import { callPDPWorkflow } from '../services/etl.service'
 
 /**
  * Exposed event POST endpoint.
@@ -19,8 +20,15 @@ interface ProductsDraft {
     [id: string]: any
 }
 
+interface campaignGroups {
+    [id: string]: {
+        keys: any
+    }
+}
+
 let products: Products = {}
 let productsDraft: ProductsDraft = {}
+let campaignGroups: campaignGroups = {}
 
 export const productController = async (req: Request, res: Response) => {
     try {
@@ -59,7 +67,15 @@ export const productController = async (req: Request, res: Response) => {
 
         for (const e of effects) {
             const effect = e.props.payload
-            if (!effect.company || !effect.journey || effect.company === 'null' || effect.journey === 'null') continue
+            if (!effect.company || !effect.campaign_group
+                || effect.company === 'null' || effect.campaign_group === 'null') continue
+
+            const productID = effect.commercetools_product_id
+
+            if (!campaignGroups[productID]) campaignGroups[productID] = { keys: [] }
+            campaignGroups[productID].keys.push(effect.campaign_group)
+
+            if (!effect.journey || effect.journey === 'null') continue
 
             const customerGroupKey = getCustomerGroupKey(effect)
             const customerGroupID = customerGroup[customerGroupKey.toLocaleLowerCase()]
@@ -69,7 +85,6 @@ export const productController = async (req: Request, res: Response) => {
                 continue
             }
 
-            const productID = effect.commercetools_product_id
             const product = (productID in products) ? products[productID] : await buildProduct(productID, rrpID)
 
             if (!product) {
@@ -107,6 +122,13 @@ export const productController = async (req: Request, res: Response) => {
 
             const result = await updateProduct(productID, draft)
             logger.info(`Update Product ${productID}: ${JSON.stringify(result)}`)
+        }
+
+        for (const productID in campaignGroups) {
+            await callPDPWorkflow({
+                commercetools_product_id: productID,
+                campaign_groups: [...new Set(campaignGroups[productID].keys)]
+            })
         }
 
         products = {}
@@ -194,6 +216,7 @@ const buildProduct = async (id: string, rrpID: string) => {
 }
 
 const getCustomerGroupKey = (effect: any): string => {
-    const key: string = effect.loyalty_tier === 'null' ? effect.journey : [effect.journey, effect.loyalty_tier].join('_')
-    return key.replace(/[_\s]+(.)?/g, (_, char) => char ? char.toUpperCase() : '')
+    return [effect.company, effect.campaign_group, effect.journey, effect.loyalty_tier]
+        .join('__')
+        .replace(/__+$/, '')
 }
