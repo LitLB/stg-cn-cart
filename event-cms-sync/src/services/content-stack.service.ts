@@ -31,65 +31,90 @@ export const createEntry = async (payload: any): Promise<any> => {
   }
 }
 
-export const updateEntry = async (entryUID: string, payload: any): Promise<any> => {
-  try {
+export const updateEntry = async (entries: any, payload: any): Promise<any> => {
+  
     const locales = await getLocales();
-    const entry = await client.stack(stack).contentType(content_type_uid).entry(entryUID).fetch();
-    const response = await Promise.all(locales.map(async (locale: string) => {
-      entry.product_name = payload[locale]?.product_name;
-      entry.brand_name = payload[locale]?.brand_name
-      entry.main_category = payload[locale]?.main_category;
-      entry.sub_category = payload[locale]?.sub_category;
-      entry.main_image_group = payload[locale]?.main_image_group;
-      entry.variant_images = payload[locale]?.variant_images;
-    
-      return entry.update({ locale });
-    }));
 
-    logger.info(`Request update entry: ${JSON.stringify(payload)}`)
-    logger.info(`Response update entry: ${JSON.stringify(response)}`)
+    for (const entry of entries) {
+      try {
+        const response = await Promise.all(locales.map(async (locale: string) => {
+          entry.product_name = payload[locale]?.product_name;
+          entry.brand_name = payload[locale]?.brand_name
+          entry.main_category = payload[locale]?.main_category;
+          entry.sub_category = payload[locale]?.sub_category;
+          entry.main_image_group = payload[locale]?.main_image_group;
+          entry.variant_images = payload[locale]?.variant_images;
+        
+          return entry.update({ locale });
+        }));
+
+        logger.info(`Request update entry: ${JSON.stringify(payload)}`)
+        logger.info(`Response update entry: ${JSON.stringify(response)}`)
+      } catch (error) {
+        logger.info(`Request update entry: ${JSON.stringify(payload)}`)
+        logger.error(`Error update entry: ${error}`);
+      }
+    }
     return;
-  } catch (error) {
-    logger.info(`Request update entry: ${JSON.stringify(payload)}`)
-    logger.error(`Error update entry: ${error}`);
-  }
 }
 
-export const deleteEntry = async (entryUID: string): Promise<any> => {
+export const deleteEntry = async (entries: any): Promise<any> => {
   const locales = await getLocales();
-  
-  for (const locale of locales) {
-    try {
-      const response = await client.stack(stack)
-      .contentType(content_type_uid)
-      .entry(entryUID)
-      .delete({ locale: locale });
 
-      logger.info(`Request delete entry: ${JSON.stringify(entryUID)}`)
-      logger.info(`Response deleted entry for locale: ${locale} : ${JSON.stringify(response)}`)
-    } catch (error) {
-      logger.info(`Request delete entry: ${JSON.stringify(entryUID)}`)
-      logger.error(`Error delete entry: ${error}`);
+  for (const entry of entries) {
+    const entryUID = entry.uid;
+
+    for (const locale of locales) {
+      try {
+        const response = await client.stack(stack)
+          .contentType(content_type_uid)
+          .entry(entryUID)
+          .delete({ locale: locale });
+    
+        logger.info(`Request delete entry: ${JSON.stringify(entryUID)}`)
+        logger.info(`Response deleted entry for locale: ${locale} : ${JSON.stringify(response)}`)
+      } catch (error: any) {
+        if (error?.errors?.locale.length > 0) continue;
+        logger.info(`Request delete entry: ${JSON.stringify(entryUID)}`)
+        logger.error(`Error delete entry: ${JSON.stringify(error.errors)}`);
+      }
     }
   }
 }
 
-export const getContentStackEntry = async (productID: string): Promise<any> => {
+export const getContentStackCampaignEntry = async (productID: string, campaignGroup: string = 'mass'): Promise<any> => {
     try {
       const entry = await client.stack(stack)
         .contentType(content_type_uid)
         .entry().query({
           query: {
             'commerce_tools_id': productID,
-            'campaign_group': 'mass'
+            'campaign_group': campaignGroup
           }
         }).find();
-  
+
       return entry.items;
     } catch (error) {
       logger.info(`Request: ${JSON.stringify(productID)}`)
       logger.error(`Error fetching entry: ${error}`);
     }
+};
+
+export const getContentStackAllCampaignEntry = async (productID: string): Promise<any> => {
+  try {
+    const entry = await client.stack(stack)
+      .contentType(content_type_uid)
+      .entry().query({
+        query: {
+          'commerce_tools_id': productID
+        }
+      }).find();
+
+    return entry.items;
+  } catch (error) {
+    logger.info(`Request: ${JSON.stringify(productID)}`)
+    logger.error(`Error fetching entry: ${error}`);
+  }
 };
 
 export const createTaxonomy = async (taxonomyUid: string): Promise<any> => {
@@ -186,56 +211,64 @@ export const getLocales = async (): Promise<any> => {
     }
 }
 
-export const publish = async (entryUID: string): Promise<any> => {
+export const publish = async (entries: any): Promise<any> => {
   const locales = await getLocales();
 
-  for (const locale of locales) { 
-    const data = { 
-      publishDetails: {
-        locales: [locale],
-        environments: environments 
-      },
-      locale: locale 
-    };
+  for (const entry of entries) {
+    const entryUID = entry.uid;
 
-    try {
-      const response = await client.stack(stack)
-        .contentType(content_type_uid)
-        .entry(entryUID)
-        .publish(data);
-  
-      logger.info(`Request publish: ${JSON.stringify(data)}`);
-      logger.info(`Response publish: ${JSON.stringify(response)}`);
-    } catch (error) {
-      logger.info(`Request publish: ${JSON.stringify(entryUID)}`)
-      logger.error(`Error publishing entry for locale: ${locale}, Error: ${error}`);
+    for (const locale of locales) { 
+      const data = { 
+        publishDetails: {
+          locales: [locale],
+          environments: environments 
+        },
+        locale: locale 
+      };
+      
+      try {
+        const response = await client.stack(stack)
+          .contentType(content_type_uid)
+          .entry(entryUID)
+          .publish(data);
+    
+        logger.info(`Request publish: ${JSON.stringify(entryUID)} :${JSON.stringify(data)}`);
+        logger.info(`Response publish: ${JSON.stringify(response)}`);
+      } catch (error) {
+        logger.info(`Request publish: ${JSON.stringify(entryUID)}`)
+        logger.error(`Error publishing entry for locale: ${locale}, Error: ${error}`);
+      }
     }
   }
 }
 
-export const unPublish = async (entryUID: string): Promise<any> => {
+export const unPublish = async (entries: any): Promise<any> => {
   const locales = await getLocales();
 
-  for (const locale of locales) {
-    const data = { 
-      publishDetails: {
-        locales: [locale],
-        environments: environments 
-      },
-      locale: locale 
-    };
+  for (const entry of entries) {
+    const entryUID = entry.uid;
 
-    try {
-      const response = await client.stack(stack)
-        .contentType(content_type_uid)
-        .entry(entryUID)
-        .unpublish(data);
-  
-      logger.info(`Request unpublish: ${JSON.stringify(data)}`);
-      logger.info(`Response unpublish: ${JSON.stringify(response)}`);
-    } catch (error) {
-      logger.info(`Request unpublish: ${JSON.stringify(entryUID)}`)
-      logger.error(`Error unpublish entry for locale: ${locale}, Error: ${error}`);
+    for (const locale of locales) { 
+      const data = { 
+        publishDetails: {
+          locales: [locale],
+          environments: environments 
+        },
+        locale: locale 
+      };
+      
+      try {
+        const response = await client.stack(stack)
+          .contentType(content_type_uid)
+          .entry(entryUID)
+          .unpublish(data);
+    
+        logger.info(`Request unpublished: ${JSON.stringify(entryUID)} :${JSON.stringify(data)}`);
+        logger.info(`Response unpublished: ${JSON.stringify(response)}`);
+      } catch (error) {
+        logger.info(`Request unpublished: ${JSON.stringify(entryUID)}`)
+        logger.error(`Error unpublish entry for locale: ${locale}, Error: ${error}`);
+      }
     }
   }
 }

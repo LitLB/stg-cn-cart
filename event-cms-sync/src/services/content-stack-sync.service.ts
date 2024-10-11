@@ -10,7 +10,8 @@ import {
   createTaxonomy,
   getTermsOfTaxonomy,
   createTermsOfTaxonomy,
-  getContentStackEntry
+  getContentStackCampaignEntry,
+  getContentStackAllCampaignEntry
 } from '../services/content-stack.service';
 
 // TODO : main image
@@ -19,7 +20,7 @@ export class cmsServices {
   async resourceCreated(productID: string) {
     const product = await this.getCommerceToolsProduct(productID);
     const productStaged = product.data.masterData.staged; 
-    const entry = await getContentStackEntry(productID);
+    const entry = await getContentStackCampaignEntry(productID);
 
     if (entry.length === 0) {
       const payload = await this.buildData(productID, productStaged);
@@ -40,39 +41,37 @@ export class cmsServices {
     const productStaged = product.data.masterData.staged;
     const isPublished = product.data.masterData.published;
     const hasStagedChanges = product.data.masterData.hasStagedChanges;
-    const entry = await getContentStackEntry(productID);
-    const entryUID = entry?.[0]?.uid;
+    const entries = await getContentStackAllCampaignEntry(productID);
 
     if (isPublished && !hasStagedChanges) {
-      await publish(entryUID);
+      await publish(entries);
       return;
     }
   
     if (!isPublished && !hasStagedChanges) {
-      await unPublish(entryUID);
+      await unPublish(entries);
       return;
     }
   
-    if (entry.length === 0) {
+    if (entries.length === 0) {
       await this.resourceCreated(productID);
       return;
     }
 
-    const payload = await this.mappingData(entry, productStaged);
+    const payload = await this.mappingData(entries, productStaged);
 
-    await updateEntry(entryUID, payload);
+    await updateEntry(entries, payload);
     return;
   }
 
   async resourceDeleted(productID: string) {
-    const entry = await getContentStackEntry(productID);
+    const entries = await getContentStackAllCampaignEntry(productID);
   
-    if (entry.length === 0) {
+    if (entries.length === 0) {
       return 'Nothing to do.';
     }
-  
-    const entryUID = entry[0]?.uid 
-    await deleteEntry(entryUID);
+
+    await deleteEntry(entries);
     return;
   }
 
