@@ -17,6 +17,18 @@ import {
 // TODO : main image
 
 export class cmsServices {
+
+  async isServiceType(productID: string) {
+    const product = await this.getCommerceToolsProduct(productID, 'productType.id');
+    
+    const productType = product.data?.productType?.obj?.key ?? ''; 
+
+    if (!productType || productType?.trim()?.toLowerCase() === 'service') {
+      return true;
+    }
+    return false;
+  }
+
   async resourceCreated(productID: string) {
     const product = await this.getCommerceToolsProduct(productID);
     const productStaged = product.data.masterData.staged; 
@@ -75,16 +87,25 @@ export class cmsServices {
     return;
   }
 
-  async getCommerceToolsProduct(productID: string) {
+  async getCommerceToolsProduct(productID: string, expand: string = '') { 
+
+    let query: any = {
+      queryArgs: {
+        where: `id = "${productID}"`,
+        expand: [
+          `masterData.staged.categories[*]`,
+          `masterData.staged.categories[*].parent.id`,
+        ]
+      }
+    };
+    
+    if (expand) {
+      query.queryArgs.expand.push(expand);
+    }
+
     const response = await createApiRoot()
       .products()
-      .get({
-        queryArgs: {
-          where: `id = "${productID}"`,
-          expand: [`masterData.staged.categories[*]`,
-           `masterData.staged.categories[*].parent.id`]
-        },
-      })
+      .get(query)
       .execute();
 
     return {

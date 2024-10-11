@@ -31,6 +31,9 @@ export const eventController = async (request: Request, response: Response) => {
       throw new Error('Missing notification type');
     }
 
+    const isService = await cmsService.isServiceType(productID);
+    if (isService) return response.status(200).send(); 
+
     switch (data.notificationType) {
       case 'ResourceCreated':
         await cmsService.resourceCreated(productID);
