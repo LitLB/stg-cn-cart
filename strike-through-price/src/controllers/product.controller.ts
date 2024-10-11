@@ -35,7 +35,8 @@ export const productController = async (req: Request, res: Response) => {
         const body = req.body
         logger.info(`Strike through: ${JSON.stringify(body)}`)
 
-        if (!body || (body.trigger?.type !== 'CAMPAIGN_UPDATE' && body.trigger?.type !== 'CATALOG_SYNC')) {
+        const triggerType = body.trigger?.type
+        if (!body || (triggerType !== 'CAMPAIGN_UPDATE' && triggerType !== 'CATALOG_SYNC')) {
             res.status(200).send()
             return
         }
@@ -47,7 +48,7 @@ export const productController = async (req: Request, res: Response) => {
         
         const campaignID = body.trigger.payload.campaignId
         const items = body.changedItems.flatMap((item: any) => item.effects)
-        const effects = (body.trigger.type === 'CAMPAIGN_UPDATE') 
+        const effects = (triggerType === 'CAMPAIGN_UPDATE') 
             ? items.filter((effect: any) => effect.campaignId === campaignID)
             : items
 
@@ -71,9 +72,12 @@ export const productController = async (req: Request, res: Response) => {
                 || effect.company === 'null' || effect.campaign_group === 'null') continue
 
             const productID = effect.commercetools_product_id
+            if (!productID || productID === 'null') continue
 
-            if (!campaignGroups[productID]) campaignGroups[productID] = { keys: [] }
-            campaignGroups[productID].keys.push(effect.campaign_group)
+            if (triggerType === 'CAMPAIGN_UPDATE') {
+                if (!campaignGroups[productID]) campaignGroups[productID] = { keys: [] }
+                campaignGroups[productID].keys.push(effect.campaign_group)
+            }
 
             if (!effect.journey || effect.journey === 'null') continue
 
