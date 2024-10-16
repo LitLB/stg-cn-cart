@@ -129,6 +129,7 @@ export const productController = async (req: Request, res: Response) => {
         }
 
         for (const productID in campaignGroups) {
+            logger.debug(`Campaign group for product ${productID}: ${campaignGroups[productID]}`)
             await callPDPWorkflow({
                 commercetools_product_id: productID,
                 campaign_groups: [...new Set(campaignGroups[productID].keys)]
