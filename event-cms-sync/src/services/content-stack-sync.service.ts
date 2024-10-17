@@ -21,9 +21,9 @@ export class cmsServices {
   async isServiceType(productID: string) {
     const product = await this.getCommerceToolsProduct(productID, 'productType.id');
     
-    const productType = product.data?.productType?.obj?.key ?? ''; 
+    const productType = product.data?.productType?.obj?.key; 
 
-    if (!productType || productType?.trim()?.toLowerCase() === 'service') {
+    if (productType?.trim()?.toLowerCase() === 'service') {
       return true;
     }
     return false;
