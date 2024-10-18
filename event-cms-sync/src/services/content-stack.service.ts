@@ -1,6 +1,8 @@
 import * as contentstack from '@contentstack/management'
 import { logger } from '../utils/logger.utils';
 import { contentStackConfig } from '../utils/config.utils';
+import * as https from 'https';
+import * as fs from 'fs';
 
 const {
     api_key,
@@ -270,5 +272,48 @@ export const unPublish = async (entries: any): Promise<any> => {
         logger.error(`Error unpublish entry for locale: ${locale}, Error: ${error}`);
       }
     }
+  }
+}
+
+export const uploadImage = async (imageUrl: string, sku : string): Promise<any> => {
+  try {
+     // Fetch the image as a Buffer
+      const imageData: Buffer = await new Promise((resolve, reject) => {
+        https.get(imageUrl, (response) => {
+          if (response.statusCode !== 200) {
+            reject(new Error(`Failed to get '${imageUrl}' (${response.statusCode})`));
+            return;
+          }
+
+          const data: Uint8Array[] = [];
+          response.on('data', (chunk) => {
+            data.push(chunk);
+          });
+
+          response.on('end', () => {
+            resolve(Buffer.concat(data));
+          });
+        }).on('error', (err) => {
+          reject(err.message);
+        });
+      });
+
+      // Save the buffer to a file
+      const filePath = './' + sku.toLowerCase() +'.jpg';
+      fs.writeFileSync(filePath, imageData);
+
+      // Create the asset with the file path
+      const asset = await client.stack(stack).asset().create({
+          upload: filePath,
+          title: sku.toLowerCase(),
+          parent_uid: 'blt1b935cfe101104e8' // TODO :: parent upload
+      }); 
+
+      // Clean up the temporary file
+      fs.unlinkSync(filePath); 
+
+      return asset?.uid ?? '';
+  } catch (error) {
+    console.error('Error:', error);
   }
 }

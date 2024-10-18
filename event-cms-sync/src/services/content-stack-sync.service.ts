@@ -3,6 +3,7 @@ import { logger } from '../utils/logger.utils';
 import { 
   publish,
   unPublish,
+  uploadImage,
   createEntry,
   updateEntry,
   deleteEntry,
@@ -14,14 +15,12 @@ import {
   getContentStackAllCampaignEntry
 } from '../services/content-stack.service';
 
-// TODO : main image
 
 export class cmsServices {
 
   async isServiceType(productID: string) {
     const product = await this.getCommerceToolsProduct(productID, 'productType.id');
-    
-    const productType = product.data?.productType?.obj?.key; 
+    const productType = product.data?.productType?.obj?.key;
 
     if (productType?.trim()?.toLowerCase() === 'service') {
       return true;
@@ -78,7 +77,7 @@ export class cmsServices {
 
   async resourceDeleted(productID: string) {
     const entries = await getContentStackAllCampaignEntry(productID);
-  
+
     if (entries.length === 0) {
       return 'Nothing to do.';
     }
@@ -123,6 +122,8 @@ export class cmsServices {
     const productNameUS = newData?.name?.['en-US'] ?? ''; 
     const brandName = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'brand_name');
     const objCategory = newData?.categories?.[0]?.obj;
+    const imageUrl = masterVariant?.images[0]?.url;
+    const uidParentImage = imageUrl ? imageUrl.split('/')[6] : '';
 
     let mainCategory = objCategory?.parent?.obj?.name?.['en-US'] ?? objCategory?.parent?.obj?.name?.['th-TH'] ?? 'category';
     let subCategory = objCategory?.name?.['en-US'] ?? objCategory?.name?.['th-TH'] ?? 'sub-category';
@@ -132,14 +133,21 @@ export class cmsServices {
     let newResult = [...contentStackData]; // Deep copy for manipulation
 
     // Find updates and deletions
-    newResult = newResult.filter((oldItem, index) => {
+    for (const [index, oldItem] of newResult.entries()) {
+
       const newItem = commerceToolsData.find(item => item.sku === oldItem.image_color.sku);
       if (!newItem) return false; // Delete
   
+      let uidImage;
+      if (newItem?.images[0]?.url) {
+        uidImage = await uploadImage(newItem.images[0].url, newItem.sku);
+      }
+
       const colorAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'color'); 
       const statusAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'status');
-  
+
       // Update images
+      newResult[index].image_color.main_image = uidImage ?? '';
       oldItem.image_color.images?.forEach((item: { uid: string }, idx: number) => {
         newResult[index].image_color.images[idx] = item.uid;
       });
@@ -153,9 +161,7 @@ export class cmsServices {
       if (statusAttribute) {
         newResult[index].image_color.status = statusAttribute.value.label.toLowerCase() === 'enabled';
       }
-  
-      return true; // Keep the item
-    });
+    }
 
     // Find creations
     for (const newItem of commerceToolsData) {
@@ -166,11 +172,17 @@ export class cmsServices {
   
         const color = colorAttribute?.value?.label ?? '';
         const status = statusAttribute?.value?.label.toLowerCase() === 'enabled';
-  
+
+        let uidImage;
+        if (newItem?.images[0]?.url) {
+          uidImage = await uploadImage(newItem.images[0].url, newItem.sku);
+        }
+
         const imageColor = {
           sku: newItem.sku,
           status: status,
           color: color,
+          main_image: uidImage ?? '',
           images: []
         };
 
@@ -191,14 +203,20 @@ export class cmsServices {
         product_name: productNameTH,
         main_category: mainCategorySlug,
         sub_category: subCategorySlug,
-        brand_name: brandName?.value?.label ?? '',
+        brand_name: brandName?.value?.label.toLowerCase() ?? '',
+        main_image_group: {
+          main_image: uidParentImage,
+        },
         variant_images: newResult
       },
       'en-us': {
         product_name: productNameUS,
         main_category: mainCategorySlug,
         sub_category: subCategorySlug,
-        brand_name: brandName?.value?.label ?? '',
+        brand_name: brandName?.value?.label.toLowerCase() ?? '',
+        main_image_group: { 
+          main_image: uidParentImage,
+        },
         variant_images: newResult
       },
     };
@@ -270,7 +288,7 @@ export class cmsServices {
       main_category: mainCategorySlug,
       sub_category: subCategorySlug,
       campaign_group: termUID,
-      brand_name: brandName?.value?.label ?? '',
+      brand_name: brandName?.value?.label.toLowerCase() ?? '',
       variant_images: variantImages,
       product_short_description: shortDescription?.value?.['th-TH'] ?? '',
       description: [{
