@@ -2,6 +2,7 @@ import { createApiRoot } from '../client/create.client.js';
 import { logger } from '../utils/logger.utils';
 import { 
   publish,
+  getAsset,
   unPublish,
   uploadImage,
   createEntry,
@@ -146,16 +147,18 @@ export class cmsServices {
       const newItem = commerceToolsData.find(item => item.sku === oldItem.image_color.sku);
       if (!newItem) return false; // Delete
   
-      let uidImage;
-      if (newItem?.images[0]?.url) {
+      let uidImage = '';
+      uidImage = await getAsset(newItem.sku.toLowerCase());
+
+      if (!uidImage && newItem?.images[0]?.url) {
         uidImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
       }
 
-      const colorAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'color'); 
+      const colorAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'color');
       const statusAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'status');
 
       // Update images
-      newResult[index].image_color.main_image = uidImage ?? '';
+      newResult[index].image_color.main_image = uidImage;
       oldItem.image_color.images?.forEach((item: { uid: string }, idx: number) => {
         newResult[index].image_color.images[idx] = item.uid;
       });

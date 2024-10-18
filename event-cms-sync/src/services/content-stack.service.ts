@@ -275,6 +275,20 @@ export const unPublish = async (entries: any): Promise<any> => {
   }
 }
 
+export const getAsset = async (sku: string): Promise<any> => {
+  try {
+    const asset = await client.stack(stack)
+      .asset()
+      .query({ query: { 'filename': `${sku}.jpg` } })
+      .find();
+
+    return asset?.items[0]?.uid ?? '';
+  } catch (error) {
+    logger.info(`Request: ${JSON.stringify(sku)}`)
+    logger.error(`Error fetching asset: ${error}`);
+  }
+}
+
 export const getFolderAsset = async (productName: string): Promise<any> => {
   try {
     const asset = await client.stack(stack)
