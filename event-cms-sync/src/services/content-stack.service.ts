@@ -275,7 +275,33 @@ export const unPublish = async (entries: any): Promise<any> => {
   }
 }
 
-export const uploadImage = async (imageUrl: string, sku : string): Promise<any> => {
+export const getFolderAsset = async (productName: string): Promise<any> => {
+  try {
+    const asset = await client.stack(stack)
+      .asset()
+      .query({ query: { 'is_dir': true, 'name': productName } })
+      .find();
+ 
+    return asset?.items[0]?.uid ?? '';
+  } catch (error) {
+    logger.info(`Request: ${JSON.stringify(productName)}`)
+    logger.error(`Error fetching folder: ${error}`);
+  }
+}
+
+export const createFolder = async (productName: string): Promise<any> => {
+  try {
+    const asset = { name: productName }
+    const folder = await client.stack(stack).asset().folder().create({asset});
+
+    return folder?.uid ?? '';
+  } catch (error) {
+    logger.info(`Request: ${JSON.stringify(productName)}`)
+    logger.error(`Error create folder: ${error}`);
+  }
+}
+
+export const uploadImage = async (uidFolder: string, imageUrl: string, sku : string): Promise<any> => {
   try {
      // Fetch the image as a Buffer
       const imageData: Buffer = await new Promise((resolve, reject) => {
@@ -306,7 +332,7 @@ export const uploadImage = async (imageUrl: string, sku : string): Promise<any> 
       const asset = await client.stack(stack).asset().create({
           upload: filePath,
           title: sku.toLowerCase(),
-          parent_uid: 'blt1b935cfe101104e8' // TODO :: parent upload
+          parent_uid: uidFolder
       }); 
 
       // Clean up the temporary file

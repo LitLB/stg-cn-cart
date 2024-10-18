@@ -8,6 +8,8 @@ import {
   updateEntry,
   deleteEntry,
   getTaxonomy,
+  createFolder,
+  getFolderAsset,
   createTaxonomy,
   getTermsOfTaxonomy,
   createTermsOfTaxonomy,
@@ -131,6 +133,12 @@ export class cmsServices {
     const subCategorySlug = subCategory?.toLowerCase().replace(/\s+/g, "-");
 
     let newResult = [...contentStackData]; // Deep copy for manipulation
+    let uidFolder = '';
+
+    uidFolder = await getFolderAsset(productNameUS);
+    if (!uidFolder) {
+      uidFolder = await createFolder(productNameUS);
+    }
 
     // Find updates and deletions
     for (const [index, oldItem] of newResult.entries()) {
@@ -140,7 +148,7 @@ export class cmsServices {
   
       let uidImage;
       if (newItem?.images[0]?.url) {
-        uidImage = await uploadImage(newItem.images[0].url, newItem.sku);
+        uidImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
       }
 
       const colorAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'color'); 
@@ -175,7 +183,7 @@ export class cmsServices {
 
         let uidImage;
         if (newItem?.images[0]?.url) {
-          uidImage = await uploadImage(newItem.images[0].url, newItem.sku);
+          uidImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
         }
 
         const imageColor = {
