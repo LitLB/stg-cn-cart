@@ -68,6 +68,7 @@ export const productController = async (req: Request, res: Response) => {
 
         for (const e of effects) {
             const effect = e.props.payload
+            if (!effect.campaign_group || effect.campaign_group === 'null') effect.campaign_group = 'mass'
             if (!effect.company || !effect.campaign_group
                 || effect.company === 'null' || effect.campaign_group === 'null') continue
 
@@ -221,7 +222,11 @@ const buildProduct = async (id: string, rrpID: string) => {
 }
 
 const getCustomerGroupKey = (effect: any): string => {
-    return [effect.company, effect.campaign_group, effect.journey, effect.loyalty_tier]
+    return [effect.company, camelToSnake(effect.campaign_group), camelToSnake(effect.journey), camelToSnake(effect.loyalty_tier)]
         .join('__')
         .replace(/__+$/, '')
+}
+
+const camelToSnake = (camelStr: string): string => {
+    return camelStr.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase()
 }
