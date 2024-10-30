@@ -126,7 +126,7 @@ export class cmsServices {
     const brandName = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'brand_name');
     const objCategory = newData?.categories?.[0]?.obj;
     const imageUrl = masterVariant?.images[0]?.url;
-    const uidParentImage = imageUrl ? imageUrl.split('/')[6] : '';
+    // const uidParentImage = imageUrl ? imageUrl.split('/')[6] : '';
 
     let mainCategory = objCategory?.parent?.obj?.name?.['en-US'] ?? objCategory?.parent?.obj?.name?.['th-TH'] ?? 'category';
     let subCategory = objCategory?.name?.['en-US'] ?? objCategory?.name?.['th-TH'] ?? 'sub-category';
@@ -147,18 +147,18 @@ export class cmsServices {
       const newItem = commerceToolsData.find(item => item.sku === oldItem.image_color.sku);
       if (!newItem) return false; // Delete
   
-      let uidImage = '';
-      uidImage = await getAsset(newItem.sku.toLowerCase());
+      // let uidImage = '';
+      // uidImage = await getAsset(newItem.sku.toLowerCase());
 
-      if (!uidImage && newItem?.images[0]?.url) {
-        uidImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
-      }
+      // if (!uidImage && newItem?.images[0]?.url) {
+      //   uidImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
+      // }
 
       const colorAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'color');
       const statusAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'status');
 
       // Update images
-      newResult[index].image_color.main_image = uidImage;
+      // newResult[index].image_color.main_image = uidImage;
       oldItem.image_color.images?.forEach((item: { uid: string }, idx: number) => {
         newResult[index].image_color.images[idx] = item.uid;
       });
@@ -193,7 +193,7 @@ export class cmsServices {
           sku: newItem.sku,
           status: status,
           color: color,
-          main_image: uidImage ?? '',
+          // main_image: uidImage ?? '',
           images: []
         };
 
@@ -215,9 +215,9 @@ export class cmsServices {
         main_category: mainCategorySlug,
         sub_category: subCategorySlug,
         brand_name: brandName?.value?.label.toLowerCase() ?? '',
-        main_image_group: {
-          main_image: uidParentImage,
-        },
+        // main_image_group: {
+        //   main_image: uidParentImage,
+        // },
         variant_images: newResult
       },
       'en-us': {
@@ -225,9 +225,9 @@ export class cmsServices {
         main_category: mainCategorySlug,
         sub_category: subCategorySlug,
         brand_name: brandName?.value?.label.toLowerCase() ?? '',
-        main_image_group: { 
-          main_image: uidParentImage,
-        },
+        // main_image_group: { 
+        //   main_image: uidParentImage,
+        // },
         variant_images: newResult
       },
     };
