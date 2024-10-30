@@ -12,7 +12,7 @@ import { cmsService } from '../services/content-stack-sync.service';
  */
 export const eventController = async (request: Request, response: Response) => {
   const data = await cmsService.decodedData(request);
-  logger.info(`Request event-cms-sync : ${data}`);
+  logger.info(`Request event-cms-sync : ${JSON.stringify(data)}`);
 
   try {
     const productID: string = data.resource?.id;
