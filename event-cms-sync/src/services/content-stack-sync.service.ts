@@ -125,7 +125,7 @@ export class cmsServices {
     const productNameUS = newData?.name?.['en-US'] ?? ''; 
     const brandName = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'brand_name');
     const objCategory = newData?.categories?.[0]?.obj;
-    const imageUrl = masterVariant?.images[0]?.url;
+    // const imageUrl = masterVariant?.images[0]?.url;
     // const uidParentImage = imageUrl ? imageUrl.split('/')[6] : '';
 
     let mainCategory = objCategory?.parent?.obj?.name?.['en-US'] ?? objCategory?.parent?.obj?.name?.['th-TH'] ?? 'category';
@@ -184,10 +184,10 @@ export class cmsServices {
         const color = colorAttribute?.value?.label ?? '';
         const status = statusAttribute?.value?.label.toLowerCase() === 'enabled';
 
-        let uidImage;
-        if (newItem?.images[0]?.url) {
-          uidImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
-        }
+        // let uidImage;
+        // if (newItem?.images[0]?.url) {
+        //   uidImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
+        // }
 
         const imageColor = {
           sku: newItem.sku,
