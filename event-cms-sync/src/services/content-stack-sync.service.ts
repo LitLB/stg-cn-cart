@@ -134,12 +134,12 @@ export class cmsServices {
     const subCategorySlug = subCategory?.toLowerCase().replace(/\s+/g, "-");
 
     let newResult = [...contentStackData]; // Deep copy for manipulation
-    let uidFolder = '';
+    // let uidFolder = '';
 
-    uidFolder = await getFolderAsset(productNameUS);
-    if (!uidFolder) {
-      uidFolder = await createFolder(productNameUS);
-    }
+    // uidFolder = await getFolderAsset(productNameUS);
+    // if (!uidFolder) {
+    //   uidFolder = await createFolder(productNameUS);
+    // }
 
     // Find updates and deletions
     for (const [index, oldItem] of newResult.entries()) {
