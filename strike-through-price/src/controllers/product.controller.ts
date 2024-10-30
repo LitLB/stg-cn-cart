@@ -138,6 +138,7 @@ export const productController = async (req: Request, res: Response) => {
 
         products = {}
         productsDraft = {}
+        campaignGroups = {}
         res.status(200).send()
 
     } catch (error) {
