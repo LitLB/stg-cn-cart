@@ -44,7 +44,7 @@ export const updateEntry = async (entries: any, payload: any): Promise<any> => {
           entry.brand_name = payload[locale]?.brand_name
           entry.main_category = payload[locale]?.main_category;
           entry.sub_category = payload[locale]?.sub_category;
-          // entry.main_image_group = payload[locale]?.main_image_group;
+          entry.main_image_group = payload[locale]?.main_image_group;
           entry.variant_images = payload[locale]?.variant_images;
         
           return entry.update({ locale });
@@ -289,28 +289,28 @@ export const getAsset = async (sku: string): Promise<any> => {
   }
 }
 
-export const getFolderAsset = async (productName: string): Promise<any> => {
+export const getFolderAsset = async (productID: string): Promise<any> => {
   try {
     const asset = await client.stack(stack)
       .asset()
-      .query({ query: { 'is_dir': true, 'name': productName } })
+      .query({ query: { 'is_dir': true, 'name': productID } })
       .find();
  
     return asset?.items[0]?.uid ?? '';
   } catch (error) {
-    logger.info(`Request: ${JSON.stringify(productName)}`)
+    logger.info(`Request: ${JSON.stringify(productID)}`)
     logger.error(`Error fetching folder: ${error}`);
   }
 }
 
-export const createFolder = async (productName: string): Promise<any> => {
+export const createFolder = async (productID: string): Promise<any> => {
   try {
-    const asset = { name: productName }
+    const asset = { name: productID}
     const folder = await client.stack(stack).asset().folder().create({asset});
 
     return folder?.uid ?? '';
   } catch (error) {
-    logger.info(`Request: ${JSON.stringify(productName)}`)
+    logger.info(`Request: ${JSON.stringify(productID)}`)
     logger.error(`Error create folder: ${error}`);
   }
 }

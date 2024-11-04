@@ -51,12 +51,12 @@ export class cmsServices {
     if (Object.keys(product).length === 0) {
       product = await this.getCommerceToolsProduct(productID);
     }
-  
+
     const productStaged = product.data.masterData.staged;
     const isPublished = product.data.masterData.published;
     const hasStagedChanges = product.data.masterData.hasStagedChanges;
     const entries = await getContentStackAllCampaignEntry(productID);
-
+  
     if (isPublished && !hasStagedChanges) {
       await publish(entries);
       return;
@@ -72,7 +72,7 @@ export class cmsServices {
       return;
     }
 
-    const payload = await this.mappingData(entries, productStaged);
+    const payload = await this.mappingData(entries, productID, productStaged);
 
     await updateEntry(entries, payload);
     return;
@@ -116,7 +116,7 @@ export class cmsServices {
     };
   }
 
-  async mappingData(oldData: any[], newData: any) {
+  async mappingData(oldData: any[], productID: string, newData: any) {
     const masterVariant = newData.masterVariant;
     const variants = newData.variants;
     const commerceToolsData = [masterVariant, ...variants];
@@ -125,8 +125,8 @@ export class cmsServices {
     const productNameUS = newData?.name?.['en-US'] ?? ''; 
     const brandName = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'brand_name');
     const objCategory = newData?.categories?.[0]?.obj;
-    // const imageUrl = masterVariant?.images[0]?.url;
-    // const uidParentImage = imageUrl ? imageUrl.split('/')[6] : '';
+    const imageUrl = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'image');
+    const uidProductImage = imageUrl?.value ? imageUrl?.value.split('/')[6] : '';
 
     let mainCategory = objCategory?.parent?.obj?.name?.['en-US'] ?? objCategory?.parent?.obj?.name?.['th-TH'] ?? 'category';
     let subCategory = objCategory?.name?.['en-US'] ?? objCategory?.name?.['th-TH'] ?? 'sub-category';
@@ -134,31 +134,35 @@ export class cmsServices {
     const subCategorySlug = subCategory?.toLowerCase().replace(/\s+/g, "-");
 
     let newResult = [...contentStackData]; // Deep copy for manipulation
-    // let uidFolder = '';
+    let uidFolder = '';
 
-    // uidFolder = await getFolderAsset(productNameUS);
-    // if (!uidFolder) {
-    //   uidFolder = await createFolder(productNameUS);
-    // }
+    uidFolder = await getFolderAsset(productID);
+    if (!uidFolder) {
+      uidFolder = await createFolder(productID);
+    }
 
     // Find updates and deletions
     for (const [index, oldItem] of newResult.entries()) {
-
+      
       const newItem = commerceToolsData.find(item => item.sku === oldItem.image_color.sku);
-      if (!newItem) return false; // Delete
-  
-      // let uidImage = '';
-      // uidImage = await getAsset(newItem.sku.toLowerCase());
+      // Delete
+      if (!newItem) { 
+        newResult.splice(index);
+        continue;
+      }
 
-      // if (!uidImage && newItem?.images[0]?.url) {
-      //   uidImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
-      // }
+      let uidMainVariantImage = '';
+      uidMainVariantImage = await getAsset(newItem.sku.toLowerCase());
+
+      if (!uidMainVariantImage && newItem?.images[0]?.url) {
+        uidMainVariantImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
+      }
 
       const colorAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'color');
       const statusAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'status');
 
       // Update images
-      // newResult[index].image_color.main_image = uidImage;
+      newResult[index].image_color.main_image = uidMainVariantImage;
       oldItem.image_color.images?.forEach((item: { uid: string }, idx: number) => {
         newResult[index].image_color.images[idx] = item.uid;
       });
@@ -184,16 +188,16 @@ export class cmsServices {
         const color = colorAttribute?.value?.label ?? '';
         const status = statusAttribute?.value?.label.toLowerCase() === 'enabled';
 
-        // let uidImage;
-        // if (newItem?.images[0]?.url) {
-        //   uidImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
-        // }
+        let uidMainVariantImage;
+        if (newItem?.images[0]?.url) {
+          uidMainVariantImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
+        }
 
         const imageColor = {
           sku: newItem.sku,
           status: status,
           color: color,
-          // main_image: uidImage ?? '',
+          main_image: uidMainVariantImage ?? '',
           images: []
         };
 
@@ -215,9 +219,9 @@ export class cmsServices {
         main_category: mainCategorySlug,
         sub_category: subCategorySlug,
         brand_name: brandName?.value?.label.toLowerCase() ?? '',
-        // main_image_group: {
-        //   main_image: uidParentImage,
-        // },
+        main_image_group: {
+          main_image: uidProductImage,
+        },
         variant_images: newResult
       },
       'en-us': {
@@ -225,9 +229,9 @@ export class cmsServices {
         main_category: mainCategorySlug,
         sub_category: subCategorySlug,
         brand_name: brandName?.value?.label.toLowerCase() ?? '',
-        // main_image_group: { 
-        //   main_image: uidParentImage,
-        // },
+        main_image_group: { 
+          main_image: uidProductImage,
+        },
         variant_images: newResult
       },
     };
