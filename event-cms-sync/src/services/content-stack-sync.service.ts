@@ -153,8 +153,7 @@ export class cmsServices {
       }
 
       let uidMainVariantImage = '';
-
-      if (newItem?.images && newItem?.images[0]?.url) {
+      if (newItem?.images[0]?.url) {
         const existingImage = images.find(image => image.sku === newItem.sku);
 
         if (!existingImage) {
@@ -195,17 +194,10 @@ export class cmsServices {
         const color = colorAttribute?.value?.label ?? '';
         const status = statusAttribute?.value?.label.toLowerCase() === 'enabled';
 
-        let uidMainVariantImage;
-        if (newItem?.images[0]?.url) {
-          uidMainVariantImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
-        }
-
         const imageColor = {
           sku: newItem.sku,
           status: status,
-          color: color,
-          main_image: uidMainVariantImage ?? '',
-          images: []
+          color: color
         };
 
         const channels = await getTermsOfTaxonomy('display_channel');
