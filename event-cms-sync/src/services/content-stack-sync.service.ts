@@ -141,7 +141,8 @@ export class cmsServices {
       uidFolder = await createFolder(productID);
     }
 
-    // Find updates and deletions
+    // Find updates and deletions of variant
+    const images: { sku: string; uid: string }[] = [];
     for (const [index, oldItem] of newResult.entries()) {
       
       const newItem = commerceToolsData.find(item => item.sku === oldItem.image_color.sku);
@@ -152,10 +153,16 @@ export class cmsServices {
       }
 
       let uidMainVariantImage = '';
-      uidMainVariantImage = await getAsset(newItem.sku.toLowerCase());
 
-      if (!uidMainVariantImage && newItem?.images[0]?.url) {
-        uidMainVariantImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
+      if (newItem?.images && newItem?.images[0]?.url) {
+        const existingImage = images.find(image => image.sku === newItem.sku);
+
+        if (!existingImage) {
+          uidMainVariantImage = await uploadImage(uidFolder, newItem.images[0].url, newItem.sku);
+          images.push({ sku: newItem.sku, uid: uidMainVariantImage });
+        } else {
+          uidMainVariantImage = existingImage.uid;
+        }
       }
 
       const colorAttribute = newItem.attributes.find((attr: { name: string }) => attr?.name === 'color');
@@ -178,7 +185,7 @@ export class cmsServices {
       }
     }
 
-    // Find creations
+    // Find creations variant
     for (const newItem of commerceToolsData) {
       const oldItem = newResult.find(item => item?.image_color?.sku === newItem.sku);
       if (!oldItem) {
