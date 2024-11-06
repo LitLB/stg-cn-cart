@@ -259,6 +259,8 @@ export class cmsServices {
     let subCategory = objCategory?.name?.['en-US'] ?? objCategory?.name?.['th-TH'] ?? 'sub-category';
     const mainCategorySlug = mainCategory?.toLowerCase().replace(/\s+/g, "-");
     const subCategorySlug = subCategory?.toLowerCase().replace(/\s+/g, "-");
+    const imageUrl = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'image');
+    const uidProductImage = imageUrl?.value ? imageUrl?.value.split('/')[6] : '';
 
     if (!productName) {
       logger.info(`Data: ${JSON.stringify(product)}`);
@@ -305,6 +307,9 @@ export class cmsServices {
       brand_name: brandName?.value?.label.toLowerCase() ?? '',
       variant_images: variantImages,
       product_short_description: shortDescription?.value?.['th-TH'] ?? '',
+      main_image_group: {
+        main_image: uidProductImage,
+      },
       description: [{
               tab: {
                   name: "ภาพรวม",
