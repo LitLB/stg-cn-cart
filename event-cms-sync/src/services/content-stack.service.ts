@@ -317,43 +317,70 @@ export const createFolder = async (productID: string): Promise<any> => {
 
 export const uploadImage = async (uidFolder: string, imageUrl: string, sku : string): Promise<any> => {
   try {
-     // Fetch the image as a Buffer
-      const imageData: Buffer = await new Promise((resolve, reject) => {
-        https.get(imageUrl, (response) => {
-          if (response.statusCode !== 200) {
-            reject(new Error(`Failed to get '${imageUrl}' (${response.statusCode})`));
-            return;
+    const { buffer, fileExtension } = await new Promise<{ buffer: Buffer, fileExtension: string }>((resolve, reject) => {
+      https.get(imageUrl, (response) => {
+        if (response.statusCode !== 200) {
+          console.error(`Failed to get '${imageUrl}' (status code: ${response.statusCode})`);
+          return reject('');
+        }
+
+        const contentType = response.headers['content-type'];
+        let fileExtension = '';
+
+        if (contentType) {
+          if (contentType.includes('svg')) {
+            fileExtension = '.svg';
+          } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+            fileExtension = '.jpg';
+          } else if (contentType.includes('gif')) {
+            fileExtension = '.gif';
+          } else if (contentType.includes('png')) {
+            fileExtension = '.png';
           }
+        }
 
-          const data: Uint8Array[] = [];
-          response.on('data', (chunk) => {
-            data.push(chunk);
-          });
+        if (!fileExtension) {
+          console.info('Unsupported file type, no action taken.');
+          return reject('');
+        }
 
-          response.on('end', () => {
-            resolve(Buffer.concat(data));
-          });
-        }).on('error', (err) => {
-          reject(err.message);
+        const data: Uint8Array[] = [];
+        response.on('data', (chunk) => {
+          data.push(chunk);
         });
+
+        response.on('end', () => {
+          const buffer = Buffer.concat(data);
+          resolve({ buffer, fileExtension });
+        });
+      }).on('error', (err) => {
+        console.error(`Error fetching image: ${err}`);
+        reject('');
       });
+    });
 
-      // Save the buffer to a file
-      const filePath = './' + sku.toLowerCase() +'.jpg';
-      fs.writeFileSync(filePath, imageData);
+    const filePath = `./${sku.toLowerCase()}${fileExtension}`;
+    fs.writeFileSync(filePath, buffer);
 
-      // Create the asset with the file path
-      const asset = await client.stack(stack).asset().create({
-          upload: filePath,
-          title: sku.toLowerCase(),
-          parent_uid: uidFolder
-      }); 
+    const asset = await client.stack(stack).asset().create({
+      upload: filePath,
+      title: sku.toLowerCase(),
+      parent_uid: uidFolder
+    });
 
-      // Clean up the temporary file
-      fs.unlinkSync(filePath); 
+    // Clean up the temporary file
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      } else {
+        console.warn(`File not found for deletion: ${filePath}`);
+      }
+    } catch (error) {
+      console.error(`Error deleting file ${filePath}:`, error);
+    }
 
-      return asset?.uid ?? '';
+    return asset?.uid ?? '';
   } catch (error) {
-    console.error('Error:', error);
+    return '';
   }
 }
