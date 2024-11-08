@@ -216,76 +216,92 @@ export const getLocales = async (): Promise<any> => {
 export const publish = async (entries: any): Promise<any> => {
   const locales = await getLocales();
 
-  for (const entry of entries) {
-    const entryUID = entry.uid;
+  type InputItem = {
+    content_type_uid: string;
+    locale: string;
+    uid: string;
+  };
 
-    for (const locale of locales) { 
-      const data = { 
-        publishDetails: {
-          locales: [locale],
-          environments: environments 
-        },
-        locale: locale 
-      };
-      
-      try {
-        const response = await client.stack(stack)
-          .contentType(content_type_uid)
-          .entry(entryUID)
-          .publish(data);
-    
-        logger.info(`Request publish: ${JSON.stringify(entryUID)} :${JSON.stringify(data)}`);
-        logger.info(`Response publish: ${JSON.stringify(response)}`);
-      } catch (error) {
-        logger.info(`Request publish: ${JSON.stringify(entryUID)}`)
-        logger.error(`Error publishing entry for locale: ${locale}, Error: ${error}`);
-      }
+  const data = { 
+    publishDetails: {
+      locales: locales,
+      environments: environments,
+      entries: entries.flatMap((item: InputItem) =>
+        locales.map((locale: string) => ({
+          content_type: item.content_type_uid,
+          uid: item.uid,
+          locale,
+        }))
+      )
+      ,publish_with_reference: true
     }
+  }
+  try {
+    const response = await client.stack(stack)
+    .bulkOperation()
+    .publish({
+      details:  data.publishDetails, 
+      api_version: '3.2'
+    });
+
+    logger.info(`Request publish :${JSON.stringify(data)}`);
+    logger.info(`Response publish: ${JSON.stringify(response)}`);
+  } catch (error) {
+    logger.info(`Request publish: ${JSON.stringify(data)}`)
+    logger.error(`Error publishing entry for locale:  ${JSON.stringify(locales)}, Error: ${error}`);
   }
 }
 
 export const unPublish = async (entries: any): Promise<any> => {
   const locales = await getLocales();
 
-  for (const entry of entries) {
-    const entryUID = entry.uid;
+  type InputItem = {
+    content_type_uid: string;
+    locale: string;
+    uid: string;
+  };
 
-    for (const locale of locales) { 
-      const data = { 
-        publishDetails: {
-          locales: [locale],
-          environments: environments 
-        },
-        locale: locale 
-      };
-      
-      try {
-        const response = await client.stack(stack)
-          .contentType(content_type_uid)
-          .entry(entryUID)
-          .unpublish(data);
-    
-        logger.info(`Request unpublished: ${JSON.stringify(entryUID)} :${JSON.stringify(data)}`);
-        logger.info(`Response unpublished: ${JSON.stringify(response)}`);
-      } catch (error) {
-        logger.info(`Request unpublished: ${JSON.stringify(entryUID)}`)
-        logger.error(`Error unpublish entry for locale: ${locale}, Error: ${error}`);
-      }
+  const data = { 
+    publishDetails: {
+      locales: locales,
+      environments: environments,
+      entries: entries.flatMap((item: InputItem) =>
+        locales.map((locale: string) => ({
+          content_type: item.content_type_uid,
+          uid: item.uid,
+          locale,
+        }))
+      )
     }
   }
+      
+  try {
+    const response = await client.stack(stack)
+    .bulkOperation()
+    .unpublish({
+      details:  data.publishDetails, 
+      api_version: '3.2'
+    });
+    
+    logger.info(`Request unpublished: ${JSON.stringify(data)}`);
+    logger.info(`Response unpublished: ${JSON.stringify(response)}`);
+  } catch (error) {
+    logger.info(`Request unpublished: ${JSON.stringify(data)}`)
+    logger.error(`Error unpublish entry for locale: ${locales}, Error: ${error}`);
+  }
+
 }
 
-export const getAsset = async (sku: string): Promise<any> => {
+export const getAsset = async (uid: string): Promise<any> => {
   try {
     const asset = await client.stack(stack)
-      .asset()
-      .query({ query: { 'filename': `${sku}.jpg` } })
-      .find();
+      .asset(uid)
+      .fetch();
 
-    return asset?.items[0]?.uid ?? '';
+    return asset?.uid ?? '';
   } catch (error) {
-    logger.info(`Request: ${JSON.stringify(sku)}`)
-    logger.error(`Error fetching asset: ${error}`);
+    logger.info(`Request: ${uid}, Asset was not found.`)
+    return '';
   }
 }
 

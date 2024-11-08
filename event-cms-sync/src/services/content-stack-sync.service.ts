@@ -126,7 +126,8 @@ export class cmsServices {
     const brandName = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'brand_name');
     const objCategory = newData?.categories?.[0]?.obj;
     const imageUrl = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'image');
-    const uidProductImage = imageUrl?.value ? imageUrl?.value.split('/')[6] : '';
+    let uidProductImage = imageUrl?.value ? imageUrl?.value.split('/')[6] : '';
+    uidProductImage = await getAsset(uidProductImage);
 
     let mainCategory = objCategory?.parent?.obj?.name?.['en-US'] ?? objCategory?.parent?.obj?.name?.['th-TH'] ?? 'category';
     let subCategory = objCategory?.name?.['en-US'] ?? objCategory?.name?.['th-TH'] ?? 'sub-category';
@@ -260,12 +261,14 @@ export class cmsServices {
     const mainCategorySlug = mainCategory?.toLowerCase().replace(/\s+/g, "-");
     const subCategorySlug = subCategory?.toLowerCase().replace(/\s+/g, "-");
     const imageUrl = masterVariant.attributes.find((attr: { name: string }) => attr?.name === 'image');
-    const uidProductImage = imageUrl?.value ? imageUrl?.value.split('/')[6] : '';
+    let uidProductImage = imageUrl?.value ? imageUrl?.value.split('/')[6] : '';
 
     if (!productName) {
       logger.info(`Data: ${JSON.stringify(product)}`);
       throw new Error('Product name is not available.');
     }
+
+    uidProductImage = await getAsset(uidProductImage);
   
     for (const item of commerceToolsData) {
       const statusAttribute = item.attributes.find((attr: any) => attr?.name === 'status');
