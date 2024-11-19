@@ -24,9 +24,14 @@ export class AuthController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            return res.status(500).json({
-                statusCode: 'error',
-                statusMessage: EXCEPTION_MESSAGES.SERVER_ERROR,
+            const statusCode = error.statusCode || 500;
+            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
+            const data = error.data || null
+
+            return res.status(statusCode).json({
+                statusCode,
+                statusMessage,
+                data,
             });
         }
     };
@@ -52,9 +57,14 @@ export class AuthController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            return res.status(500).json({
-                statusCode: 500,
-                statusMessage: EXCEPTION_MESSAGES.SERVER_ERROR,
+            const statusCode = error.statusCode || 500;
+            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
+            const data = error.data || null
+
+            return res.status(statusCode).json({
+                statusCode,
+                statusMessage,
+                data,
             });
         }
     };

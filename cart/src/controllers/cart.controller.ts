@@ -1,4 +1,4 @@
-// src/controllers/cart.controller.ts
+// cart/src/controllers/cart.controller.ts
 
 import { Request, Response } from 'express';
 import { CartService } from '../services/cart.service';
@@ -12,12 +12,11 @@ export class CartController {
         this.cartService = new CartService();
     }
 
-    public createAnonymousCart = async (req: Request, res: Response): Promise<Response> => {
+    public createAnonymousCart = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
             const accessToken = req.accessToken as string;
-            const { campaignGroup, journey } = req.body;
 
-            const cart = await this.cartService.createAnonymousCart(accessToken, campaignGroup, journey);
+            const cart = await this.cartService.createAnonymousCart(accessToken, req.body);
 
             const response: ResponseType = {
                 statusCode: 200,
@@ -27,12 +26,15 @@ export class CartController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            const response: ResponseType = {
-                statusCode: 500,
-                statusMessage: EXCEPTION_MESSAGES.SERVER_ERROR,
-            };
+            const statusCode = error.statusCode || 500;
+            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
+            const data = error.data || null
 
-            return res.status(500).json(response);
+            return res.status(statusCode).json({
+                statusCode,
+                statusMessage,
+                data,
+            });
         }
     };
 
