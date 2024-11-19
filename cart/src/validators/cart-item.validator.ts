@@ -1,8 +1,10 @@
-// server/validators/cart-item.validator.ts
+// src/validators/cart-item.validator.ts
 
 import type { Cart, CustomObject, LineItem, ProductVariant } from '@commercetools/platform-sdk';
 import Joi from 'joi';
 import { getAttributeValue } from '../utils/product-utils';
+import { readConfiguration } from '../utils/config.utils';
+import { ResponseType } from '../types/response.type';
 
 export function validateSelectCartItemBody(body: any) {
 	return Joi.object({
@@ -260,14 +262,13 @@ export function validateProductQuantity(
 	productId: string,
 	variant: ProductVariant,
 	deltaQuantity: number,
-): void {
+): void | ResponseType {
 	if (productType !== 'main_product') {
 		return;
 	}
 
 	// Retrieve ctpWholeCartLimit from runtime configuration
-	const config = useRuntimeConfig();
-	const ctpWholeCartLimit = Number(config.public.ctpWholeCartLimit) || 5;
+	const ctpWholeCartLimit = Number(readConfiguration().ctpWholeCartLimit) || 5;
 
 	// Filter line items with productType 'main_product'
 	const mainProductLineItems = cart.lineItems.filter(
@@ -301,61 +302,61 @@ export function validateProductQuantity(
 
 	// Negative Quantity Checks
 	if (newSkuQuantity < 0) {
-		throw createError({
+		return {
 			statusCode: 400,
 			statusMessage: `Cannot have less than 0 units of SKU ${sku} in the cart.`,
-		});
+		};
 	}
 
 	if (newProductQuantity < 0) {
-		throw createError({
+		return {
 			statusCode: 400,
 			statusMessage: `Cannot have less than 0 units of product ${productId} in the cart.`,
-		});
+		};
 	}
 
 	if (newTotalCartQuantity < 0) {
-		throw createError({
+		return {
 			statusCode: 400,
 			statusMessage: `Cannot have less than 0 units in the cart.`,
-		});
+		};
 	}
 
 	// SKU Level Validations
 	if (newSkuQuantity < skuQuantityMin) {
-		throw createError({
+		return {
 			statusCode: 400,
 			statusMessage: `Cannot have less than ${skuQuantityMin} units of SKU ${sku} in the cart.`,
-		});
+		};
 	}
 
 	if (skuQuantityMax !== null && skuQuantityMax !== undefined && newSkuQuantity > skuQuantityMax) {
-		throw createError({
+		return {
 			statusCode: 400,
 			statusMessage: `Cannot have more than ${skuQuantityMax} units of SKU ${sku} in the cart.`,
-		});
+		};
 	}
 
 	// Product Level Validations
 	if (newProductQuantity < quantityMin) {
-		throw createError({
+		return {
 			statusCode: 400,
 			statusMessage: `Cannot have less than ${quantityMin} units of product ${productId} in the cart.`,
-		});
+		};
 	}
 
 	if (quantityMax !== null && quantityMax !== undefined && newProductQuantity > quantityMax) {
-		throw createError({
+		return {
 			statusCode: 400,
 			statusMessage: `Cannot have more than ${quantityMax} units of product ${productId} in the cart.`,
-		});
+		};
 	}
 
 	// Whole Cart Level Validation
 	if (ctpWholeCartLimit !== undefined && newTotalCartQuantity > ctpWholeCartLimit) {
-		throw createError({
+		return {
 			statusCode: 400,
 			statusMessage: `Cannot have more than ${ctpWholeCartLimit} units in the cart.`,
-		});
+		};
 	}
 }
