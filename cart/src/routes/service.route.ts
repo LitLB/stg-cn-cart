@@ -1,13 +1,12 @@
 // src/routes/service.route.ts
 
 import { Router } from 'express';
-import { productController } from '../controllers/product.controller';
-import { createAnonymousSession } from '../controllers/auth.controller';
-import { create, remove, test } from '../controllers/customer-group.controller';
+import { AuthController } from '../controllers/auth.controller';
 
-const serviceRouter = Router();
+const router = Router();
+const authController = new AuthController();
 
-serviceRouter.get('/v1/test', test);
-serviceRouter.post('/v1/anonymous', createAnonymousSession);
+router.post('/api/auth/anonymous', authController.createAnonymousSession);
+router.post('/api/auth/anonymous/renew', authController.renewAnonymousSession);
 
-export default serviceRouter;
+export default router;

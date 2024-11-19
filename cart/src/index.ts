@@ -27,7 +27,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Define routes
-app.use('/cart', ServiceRoutes);
+app.use('/', ServiceRoutes);
 
 // Global error handler
 app.use(errorMiddleware);
