@@ -9,10 +9,7 @@ export class AuthService {
     constructor() {
         this.authClient = new CommercetoolsAuthClient();
     }
-    /**
-      * Creates an anonymous session with Commercetools.
-      * @returns An object containing session details and expiration times.
-      */
+
     public async createAnonymousSession() {
         try {
             const anonymousSession = await this.authClient.getAnonymousSession();
@@ -33,11 +30,6 @@ export class AuthService {
         }
     }
 
-    /**
-     * Renews an anonymous session using the provided refresh token.
-     * @param refreshToken - The refresh token to use for renewing the access token.
-     * @returns An object containing the new session details and expiration times.
-     */
     public async renewAnonymousSession(refreshToken: string) {
         try {
             const newTokenData = await this.authClient.renewAnonymousToken(refreshToken);

@@ -1,49 +1,49 @@
-// src/services/cart.service.ts
+// // src/services/cart.service.ts
 
-import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
-import { validateCreateAnonymousCartBody } from '../validators/cart.validator';
+// import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
+// import { validateCreateAnonymousCartBody } from '../validators/cart.validator';
 
-export class CartService {
-    private commercetoolsMeCartClient: CommercetoolsMeCartClient;
+// export class CartService {
+//     private commercetoolsMeCartClient: CommercetoolsMeCartClient;
 
-    constructor() {
-    }
+//     constructor() {
+//     }
 
-    public async createAnonymousCart(accessToken: string, campaignGroup: string, journey: string) {
-        try {
-            const { error } = validateCreateAnonymousCartBody({ campaignGroup, journey });
-            if (error) {
-                throw new Error(error.details.map((err: any) => err.message).join(', '));
-            }
+//     public async createAnonymousCart(accessToken: string, campaignGroup: string, journey: string) {
+//         try {
+//             const { error } = validateCreateAnonymousCartBody({ campaignGroup, journey });
+//             if (error) {
+//                 throw new Error(error.details.map((err: any) => err.message).join(', '));
+//             }
 
-            this.commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+//             this.commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
-            const cart = await this.commercetoolsMeCartClient.createCart(campaignGroup, journey);
+//             const cart = await this.commercetoolsMeCartClient.createCart(campaignGroup, journey);
 
-            return cart;
-        } catch (error: any) {
-            console.error('Error in CartService.createAnonymousCart:', error);
-            throw error;
-        }
-    }
+//             return cart;
+//         } catch (error: any) {
+//             console.error('Error in CartService.createAnonymousCart:', error);
+//             throw error;
+//         }
+//     }
 
-    public async getCartById(accessToken: string, cartId: string, selectedOnly: boolean) {
-        try {
-            this.commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+//     public async getCartById(accessToken: string, cartId: string, selectedOnly: boolean) {
+//         try {
+//             this.commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
-            const cart = await this.commercetoolsMeCartClient.getCartById(cartId);
+//             const cart = await this.commercetoolsMeCartClient.getCartById(cartId);
 
-            if (!cart) {
-                throw new Error('Cart not found or has expired');
-            }
+//             if (!cart) {
+//                 throw new Error('Cart not found or has expired');
+//             }
 
-            const cartWithBenefit = await this.commercetoolsMeCartClient.getCartWithBenefit(cart, selectedOnly);
+//             const cartWithBenefit = await this.commercetoolsMeCartClient.getCartWithBenefit(cart, selectedOnly);
 
-            return cartWithBenefit;
-        } catch (error: any) {
-            console.error('Error in CartService.getCartById:', error);
-            throw error;
-        }
-    }
+//             return cartWithBenefit;
+//         } catch (error: any) {
+//             console.error('Error in CartService.getCartById:', error);
+//             throw error;
+//         }
+//     }
 
-}
+// }

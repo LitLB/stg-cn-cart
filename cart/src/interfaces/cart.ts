@@ -1,7 +1,7 @@
 // interface/cart.ts
 
 import type { Address, Attribute, ShippingMethodReference } from '@commercetools/platform-sdk';
-import type { ProductType } from '~/types/share.types';
+import { ProductType } from '../types/share.types';
 
 export interface ICart {
 	cartId: string;
