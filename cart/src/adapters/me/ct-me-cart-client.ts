@@ -1,0 +1,1060 @@
+// cart/src/adapters/me/ct-me-cart-client.ts
+
+import { createApiBuilderFromCtpClient } from '@commercetools/platform-sdk';
+import { ClientBuilder } from '@commercetools/sdk-client-v2';
+import { createAuthMiddlewareWithExistingToken } from '@commercetools/sdk-middleware-auth';
+import { createHttpMiddleware } from '@commercetools/sdk-middleware-http';
+import type {
+	Cart,
+	MyCartDraft,
+	MyCartUpdate,
+	MyCartUpdateAction,
+	MyLineItemDraft,
+	ApiRoot,
+	LineItem,
+} from '@commercetools/platform-sdk';
+import type { ICart, IImage, IItem } from '../../interface/cart';
+import { CART_EXPIRATION_DAYS } from '../../constants/cart.constant';
+import dayjs from 'dayjs';
+import CommercetoolsInventoryClient from '../ct-inventory-client';
+import CommercetoolsCartClient from '../ct-cart-client';
+import CommercetoolsProductClient from '../ct-product-client';
+import { talonOneEffectConverter } from '../talon-one-effect-converter'
+import { readConfiguration } from '../../utils/config.utils';
+
+export default class CommercetoolsMeCartClient {
+	private apiRoot: ApiRoot;
+	private projectKey: string;
+	private onlineChannel: string;
+	private readonly ctCartClient;
+	private readonly ctInventoryClient;
+	private readonly ctProductClient;
+	private readonly talonOneEffectConverter;
+	constructor(accessToken: string) {
+		this.projectKey = readConfiguration().ctpProjectKey as string;
+		this.onlineChannel = readConfiguration().onlineChannel as string;
+
+		const client = new ClientBuilder()
+			.withProjectKey(this.projectKey)
+			.withMiddleware(
+				createAuthMiddlewareWithExistingToken(`Bearer ${accessToken}`)
+			)
+			.withMiddleware(
+				createHttpMiddleware({
+					host: readConfiguration().ctpApiUrl,
+				})
+			)
+			.build();
+
+		this.apiRoot = createApiBuilderFromCtpClient(client);
+		this.ctCartClient = CommercetoolsCartClient;
+		this.talonOneEffectConverter = talonOneEffectConverter;
+		this.ctInventoryClient = CommercetoolsInventoryClient;
+		this.ctProductClient = CommercetoolsProductClient;
+	}
+
+	/**
+	 * Creates a new cart for the current user with custom fields.
+	 * @param campaignGroup - The campaign group for the cart.
+	 * @param journey - The journey for the cart.
+	 */
+	public async createCart(campaignGroup: string, journey: string): Promise<Cart> {
+		const cartDraft: MyCartDraft = {
+			country: 'TH',
+			currency: 'THB',
+			deleteDaysAfterLastModification: CART_EXPIRATION_DAYS,
+			custom: {
+				type: {
+					typeId: 'type',
+					key: 'cartCustomType',
+				},
+				fields: {
+					campaignGroup,
+					journey,
+				},
+			},
+		};
+
+		const response = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.me()
+			.carts()
+			.post({ body: cartDraft })
+			.execute();
+
+		return response.body;
+	}
+
+	/**
+  * Retrieves the active cart for the current user.
+  */
+	public async getActiveCart(): Promise<Cart | null> {
+		try {
+			const response = await this.apiRoot
+				.withProjectKey({ projectKey: this.projectKey })
+				.me()
+				.activeCart()
+				.get()
+				.execute();
+
+			return response.body;
+		} catch (error) {
+			console.error('Error fetching active cart:', error);
+			return null;
+		}
+	}
+
+	/**
+	 * Retrieves the current user's cart by ID with a 7-day expiration check.
+	 * @param cartId - The ID of the cart to retrieve.
+	 */
+	public async getCartById(cartId: string): Promise<Cart | null> {
+		try {
+			const response = await this.apiRoot
+				.withProjectKey({ projectKey: this.projectKey })
+				.me()
+				.carts()
+				.withId({ ID: cartId })
+				.get()
+				.execute();
+
+			return response.body;
+		} catch (error) {
+			console.error(`Error fetching cart with ID ${cartId}:`, error);
+			return null;
+		}
+	}
+
+	async updateLineItemSelection(
+		cartId: string,
+		version: number,
+		lineItemId: string,
+		selected: boolean,
+	): Promise<Cart> {
+		const actions: MyCartUpdateAction[] = [
+			{
+				action: 'setLineItemCustomField',
+				lineItemId: lineItemId,
+				name: 'selected',
+				value: selected,
+			},
+		];
+
+		const update: MyCartUpdate = {
+			version: version,
+			actions: actions,
+		};
+
+		const response = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.me()
+			.carts()
+			.withId({ ID: cartId })
+			.post({ body: update })
+			.execute();
+
+		return response.body;
+	}
+
+	/**
+	 * Adds a line item to the current user's cart.
+	 * @param cartId - The ID of the cart.
+	 * @param version - The current version of the cart.
+	 * @param lineItemDraft - The draft of the line item to add.
+	 */
+	public async addLineItemToCart(
+		cartId: string,
+		version: number,
+		lineItemDraft: MyLineItemDraft,
+	): Promise<Cart> {
+		const updateActions: MyCartUpdateAction[] = [
+			{
+				action: 'addLineItem',
+				...lineItemDraft,
+			},
+		];
+
+		const cartUpdate: MyCartUpdate = {
+			version,
+			actions: updateActions,
+		};
+
+		const response = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.me()
+			.carts()
+			.withId({ ID: cartId })
+			.post({ body: cartUpdate })
+			.execute();
+
+		return response.body;
+	}
+
+	/**
+	 * Updates the current user's cart with the specified actions.
+	 * @param cartId - The ID of the cart.
+	 * @param version - The current version of the cart.
+	 * @param actions - The update actions to perform.
+	 */
+	public async updateCart(
+		cartId: string,
+		version: number,
+		actions: MyCartUpdateAction[],
+	): Promise<Cart> {
+		const cartUpdate: MyCartUpdate = {
+			version,
+			actions,
+		};
+
+		const response = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.me()
+			.carts()
+			.withId({ ID: cartId })
+			.post({ body: cartUpdate })
+			.execute();
+
+		return response.body;
+	}
+
+	public async updateLineItemSelected(
+		cartId: string,
+		version: number,
+		lineItem: LineItem,
+		selected: boolean,
+	): Promise<Cart> {
+		const updateActions: MyCartUpdateAction[] = [
+			{
+				action: 'setLineItemCustomType',
+				lineItemId: lineItem.id,
+				type: {
+					typeId: 'type',
+					key: 'lineItemCustomType',
+				},
+				fields: {
+					selected: selected,
+				},
+			},
+		];
+
+		const cartUpdate: MyCartUpdate = {
+			version,
+			actions: updateActions,
+		};
+
+		const response = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.me()
+			.carts()
+			.withId({ ID: cartId })
+			.post({ body: cartUpdate })
+			.execute();
+
+		return response.body;
+	}
+
+	findLineItem({
+		cart,
+		variantId,
+		productGroup,
+		productType,
+		addOnGroup,
+	}: {
+		cart: Cart;
+		variantId: number;
+		productGroup: number;
+		productType: string;
+		addOnGroup: string;
+	}) {
+		const lineItem = cart.lineItems.find((item) => item.variant.id === variantId &&
+			item.custom?.fields?.productType === productType &&
+			item.custom?.fields?.productGroup === productGroup &&
+			(!addOnGroup || item.custom?.fields?.addOnGroup === addOnGroup));
+
+		return lineItem;
+	}
+
+	/**
+	 * Finds the line item ID in the cart by variant ID.
+	 * @param cart - The current cart object.
+	 * @param variantId - The variant ID to search for.
+	 */
+	private findLineItemId({
+		cart,
+		variantId,
+		productGroup,
+		productType,
+		addOnGroup
+	}: {
+		cart: Cart
+		variantId: number
+		productGroup: number
+		productType: string
+		addOnGroup: string
+	}): string {
+		const lineItem = this.findLineItem({
+			cart,
+			variantId,
+			productGroup,
+			productType,
+			addOnGroup,
+		});
+		if (!lineItem) {
+			throw new Error('Line item not found in cart');
+		}
+		return lineItem.id;
+	}
+
+	private findSecondaryLineItemIdsInProductGroup(cart: Cart, productGroup?: number) {
+		const lineItemIds = cart.lineItems.filter((item) =>
+			item.custom?.fields?.productType !== 'main_product' &&
+			item.custom?.fields?.productGroup === productGroup)
+			.map((item) => item.id)
+
+		return lineItemIds
+	}
+
+	/**
+	 * Helper method to find line item IDs based on variant IDs.
+	 * @param cart - The current cart object.
+	 * @param variantIds - An array of variant IDs to find.
+	 * @returns {string[]} An array of corresponding line item IDs.
+	*/
+	private findLineItemIds(cart: Cart, lineItemKeys: any[]): string[] {
+		const { lineItems } = cart
+		const lineItemIds: string[] = [];
+
+
+		lineItemKeys.forEach((lineItemKey) => {
+			const { variantId, productGroup, productType, addOnGroup } = lineItemKey
+			const lineItem = lineItems.find((item) => item.variant.id === variantId &&
+				item.custom?.fields?.productGroup === productGroup &&
+				item.custom?.fields?.productType === productType &&
+				(!addOnGroup || item.custom?.fields?.addOnGroup === addOnGroup)
+			)
+
+			if (lineItem) {
+				lineItemIds.push(lineItem.id);
+
+				if (productType === 'main_product') {
+					const secondaryLineItemIds = this.findSecondaryLineItemIdsInProductGroup(cart, productGroup)
+
+					lineItemIds.push(...secondaryLineItemIds);
+				}
+
+			} else {
+				console.warn(`Line item with variant ID ${variantId} not found in cart.`);
+			}
+		})
+
+		const uniqueLineItemIds = [...new Set(lineItemIds)];
+
+		return uniqueLineItemIds;
+	}
+
+	/**
+	 * Updates the quantity of a specific item in the cart.
+	 * @param cart - The current cart object.
+	 * @param variantId - The variant ID of the item.
+	 * @param quantity - The new quantity.
+	 */
+	public async updateItemQuantityInCart({
+		cart,
+		variantId,
+		productGroup,
+		productType,
+		addOnGroup,
+		quantity,
+	}: {
+		cart: Cart
+		variantId: number
+		productGroup: number
+		productType: string
+		addOnGroup: string
+		quantity: number
+	}): Promise<Cart> {
+		const updateActions: MyCartUpdateAction[] = [];
+
+		if (quantity > 0) {
+			updateActions.push({
+				action: 'changeLineItemQuantity',
+				lineItemId: this.findLineItemId({
+					cart,
+					variantId,
+					productGroup,
+					productType,
+					addOnGroup
+				}),
+				quantity,
+			});
+		} else {
+			const lineItemIds = this.findLineItemIds(cart, [{
+				variantId,
+				productGroup,
+				productType,
+				addOnGroup
+			}])
+
+			const removeLineItemActions = lineItemIds.map((lineItemId) => {
+				return {
+					action: 'removeLineItem',
+					lineItemId
+				}
+			})
+			updateActions.push(...removeLineItemActions as MyCartUpdateAction[]);
+		}
+
+		const updatedCart = await this.updateCart(
+			cart.id,
+			cart.version,
+			updateActions
+		);
+
+		return updatedCart;
+	}
+
+	/**
+	 * Removes an item from the current user's cart by variant ID.
+	 * @param cart - The current cart object.
+	 * @param variantId - The variant ID of the item to remove.
+	 */
+	public async removeItemFromCart({
+		cart,
+		variantId,
+		productType,
+		productGroup,
+		addOnGroup
+	}: {
+		cart: Cart,
+		variantId: number,
+		productType: string
+		productGroup: number,
+		addOnGroup: string,
+	}): Promise<Cart> {
+		const lineItemIds = this.findLineItemIds(cart, [{
+			variantId,
+			productType,
+			productGroup,
+			addOnGroup
+		}]);
+
+		const updatedCart = await this.removeMultipleItemsFromCart(
+			cart.id,
+			cart.version,
+			lineItemIds,
+		);
+
+		return updatedCart;
+	}
+
+	/**
+ * Removes multiple line items from the current user's cart.
+ * @param cartId - The ID of the cart.
+ * @param version - The current version of the cart.
+ * @param lineItemIds - An array of line item IDs to remove.
+ */
+	public async removeMultipleItemsFromCart(
+		cartId: string,
+		version: number,
+		lineItemIds: string[],
+	): Promise<Cart> {
+		const updateActions: MyCartUpdateAction[] = lineItemIds.map((lineItemId: string) => ({
+			action: 'removeLineItem',
+			lineItemId,
+		}));
+
+		const cartUpdate: MyCartUpdate = {
+			version,
+			actions: updateActions,
+		};
+
+		const response = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.me()
+			.carts()
+			.withId({ ID: cartId })
+			.post({ body: cartUpdate })
+			.execute();
+
+		return response.body;
+	}
+
+	public async removeItemsFromCart(
+		cart: Cart,
+		lineItemKeys: any[],
+	): Promise<Cart> {
+		const lineItemIds = this.findLineItemIds(cart, lineItemKeys);
+
+		if (lineItemIds.length === 0) {
+			throw new Error('No valid line items found to remove.');
+		}
+
+		const updatedCart = await this.removeMultipleItemsFromCart(
+			cart.id,
+			cart.version,
+			lineItemIds,
+		);
+
+		return updatedCart;
+	}
+
+	/**
+	 * Calculates the total discount from selected items.
+	 * @param selectedItems - Array of selected IItem objects.
+	 * @returns The total discount amount.
+	 */
+	private calculateTotalDiscount(selectedItems: IItem[]): number {
+		return selectedItems.reduce((total, item) => total + item.discountAmount, 0);
+	}
+
+	private getProductImage(lineItem: LineItem): IImage | null {
+		const imageAttribute = lineItem.variant.attributes?.find(attr => attr.name === 'image');
+		if (imageAttribute && imageAttribute.value) {
+			const imageUrl = imageAttribute.value;
+			const image: IImage = {
+				url: imageUrl,
+			};
+			return image;
+		}
+
+		return null;
+	}
+
+	private getVariantImage(lineItem: LineItem): IImage | null {
+		if (lineItem.variant.images && lineItem.variant.images.length > 0) {
+			return lineItem.variant.images[0];
+		}
+
+		return null;
+	}
+
+	/**
+	 * Calculates the expiration Date by adding deleteDaysAfterLastModification to lastModifiedAt
+	 * and subtracting a buffer time of 5 minutes.
+	 *
+	 * @param lastModifiedAt - The ISO 8601 string representing the last modification date of the cart.
+	 * @param deleteDaysAfterLastModification - Number of days after last modification when the cart expires.
+	 * @returns The Date object representing the expiration timestamp with a 5-minute buffer.
+	 *
+	 * @throws Will throw an error if inputs are invalid.
+	 */
+	calculateExpiredAt(lastModifiedAt: string, deleteDaysAfterLastModification: number): Date {
+		if (!lastModifiedAt || typeof lastModifiedAt !== 'string') {
+			throw new Error('Invalid lastModifiedAt value provided.');
+		}
+
+		if (
+			typeof deleteDaysAfterLastModification !== 'number' || deleteDaysAfterLastModification <= 0
+		) {
+			throw new Error('Invalid deleteDaysAfterLastModification value provided.');
+		}
+
+		const expiredAtDate = dayjs(lastModifiedAt).add(deleteDaysAfterLastModification, 'day');
+
+		if (!expiredAtDate.isValid()) {
+			throw new Error('Calculated expiredAt date is invalid.');
+		}
+
+		return expiredAtDate.toDate();
+	}
+
+	calculateQuantities(items: IItem[]) {
+		let totalQuantity = 0;
+		const quantitiesByProductType: { [key: string]: number } = {};
+
+		for (const item of items) {
+			totalQuantity += item.quantity;
+
+			const productType = item.productType || 'unknown';
+
+			if (quantitiesByProductType[productType]) {
+				quantitiesByProductType[productType] += item.quantity;
+			} else {
+				quantitiesByProductType[productType] = item.quantity;
+			}
+		}
+
+		return {
+			totalQuantity,
+			quantitiesByProductType,
+		};
+	}
+
+	/**
+	 * Maps the Commercetools Cart to a custom ICart interface.
+	 * @param ctCart - The Commercetools Cart object.
+	 */
+	mapCartToICart(ctCart: Cart): ICart {
+		const items: IItem[] = ctCart.lineItems
+			.toSorted((a: any, b: any) => {
+				const productGroupA = a.custom?.fields?.productGroup
+				const productGroupB = b.custom?.fields?.productGroup
+				if (productGroupA !== productGroupB) {
+					return productGroupA - productGroupB;
+				}
+				return new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime();
+			})
+			.map((lineItem: LineItem) => {
+				if (!lineItem.variant.sku) {
+					throw new Error(`SKU is undefined for productId: ${lineItem.productId}`);
+				}
+
+				const selected = lineItem.custom?.fields?.selected ?? false;
+				const productType = lineItem.custom?.fields?.productType
+				const productGroup = lineItem.custom?.fields?.productGroup
+				const addOnGroup = lineItem.custom?.fields?.addOnGroup
+				const image = this.getVariantImage(lineItem);
+				const item: IItem = {
+					productId: lineItem.productId,
+					variantId: lineItem.variant.id,
+					sku: lineItem.variant.sku,
+					productType,
+					productGroup,
+					addOnGroup,
+					image,
+					quantity: lineItem.quantity,
+					unitPrice: lineItem.price.value.centAmount,
+					totalUnitPrice: lineItem.price.value.centAmount * lineItem.quantity,
+					discountAmount: this.calculateTotalDiscountAmount(lineItem),
+					priceAfterDiscount: lineItem.totalPrice.centAmount,
+					// vatRate: '',
+					// vatAmount: 0,
+					finalPrice: lineItem.totalPrice.centAmount,
+					appliedEffects: [],
+					attributes: lineItem.variant.attributes || [],
+					selected,
+				};
+
+				return item;
+			});
+
+		// Calculate quantities
+		const { totalQuantity, quantitiesByProductType } = this.calculateQuantities(items);
+
+		// Filter selected items for calculations
+		// const selectedItems = items.filter((item) => item.selected);
+
+		const subtotalPrice = items.reduce(
+			(total, item) => total + item.unitPrice * item.quantity,
+			0,
+		);
+		const totalPriceAfterDiscount = items.reduce(
+			(total, item) => total + item.priceAfterDiscount * item.quantity,
+			0,
+		);
+		const shippingCost = ctCart.shippingInfo?.price?.centAmount || 0;
+		const totalDiscount = this.calculateTotalDiscount(items);
+		const grandTotal = subtotalPrice + shippingCost - totalDiscount;
+
+		// Calculate expiredAt using lastModifiedAt and deleteDaysAfterLastModification
+		const lastModifiedAt = ctCart.lastModifiedAt;
+		const deleteDaysAfterLastModification = ctCart.deleteDaysAfterLastModification || CART_EXPIRATION_DAYS;
+		const expiredAt = this.calculateExpiredAt(lastModifiedAt, deleteDaysAfterLastModification);
+
+		const iCart: ICart = {
+			cartId: ctCart.id,
+			// isPrivilege: false,
+			campaignGroup: ctCart.custom?.fields.campaignGroup,
+			journey: ctCart.custom?.fields.journey,
+			// loyaltyTier: '',
+			// campaignByJourney: '',
+			// propositionGroup: '',
+			subtotalPrice,
+			totalDiscount,
+			totalPriceAfterDiscount,
+			shippingCost,
+			grandTotal,
+			currencyCode: ctCart.totalPrice.currencyCode,
+			totalQuantity,
+			shippingMethod: ctCart.shippingInfo?.shippingMethod || null,
+			paymentMethod: ctCart.custom?.fields?.paymentMethod || null, // TODO: Save Payment Method on CT?
+			shippingAddress: ctCart.shippingAddress || null,
+			billingAddress: ctCart.billingAddress || null,
+			quantitiesByProductType,
+			items,
+			triggeredCampaigns: [],
+			appliedEffects: [],
+			createdAt: new Date(ctCart.createdAt),
+			updatedAt: new Date(ctCart.lastModifiedAt),
+			deleteDaysAfterLastModification: ctCart.deleteDaysAfterLastModification || 30,
+			expiredAt,
+		};
+
+		return iCart;
+	}
+
+	// TODO: Check if not filtered 'Active' from CommercetoolsInventoryClient.getInventory() what will happens? 
+	mapInventoryToItems(items: IItem[], inventoryMap: Map<string, any>): void {
+		items.forEach((item) => {
+			const sku = item.sku;
+			const inventory = inventoryMap.get(sku);
+			if (inventory) {
+				const { id, key, stock, isOutOfStock } = inventory;
+				item.inventory = { id, key, stock, isOutOfStock };
+			} else {
+				item.inventory = null;
+			}
+		});
+	}
+
+	calculateTotalDiscountAmount(lineItem: any) {
+		return lineItem.discountedPricePerQuantity.reduce((totalDiscount: any, quantity: any) => {
+			const unitDiscount = quantity.discountedPrice.includedDiscounts.reduce(
+				(sum: any, discount: any) => sum + discount.discountedAmount.centAmount,
+				0
+			);
+			return totalDiscount + unitDiscount * quantity.quantity;
+		}, 0);
+	}
+
+	async resetCartItemProductGroup(ctCart: Cart) {
+		const { id, version, lineItems } = ctCart
+		const productGroupMapLineItemIds = lineItems?.reduce((acc: any, lineItem: any) => {
+			const productGroup = lineItem.custom.fields.productGroup
+			if (!acc?.[productGroup]) {
+				acc[productGroup] = []
+			}
+
+			acc[productGroup].push(lineItem.id)
+
+			return acc
+		}, {})
+
+		const actions: MyCartUpdateAction[] = [];
+		Object.keys(productGroupMapLineItemIds)
+			.sort((a: any, b: any) => a - b)
+			.forEach((currentProductGroup, index) => {
+				const expectedSequence = index + 1
+				if (+currentProductGroup === expectedSequence) {
+					return
+				}
+				const lineItemIds = productGroupMapLineItemIds[currentProductGroup]
+
+				const updateProductGroupActions = lineItemIds.map((lineItemId: string) => ({
+					action: 'setLineItemCustomField',
+					lineItemId: lineItemId,
+					name: 'productGroup',
+					value: expectedSequence
+				}))
+				actions.push(...updateProductGroupActions)
+			})
+		if (!actions.length) {
+			return ctCart
+		}
+
+		const update: MyCartUpdate = {
+			version: version,
+			actions: actions,
+		};
+
+		const response = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.me()
+			.carts()
+			.withId({ ID: id })
+			.post({ body: update })
+			.execute();
+
+		return response.body;
+	}
+
+	async attachPrivilegeToCart(updatedCart: any, customerSessionWithCampaignBenefit: any) {
+		const { id: cartId, version, lineItems } = updatedCart;
+		const { cartItems } = customerSessionWithCampaignBenefit.customerSession
+
+		const myCartUpdateActions: MyCartUpdateAction[] = [];
+		const newDirectDiscounts: any[] = [];
+
+		lineItems.forEach((lineItem: any) => {
+			const lineItemId = lineItem.id
+			// console.log('lineItemId', lineItemId)
+			const lineItemProductType = lineItem.custom.fields.productType
+			const lineItemProductGroup = lineItem.custom.fields.productGroup
+			const lineItemAddOnGroup = lineItem.custom.fields.addOnGroup
+			const lineItemPrivilege = lineItem?.custom?.privilege
+			const cartItem = cartItems.find((item: any) => {
+				return lineItem.variant.sku === item.sku &&
+					lineItemProductType === item.attributes?.product_type &&
+					lineItemProductGroup === item.attributes?.product_group &&
+					(!lineItemAddOnGroup || lineItemAddOnGroup === item.attributes?.add_on_group)
+			})
+
+			const oldPrivilege = lineItemPrivilege && JSON.parse(lineItemPrivilege);
+			const newPrivilege = cartItem?.privilege
+
+			if (!oldPrivilege && !newPrivilege) {
+				return
+			}
+
+			if (oldPrivilege && !newPrivilege) {
+				myCartUpdateActions.push({
+					action: 'setLineItemCustomField',
+					lineItemId,
+					name: 'privilege',
+					value: null,
+				});
+			}
+
+			if (newPrivilege) {
+				const {
+					specialPrice
+				} = newPrivilege
+				myCartUpdateActions.push({
+					action: 'setLineItemCustomField',
+					lineItemId,
+					name: 'privilege',
+					value: JSON.stringify(newPrivilege),
+				});
+
+				const predicate = [
+					`product.id ="${lineItem.productId}"`,
+					`custom.productType = "${lineItemProductType}"`,
+					`custom.productGroup = ${lineItemProductGroup}`,
+					`custom.addOnGroup = "${lineItemAddOnGroup}"`,
+				].join(' AND ');
+
+				newDirectDiscounts.push({
+					target: {
+						type: 'lineItems',
+						predicate,
+					},
+					value: {
+						type: 'fixed',
+						money: [
+							{
+								currencyCode: 'THB',
+								centAmount: specialPrice,
+							},
+						],
+					},
+				})
+			}
+		});
+
+		let newCart = updatedCart
+		let currentVersion = version
+		if (myCartUpdateActions.length) {
+			newCart = await this.updateCart(cartId, currentVersion, myCartUpdateActions)
+			currentVersion = newCart.version
+		}
+
+		newCart = await this.ctCartClient.updateCart(cartId, currentVersion, [{
+			action: 'setDirectDiscounts',
+			discounts: newDirectDiscounts
+		}])
+
+		return newCart
+	}
+
+	attachBenefitToICart(iCart: any, customerSessionWithBenefit: any) {
+		const { cartItems } = customerSessionWithBenefit.customerSession
+		const { items } = iCart
+		const newItems = items.map((item: any) => {
+			const sku = item.sku
+			const cartItem = cartItems.find((cartItem: any) => cartItem.sku === sku)
+			const availableBenefits = cartItem?.availableBenefits || []
+			const privilege = cartItem?.privilege
+			return {
+				...item,
+				availableBenefits,
+				privilege
+			}
+		})
+		const newICart = {
+			...iCart,
+			items: newItems
+		}
+
+		return newICart
+	}
+
+	async validateInsurance(ctCart: any, insurance: any) {
+		const {
+			productGroup,
+			productId,
+			sku
+		} = insurance
+
+		const { lineItems } = ctCart;
+
+		const mainProduct = lineItems.find((lineItem: any) => {
+			return lineItem.custom?.fields?.productType === 'main_product' &&
+				lineItem.custom?.fields?.productGroup === productGroup
+		})
+
+		if (!mainProduct) {
+			return {
+				isValid: false,
+				errorMessage: 'A main product is required for the specified insurance product.'
+			}
+		}
+
+		const insuranceReferenceIds = mainProduct
+			.variant
+			.attributes
+			.filter((attribute: any) => attribute.name === 'insurance_reference')
+			.flatMap((attribute: any) => attribute.value.map((subItem: any) => subItem.id));
+
+		if (!insuranceReferenceIds?.length) {
+			return {
+				isValid: false,
+				errorMessage: 'The main product does not contain any insurance products.'
+			};
+		}
+
+		const result = await this.ctProductClient.getProductsByIds(insuranceReferenceIds);
+		const insuranceProducts = result?.body?.results;
+		const insuranceProduct = insuranceProducts.find((insuranceProduct: any) => insuranceProduct.id === productId)
+
+		if (!insuranceProduct) {
+			return {
+				isValid: false,
+				errorMessage: 'The insurance product was not found.'
+			};
+		}
+
+		const { masterVariant, variants } = insuranceProduct
+		const allVariants = [masterVariant, ...variants]
+
+		const matchedVariant = allVariants?.find((variant: any) => variant.sku === sku)
+
+		if (!matchedVariant) {
+			return {
+				isValid: false,
+				errorMessage: 'The SKU for the insurance product was not found.'
+			};
+		}
+		return {
+			isValid: true,
+			errorMessage: ''
+		};
+	}
+
+	async attachInsuranceToICart(iCart: any) {
+		const { items } = iCart
+		const allInsuranceReferenceIds = items
+			.filter((item: any) => item.productType === 'main_product')
+			.flatMap((item: any) => item.attributes)
+			.filter((attribute: any) => attribute.name === 'insurance_reference')
+			.flatMap((attribute: any) => attribute.value.map((subItem: any) => subItem.id));
+
+		const insuranceItems = items.filter((item: any) => item.productType === 'insurance')
+		const selectedInsuranceMap = insuranceItems.reduce((acc: any, insuranceItem: any) => {
+			const { productGroup, productId, sku, quantity } = insuranceItem
+			acc[productGroup] = acc[productGroup] || {}
+			acc[productGroup][productId] = acc[productGroup][productId] || {}
+			acc[productGroup][productId][sku] = acc[productGroup][productId][sku] + quantity || quantity
+
+			return acc;
+		}, {})
+
+		let insuranceReferenceMap: any = {}
+		if (allInsuranceReferenceIds?.length) {
+			const result = await this.ctProductClient.getProductsByIds(allInsuranceReferenceIds);
+			const insuranceProducts = result?.body?.results;
+			insuranceReferenceMap = insuranceProducts.reduce((acc: any, current) => {
+				acc[current.id] = current
+				return acc
+			}, insuranceReferenceMap)
+		}
+
+		const withInsuranceItems = items.map((item: any) => {
+			const { productGroup } = item
+			const insuranceReferenceIds = item
+				?.attributes
+				?.filter((attribute: any) => attribute.name === 'insurance_reference')
+				?.flatMap((attribute: any) => attribute.value.map((subItem: any) => subItem.id)) || [];
+
+			const insurances = insuranceReferenceIds
+				.filter((insuranceReferenceId: any) => insuranceReferenceMap?.[insuranceReferenceId])
+				.map((insuranceReferenceId: any) => {
+					const insuranceReference = insuranceReferenceMap?.[insuranceReferenceId]
+					const { masterVariant, variants, ...insuranceReferenceInfo } = insuranceReference
+					const allVariants = [masterVariant, ...variants];
+					const newVariants = allVariants.map((variant: any) => {
+						const { sku } = variant
+						return {
+							...variant,
+							totalSelectedItem: selectedInsuranceMap?.[productGroup]?.[insuranceReferenceInfo.id]?.[sku] || 0
+						}
+					});
+					return {
+						...insuranceReferenceInfo,
+						variants: newVariants
+					}
+				})
+			return {
+				...item,
+				insurances
+			}
+		})
+
+		return {
+			...iCart,
+			items: withInsuranceItems
+		};
+	}
+
+	async updateCartWithBenefit(ctCart: any) {
+		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
+		const customerSessionId = ctCart?.id
+		const customerSessionWithCampaignBenefit = await talonOneEffectConverter.getCustomerSessionWithCampaignBenefit(customerSessionId)
+
+		const updatedCart = await this.attachPrivilegeToCart(ctCart, customerSessionWithCampaignBenefit)
+
+		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
+		const inventoryKey = skus.map((sku: any) => sku).join(',');
+		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
+		const inventoryMap = new Map<string, any>();
+		inventories.forEach((inventory: any) => {
+			const key = inventory.key;
+			const sku = key.replace(`${this.onlineChannel}-`, '');
+			inventoryMap.set(sku, inventory);
+		});
+		let iCart: ICart = this.mapCartToICart(updatedCart);
+		iCart = await this.attachInsuranceToICart(iCart);
+
+		this.mapInventoryToItems(iCart.items, inventoryMap);
+
+		const iCartWithBenefit = this.attachBenefitToICart(iCart, customerSessionWithCampaignBenefit)
+
+		return iCartWithBenefit;
+	}
+
+	filterLineItems(lineItems: LineItem[], selectedOnly: boolean): LineItem[] {
+		return lineItems.filter((lineItem: LineItem) => {
+			const isSelected = lineItem.custom?.fields?.selected ?? false;
+			return !selectedOnly || isSelected;
+		});
+	}
+
+	async getCartWithBenefit(ctCart: any, selectedOnly = false) {
+		const filteredLineItems = this.filterLineItems(ctCart.lineItems, selectedOnly);
+
+		const cartToProcess = { ...ctCart, lineItems: filteredLineItems };
+
+		const skus = cartToProcess.lineItems.map((lineItem: any) => lineItem.variant.sku);
+		const inventoryKey = skus.map((sku: any) => sku).join(',');
+		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
+		const inventoryMap = new Map<string, any>();
+		inventories.forEach((inventory: any) => {
+			const key = inventory.key;
+			const sku = key.replace(`${this.onlineChannel}-`, '');
+			inventoryMap.set(sku, inventory);
+		});
+
+		let iCart: ICart = this.mapCartToICart(cartToProcess);
+		iCart = await this.attachInsuranceToICart(iCart);
+
+		this.mapInventoryToItems(iCart.items, inventoryMap);
+
+		let iCartWithBenefit = iCart;
+		if (cartToProcess?.lineItems?.length) {
+			const customerSessionId = cartToProcess?.id;
+			const customerSession = await this.talonOneEffectConverter.getCustomerSessionWithCampaignBenefit(customerSessionId);
+			iCartWithBenefit = this.attachBenefitToICart(iCart, customerSession);
+		}
+
+		return iCartWithBenefit;
+	}
+}

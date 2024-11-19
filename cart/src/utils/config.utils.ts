@@ -18,11 +18,22 @@ export const readConfiguration = () => {
 
     ctpProjectKey: process.env.CTP_PROJECT_KEY as string,
     ctpAuthUrl: process.env.CTP_AUTH_URL as string,
+    ctpApiUrl: process.env.CTP_API_URL as string,
+    ctpClientId: process.env.CTP_CLIENT_ID as string,
+    ctpClientSecret: process.env.CTP_CLIENT_SECRET as string,
 
     bffCtpClientId: process.env.BFF_CTP_CLIENT_ID as string,
     bffCtpClientSecret: process.env.BFF_CTP_CLIENT_SECRET as string,
 
     ctpWholeCartLimit: process.env.CTP_WHOLE_CART_LIMIT as string,
+
+    onlineChannel: process.env.ONLINE_CHANNEL,
+
+    t1: {
+      apiKey: process.env.T1_API_KEY as string,
+      prefixApiKey: process.env.T1_API_KEY_PREFIX as string,
+      basePath: process.env.T1_URL as string,
+    }
   };
 
   const validationErrors = getValidateMessages(envValidators, envVars);
