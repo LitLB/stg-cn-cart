@@ -15,3 +15,5 @@ serviceRouter.post('/auth/anonymous/renew', authenticate, authController.renewAn
 serviceRouter.post('/carts/anonymous', authenticate, cartController.createAnonymousCart);
 
 export default serviceRouter;
+
+// Github
