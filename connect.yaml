@@ -2,9 +2,9 @@ deployAs:
   - name: cart
     applicationType: service
     endpoint: /cart
-    # scripts:
-    #   postDeploy: npm install && npm run build
-    #   preUndeploy: npm install && npm run build
+    scripts:
+      postDeploy: npm install && npm run build
+      preUndeploy: npm install && npm run build
     configuration:
       standardConfiguration:
         - key: CTP_REGION
