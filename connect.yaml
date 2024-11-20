@@ -19,6 +19,15 @@ deployAs:
         - key: CTP_API_URL
           description: api url
           required: true
+        - key: T1_API_KEY_PREFIX
+          description: T1 Api Key Prefix
+          required: true
+        - key: T1_URL
+          description: T1 Url
+          required: true
+        - key: ONLINE_CHANNEL
+          description: Inventory Channel 
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: project key
@@ -37,4 +46,7 @@ deployAs:
           required: true
         - key: BFF_CTP_CLIENT_SECRET
           description: bff ctp client secret
+          required: true
+        - key: T1_API_KEY
+          description: T1 ApiKey
           required: true
