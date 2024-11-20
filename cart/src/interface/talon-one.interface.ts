@@ -1,4 +1,4 @@
-import { type ProductType } from '~/types/share.types';
+import { ProductType } from "../types/share.types";
 
 type State = 'open' | 'closed' | 'cancelled' | 'partially_returned';
 

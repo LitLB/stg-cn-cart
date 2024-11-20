@@ -585,14 +585,28 @@ export default class CommercetoolsMeCartClient {
 	 * @param ctCart - The Commercetools Cart object.
 	 */
 	mapCartToICart(ctCart: Cart): ICart {
-		const items: IItem[] = ctCart.lineItems
-			.toSorted((a: any, b: any) => {
-				const productGroupA = a.custom?.fields?.productGroup
-				const productGroupB = b.custom?.fields?.productGroup
+		// const items: IItem[] = ctCart.lineItems
+		// 	.toSorted((a: any, b: any) => {
+		// 		const productGroupA = a.custom?.fields?.productGroup
+		// 		const productGroupB = b.custom?.fields?.productGroup
+		// 		if (productGroupA !== productGroupB) {
+		// 			return productGroupA - productGroupB;
+		// 		}
+		// 		return new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime();
+		// 	})
+		// ! POC Connector Deployment. If POC completed then will recheck toSorted() above.
+		const items: IItem[] = [...ctCart.lineItems]
+			.sort((a: LineItem, b: LineItem) => {
+				const productGroupA = a.custom?.fields?.productGroup || 0;
+				const productGroupB = b.custom?.fields?.productGroup || 0;
+
 				if (productGroupA !== productGroupB) {
 					return productGroupA - productGroupB;
 				}
-				return new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime();
+
+				const dateA = new Date(a.addedAt ?? 0).getTime();
+				const dateB = new Date(b.addedAt ?? 0).getTime();
+				return dateA - dateB;
 			})
 			.map((lineItem: LineItem) => {
 				if (!lineItem.variant.sku) {
