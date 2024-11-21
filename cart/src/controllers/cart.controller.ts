@@ -14,6 +14,7 @@ export class CartController {
 
     public createAnonymousCart = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
+            console.log('createAnonymousCart.b');
             const accessToken = req.accessToken as string;
 
             const cart = await this.cartService.createAnonymousCart(accessToken, req.body);
@@ -26,6 +27,7 @@ export class CartController {
 
             return res.status(200).json(response);
         } catch (error: any) {
+            console.log('createAnonymousCart.error', error);
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null
@@ -38,29 +40,38 @@ export class CartController {
         }
     };
 
-    // public getCartById = async (req: Request, res: Response): Promise<Response> => {
-    //     try {
-    //         const { id } = req.params;
-    //         const selectedOnly = req.query.selectedOnly === 'true';
+    public getCartById = async (req: Request, res: Response): Promise<Response> => {
+        try {
+            console.log('getCartById.a');
 
-    //         const accessToken = req.accessToken as string;
+            const { id } = req.params;
+            const selectedOnly = req.query.selectedOnly === 'true';
+            console.log('selectedOnly', selectedOnly);
+            console.log('typeof selectedOnly', typeof selectedOnly);
 
-    //         const cart = await this.cartService.getCartById(accessToken, id, selectedOnly);
+            const accessToken = req.accessToken as string;
 
-    //         const response: ResponseType = {
-    //             statusCode: 200,
-    //             statusMessage: RESPONSE_MESSAGES.SUCCESS,
-    //             data: cart,
-    //         };
+            const cart = await this.cartService.getCartById(accessToken, id, selectedOnly);
 
-    //         return res.status(200).json(response);
-    //     } catch (error: any) {
-    //         const response: ResponseType = {
-    //             statusCode: 500,
-    //             statusMessage: EXCEPTION_MESSAGES.SERVER_ERROR,
-    //         };
+            const response: ResponseType = {
+                statusCode: 200,
+                statusMessage: RESPONSE_MESSAGES.SUCCESS,
+                data: cart,
+            };
 
-    //         return res.status(500).json(response);
-    //     }
-    // };
+            return res.status(200).json(response);
+        } catch (error: any) {
+            console.log('getCartById.error', error);
+
+            const statusCode = error.statusCode || 500;
+            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
+            const data = error.data || null
+
+            return res.status(statusCode).json({
+                statusCode,
+                statusMessage,
+                data,
+            });
+        }
+    };
 }

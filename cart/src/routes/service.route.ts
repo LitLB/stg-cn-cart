@@ -10,10 +10,9 @@ const authController = new AuthController();
 const cartController = new CartController();
 
 serviceRouter.post('/auth/anonymous', authController.createAnonymousSession);
-serviceRouter.post('/auth/anonymous/renew', authenticate, authController.renewAnonymousSession);
+serviceRouter.post('/auth/anonymous/renew', authController.renewAnonymousSession);
 
+serviceRouter.get('/carts/:id/', authenticate, cartController.getCartById);
 serviceRouter.post('/carts/anonymous', authenticate, cartController.createAnonymousCart);
 
 export default serviceRouter;
-
-// Github
