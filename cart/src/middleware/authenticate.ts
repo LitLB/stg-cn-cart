@@ -5,8 +5,6 @@ import CommercetoolsAuthClient from '../adapters/ct-auth-client';
 
 export async function authenticate(req: Request, res: Response, next: NextFunction) {
     try {
-        console.log('authenticate.a');
-        
         const authHeader = req.headers['authorization'];
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
