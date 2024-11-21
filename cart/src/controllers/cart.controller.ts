@@ -74,4 +74,36 @@ export class CartController {
             });
         }
     };
+
+    public checkout = async (req: Request, res: Response): Promise<Response> => {
+        try {
+            console.log('checkout.a');
+
+            const { id } = req.params;
+
+            const accessToken = req.accessToken as string;
+
+            const updatedCart = await this.cartService.checkout(accessToken, id, req.body);
+
+            const response: ResponseType = {
+                statusCode: 200,
+                statusMessage: RESPONSE_MESSAGES.SUCCESS,
+                data: updatedCart,
+            };
+
+            return res.status(200).json(response);
+        } catch (error: any) {
+            console.log('checkout.error', error);
+
+            const statusCode = error.statusCode || 500;
+            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
+            const data = error.data || null
+
+            return res.status(statusCode).json({
+                statusCode,
+                statusMessage,
+                data,
+            });
+        }
+    };
 }

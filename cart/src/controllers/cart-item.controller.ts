@@ -131,4 +131,33 @@ export class CartItemController {
             });
         }
     };
+
+    public select = async (req: Request, res: Response): Promise<ResponseType> => {
+        try {
+            console.log('select.b');
+            const { id } = req.params;
+            const accessToken = req.accessToken as string;
+
+            const updatedCart = await this.cartItemService.select(accessToken, id, req.body);
+
+            const response: ResponseType = {
+                statusCode: 200,
+                statusMessage: RESPONSE_MESSAGES.CREATED,
+                data: updatedCart,
+            };
+
+            return res.status(200).json(response);
+        } catch (error: any) {
+            console.log('select.error', error);
+            const statusCode = error.statusCode || 500;
+            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
+            const data = error.data || null
+
+            return res.status(statusCode).json({
+                statusCode,
+                statusMessage,
+                data,
+            });
+        }
+    };
 }
