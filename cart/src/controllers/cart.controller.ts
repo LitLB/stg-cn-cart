@@ -14,20 +14,18 @@ export class CartController {
 
     public createAnonymousCart = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
-            console.log('createAnonymousCart.b');
             const accessToken = req.accessToken as string;
 
-            const cart = await this.cartService.createAnonymousCart(accessToken, req.body);
+            const createdCart = await this.cartService.createAnonymousCart(accessToken, req.body);
 
             const response: ResponseType = {
                 statusCode: 200,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
-                data: cart,
+                data: createdCart,
             };
 
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log('createAnonymousCart.error', error);
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null
@@ -42,13 +40,8 @@ export class CartController {
 
     public getCartById = async (req: Request, res: Response): Promise<Response> => {
         try {
-            console.log('getCartById.a');
-
             const { id } = req.params;
             const selectedOnly = req.query.selectedOnly === 'true';
-            console.log('selectedOnly', selectedOnly);
-            console.log('typeof selectedOnly', typeof selectedOnly);
-
             const accessToken = req.accessToken as string;
 
             const cart = await this.cartService.getCartById(accessToken, id, selectedOnly);
@@ -61,8 +54,6 @@ export class CartController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log('getCartById.error', error);
-
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null
@@ -77,10 +68,7 @@ export class CartController {
 
     public checkout = async (req: Request, res: Response): Promise<Response> => {
         try {
-            console.log('checkout.a');
-
             const { id } = req.params;
-
             const accessToken = req.accessToken as string;
 
             const updatedCart = await this.cartService.checkout(accessToken, id, req.body);
@@ -93,8 +81,6 @@ export class CartController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log('checkout.error', error);
-
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null

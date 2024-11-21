@@ -14,8 +14,6 @@ export default class CommercetoolsAuthClient {
 		this.authUrl = readConfiguration().ctpAuthUrl as string;
 		this.bffCtpClientId = readConfiguration().bffCtpClientId as string;
 		this.bffCtpClientSecret = readConfiguration().bffCtpClientSecret as string;
-		// console.log('this.bffCtpClientId', this.bffCtpClientId);
-		// console.log('this.bffCtpClientSecret', this.bffCtpClientSecret);
 	}
 
 	/**

@@ -14,7 +14,6 @@ export class CartItemController {
 
     public addItem = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
-            console.log('addItem.b');
             const { id } = req.params;
             const accessToken = req.accessToken as string;
 
@@ -28,7 +27,6 @@ export class CartItemController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log('addItem.error', error);
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null
@@ -43,11 +41,8 @@ export class CartItemController {
 
     public updateItemQuantityById = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
-            console.log('updateItemQuantityById.b');
             const { id, itemId } = req.params;
             const accessToken = req.accessToken as string;
-
-            console.log('accessToken, id, itemId, req.body', accessToken, id, itemId, req.body);
 
             const updatedCart = await this.cartItemService.updateItemQuantityById(accessToken, id, itemId, req.body);
 
@@ -59,7 +54,6 @@ export class CartItemController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log('updateItemQuantityById.error', error);
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null
@@ -74,11 +68,8 @@ export class CartItemController {
 
     public deleteItemById = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
-            console.log('deleteItemById.b');
             const { id, itemId } = req.params;
             const accessToken = req.accessToken as string;
-
-            console.log('accessToken, id, itemId, req.body', accessToken, id, itemId, req.body);
 
             const updatedCart = await this.cartItemService.deleteItemById(accessToken, id, itemId, req.body);
 
@@ -90,7 +81,6 @@ export class CartItemController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log('deleteItemById.error', error);
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null
@@ -105,7 +95,6 @@ export class CartItemController {
 
     public bulkDelete = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
-            console.log('bulkDelete.b');
             const { id } = req.params;
             const accessToken = req.accessToken as string;
 
@@ -119,7 +108,6 @@ export class CartItemController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log('bulkDelete.error', error);
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null
@@ -134,7 +122,6 @@ export class CartItemController {
 
     public select = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
-            console.log('select.b');
             const { id } = req.params;
             const accessToken = req.accessToken as string;
 
@@ -148,7 +135,6 @@ export class CartItemController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log('select.error', error);
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null

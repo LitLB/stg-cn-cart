@@ -19,7 +19,6 @@ export class CartItemService {
                 data: error.details.map((err) => err.message),
             };
         }
-        console.log('value', value);
 
         const now = new Date();
         const { productId, sku, quantity, productType, productGroup, addOnGroup } = value;

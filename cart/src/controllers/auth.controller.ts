@@ -14,8 +14,6 @@ export class AuthController {
 
     public createAnonymousSession = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
-            console.log('createAnonymousSession.a');
-            
             const anonymousSession = await this.authService.createAnonymousSession();
 
             const response: ResponseType = {
@@ -26,8 +24,6 @@ export class AuthController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log('createAnonymousSession.error', error);
-
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null
@@ -42,17 +38,7 @@ export class AuthController {
 
     public renewAnonymousSession = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
-            console.log('renewAnonymousSession.a');
-            const { refreshToken } = req.body;
-
-            if (!refreshToken) {
-                throw {
-                    statusCode: 400,
-                    statusMessage: 'Refresh token is required.',
-                }
-            }
-
-            const anonymousSession = await this.authService.renewAnonymousSession(refreshToken);
+            const anonymousSession = await this.authService.renewAnonymousSession(req.body);
 
             const response: ResponseType = {
                 statusCode: 200,
@@ -62,8 +48,6 @@ export class AuthController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log('renewAnonymousSession.b');
-            console.log('renewAnonymousSession.error', error);
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null

@@ -7,61 +7,49 @@ import { ICart } from '../interface/cart';
 import { validateCartCheckoutBody, validateCreateAnonymousCartBody } from '../validators/cart.validator';
 
 export class CartService {
-    private commercetoolsMeCartClient: CommercetoolsMeCartClient | null = null;
-
     public createAnonymousCart = async (accessToken: string, body: any) => {
-        try {
-            const { campaignGroup, journey } = body;
-            const { error } = validateCreateAnonymousCartBody({ campaignGroup, journey });
-            if (error) {
-                throw {
-                    statusCode: 400,
-                    statusMessage: 'Validation failed',
-                    data: error.details.map((err: any) => err.message),
-                };
-            }
+        const { campaignGroup, journey } = body;
 
-            this.commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-
-            const cart = await this.commercetoolsMeCartClient.createCart(campaignGroup, journey);
-
-            const iCart: ICart = this.commercetoolsMeCartClient.mapCartToICart(cart);
-
-            return iCart;
-        } catch (error: any) {
-            console.error('Error in CartService.createAnonymousCart:', error);
-            throw error;
+        const { error } = validateCreateAnonymousCartBody({ campaignGroup, journey });
+        if (error) {
+            throw {
+                statusCode: 400,
+                statusMessage: 'Validation failed',
+                data: error.details.map((err: any) => err.message),
+            };
         }
+
+        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+
+        const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey);
+
+        const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cart);
+
+        return iCart;
     }
 
     public getCartById = async (accessToken: string, id: string, selectedOnly: boolean): Promise<any> => {
-        try {
-            if (!id) {
-                throw {
-                    statusCode: 400,
-                    statusMessage: 'Cart ID is required',
-                };
-            }
-
-            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-
-            const ctCart = await commercetoolsMeCartClient.getCartById(id);
-            if (!ctCart) {
-                throw {
-                    statusCode: 404,
-                    statusMessage: 'Cart not found or has expired',
-                };
-            }
-            console.log('ctCart', ctCart);
-
-            const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
-
-            return iCartWithBenefit;
-        } catch (error: any) {
-            console.error('Error in CartService.getCartById:', error);
-
-            throw error;
+        if (!id) {
+            throw {
+                statusCode: 400,
+                statusMessage: 'Cart ID is required',
+            };
         }
+
+        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+
+        const ctCart = await commercetoolsMeCartClient.getCartById(id);
+        if (!ctCart) {
+            throw {
+                statusCode: 404,
+                statusMessage: 'Cart not found or has expired',
+            };
+        }
+        console.log('ctCart', ctCart);
+
+        const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
+
+        return iCartWithBenefit;
     };
 
     public checkout = async (accessToken: string, id: string, body: any): Promise<any> => {
@@ -127,10 +115,6 @@ export class CartService {
 
         const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
 
-        return {
-            status: 'success',
-            data: iCart,
-            // order: order, // ! For testing only
-        };
+        return iCart;
     };
 }
