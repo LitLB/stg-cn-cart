@@ -28,6 +28,9 @@ deployAs:
         - key: ONLINE_CHANNEL
           description: Inventory Channel 
           required: true
+        - key: CT_PRICE_CUSTOMER_GROUP_ID_RRP
+          description: CT Price Customer Group ID RRP 
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: project key
