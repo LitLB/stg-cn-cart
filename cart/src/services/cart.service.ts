@@ -2,6 +2,7 @@
 
 import { MyCartUpdateAction } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
+import CommercetoolsMeOrderClient from '../adapters/me/ct-me-order-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { ICart } from '../interface/cart';
 import { validateCartCheckoutBody, validateCreateAnonymousCartBody } from '../validators/cart.validator';
