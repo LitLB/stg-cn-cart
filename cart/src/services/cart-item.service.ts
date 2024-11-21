@@ -4,12 +4,12 @@ import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
-import { validateAddItemCartBody, validateProductQuantity } from '../validators/cart-item.validator';
+import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateProductQuantity, validateUpdateCartItemBody } from '../validators/cart-item.validator';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { readConfiguration } from '../utils/config.utils';
 
 export class CartItemService {
-    public addItem = async (accessToken: string, id: string, itemId: string, body: any): Promise<any> => {
+    public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
         const { error, value } = validateAddItemCartBody(body);
         if (error) {
             throw {
@@ -147,6 +147,220 @@ export class CartItemService {
         const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
 
         return iCartWithBenefit;
+    }
+
+    public updateItemQuantityById = async (accessToken: string, id: string, itemId: string, body: any): Promise<any> => {
+        const { error, value } = validateUpdateCartItemBody(body);
+        if (error) {
+            throw {
+                statusCode: 400,
+                statusMessage: 'Validation failed',
+                data: error.details.map((err) => err.message),
+            };
+        }
+
+        const { productId, sku, quantity, productGroup, productType, addOnGroup } = value;
+
+        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+
+        const cart = await commercetoolsMeCartClient.getCartById(id);
+        if (!cart) {
+            throw {
+                statusCode: 404,
+                statusMessage: 'Cart not found or has expired',
+            };
+        }
+
+        const product = await CommercetoolsProductClient.getProductById(productId);
+        if (!product) {
+            throw {
+                statusCode: 404,
+                statusMessage: 'Product not found',
+            };
+        }
+
+        const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
+        if (!variant) {
+            throw {
+                statusCode: 404,
+                statusMessage: 'SKU not found in the specified product',
+            };
+        }
+
+        const inventories = await CommercetoolsInventoryClient.getInventory(sku);
+        if (inventories.length === 0) {
+            throw {
+                statusCode: 404,
+                statusMessage: 'Inventory not found',
+            };
+        }
+        const inventory = inventories[0];
+        if (inventory.isOutOfStock) {
+            throw {
+                statusCode: 400,
+                statusMessage: 'Insufficient stock for the requested quantity',
+            };
+        }
+
+        const existingLineItem = commercetoolsMeCartClient.findLineItem({ cart, variantId: variant.id, productGroup, productType, addOnGroup });
+        if (!existingLineItem) {
+            throw {
+                statusCode: 400,
+                statusMessage: 'Line item not found in cart',
+            };
+        }
+        const existingLineItemQuantity = existingLineItem.quantity;
+        const deltaQuantity = quantity - existingLineItemQuantity;
+        validateProductQuantity(
+            productType,
+            cart,
+            sku,
+            product.id,
+            variant,
+            deltaQuantity,
+        );
+
+        const changes = [{
+            sku,
+            quantity,
+            productType,
+            productGroup,
+            addOnGroup
+        }]
+
+        const validateResult = await talonOneEffectConverter.validate(cart, changes)
+
+        if (!validateResult?.isValid) {
+            return {
+                status: 'error',
+                message: validateResult?.errorMessage
+            }
+        }
+
+        const updatedCart = await commercetoolsMeCartClient.updateItemQuantityInCart({
+            cart,
+            variantId: variant.id,
+            productGroup,
+            productType,
+            addOnGroup,
+            quantity
+        });
+
+        const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+
+        return iCartWithBenefit;
+    }
+
+    public deleteItemById = async (accessToken: string, id: string, itemId: string, body: any): Promise<any> => {
+        const { error, value } = validateDeleteCartItemBody(body);
+        if (error) {
+            throw {
+                statusCode: 400,
+                statusMessage: 'Validation failed',
+                data: error.details.map((err) => err.message),
+            };
+        }
+
+        const { productId, sku, productGroup, productType, addOnGroup } = value;
+
+        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+
+        const cart = await commercetoolsMeCartClient.getCartById(id);
+        if (!cart) {
+            throw {
+                statusCode: 404,
+                statusMessage: 'Cart not found or has expired',
+            };
+        }
+
+        const product = await CommercetoolsProductClient.getProductById(productId);
+        if (!product) {
+            throw {
+                statusCode: 404,
+                statusMessage: 'Product not found',
+            };
+        }
+
+        const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
+        if (!variant) {
+            throw {
+                statusCode: 404,
+                statusMessage: 'SKU not found in the specified product',
+            };
+        }
+
+        let updatedCart = await commercetoolsMeCartClient.removeItemFromCart({
+            cart,
+            variantId: variant.id,
+            productType,
+            productGroup,
+            addOnGroup
+        });
+
+        updatedCart = await commercetoolsMeCartClient.resetCartItemProductGroup(updatedCart)
+
+        const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+
+        return iCartWithBenefit;
+    }
+
+    public bulkDelete = async (accessToken: string, id: string, body: any): Promise<any> => {
+        const { error, value } = validateBulkDeleteCartItemBody(body);
+        if (error) {
+            throw {
+                statusCode: 400,
+                statusMessage: 'Validation failed',
+                data: error.details.map((err) => err.message),
+            };
+        }
+
+        const { items } = value;
+
+        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+
+        const cart = await commercetoolsMeCartClient.getCartById(id);
+        if (!cart) {
+            throw {
+                statusCode: 404,
+                statusMessage: 'Cart not found or has expired',
+            };
+        }
+
+        const lineItemKeys: any[] = [];
+        for (const item of items) {
+            const { productId, sku, productGroup, productType, addOnGroup } = item;
+            const product = await CommercetoolsProductClient.getProductById(productId);
+            if (!product) {
+                throw {
+                    statusCode: 404,
+                    statusMessage: `Product with ID ${productId} not found.`,
+                };
+            }
+
+            const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
+            if (!variant) {
+                throw {
+                    statusCode: 404,
+                    statusMessage: `SKU ${sku} not found in product ${productId}.`,
+                };
+            }
+
+            lineItemKeys.push({
+                variantId: variant.id,
+                productGroup,
+                productType,
+                addOnGroup
+            });
+        }
+
+        const updatedCart = await commercetoolsMeCartClient.removeItemsFromCart(cart, lineItemKeys);
+
+        const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+
+        return {
+            status: 'success',
+            data: iCartWithBenefit,
+        };
     }
 
     calculateProductGroup = ({

@@ -16,6 +16,10 @@ cartRouter.post('/auth/anonymous/renew', authController.renewAnonymousSession);
 
 cartRouter.post('/carts/anonymous', authenticate, cartController.createAnonymousCart);
 cartRouter.get('/carts/:id/', authenticate, cartController.getCartById);
+
 cartRouter.post('/carts/:id/items', authenticate, cartItemController.addItem);
+cartRouter.delete('/carts/:id/items/bulk-delete', authenticate, cartItemController.bulkDelete);
+cartRouter.put('/carts/:id/items/:itemId', authenticate, cartItemController.updateItemQuantityById);
+cartRouter.delete('/carts/:id/items/:itemId', authenticate, cartItemController.deleteItemById);
 
 export default cartRouter;

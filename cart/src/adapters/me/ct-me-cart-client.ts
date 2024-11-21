@@ -343,7 +343,10 @@ export default class CommercetoolsMeCartClient {
 				}
 
 			} else {
-				console.warn(`Line item with variant ID ${variantId} not found in cart.`);
+				throw {
+					statusCode: 400,
+					statusMessage: `Line item with variant ID ${variantId} not found in cart.`
+				}
 			}
 		})
 
