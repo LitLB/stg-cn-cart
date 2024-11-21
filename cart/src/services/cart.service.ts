@@ -7,7 +7,7 @@ import { validateCreateAnonymousCartBody } from '../validators/cart.validator';
 export class CartService {
     private commercetoolsMeCartClient: CommercetoolsMeCartClient | null = null;
 
-    public async createAnonymousCart(accessToken: string, body: any) {
+    public createAnonymousCart = async (accessToken: string, body: any) => {
         try {
             const { campaignGroup, journey } = body;
             const { error } = validateCreateAnonymousCartBody({ campaignGroup, journey });
@@ -32,7 +32,7 @@ export class CartService {
         }
     }
 
-    public async getCartById(accessToken: string, id: string, selectedOnly: boolean): Promise<any> {
+    public getCartById = async (accessToken: string, id: string, selectedOnly: boolean): Promise<any> => {
         try {
             if (!id) {
                 throw {

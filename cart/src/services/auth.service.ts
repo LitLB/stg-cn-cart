@@ -4,15 +4,15 @@ import CommercetoolsAuthClient from '../adapters/ct-auth-client';
 import { calculateExpiration } from '../utils/session-utils';
 
 export class AuthService {
-    private authClient: CommercetoolsAuthClient;
+    private commercetoolsAuthClient: CommercetoolsAuthClient;
 
     constructor() {
-        this.authClient = new CommercetoolsAuthClient();
+        this.commercetoolsAuthClient = new CommercetoolsAuthClient();
     }
 
-    public async createAnonymousSession() {
+    public createAnonymousSession = async () => {
         try {
-            const anonymousSession = await this.authClient.getAnonymousSession();
+            const anonymousSession = await this.commercetoolsAuthClient.getAnonymousSession();
 
             const { expires_in } = anonymousSession;
 
@@ -30,9 +30,9 @@ export class AuthService {
         }
     }
 
-    public async renewAnonymousSession(refreshToken: string) {
+    public renewAnonymousSession = async (refreshToken: string) => {
         try {
-            const newTokenData = await this.authClient.renewAnonymousToken(refreshToken);
+            const newTokenData = await this.commercetoolsAuthClient.renewAnonymousToken(refreshToken);
 
             const { expires_in } = newTokenData;
 

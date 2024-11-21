@@ -268,7 +268,7 @@ export function validateProductQuantity(
 	}
 
 	// Retrieve ctpWholeCartLimit from runtime configuration
-	const ctpWholeCartLimit = Number(readConfiguration().ctpWholeCartLimit) || 5;
+	const ctpWholeCartLimit = readConfiguration().ctpWholeCartLimit ? Number(readConfiguration().ctpWholeCartLimit) : undefined;
 
 	// Filter line items with productType 'main_product'
 	const mainProductLineItems = cart.lineItems.filter(
@@ -302,21 +302,21 @@ export function validateProductQuantity(
 
 	// Negative Quantity Checks
 	if (newSkuQuantity < 0) {
-		return {
+		throw {
 			statusCode: 400,
 			statusMessage: `Cannot have less than 0 units of SKU ${sku} in the cart.`,
 		};
 	}
 
 	if (newProductQuantity < 0) {
-		return {
+		throw {
 			statusCode: 400,
 			statusMessage: `Cannot have less than 0 units of product ${productId} in the cart.`,
 		};
 	}
 
 	if (newTotalCartQuantity < 0) {
-		return {
+		throw {
 			statusCode: 400,
 			statusMessage: `Cannot have less than 0 units in the cart.`,
 		};
@@ -324,14 +324,14 @@ export function validateProductQuantity(
 
 	// SKU Level Validations
 	if (newSkuQuantity < skuQuantityMin) {
-		return {
+		throw {
 			statusCode: 400,
 			statusMessage: `Cannot have less than ${skuQuantityMin} units of SKU ${sku} in the cart.`,
 		};
 	}
 
 	if (skuQuantityMax !== null && skuQuantityMax !== undefined && newSkuQuantity > skuQuantityMax) {
-		return {
+		throw {
 			statusCode: 400,
 			statusMessage: `Cannot have more than ${skuQuantityMax} units of SKU ${sku} in the cart.`,
 		};
@@ -339,14 +339,14 @@ export function validateProductQuantity(
 
 	// Product Level Validations
 	if (newProductQuantity < quantityMin) {
-		return {
+		throw {
 			statusCode: 400,
 			statusMessage: `Cannot have less than ${quantityMin} units of product ${productId} in the cart.`,
 		};
 	}
 
 	if (quantityMax !== null && quantityMax !== undefined && newProductQuantity > quantityMax) {
-		return {
+		throw {
 			statusCode: 400,
 			statusMessage: `Cannot have more than ${quantityMax} units of product ${productId} in the cart.`,
 		};
@@ -354,7 +354,7 @@ export function validateProductQuantity(
 
 	// Whole Cart Level Validation
 	if (ctpWholeCartLimit !== undefined && newTotalCartQuantity > ctpWholeCartLimit) {
-		return {
+		throw {
 			statusCode: 400,
 			statusMessage: `Cannot have more than ${ctpWholeCartLimit} units in the cart.`,
 		};
