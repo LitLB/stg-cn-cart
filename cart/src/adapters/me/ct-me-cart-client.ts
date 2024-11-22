@@ -13,7 +13,7 @@ import type {
 	ApiRoot,
 	LineItem,
 } from '@commercetools/platform-sdk';
-import type { ICart, IImage, IItem } from '../../interface/cart';
+import type { ICart, IImage, IItem } from '../../interfaces/cart';
 import { CART_EXPIRATION_DAYS } from '../../constants/cart.constant';
 import dayjs from 'dayjs';
 import CommercetoolsInventoryClient from '../ct-inventory-client';
