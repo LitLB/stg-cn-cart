@@ -66,7 +66,7 @@ export default class CommercetoolsMeCartClient {
 			custom: {
 				type: {
 					typeId: 'type',
-					key: 'cartCustomType',
+					key: 'cartOrderCustomType',
 				},
 				fields: {
 					campaignGroup,
