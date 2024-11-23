@@ -46,7 +46,8 @@ export class CartService {
                 statusMessage: 'Cart not found or has expired',
             };
         }
-        console.log('ctCart', ctCart);
+        // console.log('ctCart', ctCart);
+        // console.log('ctCart.lineItems[0]', ctCart.lineItems[0]);
 
         const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
 

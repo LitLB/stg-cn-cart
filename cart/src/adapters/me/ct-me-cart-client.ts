@@ -623,6 +623,10 @@ export default class CommercetoolsMeCartClient {
 				const image = this.getVariantImage(lineItem);
 				const item: IItem = {
 					productId: lineItem.productId,
+					productKey: lineItem.productKey,
+					productName: lineItem.name,
+					ctProductType: lineItem.productType,
+					productSlug: lineItem.productSlug,
 					variantId: lineItem.variant.id,
 					sku: lineItem.variant.sku,
 					productType,
