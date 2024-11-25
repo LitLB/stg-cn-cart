@@ -588,16 +588,6 @@ export default class CommercetoolsMeCartClient {
 	 * @param ctCart - The Commercetools Cart object.
 	 */
 	mapCartToICart(ctCart: Cart): ICart {
-		// const items: IItem[] = ctCart.lineItems
-		// 	.toSorted((a: any, b: any) => {
-		// 		const productGroupA = a.custom?.fields?.productGroup
-		// 		const productGroupB = b.custom?.fields?.productGroup
-		// 		if (productGroupA !== productGroupB) {
-		// 			return productGroupA - productGroupB;
-		// 		}
-		// 		return new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime();
-		// 	})
-		// ! POC Connector Deployment. If POC completed then will recheck toSorted() above.
 		const items: IItem[] = [...ctCart.lineItems]
 			.sort((a: LineItem, b: LineItem) => {
 				const productGroupA = a.custom?.fields?.productGroup || 0;
@@ -617,10 +607,14 @@ export default class CommercetoolsMeCartClient {
 				}
 
 				const selected = lineItem.custom?.fields?.selected ?? false;
-				const productType = lineItem.custom?.fields?.productType
-				const productGroup = lineItem.custom?.fields?.productGroup
-				const addOnGroup = lineItem.custom?.fields?.addOnGroup
+				const productType = lineItem.custom?.fields?.productType;
+				const productGroup = lineItem.custom?.fields?.productGroup;
+				const addOnGroup = lineItem.custom?.fields?.addOnGroup;
 				const image = this.getVariantImage(lineItem);
+				const totalUnitPrice = lineItem.price.value.centAmount * lineItem.quantity;
+				const discountAmount = this.calculateTotalDiscountAmount(lineItem);
+				const priceAfterDiscount = lineItem.totalPrice.centAmount;
+
 				const item: IItem = {
 					productId: lineItem.productId,
 					productKey: lineItem.productKey,
@@ -635,12 +629,12 @@ export default class CommercetoolsMeCartClient {
 					image,
 					quantity: lineItem.quantity,
 					unitPrice: lineItem.price.value.centAmount,
-					totalUnitPrice: lineItem.price.value.centAmount * lineItem.quantity,
-					discountAmount: this.calculateTotalDiscountAmount(lineItem),
-					priceAfterDiscount: lineItem.totalPrice.centAmount,
-					// vatRate: '',
-					// vatAmount: 0,
-					finalPrice: lineItem.totalPrice.centAmount,
+					totalUnitPrice,
+					discountAmount,
+					priceAfterDiscount,
+					// Since there are no shipping costs or VAT/tax at the item level,
+					// finalPrice is equal to priceAfterDiscount for now.
+					finalPrice: priceAfterDiscount,
 					appliedEffects: [],
 					attributes: lineItem.variant.attributes || [],
 					selected,
@@ -649,18 +643,14 @@ export default class CommercetoolsMeCartClient {
 				return item;
 			});
 
-		// Calculate quantities
 		const { totalQuantity, quantitiesByProductType } = this.calculateQuantities(items);
-
-		// Filter selected items for calculations
-		// const selectedItems = items.filter((item) => item.selected);
 
 		const subtotalPrice = items.reduce(
 			(total, item) => total + item.unitPrice * item.quantity,
 			0,
 		);
 		const totalPriceAfterDiscount = items.reduce(
-			(total, item) => total + item.priceAfterDiscount * item.quantity,
+			(total, item) => total + item.priceAfterDiscount,
 			0,
 		);
 		const shippingCost = ctCart.shippingInfo?.price?.centAmount || 0;
@@ -669,17 +659,17 @@ export default class CommercetoolsMeCartClient {
 
 		// Calculate expiredAt using lastModifiedAt and deleteDaysAfterLastModification
 		const lastModifiedAt = ctCart.lastModifiedAt;
-		const deleteDaysAfterLastModification = ctCart.deleteDaysAfterLastModification || CART_EXPIRATION_DAYS;
-		const expiredAt = this.calculateExpiredAt(lastModifiedAt, deleteDaysAfterLastModification);
+		const deleteDaysAfterLastModification =
+			ctCart.deleteDaysAfterLastModification || CART_EXPIRATION_DAYS;
+		const expiredAt = this.calculateExpiredAt(
+			lastModifiedAt,
+			deleteDaysAfterLastModification,
+		);
 
 		const iCart: ICart = {
 			cartId: ctCart.id,
-			// isPrivilege: false,
 			campaignGroup: ctCart.custom?.fields.campaignGroup,
 			journey: ctCart.custom?.fields.journey,
-			// loyaltyTier: '',
-			// campaignByJourney: '',
-			// propositionGroup: '',
 			subtotalPrice,
 			totalDiscount,
 			totalPriceAfterDiscount,
@@ -688,7 +678,7 @@ export default class CommercetoolsMeCartClient {
 			currencyCode: ctCart.totalPrice.currencyCode,
 			totalQuantity,
 			shippingMethod: ctCart.shippingInfo?.shippingMethod || null,
-			paymentMethod: ctCart.custom?.fields?.paymentMethod || null, // TODO: Save Payment Method on CT?
+			paymentMethod: ctCart.custom?.fields?.paymentMethod || null,
 			shippingAddress: ctCart.shippingAddress || null,
 			billingAddress: ctCart.billingAddress || null,
 			quantitiesByProductType,
@@ -704,7 +694,6 @@ export default class CommercetoolsMeCartClient {
 		return iCart;
 	}
 
-	// TODO: Check if not filtered 'Active' from CommercetoolsInventoryClient.getInventory() what will happens? 
 	mapInventoryToItems(items: IItem[], inventoryMap: Map<string, any>): void {
 		items.forEach((item) => {
 			const sku = item.sku;
