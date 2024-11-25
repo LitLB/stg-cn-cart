@@ -360,3 +360,17 @@ export function validateProductQuantity(
 		};
 	}
 }
+
+export const validateJourneyCompatibility = (
+	cartJourney: string | undefined,
+	variantJourney: string | undefined
+): void => {
+	if (cartJourney === 'device_only') {
+		if (variantJourney !== 'device_only') {
+			throw {
+				statusCode: 400,
+				statusMessage: 'Cannot add a non-"device_only" item to a "device_only" cart.'
+			}
+		}
+	}
+};

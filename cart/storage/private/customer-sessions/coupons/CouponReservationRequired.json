@@ -1,0 +1,138 @@
+{
+  "coupons": [
+    {
+      "id": 10241,
+      "created": "2024-11-25T07:05:07.220059Z",
+      "campaignId": 460,
+      "value": "NEWYEAR-0004",
+      "usageLimit": 0,
+      "reservationLimit": 2,
+      "usageCounter": 1,
+      "reservationCounter": 0,
+      "attributes": {},
+      "reservation": true,
+      "batchId": "mcjevypa",
+      "isReservationMandatory": true,
+      "implicitlyReserved": true,
+      "profileRedemptionCount": 0
+    }
+  ],
+  "createdCoupons": [],
+  "createdReferrals": [],
+  "customerProfile": {
+    "id": 90,
+    "created": "2024-11-25T07:08:46.03602Z",
+    "integrationId": "mockProfileId7",
+    "attributes": {},
+    "accountId": 1,
+    "closedSessions": 0,
+    "totalSales": 0,
+    "loyaltyMemberships": null,
+    "lastActivity": "2024-11-25T07:08:46.086530124Z",
+    "sandbox": true
+  },
+  "customerSession": {
+    "id": 734,
+    "created": "2024-11-25T06:32:49.32252Z",
+    "integrationId": "coupons-018",
+    "applicationId": 1,
+    "profileId": "mockProfileId7",
+    "couponCodes": ["NEWYEAR-0004"],
+    "referralCode": "",
+    "state": "open",
+    "cartItems": [
+      {
+        "sku": "iPhone 21 Pro - 256GB - Sierra Blue (SKU: IP21P256SB)",
+        "quantity": 1,
+        "returnedQuantity": 0,
+        "remainingQuantity": 1,
+        "price": 10000,
+        "position": 0,
+        "attributes": {
+          "commercetools_product_id": "bb223b57-bf6b-454f-a1de-e0b6c4ebfe7b"
+        }
+      }
+    ],
+    "attributes": {},
+    "firstSession": true,
+    "total": 10000,
+    "cartItemTotal": 10000,
+    "additionalCostTotal": 0,
+    "updated": "2024-11-25T07:08:46.092833Z"
+  },
+  "effects": [
+    {
+      "campaignId": 460,
+      "rulesetId": 8805,
+      "ruleIndex": 0,
+      "ruleName": "Is Coupon Valid",
+      "effectType": "rejectCoupon",
+      "triggeredByCoupon": 10241,
+      "evaluationGroupID": 1,
+      "evaluationGroupMode": "stackable",
+      "props": {
+        "value": "NEWYEAR-0004",
+        "rejectionReason": "CouponReservationRequired",
+        "conditionIndex": 0
+      }
+    }
+  ],
+  "triggeredCampaigns": [
+    {
+      "id": 460,
+      "created": "2024-11-22T09:03:39.911091Z",
+      "applicationId": 1,
+      "userId": 65,
+      "name": "VECOM-1247 - [Backend] Cart - Check coupon & apply",
+      "description": "",
+      "attributes": {
+        "max_unique_audience_price": 3000
+      },
+      "state": "enabled",
+      "activeRulesetId": 8805,
+      "tags": [],
+      "features": ["coupons"],
+      "couponSettings": {
+        "validCharacters": [
+          "3",
+          "4",
+          "5",
+          "7",
+          "8",
+          "9",
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "H",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N",
+          "P",
+          "Q",
+          "R",
+          "T",
+          "U",
+          "V",
+          "W",
+          "X",
+          "Y"
+        ],
+        "couponPattern": "####-####"
+      },
+      "limits": [],
+      "campaignGroups": [],
+      "type": "advanced",
+      "linkedStoreIds": [],
+      "budgets": null,
+      "updated": "2024-11-22T11:03:37.568894Z",
+      "updatedBy": "Panupong Jaengaksorn",
+      "frontendState": "running",
+      "storesImported": false
+    }
+  ]
+}
