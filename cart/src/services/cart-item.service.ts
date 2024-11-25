@@ -10,20 +10,20 @@ import { readConfiguration } from '../utils/config.utils';
 import { MyCartUpdateAction } from '@commercetools/platform-sdk';
 
 export class CartItemService {
-    private getJourneyDeviceOnly = (variant: any): string | undefined => {
-        const journeyAttribute = variant.attributes?.find((attr: any) => attr.name === 'journey');
-        if (journeyAttribute) {
-            if (Array.isArray(journeyAttribute.value)) {
-                const journeyDeviceOnly = journeyAttribute.value.find((v: any) => v.key === 'device_only');
-                if (journeyDeviceOnly && journeyDeviceOnly.key) {
-                    return journeyDeviceOnly.key;
-                }
-            } else {
-                console.warn('Unexpected structure for journey attribute:', journeyAttribute.value);
-            }
-        }
-        return undefined;
-    }
+    // private getJourneyDeviceOnly = (variant: any): string | undefined => {
+    //     const journeyAttribute = variant.attributes?.find((attr: any) => attr.name === 'journey');
+    //     if (journeyAttribute) {
+    //         if (Array.isArray(journeyAttribute.value)) {
+    //             const journeyDeviceOnly = journeyAttribute.value.find((v: any) => v.key === 'device_only');
+    //             if (journeyDeviceOnly && journeyDeviceOnly.key) {
+    //                 return journeyDeviceOnly.key;
+    //             }
+    //         } else {
+    //             console.warn('Unexpected structure for journey attribute:', journeyAttribute.value);
+    //         }
+    //     }
+    //     return undefined;
+    // }
 
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
         const { error, value } = validateAddItemCartBody(body);
@@ -47,7 +47,7 @@ export class CartItemService {
                 statusMessage: 'Cart not found or has expired',
             };
         }
-        const cartJourney = cart.custom?.fields?.journey;
+        // const cartJourney = cart.custom?.fields?.journey;
 
         const product = await CommercetoolsProductClient.getProductById(productId);
         if (!product) {
@@ -71,8 +71,8 @@ export class CartItemService {
             };
         }
 
-        const variantJourneyDeviceOnly = this.getJourneyDeviceOnly(variant);
-        validateJourneyCompatibility(cartJourney, variantJourneyDeviceOnly);
+        // const variantJourneyDeviceOnly = this.getJourneyDeviceOnly(variant);
+        // validateJourneyCompatibility(cartJourney, variantJourneyDeviceOnly);
 
         const validPrice = CommercetoolsProductClient.findValidPrice({
             prices: variant.prices,
