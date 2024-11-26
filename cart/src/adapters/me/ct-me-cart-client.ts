@@ -201,20 +201,25 @@ export default class CommercetoolsMeCartClient {
 		version: number,
 		actions: MyCartUpdateAction[],
 	): Promise<Cart> {
-		const cartUpdate: MyCartUpdate = {
-			version,
-			actions,
-		};
-
-		const response = await this.apiRoot
-			.withProjectKey({ projectKey: this.projectKey })
-			.me()
-			.carts()
-			.withId({ ID: cartId })
-			.post({ body: cartUpdate })
-			.execute();
-
-		return response.body;
+		try {
+			const cartUpdate: MyCartUpdate = {
+				version,
+				actions,
+			};
+	
+			const response = await this.apiRoot
+				.withProjectKey({ projectKey: this.projectKey })
+				.me()
+				.carts()
+				.withId({ ID: cartId })
+				.post({ body: cartUpdate })
+				.execute();
+	
+			return response.body;
+		} catch (error) {
+			console.error('updateCart.error', error);
+			throw error;
+		}
 	}
 
 	public async updateLineItemSelected(
