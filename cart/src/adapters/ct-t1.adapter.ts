@@ -17,7 +17,7 @@ export class CtT1Adapter {
         this.ctpTaxCategoryId = readConfiguration().ctpTaxCategoryId;
     }
 
-    handleEffectsV5(effects: any[], cart: any): CartUpdateAction[] {
+    handleEffectsV6(effects: any[], cart: any): CartUpdateAction[] {
         const updateActions: CartUpdateAction[] = [];
         const acceptedCoupons: string[] = [];
         const rejectedCoupons: string[] = [];

@@ -2,7 +2,7 @@
 
 import { CartUpdateAction, MyCartUpdateAction } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
-import CommercetoolsMeOrderClient from '../adapters/me/ct-me-order-client'; // ! For testing only
+// import CommercetoolsMeOrderClient from '../adapters/me/ct-me-order-client'; // ! For testing only
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { ICart } from '../interfaces/cart';
@@ -32,7 +32,7 @@ export class CartService {
         // console.log('couponCodes', couponCodes);
 
         const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-        const commercetoolsMeOrderClient = new CommercetoolsMeOrderClient(accessToken); // ! For testing only
+        // const commercetoolsMeOrderClient = new CommercetoolsMeOrderClient(accessToken); // ! For testing only
 
         const cart = await commercetoolsMeCartClient.getCartById(id);
         if (!cart) {
@@ -52,7 +52,7 @@ export class CartService {
         // console.log('customerSession.effects', customerSession.effects);
 
         const talonEffects = customerSession.effects;
-        const talonOneUpdateActions = this.ctT1Adapter.handleEffectsV5(
+        const talonOneUpdateActions = this.ctT1Adapter.handleEffectsV6(
             talonEffects,
             cart
         );
@@ -106,7 +106,7 @@ export class CartService {
             updateActions,
         );
 
-        const order = await commercetoolsMeOrderClient.createOrderFromCart(updatedCart); // ! For testing only
+        // const order = await commercetoolsMeOrderClient.createOrderFromCart(updatedCart); // ! For testing only
 
         const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
 
