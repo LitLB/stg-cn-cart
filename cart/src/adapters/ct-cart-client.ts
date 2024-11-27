@@ -26,21 +26,26 @@ class CommercetoolsCartClient {
 		version: number,
 		actions: CartUpdateAction[],
 	) {
-		const cartUpdate: CartUpdate = {
-			version,
-			actions,
-		};
+		try {
+			const cartUpdate: CartUpdate = {
+				version,
+				actions,
+			};
 
-		const response = await this.apiRoot
-			.withProjectKey({ projectKey: this.projectKey })
-			.carts()
-			.withId({ ID: cartId })
-			.post({
-				body: cartUpdate,
-			})
-			.execute();
+			const response = await this.apiRoot
+				.withProjectKey({ projectKey: this.projectKey })
+				.carts()
+				.withId({ ID: cartId })
+				.post({
+					body: cartUpdate,
+				})
+				.execute();
 
-		return response.body;
+			return response.body;
+		} catch (error) {
+			console.error(`updateCart.error`, error);
+			throw error;
+		}
 	}
 
 	/**

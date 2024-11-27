@@ -1,6 +1,6 @@
 // interface/cart.ts
 
-import type { Address, Attribute, ShippingMethodReference } from '@commercetools/platform-sdk';
+import type { Address, Attribute, LocalizedString, ProductTypeReference, ShippingMethodReference } from '@commercetools/platform-sdk';
 import { ProductType } from '../types/share.types';
 
 export interface ICart {
@@ -37,6 +37,10 @@ export interface ICart {
 
 export interface IItem {
 	productId: string;
+	productKey?: string;
+	productName: LocalizedString;
+	ctProductType: ProductTypeReference;
+	productSlug?: LocalizedString;
 	variantId: number;
 	sku: string;
 	productType: ProductType;

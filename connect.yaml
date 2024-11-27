@@ -8,48 +8,48 @@ deployAs:
     configuration:
       standardConfiguration:
         - key: CTP_REGION
-          description: API region
-          required: true
-        - key: CTP_WHOLE_CART_LIMIT
-          description: ctp whole cart limit
+          description: Commercetools API region (e.g., 'us-east-1')
           required: true
         - key: CTP_AUTH_URL
-          description: auth url 
+          description: Commercetools authentication URL (e.g., 'https://auth.commercetools.com')
           required: true
         - key: CTP_API_URL
-          description: api url
-          required: true
-        - key: T1_API_KEY_PREFIX
-          description: T1 Api Key Prefix
-          required: true
-        - key: T1_URL
-          description: T1 Url
+          description: Commercetools API base URL (e.g., 'https://api.commercetools.com')
           required: true
         - key: ONLINE_CHANNEL
-          description: Inventory Channel 
+          description: Commercetools inventory channel identifier
+          required: true
+        - key: CTP_WHOLE_CART_LIMIT
+          description: Commercetools whole cart item limit
           required: true
         - key: CT_PRICE_CUSTOMER_GROUP_ID_RRP
-          description: CT Price Customer Group ID RRP 
+          description: Commercetools Price Customer Group ID for Recommended Retail Price (RRP)
+          required: true
+        - key: T1_URL
+          description: Talon.one service base URL (e.g., 'https://api.talon.one')
+          required: true
+        - key: T1_API_KEY_PREFIX
+          description: Talon.one API Key Prefix used for identifying API keys
           required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
-          description: project key
+          description: Commercetools project key identifying your specific project
           required: true
         - key: CTP_CLIENT_ID
-          description: client ID
+          description: Commercetools client ID for authentication purposes
           required: true
         - key: CTP_CLIENT_SECRET
-          description: client secret
+          description: Commercetools client secret corresponding to the client ID
           required: true
         - key: CTP_SCOPE
-          description: client scope
+          description: Commercetools authentication scope (e.g., 'manage_project:cart')
           required: true
         - key: BFF_CTP_CLIENT_ID
-          description: bff ctp client id
+          description: Commercetools client ID for managing Anonymous Sessions
           required: true
         - key: BFF_CTP_CLIENT_SECRET
-          description: bff ctp client secret
+          description: Commercetools client secret for managing Anonymous Sessions
           required: true
         - key: T1_API_KEY
-          description: T1 ApiKey
+          description: Talon.one API Key used for authenticating requests to Talon.one services
           required: true

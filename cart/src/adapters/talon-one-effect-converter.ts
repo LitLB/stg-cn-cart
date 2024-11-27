@@ -371,11 +371,15 @@ class TalonOneEffectConverter {
 
 		const wrappedBenefits = benefits.map((benefit: any) => {
 			const { addOnProductSkus, ...benefitDetail } = benefit;
-			let addOnProductMap = addOnProductSkus
+			const addOnProductMap = addOnProductSkus
 				.map((product: any) => product.sku)
 				.reduce((acc: any, sku: any) => {
-					if (!acc?.[skuMapProductId[sku]]) {
-						acc[skuMapProductId[sku]] = [];
+					const productId = skuMapProductId[sku]
+					if (!productId) {
+						return acc;
+					}
+					if (!acc?.[productId]) {
+						acc[productId] = [];
 					}
 
 					acc[skuMapProductId[sku]].push(sku);

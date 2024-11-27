@@ -76,13 +76,15 @@ class TalonOneIntegrationAdapter {
 		action,
 		changes,
 		ctCartData,
-		state
+		state,
+		couponCodes,
 	}: {
 		profileId?: string
 		action?: string
 		changes?: any[]
 		ctCartData: any,
 		state?: any
+		couponCodes?: string[]
 	}) {
 		const { lineItems } = ctCartData
 
@@ -116,12 +118,14 @@ class TalonOneIntegrationAdapter {
 					// journey: journey,
 					cart_journeys: ["device_only"]
 				},
-				cartItems: newCartItems
+				cartItems: newCartItems,
+				couponCodes,
 			},
 			responseContent: [
 				"customerSession",
 				"customerProfile",
-				"triggeredCampaigns"
+				"triggeredCampaigns",
+				"coupons"
 			]
 		}
 	}
