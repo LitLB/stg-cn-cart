@@ -2,7 +2,7 @@
 
 import { CartUpdateAction } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
-// import CommercetoolsMeOrderClient from '../adapters/me/ct-me-order-client'; // ! For testing only
+import CommercetoolsMeOrderClient from '../adapters/me/ct-me-order-client'; // ! For testing only
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter'
@@ -17,11 +17,15 @@ import TsmOrderModel from '../models/tsm-order.model';
 import { readConfiguration } from '../utils/config.utils';
 
 import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
+import { BlacklistService } from './blacklist.service'
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
-
+    private ctT1Adapter: CtT1Adapter;
+    private blacklistService: BlacklistService
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
+        this.ctT1Adapter = new CtT1Adapter();
+        this.blacklistService = new BlacklistService()
     }
 
     public checkout = async (accessToken: string, id: string, body: any): Promise<any> => {
@@ -174,10 +178,10 @@ export class CartService {
         }
 
         const { cartId } = payload
-        const ctCart = this.getCtCartById(accessToken, cartId)
+        const ctCart = await this.getCtCartById(accessToken, cartId)
         // TODO: STEP #2 - Validate Blacklist
         if (validateList.includes('BLACKLIST')) {
-            await this.validateBlacklist()
+            await this.validateBlacklist(ctCart)
         }
 
         // TODO: STEP #3 - Validate Campaign & Promotion Set
@@ -189,18 +193,15 @@ export class CartService {
         await this.validateAvailableQuantity(ctCart)
 
         // TODO: STEP #5 - Create Order On TSM Sale
-        const isSelectOnly = true
-        const cartWithBenefit = await this.getCartById(accessToken, cartId, isSelectOnly)
-        await this.createTSMSaleOrder(cartWithBenefit)
-
+        await this.createTSMSaleOrder(ctCart)
         // TODO: STEP #6 - Create Order On Commercetools
+        const commercetoolsMeOrderClient = new CommercetoolsMeOrderClient(accessToken)
+        const order = await commercetoolsMeOrderClient.createOrderFromCart(ctCart); // ! For testing only
 
-        const orderUuid = 'xxxx-xxxx-xxxx-xxx'
-
-        return orderUuid
+        return order
     };
 
-    private getCtCartById = async (accessToken: string, id: string): Promise<any> => {
+    public getCtCartById = async (accessToken: string, id: string): Promise<any> => {
         if (!id) {
             throw {
                 statusCode: 400,
@@ -229,25 +230,55 @@ export class CartService {
             const tsmOrderPayload = tsmOrder.toPayload()
             const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
 
-            // {
-            //     "code": "0",
-            //     "description": "Success",
-            //     "timestamp": "2024-11-26T10:01:24.592"
-            // }
+            const { code } = response || {}
 
-            return response;
-        } catch (e) {
+            if (code !== '0') {
+                throw {
+                    statusCode: 400,
+                    statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
+                    errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
+                    data: response
+                };
+            }
+        } catch (error: any) {
+            console.error('error-cartService-createTSMSaleOrder', error)
             throw {
                 statusCode: 400,
                 statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
-                errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
+                errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
+                data: error?.data || null
             };
         }
     }
 
-    private validateBlacklist() {
+    private async validateBlacklist(ctCart: any) {
         try {
-            return
+            return true
+            const body: any =
+            {
+                "journey": "device_only", /* Mandarory */
+                "paymentTMNAccountNumber": "0830053853",
+                "paymentCreditCardNumber": {
+                    "firstDigits": null,
+                    "lastDigits": "1234"
+                },
+                "ipAddress": "127.0.0.1",
+                "googleID": "thiamkhae.pap@ascendcorp.com",
+                "shippingAddress": {
+                    "city": "Bangkok", /* Mandarory */
+                    "district": "Donmuang", /* Mandarory */
+                    "postcode": "10210", /* Mandarory */
+                    "subDistrict": "Donmuang" /* Mandarory */
+                },
+                "email": "thiamkhae.pap@ascendcorp.com", /* Mandarory */
+                "deliveryContactNumber": "0830053853", /* Mandarory */
+                "deliveryContactName": "เทียมแข ปภานันท์กุล" /* Mandarory */
+            }
+            const response = await this.blacklistService.checkBlacklist(body);
+
+            if (!response?.status) {
+                throw new Error('Blacklist validation failed');
+            }
         } catch (e) {
             throw {
                 statusCode: 400,

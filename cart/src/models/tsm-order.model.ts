@@ -15,7 +15,7 @@ export default class TsmOrderModel {
 
     toPayload() {
         // ! Config
-        const shopCode = this.config.onlineChannel
+        const shopCode = this.config.tsmOrder.shopCode
         const saleCode = this.config.tsmOrder.saleCode
         const saleName = this.config.tsmOrder.saleName
 
@@ -39,10 +39,10 @@ export default class TsmOrderModel {
             privilege = privilege && JSON.parse(privilege);
 
 
-            const price = lineItem.price.value.centAmount // 20700
+            const price = lineItem.price.value.centAmount
             const quantity = lineItem.quantity
             const totalAmount = price * quantity
-            const netAmount = lineItem.totalPrice.centAmount;
+            const netAmount = lineItem.totalPrice.centAmount
 
             const { discountAmount, discounts } = this.getItemDiscount(orderId, lineItem)
             const { otherPaymentAmount, otherPayments } = this.getItemOtherPayment()
@@ -68,14 +68,14 @@ export default class TsmOrderModel {
                     productCode,
                 },
                 mobile: '',
-                price,
-                quantity,
-                totalAmount,
+                price: '' + this.stangToBaht(price),
+                quantity: '' + quantity,
+                totalAmount: '' + this.stangToBaht(totalAmount),
                 installmentAmount: '0',
                 depositAmount: '0',
-                netAmount,
-                discountAmount,
-                otherPaymentAmount,
+                netAmount: '' + this.stangToBaht(netAmount),
+                discountAmount: '' + this.stangToBaht(discountAmount),
+                otherPaymentAmount: '' + this.stangToBaht(otherPaymentAmount),
                 privilegeRequiredValue: '',
                 discounts,
                 otherPayments,
@@ -84,9 +84,9 @@ export default class TsmOrderModel {
             }
         })
 
-        const totalAmount = items.reduce((total: any, item: any) => total + item.netAmount, 0,)
-        const discountAmount = items.reduce((total: any, item: any) => total + item.discountAmount, 0,)
-        const otherPaymentAmount = items.reduce((total: any, item: any) => total + item.discountAmount, 0,)
+        const totalAmount = items.reduce((total: any, item: any) => total + +item.netAmount, 0,)
+        const discountAmount = items.reduce((total: any, item: any) => total + +item.discountAmount, 0,)
+        const otherPaymentAmount = items.reduce((total: any, item: any) => total + item.otherPaymentAmount, 0,)
         const totalAfterDiscount = totalAmount
         const grandTotal = totalAmount
 
@@ -105,11 +105,11 @@ export default class TsmOrderModel {
                     code: saleCode,
                     name: saleName,
                 },
-                totalAmount,
-                discountAmount,
-                totalAfterDiscount,
-                otherPaymentAmount,
-                grandTotal,
+                totalAmount: '' + totalAmount,
+                discountAmount: '' + discountAmount,
+                totalAfterDiscount: '' + totalAfterDiscount,
+                otherPaymentAmount: '' + otherPaymentAmount,
+                grandTotal: '' + grandTotal,
                 discounts: [],
                 otherPayments: [],
                 items,
@@ -177,7 +177,7 @@ export default class TsmOrderModel {
                     sequence: '1',
                     no: '1',
                     code: promotionSetCode,
-                    amount: discount,
+                    amount: '' + this.stangToBaht(discount),
                     serial: '',
                 }
             ]
@@ -217,7 +217,7 @@ export default class TsmOrderModel {
             moo,
             houseNo = '',
             roomNo,
-            subDistrict
+            subDistrict = ''
         } = custom || {}
 
 
@@ -229,5 +229,11 @@ export default class TsmOrderModel {
         const timestamp = Date.now().toString(); // Current timestamp
         const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // Random 4-digit number
         return `ORD-${timestamp}-${random}`; // Combine parts into an order number
+    }
+
+    stangToBaht(stang: number) {
+        const fractionDigits = 2
+
+        return stang / Math.pow(10, fractionDigits)
     }
 }

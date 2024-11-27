@@ -50,6 +50,7 @@ export const readConfiguration = () => {
       clientSecret: process.env.APIGW_CLIENT_SECRET as string,
     },
     tsmOrder: {
+      shopCode: process.env.TSM_ORDER_SHOP_CODE as string,
       saleCode: process.env.TSM_ORDER_SALE_CODE as string,
       saleName: process.env.TSM_ORDER_SALE_NAME as string,
     }

@@ -98,14 +98,14 @@ export class CartController {
         try {
             // TODO: STEP #1 - Validate Request Body
             const accessToken = req.accessToken as string;
+            // const { validate } = req.query
             const body = req.body
-
-
+            const cartId = body.cartId
+            const validateList = body.validateList || []
             const payload = {
-                cartId: body.cartId
+                cartId
             };
-            // accessToken, req.body
-            const order = await this.cartService.createOrder(accessToken, payload);
+            const order = await this.cartService.createOrder(accessToken, payload, validateList);
 
             const response: ResponseType = {
                 statusCode: 200,
@@ -117,14 +117,16 @@ export class CartController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log('error', error)
+            console.log('error-cartController-createOrder', error)
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
+            const errorCode = error.errorCode || undefined;
             const data = error.data || null
 
             return res.status(statusCode).json({
                 statusCode,
                 statusMessage,
+                errorCode,
                 data,
             });
         }
