@@ -17,37 +17,22 @@ export class CtT1Adapter {
         this.ctpTaxCategoryId = readConfiguration().ctpTaxCategoryId;
     }
 
-    handleEffectsV6(effects: any[], cart: any): CartUpdateAction[] {
+    public processCouponEffects(effects: any[]): {
+        updateActions: CartUpdateAction[];
+        acceptedCoupons: string[];
+        rejectedCoupons: { code: string; reason: string }[];
+        customEffects: any[];
+        couponIdToCode: { [key: number]: string };
+        couponIdToEffects: { [key: number]: any[] };
+    } {
         const updateActions: CartUpdateAction[] = [];
         const acceptedCoupons: string[] = [];
-        const rejectedCoupons: string[] = [];
+        const rejectedCoupons: { code: string; reason: string }[] = [];
+        const customEffects: any[] = [];
         const couponIdToCode: { [key: number]: string } = {};
         const couponIdToEffects: { [key: number]: any[] } = {};
 
         // Process effects to build mappings
-        this.processEffects(effects, acceptedCoupons, rejectedCoupons, couponIdToCode, couponIdToEffects);
-
-        // Process accepted coupons and their associated effects
-        this.processAcceptedCoupons(
-            cart,
-            updateActions,
-            couponIdToCode,
-            couponIdToEffects
-        );
-
-        // Update accepted and rejected coupons in cart custom fields
-        this.updateCartCustomFields(cart, updateActions, acceptedCoupons, rejectedCoupons);
-
-        return updateActions;
-    }
-
-    private processEffects(
-        effects: any[],
-        acceptedCoupons: string[],
-        rejectedCoupons: string[],
-        couponIdToCode: { [key: number]: string },
-        couponIdToEffects: { [key: number]: any[] }
-    ): void {
         effects.forEach(effect => {
             const { effectType, props, triggeredByCoupon } = effect;
 
@@ -58,23 +43,60 @@ export class CtT1Adapter {
                 couponIdToEffects[triggeredByCoupon].push(effect);
             }
 
-            if (effectType === 'acceptCoupon') {
-                acceptedCoupons.push(props.value);
-                if (triggeredByCoupon) {
-                    couponIdToCode[triggeredByCoupon] = props.value;
-                }
-            } else if (effectType === 'rejectCoupon') {
-                rejectedCoupons.push(props.value);
+            switch (effectType) {
+                case 'acceptCoupon':
+                    acceptedCoupons.push(props.value);
+                    if (triggeredByCoupon) {
+                        couponIdToCode[triggeredByCoupon] = props.value;
+                    }
+                    break;
+
+                case 'rejectCoupon':
+                    rejectedCoupons.push({
+                        code: props.value,
+                        reason: props.rejectionReason,
+                    });
+                    break;
+
+                case 'customEffect':
+                    if (props.name === 'coupon_custom_effect') {
+                        customEffects.push({
+                            couponCode: couponIdToCode[triggeredByCoupon],
+                            props,
+                        });
+                    }
+                    break;
+
+                // Handle other effect types if needed
+                default:
+                    break;
             }
         });
+
+        return {
+            updateActions,
+            acceptedCoupons,
+            rejectedCoupons,
+            customEffects,
+            couponIdToCode,
+            couponIdToEffects,
+        };
     }
 
-    private processAcceptedCoupons(
+    public buildUpdateActions(
         cart: any,
-        updateActions: CartUpdateAction[],
-        couponIdToCode: { [key: number]: string },
-        couponIdToEffects: { [key: number]: any[] }
-    ): void {
+        processedEffects: {
+            acceptedCoupons: string[];
+            rejectedCoupons: { code: string; reason: string }[];
+            couponIdToCode: { [key: number]: string };
+            couponIdToEffects: { [key: number]: any[] };
+        }
+    ): CartUpdateAction[] {
+        const updateActions: CartUpdateAction[] = [];
+
+        const { couponIdToCode, couponIdToEffects } = processedEffects;
+
+        // Process accepted coupons and their associated effects
         for (const triggeredByCoupon in couponIdToCode) {
             const couponCode = couponIdToCode[triggeredByCoupon];
             const associatedEffects = couponIdToEffects[triggeredByCoupon];
@@ -91,12 +113,14 @@ export class CtT1Adapter {
                         this.handleAddFreeItemEffect(updateActions, props);
                         break;
 
+                    // Handle other effect types if needed
                     default:
-                        console.warn(`Effect type "${effectType}" not supported`);
                         break;
                 }
             });
         }
+
+        return updateActions;
     }
 
     private handleSetDiscountEffect(
@@ -155,40 +179,5 @@ export class CtT1Adapter {
             },
         };
         updateActions.push(addLineItemAction);
-    }
-
-    private updateCartCustomFields(
-        cart: any,
-        updateActions: CartUpdateAction[],
-        acceptedCoupons: string[],
-        rejectedCoupons: string[]
-    ): void {
-        // Update acceptedCoupons
-        if (acceptedCoupons.length > 0) {
-            const existingAcceptedCoupons = cart.custom?.fields?.acceptedCoupons || [];
-            const allAcceptedCoupons = [...existingAcceptedCoupons, ...acceptedCoupons];
-            const uniqueAcceptedCoupons = Array.from(new Set(allAcceptedCoupons));
-            const setCustomFieldAction: CartSetCustomFieldAction = {
-                action: 'setCustomField',
-                name: 'acceptedCoupons',
-                value: uniqueAcceptedCoupons,
-            };
-            updateActions.push(setCustomFieldAction);
-        }
-
-        // Update rejectedCoupons
-        if (rejectedCoupons.length > 0) {
-            const existingRejectedCoupons = cart.custom?.fields?.rejectedCoupons || [];
-            const allRejectedCoupons = [...existingRejectedCoupons, ...rejectedCoupons];
-            const uniqueRejectedCoupons = Array.from(
-                new Map(allRejectedCoupons.map(item => [item.code, item])).values()
-            );
-            const setCustomFieldAction: CartSetCustomFieldAction = {
-                action: 'setCustomField',
-                name: 'rejectedCoupons',
-                value: uniqueRejectedCoupons,
-            };
-            updateActions.push(setCustomFieldAction);
-        }
     }
 }

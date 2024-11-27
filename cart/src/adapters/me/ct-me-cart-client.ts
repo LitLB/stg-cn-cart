@@ -12,6 +12,7 @@ import type {
 	MyLineItemDraft,
 	ApiRoot,
 	LineItem,
+	CustomLineItem,
 } from '@commercetools/platform-sdk';
 import type { ICart, IImage, IItem } from '../../interfaces/cart';
 import { CART_EXPIRATION_DAYS } from '../../constants/cart.constant';
@@ -206,7 +207,7 @@ export default class CommercetoolsMeCartClient {
 				version,
 				actions,
 			};
-	
+
 			const response = await this.apiRoot
 				.withProjectKey({ projectKey: this.projectKey })
 				.me()
@@ -214,7 +215,7 @@ export default class CommercetoolsMeCartClient {
 				.withId({ ID: cartId })
 				.post({ body: cartUpdate })
 				.execute();
-	
+
 			return response.body;
 		} catch (error) {
 			console.error('updateCart.error', error);
@@ -589,6 +590,18 @@ export default class CommercetoolsMeCartClient {
 	}
 
 	/**
+ * Calculates the total price of custom line items.
+ * @param customLineItems - Array of custom line items from the cart.
+ * @returns The total price of custom line items.
+ */
+	private calculateCustomLineItemsTotalPrice(customLineItems: CustomLineItem[]): number {
+		return customLineItems.reduce(
+			(total, cli) => total + cli.totalPrice.centAmount,
+			0
+		);
+	}
+
+	/**
 	 * Maps the Commercetools Cart to a custom ICart interface.
 	 * @param ctCart - The Commercetools Cart object.
 	 */
@@ -650,17 +663,40 @@ export default class CommercetoolsMeCartClient {
 
 		const { totalQuantity, quantitiesByProductType } = this.calculateQuantities(items);
 
+		// Subtotal price: sum of unit prices times quantities before discounts
 		const subtotalPrice = items.reduce(
 			(total, item) => total + item.unitPrice * item.quantity,
-			0,
+			0
 		);
-		const totalPriceAfterDiscount = items.reduce(
+
+		// Total price after discounts for line items
+		const lineItemsTotalPrice = items.reduce(
 			(total, item) => total + item.priceAfterDiscount,
-			0,
+			0
 		);
+
+		// Process customLineItems (e.g., cart-level discounts)
+		const customLineItems = ctCart.customLineItems || [];
+
+		// Use the new function to calculate the total price of custom line items
+		const customLineItemsTotalPrice = this.calculateCustomLineItemsTotalPrice(customLineItems);
+
+		// Total price after discount (line items + custom line items)
+		const totalPriceAfterDiscount = lineItemsTotalPrice + customLineItemsTotalPrice;
+
+		// Shipping cost
 		const shippingCost = ctCart.shippingInfo?.price?.centAmount || 0;
-		const totalDiscount = this.calculateTotalDiscount(items);
-		const grandTotal = subtotalPrice + shippingCost - totalDiscount;
+
+		// Grand total: totalPriceAfterDiscount plus shipping cost
+		const grandTotal = ctCart.totalPrice.centAmount;
+
+		// Check is that the calculated grandTotal matches the value from the cart.
+		if (grandTotal !== totalPriceAfterDiscount + shippingCost) {
+			console.warn('Calculated grandTotal does not match ctCart.totalPrice.centAmount');
+		}
+
+		// Calculate total discount: subtotalPrice minus totalPriceAfterDiscount
+		const totalDiscount = subtotalPrice - totalPriceAfterDiscount;
 
 		// Calculate expiredAt using lastModifiedAt and deleteDaysAfterLastModification
 		const lastModifiedAt = ctCart.lastModifiedAt;

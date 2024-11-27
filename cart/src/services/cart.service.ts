@@ -1,8 +1,8 @@
 // cart/src/services/cart.service.ts
 
-import { CartUpdateAction, MyCartUpdateAction } from '@commercetools/platform-sdk';
+import { CartUpdateAction } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
-// import CommercetoolsMeOrderClient from '../adapters/me/ct-me-order-client'; // ! For testing only
+import CommercetoolsMeOrderClient from '../adapters/me/ct-me-order-client'; // ! For testing only
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { ICart } from '../interfaces/cart';
@@ -28,11 +28,9 @@ export class CartService {
         }
 
         const { shippingAddress, billingAddress, shippingMethodId, couponCodes = [], payment } = value;
-        // console.log('value', value);
-        // console.log('couponCodes', couponCodes);
 
         const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-        // const commercetoolsMeOrderClient = new CommercetoolsMeOrderClient(accessToken); // ! For testing only
+        const commercetoolsMeOrderClient = new CommercetoolsMeOrderClient(accessToken); // ! For testing only
 
         const cart = await commercetoolsMeCartClient.getCartById(id);
         if (!cart) {
@@ -41,21 +39,17 @@ export class CartService {
                 statusMessage: 'Cart not found or has expired',
             };
         }
-        // console.log('cart.custom', cart.custom);
 
         const profileId = cart?.id
-        const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({ profileId, ctCartData: cart, couponCodes });
-        // console.log('customerSessionPayload', customerSessionPayload);
-        // console.log('JSON.stringify(customerSessionPayload,null,2)', JSON.stringify(customerSessionPayload, null, 2));
-        const customerSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, customerSessionPayload, { dry: true });
-        // console.log('customerSession', customerSession);
-        // console.log('customerSession.effects', customerSession.effects);
 
-        const talonEffects = customerSession.effects;
-        const talonOneUpdateActions = this.ctT1Adapter.handleEffectsV6(
-            talonEffects,
-            cart
-        );
+        const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({ profileId, ctCartData: cart, couponCodes });
+
+        const updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, customerSessionPayload);
+
+        const talonEffects = updatedCustomerSession.effects;
+        const processedCouponEffects = this.ctT1Adapter.processCouponEffects(talonEffects);
+
+        const talonOneUpdateActions = this.ctT1Adapter.buildUpdateActions(cart, processedCouponEffects);
         // console.log('talonOneUpdateActions', talonOneUpdateActions);
 
         const updateActions: CartUpdateAction[] = [];
@@ -96,9 +90,9 @@ export class CartService {
             await CommercetoolsCustomObjectClient.addPaymentTransaction(cart.id, paymentTransaction);
         }
 
-        updateActions.push(...talonOneUpdateActions);
+        // console.log('talonOneUpdateActions', talonOneUpdateActions)
 
-        console.log('updateActions', updateActions);
+        updateActions.push(...talonOneUpdateActions);
 
         const updatedCart = await CommercetoolsCartClient.updateCart(
             cart.id,
@@ -106,11 +100,11 @@ export class CartService {
             updateActions,
         );
 
-        // const order = await commercetoolsMeOrderClient.createOrderFromCart(updatedCart); // ! For testing only
+        const order = await commercetoolsMeOrderClient.createOrderFromCart(updatedCart); // ! For testing only
 
         const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
 
-        return iCart;
+        return { ...iCart, rejectedCoupons: processedCouponEffects.rejectedCoupons };
     };
 
     public createAnonymousCart = async (accessToken: string, body: any) => {
@@ -159,52 +153,3 @@ export class CartService {
         return iCartWithBenefit;
     };
 }
-
-// updateCart.error BadRequest: Unknown field 'lineItemId'.
-//     at createError (C:\Users\devvi\OneDrive\Desktop\opt\ascend-group\cn-cart\cart\node_modules\@commercetools\sdk-middleware-http\dist\sdk-middleware-http.cjs.js:241:29)
-//     at C:\Users\devvi\OneDrive\Desktop\opt\ascend-group\cn-cart\cart\node_modules\@commercetools\sdk-middleware-http\dist\sdk-middleware-http.cjs.js:438:25
-//     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
-//   code: 400,
-//   statusCode: 400,
-//   status: 400,
-//   originalRequest: {
-//     baseUri: 'https://api.europe-west1.gcp.commercetools.com',
-//     method: 'POST',
-//     uriTemplate: '/{projectKey}/carts/{ID}',
-//     pathVariables: {
-//       projectKey: 'truecorp_omni_platform_dev',
-//       ID: '1080cdef-f7af-4a47-9278-1c403ac2c6a0'
-//     },
-//     headers: {
-//       'Content-Type': 'application/json',
-//       Authorization: 'Bearer ********'
-//     },
-//     queryParams: undefined,
-//     body: { version: 6, actions: [Array] },
-//     uri: '/truecorp_omni_platform_dev/carts/1080cdef-f7af-4a47-9278-1c403ac2c6a0'
-//   },
-//   retryCount: 0,
-//   headers: {
-//     'access-control-allow-headers': 'Accept, Authorization, Content-Type, Origin, User-Agent, X-Correlation-ID',
-//     'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
-//     'access-control-allow-origin': '*',
-//     'access-control-expose-headers': 'X-Correlation-ID',
-//     'access-control-max-age': '299',
-//     'alt-svc': 'h3=":443"; ma=2592000,h3-29=":443"; ma=2592000',
-//     'content-encoding': 'gzip',
-//     'content-type': 'application/json; charset=utf-8',
-//     date: 'Tue, 26 Nov 2024 09:46:42 GMT',
-//     server: 'istio-envoy',
-//     'server-timing': 'projects;dur=76',
-//     'transfer-encoding': 'chunked',
-//     via: '1.1 google',
-//     'x-correlation-id': 'projects-d80b3ece-b5f7-4115-9099-721cc582e2a2',
-//     'x-envoy-upstream-service-time': '77',
-//     'x-http-status-caused-by-external-upstream': 'false'
-//   },
-//   body: {
-//     statusCode: 400,
-//     message: "Unknown field 'lineItemId'.",
-//     errors: [ [Object], [Object], [Object], [Object], [Object], [Object] ]
-//   }
-// }
