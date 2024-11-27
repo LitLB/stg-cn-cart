@@ -31,6 +31,12 @@ deployAs:
         - key: T1_API_KEY_PREFIX
           description: Talon.one API Key Prefix used for identifying API keys
           required: true
+        - key: AWS_BUCKET_VC
+          description: AWS Bucket
+          required: true
+        - key: AWS_REGION
+          description: AWS region
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: Commercetools project key identifying your specific project
@@ -52,4 +58,10 @@ deployAs:
           required: true
         - key: T1_API_KEY
           description: Talon.one API Key used for authenticating requests to Talon.one services
+          required: true
+        - key: AWS_ACCESS_KEY_ID
+          description: AWS access key
+          required: true
+        - key: AWS_SECRET_ACCESS_KEY
+          description: AWS secret access key
           required: true
