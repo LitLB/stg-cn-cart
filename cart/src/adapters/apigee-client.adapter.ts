@@ -1,11 +1,12 @@
 import axios, { AxiosResponse } from 'axios'
 import { readConfiguration } from "../utils/config.utils";
+import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
 
 class ApigeeClientAdapter {
-    private readonly client :any
-    private readonly apigeeConfig :any
-    private accessToken:any
-    constructor () {
+    private readonly client: any
+    private readonly apigeeConfig: any
+    private accessToken: any
+    constructor() {
         this.apigeeConfig = readConfiguration().apigee
         this.client = axios.create({ baseURL: this.apigeeConfig.baseUrl })
     }
@@ -15,19 +16,18 @@ class ApigeeClientAdapter {
         this.accessToken = accessToken
     }
 
-    async getToken(): Promise<any> 
-    {
-        try { 
+    async getToken(): Promise<any> {
+        try {
             const url = 'oauth/v1/token';
-            const headers = {'Content-Type': 'application/x-www-form-urlencoded'};
+            const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
 
             const response: AxiosResponse = await this.client.post(`${url}`, {
                 grant_type: 'client_credentials',
                 client_id: this.apigeeConfig.clientId,
                 client_secret: this.apigeeConfig.clientSecret,
-            },{ headers });
+            }, { headers });
 
-        return response.data
+            return response.data
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 // Handle known Axios errors
@@ -37,7 +37,7 @@ class ApigeeClientAdapter {
                 return { code: 500, message: 'An unexpected error occurred.' };
             }
         }
-        
+
     }
 
 
@@ -45,22 +45,35 @@ class ApigeeClientAdapter {
         try {
             await this.init()
             const headers = {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${this.accessToken}`,
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${this.accessToken}`,
             };
-      
+
             const url = 'productOrdering/v3/saveOrder';
             const response: AxiosResponse = await this.client.post(
-              `${url}`,
-              body,
-              { headers }
+                `${url}`,
+                body,
+                { headers }
             );
-      
+
             return response.data;
-          } catch (error) {
-            console.log("error", error);
-            return [];
-          }
+        } catch (error) {
+            console.error('error-apigeeClientAdapter-saveOrderOnline', error)
+            if (axios.isAxiosError(error)) {
+                throw {
+                    statusCode: 400,
+                    statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
+                    errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
+                    data: error.response?.data || null
+                };
+            } else {
+                throw {
+                    statusCode: 400,
+                    statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
+                    errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
+                };
+            }
+        }
     }
 }
 
