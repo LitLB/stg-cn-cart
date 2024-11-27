@@ -5,11 +5,13 @@ import { AuthController } from '../controllers/auth.controller';
 import { CartController } from '../controllers/cart.controller';
 import { authenticate } from '../middleware/authenticate';
 import { CartItemController } from '../controllers/cart-item.controller';
+import { BlacklistController } from '../controllers/blacklist.controller';
 
 const cartRouter = Router();
 const authController = new AuthController();
 const cartController = new CartController();
 const cartItemController = new CartItemController();
+const blacklistController = new BlacklistController();
 
 cartRouter.post('/v1/oauth/anonymous', authController.createAnonymousSession);
 cartRouter.patch('/v1/oauth/anonymous', authController.renewAnonymousSession);
@@ -23,5 +25,7 @@ cartRouter.post('/v1/carts/:id/items/select', authenticate, cartItemController.s
 cartRouter.delete('/v1/carts/:id/items/bulk-delete', authenticate, cartItemController.bulkDelete);
 cartRouter.put('/v1/carts/:id/items/:itemId', authenticate, cartItemController.updateItemQuantityById);
 cartRouter.delete('/v1/carts/:id/items/:itemId', authenticate, cartItemController.deleteItemById);
+
+cartRouter.post('/v1/order/check-blacklist', blacklistController.checkBlacklist);
 
 export default cartRouter;

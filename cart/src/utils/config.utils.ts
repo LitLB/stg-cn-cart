@@ -29,13 +29,20 @@ export const readConfiguration = () => {
 
     onlineChannel: process.env.ONLINE_CHANNEL as string,
 
-    ctPriceCustomerGroupIdRrp: process.env.CT_PRICE_CUSTOMER_GROUP_ID_RRP as string,
+    ctPriceCustomerGroupIdRrp: process.env
+      .CT_PRICE_CUSTOMER_GROUP_ID_RRP as string,
 
     t1: {
       apiKey: process.env.T1_API_KEY as string,
       prefixApiKey: process.env.T1_API_KEY_PREFIX as string,
       basePath: process.env.T1_URL as string,
-    }
+    },
+
+    dynamodb: {
+      region: process.env.AWS_REGION,
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
   };
 
   const validationErrors = getValidateMessages(envValidators, envVars);
@@ -53,6 +60,6 @@ export const readConfiguration = () => {
 
 export const ETLConfig = () => {
   return {
-    clientUrl: process.env.ETL_CLIENT_URL as string
-  }
-}
+    clientUrl: process.env.ETL_CLIENT_URL as string,
+  };
+};
