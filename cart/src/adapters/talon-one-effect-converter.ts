@@ -691,6 +691,20 @@ class TalonOneEffectConverter {
 			},
 		};
 	}
+
+	async getCustomerSessionWithConvertedEffectsById(customerSessionId: string) {
+		const customerSession = await talonOneIntegrationAdapter.getCustomerSession(customerSessionId)
+		const { customerSession: customerSessionInfo, effects } = customerSession;
+		const distintEffects = this.groupEffect(effects);
+		const filteredEffects = this.filter(distintEffects);
+		const convertedEffects = filteredEffects.map(this.convert);
+		return {
+			customerSession: {
+				...customerSessionInfo,
+				effects: convertedEffects,
+			},
+		};
+	}
 }
 
 export const talonOneEffectConverter = new TalonOneEffectConverter();

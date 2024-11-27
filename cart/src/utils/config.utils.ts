@@ -39,12 +39,16 @@ export const readConfiguration = () => {
       prefixApiKey: process.env.T1_API_KEY_PREFIX as string,
       basePath: process.env.T1_URL as string,
     },
-
     dynamodb: {
       region: process.env.AWS_REGION,
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     },
+    apigee: {
+      baseUrl: process.env.APIGW_BASE_URL as string,
+      clientId: process.env.APIGW_CLIENT_ID as string,
+      clientSecret: process.env.APIGW_CLIENT_SECRET as string,
+    }
   };
 
   const validationErrors = getValidateMessages(envValidators, envVars);

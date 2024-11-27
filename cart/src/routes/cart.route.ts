@@ -27,5 +27,6 @@ cartRouter.put('/v1/carts/:id/items/:itemId', authenticate, cartItemController.u
 cartRouter.delete('/v1/carts/:id/items/:itemId', authenticate, cartItemController.deleteItemById);
 
 cartRouter.post('/v1/order/check-blacklist', blacklistController.checkBlacklist);
+cartRouter.post('/v1/orders', authenticate, cartController.createOrder);
 
 export default cartRouter;

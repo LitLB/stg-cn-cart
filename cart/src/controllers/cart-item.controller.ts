@@ -16,9 +16,9 @@ export class CartItemController {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
-
+            console.log(id)
             const updatedCart = await this.cartItemService.addItem(accessToken, id, req.body);
-
+            console.log(updatedCart)
             const response: ResponseType = {
                 statusCode: 200,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
