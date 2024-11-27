@@ -48,6 +48,10 @@ export const readConfiguration = () => {
       baseUrl: process.env.APIGW_BASE_URL as string,
       clientId: process.env.APIGW_CLIENT_ID as string,
       clientSecret: process.env.APIGW_CLIENT_SECRET as string,
+    },
+    tsmOrder: {
+      saleCode: process.env.TSM_ORDER_SALE_CODE as string,
+      saleName: process.env.TSM_ORDER_SALE_NAME as string,
     }
   };
 

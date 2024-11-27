@@ -13,7 +13,8 @@ import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 import { CtT1Adapter } from '../adapters/ct-t1.adapter';
 import { validateProductQuantity } from '../validators/cart-item.validator';
 import ApigeeClientAdapter from '../adapters/apigee-client.adapter';
-
+import TsmOrderModel from '../models/tsm-order.model';
+import { readConfiguration } from '../utils/config.utils';
 
 import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
 export class CartService {
@@ -151,6 +152,7 @@ export class CartService {
                 statusMessage: 'Cart not found or has expired',
             };
         }
+        // return ctCart
         // console.log('ctCart', ctCart);
         // console.log('ctCart.lineItems[0]', ctCart.lineItems[0]);
 
@@ -221,12 +223,12 @@ export class CartService {
 
     private createTSMSaleOrder = async (cart: any) => {
         try {
-
-
-
             const apigeeClientAdapter = new ApigeeClientAdapter
-            await apigeeClientAdapter.init()
-            const response = await apigeeClientAdapter.saveOrderOnline()
+            const config = readConfiguration()
+            const tsmOrder = new TsmOrderModel({ ctCart: cart, config })
+            const tsmOrderPayload = tsmOrder.toPayload()
+            const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
+
             // {
             //     "code": "0",
             //     "description": "Success",

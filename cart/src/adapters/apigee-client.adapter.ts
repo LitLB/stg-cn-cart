@@ -43,6 +43,7 @@ class ApigeeClientAdapter {
 
     async saveOrderOnline(body: any) {
         try {
+            await this.init()
             const headers = {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${this.accessToken}`,
