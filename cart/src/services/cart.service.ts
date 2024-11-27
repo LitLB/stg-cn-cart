@@ -2,7 +2,7 @@
 
 import { CartUpdateAction } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
-import CommercetoolsMeOrderClient from '../adapters/me/ct-me-order-client'; // ! For testing only
+// import CommercetoolsMeOrderClient from '../adapters/me/ct-me-order-client'; // ! For testing only
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { ICart } from '../interfaces/cart';
@@ -30,7 +30,7 @@ export class CartService {
         const { shippingAddress, billingAddress, shippingMethodId, couponCodes = [], payment } = value;
 
         const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-        const commercetoolsMeOrderClient = new CommercetoolsMeOrderClient(accessToken); // ! For testing only
+        // const commercetoolsMeOrderClient = new CommercetoolsMeOrderClient(accessToken); // ! For testing only
 
         const cart = await commercetoolsMeCartClient.getCartById(id);
         if (!cart) {
@@ -100,7 +100,7 @@ export class CartService {
             updateActions,
         );
 
-        const order = await commercetoolsMeOrderClient.createOrderFromCart(updatedCart); // ! For testing only
+        // const order = await commercetoolsMeOrderClient.createOrderFromCart(updatedCart); // ! For testing only
 
         const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
 
