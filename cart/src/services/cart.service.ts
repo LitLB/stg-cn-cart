@@ -156,9 +156,6 @@ export class CartService {
                 statusMessage: 'Cart not found or has expired',
             };
         }
-        // return ctCart
-        // console.log('ctCart', ctCart);
-        // console.log('ctCart.lineItems[0]', ctCart.lineItems[0]);
 
         const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
 
@@ -194,6 +191,11 @@ export class CartService {
 
         // TODO: STEP #5 - Create Order On TSM Sale
         await this.createTSMSaleOrder(ctCart)
+        //! IF available > x
+        //! THEN continue
+        //! ELSE
+        //! THEN throw error
+
         // TODO: STEP #6 - Create Order On Commercetools
         const commercetoolsMeOrderClient = new CommercetoolsMeOrderClient(accessToken)
         const order = await commercetoolsMeOrderClient.createOrderFromCart(ctCart); // ! For testing only
@@ -267,7 +269,7 @@ export class CartService {
                 //     'lastDigits': '1234'
                 // },
                 // ipAddress: '127.0.0.1',
-                // googleID: 'thiamkhae.pap@ascendcorp.com',
+                // googleID: 'thiamkhae.pap@ascendcorp.com', //! ASK PO
                 shippingAddress: {
                     city: shippingAddress.state, /* Mandarory */
                     district: shippingAddress.city, /* Mandarory */
