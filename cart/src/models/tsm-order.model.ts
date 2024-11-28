@@ -62,7 +62,7 @@ export default class TsmOrderModel {
                 proposition: promotionSetProposition,
                 promotionSet: promotionSetCode,
                 promotionType: this.getPromotionType(productType),
-                group: productGroup,
+                group: '' + productGroup,
                 product: {
                     productType: this.getProductType(productType),
                     productCode,
@@ -86,7 +86,7 @@ export default class TsmOrderModel {
 
         const totalAmount = items.reduce((total: any, item: any) => total + +item.netAmount, 0,)
         const discountAmount = items.reduce((total: any, item: any) => total + +item.discountAmount, 0,)
-        const otherPaymentAmount = items.reduce((total: any, item: any) => total + item.otherPaymentAmount, 0,)
+        const otherPaymentAmount = items.reduce((total: any, item: any) => total + +item.otherPaymentAmount, 0,)
         const totalAfterDiscount = totalAmount
         const grandTotal = totalAmount
 
