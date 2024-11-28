@@ -92,4 +92,41 @@ export class CartController {
             });
         }
     };
+
+    // TODO (CN-CART) /cart/v1/orders
+    public createOrder = async (req: Request, res: Response): Promise<Response> => {
+        try {
+            // TODO: STEP #1 - Validate Request Body
+            const accessToken = req.accessToken as string;
+            const body = req.body
+            const cartId = body.cartId
+            const validateList = body.validateList || []
+            const payload = {
+                cartId
+            };
+            const order = await this.cartService.createOrder(accessToken, payload, validateList);
+
+            const response: ResponseType = {
+                statusCode: 200,
+                statusMessage: RESPONSE_MESSAGES.SUCCESS,
+                data: {
+                    orderId: order.id
+                },
+            };
+
+            return res.status(200).json(response);
+        } catch (error: any) {
+            const statusCode = error.statusCode || 500;
+            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
+            const errorCode = error.errorCode;
+            const data = error.data || null
+
+            return res.status(statusCode).json({
+                statusCode,
+                statusMessage,
+                errorCode,
+                data
+            });
+        }
+    }
 }
