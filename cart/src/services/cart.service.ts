@@ -188,7 +188,7 @@ export class CartService {
         }
 
         // TODO: STEP #3 - Validate Campaign & Promotion Set
-        if (validateList.includes('BLACKLIST')) {
+        if (validateList.includes('CAMPAIGN')) {
             await this.validateCampaign(ctCart)
         }
 
