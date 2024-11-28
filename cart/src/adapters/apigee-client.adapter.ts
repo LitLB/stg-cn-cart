@@ -42,38 +42,20 @@ class ApigeeClientAdapter {
 
 
     async saveOrderOnline(body: any) {
-        try {
-            await this.init()
-            const headers = {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${this.accessToken}`,
-            };
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+        };
 
-            const url = 'productOrdering/v3/saveOrder';
-            const response: AxiosResponse = await this.client.post(
-                `${url}`,
-                body,
-                { headers }
-            );
+        const url = 'productOrdering/v3/saveOrder';
+        const response: AxiosResponse = await this.client.post(
+            `${url}`,
+            body,
+            { headers }
+        );
 
-            return response.data;
-        } catch (error) {
-            console.error('error-apigeeClientAdapter-saveOrderOnline', error)
-            if (axios.isAxiosError(error)) {
-                throw {
-                    statusCode: 400,
-                    statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
-                    errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
-                    data: error.response?.data || null
-                };
-            } else {
-                throw {
-                    statusCode: 400,
-                    statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
-                    errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
-                };
-            }
-        }
+        return response.data;
     }
 }
 

@@ -20,6 +20,7 @@ import { readConfiguration } from '../utils/config.utils';
 
 import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
 import { BlacklistService } from './blacklist.service'
+import { safelyParse } from '../utils/response.utils';
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
     private ctT1Adapter: CtT1Adapter;
@@ -238,17 +239,19 @@ export class CartService {
                 throw {
                     statusCode: 400,
                     statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
-                    errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
-                    data: response
+                    errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
                 };
             }
         } catch (error: any) {
-            console.error('error-cartService-createTSMSaleOrder', error)
+            let data = error?.response?.data
+            if (data) {
+                data = safelyParse(data)
+            }
             throw {
                 statusCode: 400,
                 statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
                 errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
-                data: error?.data || null
+                ...(data ? { data } : {})
             };
         }
     }

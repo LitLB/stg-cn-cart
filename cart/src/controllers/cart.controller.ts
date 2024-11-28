@@ -116,17 +116,16 @@ export class CartController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log('error-cartController-createOrder', error)
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const errorCode = error.errorCode || undefined;
+            const errorCode = error.errorCode;
             const data = error.data || null
 
             return res.status(statusCode).json({
                 statusCode,
                 statusMessage,
                 errorCode,
-                data,
+                data
             });
         }
     }
