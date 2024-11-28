@@ -98,7 +98,6 @@ export class CartController {
         try {
             // TODO: STEP #1 - Validate Request Body
             const accessToken = req.accessToken as string;
-            // const { validate } = req.query
             const body = req.body
             const cartId = body.cartId
             const validateList = body.validateList || []

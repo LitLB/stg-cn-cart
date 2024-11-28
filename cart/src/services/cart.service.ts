@@ -2,6 +2,8 @@
 
 import { CartUpdateAction } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
+import CommercetoolsProductClient from '../adapters/ct-product-client';
+import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
 import CommercetoolsMeOrderClient from '../adapters/me/ct-me-order-client'; // ! For testing only
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
@@ -253,26 +255,28 @@ export class CartService {
 
     private async validateBlacklist(ctCart: any) {
         try {
-            return true
+            // return true
+            const { custom: cartCustomField, shippingAddress } = ctCart
+            const journey = cartCustomField?.fields?.journey
             const body: any =
             {
-                "journey": "device_only", /* Mandarory */
-                "paymentTMNAccountNumber": "0830053853",
-                "paymentCreditCardNumber": {
-                    "firstDigits": null,
-                    "lastDigits": "1234"
+                journey, /* Mandarory */
+                // paymentTMNAccountNumber: '0830053853',
+                // paymentCreditCardNumber: {
+                //     'firstDigits': null,
+                //     'lastDigits': '1234'
+                // },
+                // ipAddress: '127.0.0.1',
+                // googleID: 'thiamkhae.pap@ascendcorp.com',
+                shippingAddress: {
+                    city: shippingAddress.state, /* Mandarory */
+                    district: shippingAddress.city, /* Mandarory */
+                    postcode: shippingAddress.postalCode, /* Mandarory */
+                    subDistrict: shippingAddress.custom?.fields?.subDistrict /* Mandarory */
                 },
-                "ipAddress": "127.0.0.1",
-                "googleID": "thiamkhae.pap@ascendcorp.com",
-                "shippingAddress": {
-                    "city": "Bangkok", /* Mandarory */
-                    "district": "Donmuang", /* Mandarory */
-                    "postcode": "10210", /* Mandarory */
-                    "subDistrict": "Donmuang" /* Mandarory */
-                },
-                "email": "thiamkhae.pap@ascendcorp.com", /* Mandarory */
-                "deliveryContactNumber": "0830053853", /* Mandarory */
-                "deliveryContactName": "เทียมแข ปภานันท์กุล" /* Mandarory */
+                email: shippingAddress.email, /* Mandarory */
+                deliveryContactNumber: shippingAddress.phone, /* Mandarory */
+                deliveryContactName: `${shippingAddress.firstName} ${shippingAddress.lastName}` /* Mandarory */
             }
             const response = await this.blacklistService.checkBlacklist(body);
 
@@ -329,7 +333,7 @@ export class CartService {
             const promotionSet = LineItemEffect?.promotionSet
             const remainingMaxReceive = promotionSet?.tsm_promotion_set__max_receive || 0;
 
-            const promotionDetails = LineItemEffect?.productPromotionDetails
+            const promotionDetails = LineItemEffect?.productPromotionDetails || []
 
             const remainingMaxItem = promotionDetails?.reduce((acc: any, promotionDetail: any) => {
                 const group = promotionDetail.detail.tsm_promotion_detail__group_code
@@ -387,6 +391,7 @@ export class CartService {
     private async validateCampaign(ctCart: any) {
         try {
             const { id: cartId, lineItems } = ctCart;
+            // TODO: Change to PUT with dry = true
             const customerSessionWithConvertedEffects: any = await talonOneEffectConverter.getCustomerSessionWithConvertedEffectsById(cartId);
 
             const { effects, cartItems } = customerSessionWithConvertedEffects.customerSession;
@@ -397,7 +402,8 @@ export class CartService {
             this.validateSecondaryProduct(selectedLineItems, cartItems, effects);
 
             return true;
-        } catch (e) {
+        } catch (error: any) {
+            console.error('error-cartService-validateCampaign', error)
             throw {
                 statusCode: 400,
                 statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
@@ -406,34 +412,61 @@ export class CartService {
         }
     }
 
-    private validateAvailableQuantity(ctCart: any) {
+    private async validateAvailableQuantity(ctCart: any) {
         try {
             const { lineItems } = ctCart
+            for (const lineItem of lineItems) {
+                const productType = lineItem.custom?.fields?.productType
+                const sku = lineItem.variant.sku
+                const productId = lineItem.productId
+                const quantity = lineItem.quantity
 
-            lineItems
-                .filter((lineItem: any) => lineItem?.custom?.fields?.selected)
-                .forEach((lineItem: any) => {
-                    const productType = lineItem.custom?.fields?.productType
-                    const sku = lineItem.variant.sku
-                    const productId = lineItem.productId
-                    const variant = lineItem.variant
-                    const quantity = lineItem.quantity
+                const product = await CommercetoolsProductClient.getProductById(productId);
+                if (!product) {
+                    throw {
+                        statusCode: 404,
+                        statusMessage: 'Product not found',
+                    };
+                }
 
-                    validateProductQuantity(
-                        productType,
-                        ctCart,
-                        sku,
-                        productId,
-                        variant,
-                        quantity,
-                    )
-                })
+                const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
+                if (!variant) {
+                    throw {
+                        statusCode: 404,
+                        statusMessage: 'SKU not found in the specified product',
+                    };
+                }
 
+                const inventories = await CommercetoolsInventoryClient.getInventory(sku);
+                if (inventories.length === 0) {
+                    throw {
+                        statusCode: 404,
+                        statusMessage: 'Inventory not found',
+                    };
+                }
+                const inventory = inventories[0];
+                if (inventory.isOutOfStock) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Insufficient stock for the requested quantity',
+                    };
+                }
+
+                validateProductQuantity(
+                    productType,
+                    ctCart,
+                    sku,
+                    productId,
+                    variant,
+                    quantity,
+                )
+            }
             return true
-        } catch (e) {
+        } catch (error: any) {
+            console.error(error)
             throw {
                 statusCode: 400,
-                statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
+                statusMessage: error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
                 errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
             };
         }
