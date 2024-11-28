@@ -25,6 +25,12 @@ deployAs:
         - key: CT_PRICE_CUSTOMER_GROUP_ID_RRP
           description: Commercetools Price Customer Group ID for Recommended Retail Price (RRP)
           required: true
+        - key: CTP_ADD_CUSTOM_COUPON_LINE_ITEM_PREFIX
+          description: Commercetools Coupon Line Item Prefix 
+          required: true
+        - key: CTP_TAX_CATEGORY_ID
+          description: Commercetools Tax Category Id
+          required: true
         - key: T1_URL
           description: Talon.one service base URL (e.g., 'https://api.talon.one')
           required: true
