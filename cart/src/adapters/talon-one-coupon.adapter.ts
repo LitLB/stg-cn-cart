@@ -3,12 +3,14 @@
 import {
     CartAddCustomLineItemAction,
     CartAddLineItemAction,
-    CartSetCustomFieldAction,
+    CartChangeCustomLineItemMoneyAction,
+    CartRemoveCustomLineItemAction,
     CartUpdateAction,
 } from '@commercetools/platform-sdk';
 import { readConfiguration } from '../utils/config.utils';
+import { COUPON_CUSTOM_EFFECT } from '../constants/cart.constant';
 
-export class CtT1Adapter {
+export class TalonOneCouponAdapter {
     private ctpAddCustomCouponLineItemPrefix: string;
     private ctpTaxCategoryId: string;
 
@@ -59,7 +61,7 @@ export class CtT1Adapter {
                     break;
 
                 case 'customEffect':
-                    if (props.name === 'coupon_custom_effect') {
+                    if (props.name === COUPON_CUSTOM_EFFECT) {
                         customEffects.push({
                             couponCode: couponIdToCode[triggeredByCoupon],
                             props,
@@ -83,7 +85,7 @@ export class CtT1Adapter {
         };
     }
 
-    public buildUpdateActions(
+    public buildCouponActions(
         cart: any,
         processedEffects: {
             acceptedCoupons: string[];
@@ -94,7 +96,10 @@ export class CtT1Adapter {
     ): CartUpdateAction[] {
         const updateActions: CartUpdateAction[] = [];
 
-        const { couponIdToCode, couponIdToEffects } = processedEffects;
+        const { acceptedCoupons, rejectedCoupons, couponIdToCode, couponIdToEffects } = processedEffects;
+
+        // Keep track of coupons that have custom line items
+        const couponsWithCustomLineItems = new Set<string>();
 
         // Process accepted coupons and their associated effects
         for (const triggeredByCoupon in couponIdToCode) {
@@ -107,6 +112,7 @@ export class CtT1Adapter {
                 switch (effectType) {
                     case 'setDiscount':
                         this.handleSetDiscountEffect(cart, updateActions, couponCode, props);
+                        couponsWithCustomLineItems.add(couponCode);
                         break;
 
                     case 'addFreeItem':
@@ -119,6 +125,9 @@ export class CtT1Adapter {
                 }
             });
         }
+
+        // Remove custom line items for rejected or missing coupons
+        this.removeInvalidCustomLineItems(cart, updateActions, couponsWithCustomLineItems, acceptedCoupons);
 
         return updateActions;
     }
@@ -134,12 +143,15 @@ export class CtT1Adapter {
             (item: any) => item.slug === slug
         );
 
+        const discountAmount = -Math.round(props.value * 100);
+
         if (!existingCustomLineItem) {
+            // Add new custom line item
             const customLineItem: CartAddCustomLineItemAction = {
                 action: 'addCustomLineItem',
                 name: { en: `${this.ctpAddCustomCouponLineItemPrefix}${couponCode}` },
                 money: {
-                    centAmount: -Math.round(props.value * 100),
+                    centAmount: discountAmount,
                     currencyCode: cart.totalPrice.currencyCode,
                 },
                 quantity: 1,
@@ -151,7 +163,22 @@ export class CtT1Adapter {
             };
             updateActions.push(customLineItem);
         } else {
-            console.warn(`Custom line item with slug "${slug}" already exists.`);
+            // Update existing custom line item if discount amount has changed
+            const existingDiscountAmount = existingCustomLineItem.money.centAmount;
+
+            if (existingDiscountAmount !== discountAmount) {
+                const updateCustomLineItem: CartChangeCustomLineItemMoneyAction = {
+                    action: 'changeCustomLineItemMoney',
+                    customLineItemId: existingCustomLineItem.id,
+                    money: {
+                        centAmount: discountAmount,
+                        currencyCode: cart.totalPrice.currencyCode,
+                    },
+                };
+                updateActions.push(updateCustomLineItem);
+            } else {
+                console.info(`Custom line item with slug "${slug}" already has the correct discount amount.`);
+            }
         }
     }
 
@@ -179,5 +206,33 @@ export class CtT1Adapter {
             },
         };
         updateActions.push(addLineItemAction);
+    }
+
+    private removeInvalidCustomLineItems(
+        cart: any,
+        updateActions: CartUpdateAction[],
+        couponsWithCustomLineItems: Set<string>,
+        acceptedCoupons: string[]
+    ): void {
+        // Get all custom line items that are coupon discounts
+        const couponCustomLineItems = cart.customLineItems.filter((item: any) =>
+            item.slug.startsWith(this.ctpAddCustomCouponLineItemPrefix)
+        );
+
+        // Build a set of accepted coupon slugs
+        const acceptedCouponSlugs = new Set(
+            acceptedCoupons.map(code => `${this.ctpAddCustomCouponLineItemPrefix}${code}`)
+        );
+
+        // For each coupon custom line item, if it's not in the accepted coupons, remove it
+        couponCustomLineItems.forEach((item: any) => {
+            if (!acceptedCouponSlugs.has(item.slug)) {
+                const removeAction: CartRemoveCustomLineItemAction = {
+                    action: 'removeCustomLineItem',
+                    customLineItemId: item.id,
+                };
+                updateActions.push(removeAction);
+            }
+        });
     }
 }

@@ -8,13 +8,13 @@ import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client
 import { ICart } from '../interfaces/cart';
 import { validateCartCheckoutBody, validateCreateAnonymousCartBody } from '../validators/cart.validator';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
-import { CtT1Adapter } from '../adapters/ct-t1.adapter';
+import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 
 export class CartService {
-    private ctT1Adapter: CtT1Adapter;
+    private talonOneCouponAdapter: TalonOneCouponAdapter;
 
     constructor() {
-        this.ctT1Adapter = new CtT1Adapter();
+        this.talonOneCouponAdapter = new TalonOneCouponAdapter();
     }
 
     public checkout = async (accessToken: string, id: string, body: any): Promise<any> => {
@@ -47,9 +47,9 @@ export class CartService {
         const updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, customerSessionPayload);
 
         const talonEffects = updatedCustomerSession.effects;
-        const processedCouponEffects = this.ctT1Adapter.processCouponEffects(talonEffects);
+        const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(talonEffects);
 
-        const talonOneUpdateActions = this.ctT1Adapter.buildUpdateActions(cart, processedCouponEffects);
+        const talonOneUpdateActions = this.talonOneCouponAdapter.buildCouponActions(cart, processedCouponEffects);
         // console.log('talonOneUpdateActions', talonOneUpdateActions);
 
         const updateActions: CartUpdateAction[] = [];
