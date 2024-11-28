@@ -12,7 +12,6 @@ import { ICart } from '../interfaces/cart';
 import { validateCartCheckoutBody, validateCreateAnonymousCartBody } from '../validators/cart.validator';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
-import { CtT1Adapter } from '../adapters/ct-t1.adapter';
 import { validateProductQuantity } from '../validators/cart-item.validator';
 import ApigeeClientAdapter from '../adapters/apigee-client.adapter';
 import TsmOrderModel from '../models/tsm-order.model';
@@ -23,11 +22,9 @@ import { BlacklistService } from './blacklist.service'
 import { safelyParse } from '../utils/response.utils';
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
-    private ctT1Adapter: CtT1Adapter;
     private blacklistService: BlacklistService
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
-        this.ctT1Adapter = new CtT1Adapter();
         this.blacklistService = new BlacklistService()
     }
 
