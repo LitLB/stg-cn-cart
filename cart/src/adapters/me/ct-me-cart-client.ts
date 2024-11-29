@@ -15,7 +15,7 @@ import type {
 	CustomLineItem,
 } from '@commercetools/platform-sdk';
 import type { ICart, IImage, IItem } from '../../interfaces/cart';
-import { CART_EXPIRATION_DAYS } from '../../constants/cart.constant';
+import { CART_EXPIRATION_DAYS, CART_INVENTORY_MODES } from '../../constants/cart.constant';
 import dayjs from 'dayjs';
 import CommercetoolsInventoryClient from '../ct-inventory-client';
 import CommercetoolsCartClient from '../ct-cart-client';
@@ -63,6 +63,7 @@ export default class CommercetoolsMeCartClient {
 		const cartDraft: MyCartDraft = {
 			country: 'TH',
 			currency: 'THB',
+			inventoryMode: CART_INVENTORY_MODES.RESERVE_ON_ORDER,
 			deleteDaysAfterLastModification: CART_EXPIRATION_DAYS,
 			custom: {
 				type: {

@@ -30,6 +30,7 @@ export const readConfiguration = () => {
     ctpWholeCartLimit: process.env.CTP_WHOLE_CART_LIMIT as string,
 
     onlineChannel: process.env.ONLINE_CHANNEL as string,
+    ctpSupplyChannel: process.env.CTP_SUPPLY_CHANNEL_ID as string,
 
     ctPriceCustomerGroupIdRrp: process.env
       .CT_PRICE_CUSTOMER_GROUP_ID_RRP as string,
