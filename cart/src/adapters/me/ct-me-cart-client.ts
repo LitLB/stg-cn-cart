@@ -809,10 +809,8 @@ export default class CommercetoolsMeCartClient {
 		return response.body;
 	}
 
-	async attachPrivilegeToCart(updatedCart: any, customerSessionWithCampaignBenefit: any) {
+	async upsertPrivilegeToCtCart(updatedCart: any, lineItemWithCampaignBenefits: any) {
 		const { id: cartId, version, lineItems } = updatedCart;
-		const { cartItems } = customerSessionWithCampaignBenefit.customerSession
-
 		const myCartUpdateActions: MyCartUpdateAction[] = [];
 		const newDirectDiscounts: any[] = [];
 
@@ -823,16 +821,16 @@ export default class CommercetoolsMeCartClient {
 			const lineItemProductGroup = lineItem.custom.fields.productGroup
 			const lineItemAddOnGroup = lineItem.custom.fields.addOnGroup
 			const lineItemPrivilege = lineItem?.custom?.privilege
-			const cartItem = cartItems.find((item: any) => {
-				return lineItem.variant.sku === item.sku &&
-					lineItemProductType === item.attributes?.product_type &&
-					lineItemProductGroup === item.attributes?.product_group &&
-					(!lineItemAddOnGroup || lineItemAddOnGroup === item.attributes?.add_on_group)
+			const quantity = lineItem.quantity
+			const cartItem = lineItemWithCampaignBenefits.find((item: any) => {
+				return lineItem.variant.sku === item.variant.sku &&
+					lineItemProductType === item.custom.fields.productType &&
+					lineItemProductGroup === item.custom.fields.productGroup &&
+					(!lineItemAddOnGroup || lineItemAddOnGroup === item.custom.fields.addOnGroup)
 			})
 
 			const oldPrivilege = lineItemPrivilege && JSON.parse(lineItemPrivilege);
 			const newPrivilege = cartItem?.privilege
-
 			if (!oldPrivilege && !newPrivilege) {
 				return
 			}
@@ -847,38 +845,70 @@ export default class CommercetoolsMeCartClient {
 			}
 
 			if (newPrivilege) {
+				// ! Main product
+				// ! Add-on
 				const {
-					specialPrice
+					specialPrice,
+					discountBaht,
+					benefitType
 				} = newPrivilege
+
+
+				if (benefitType === 'main_product') {
+					const predicate = [
+						`product.id ="${lineItem.productId}"`,
+						`custom.productType = "${lineItemProductType}"`,
+						`custom.productGroup = ${lineItemProductGroup}`
+					].join(' AND ');
+
+					newDirectDiscounts.push({
+						target: {
+							type: 'lineItems',
+							predicate,
+						},
+						value: {
+							type: 'absolute',
+							money: [
+								{
+									currencyCode: 'THB',
+									centAmount: quantity * discountBaht,
+								},
+							],
+						},
+					})
+				}
+
+				if (benefitType === 'add_on') {
+					const predicate = [
+						`product.id ="${lineItem.productId}"`,
+						`custom.productType = "${lineItemProductType}"`,
+						`custom.productGroup = ${lineItemProductGroup}`,
+						`custom.addOnGroup = "${lineItemAddOnGroup}"`,
+					].join(' AND ');
+
+					newDirectDiscounts.push({
+						target: {
+							type: 'lineItems',
+							predicate,
+						},
+						value: {
+							type: 'fixed',
+							money: [
+								{
+									currencyCode: 'THB',
+									centAmount: specialPrice,
+								},
+							],
+						},
+					})
+				}
+
 				myCartUpdateActions.push({
 					action: 'setLineItemCustomField',
 					lineItemId,
 					name: 'privilege',
 					value: JSON.stringify(newPrivilege),
 				});
-
-				const predicate = [
-					`product.id ="${lineItem.productId}"`,
-					`custom.productType = "${lineItemProductType}"`,
-					`custom.productGroup = ${lineItemProductGroup}`,
-					`custom.addOnGroup = "${lineItemAddOnGroup}"`,
-				].join(' AND ');
-
-				newDirectDiscounts.push({
-					target: {
-						type: 'lineItems',
-						predicate,
-					},
-					value: {
-						type: 'fixed',
-						money: [
-							{
-								currencyCode: 'THB',
-								centAmount: specialPrice,
-							},
-						],
-					},
-				})
 			}
 		});
 
@@ -897,14 +927,13 @@ export default class CommercetoolsMeCartClient {
 		return newCart
 	}
 
-	attachBenefitToICart(iCart: any, customerSessionWithBenefit: any) {
-		const { cartItems } = customerSessionWithBenefit.customerSession
+	attachBenefitToICart(iCart: any, lineItemWithCampaignBenefits: any[]) {
 		const { items } = iCart
 		const newItems = items.map((item: any) => {
 			const sku = item.sku
-			const cartItem = cartItems.find((cartItem: any) => cartItem.sku === sku)
-			const availableBenefits = cartItem?.availableBenefits || []
-			const privilege = cartItem?.privilege
+			const lineItem = lineItemWithCampaignBenefits.find((lineItem: any) => lineItem.variant.sku === sku)
+			const availableBenefits = lineItem?.availableBenefits || []
+			const privilege = lineItem?.privilege
 			return {
 				...item,
 				availableBenefits,
@@ -1048,10 +1077,8 @@ export default class CommercetoolsMeCartClient {
 
 	async updateCartWithBenefit(ctCart: any) {
 		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
-		const customerSessionId = ctCart?.id
-		const customerSessionWithCampaignBenefit = await talonOneEffectConverter.getCustomerSessionWithCampaignBenefit(customerSessionId)
-
-		const updatedCart = await this.attachPrivilegeToCart(ctCart, customerSessionWithCampaignBenefit)
+		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
+		const updatedCart = await this.upsertPrivilegeToCtCart(ctCart, lineItemWithCampaignBenefits)
 
 		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
 		const inventoryKey = skus.map((sku: any) => sku).join(',');
@@ -1067,7 +1094,7 @@ export default class CommercetoolsMeCartClient {
 
 		this.mapInventoryToItems(iCart.items, inventoryMap);
 
-		const iCartWithBenefit = this.attachBenefitToICart(iCart, customerSessionWithCampaignBenefit)
+		const iCartWithBenefit = this.attachBenefitToICart(iCart, lineItemWithCampaignBenefits)
 
 		return iCartWithBenefit;
 	}
@@ -1101,9 +1128,8 @@ export default class CommercetoolsMeCartClient {
 
 		let iCartWithBenefit = iCart;
 		if (cartToProcess?.lineItems?.length) {
-			const customerSessionId = cartToProcess?.id;
-			const customerSession = await this.talonOneEffectConverter.getCustomerSessionWithCampaignBenefit(customerSessionId);
-			iCartWithBenefit = this.attachBenefitToICart(iCart, customerSession);
+			const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart);
+			iCartWithBenefit = this.attachBenefitToICart(iCart, lineItemWithCampaignBenefits);
 		}
 
 		return iCartWithBenefit;

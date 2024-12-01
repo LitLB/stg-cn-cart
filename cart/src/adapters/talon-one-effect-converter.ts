@@ -88,7 +88,7 @@ class TalonOneEffectConverter {
 		return distintEffects;
 	}
 
-	checkPlaceholderContainsValue(value:any) {
+	checkPlaceholderContainsValue(value: any) {
 		return value !== null && value !== undefined && value !== 'null';
 	}
 
@@ -100,7 +100,7 @@ class TalonOneEffectConverter {
 		return filteredEffects;
 	}
 
-	convert(effect: any) {
+	convert(effect: any, cartItems: any[]) {
 		const { cartItemPosition, cartItemSubPosition } = effect.props;
 		const {
 			campaign_code: campaignCode,
@@ -228,8 +228,12 @@ class TalonOneEffectConverter {
 				};
 			}
 		);
+		const selectedCartItem = cartItems.find((cartItem: any) => cartItem.position === cartItemPosition)
 
 		return {
+			sku: selectedCartItem.sku,
+			productGroup: selectedCartItem.attributes.product_group,
+			productType: selectedCartItem.attributes.product_type,
 			cartItemPosition,
 			cartItemSubPosition,
 			campaignCode,
@@ -248,14 +252,31 @@ class TalonOneEffectConverter {
 		};
 	}
 
-	getBenefits(convertedEffect: any) {
+	getBenefit(convertedEffect: any) {
 		const {
+			sku,
+			productGroup,
+			productType,
 			cartItemPosition,
 			cartItemSubPosition,
 			campaignCode,
 			promotionSetCode,
+			promotionSet,
 			productPromotionDetails,
+			promotionProducts,
+			promotionProductGroups,
 		} = convertedEffect;
+
+
+		let minSale = 0
+		let maxReceive = 0
+		let promotionSetProposition = null
+		if (promotionSet) {
+			maxReceive = promotionSet.tsm_promotion_set__max_receive
+			minSale = promotionSet.tsm_promotion_set__min_sale_item
+			promotionSetProposition = promotionSet.tsm_promotion_set__proposition_code
+		}
+
 		const addOnPromotions =
 			productPromotionDetails?.filter((productPromotionDetail: any) => {
 				return [
@@ -308,12 +329,17 @@ class TalonOneEffectConverter {
 				}) || [];
 
 			return {
+				sku,
+				productGroup,
+				productType,
 				cartItemPosition,
 				cartItemSubPosition,
+				benefitType: 'add_on',
 				campaignCode,
 				promotionSetCode,
-				type: 'add_on',
+				promotionSetProposition,
 				addOnType: getAddOnType(promotionType),
+				maxReceive,
 				maxItem,
 				group,
 				addOnProductSkus,
@@ -326,7 +352,128 @@ class TalonOneEffectConverter {
 			};
 		});
 
-		return [...addOnBenefits];
+		const productGroupBenefits: any[] = promotionProductGroups.map((promotionProductGroup: any) => {
+			const { groupCode, products, otherPayments } = promotionProductGroup
+
+			const newProducts = products.map((product: any) => {
+				const {
+					tsm_promotion_set__code: promotionSetCode,
+					tsm_promotion_product_group__type: type,
+					tsm_promotion_product_group__group_code: groupCode,
+					tsm_promotion_product_group__product_code: productCode,
+					tsm_promotion_product_group__min_buy: minBuy,
+					tsm_promotion_product_group__discount_baht: discountBaht,
+					tsm_promotion_product_group__discount_percent: discountPercent,
+					tsm_promotion_product_group__have_otp: haveOtp,
+					tsm_promotion_product_group__force_promotion: forcePromotion
+				} = product
+				return {
+					benefitType: 'main_product',
+					campaignCode,
+					promotionSetCode,
+					promotionSetProposition,
+					type,
+					groupCode,
+					productCode,
+					minBuy,
+					discountBaht: Number(discountBaht),
+					discountPercent: Number(discountPercent),
+					haveOtp,
+					forcePromotion
+				}
+			})
+
+			const newOtherPayments = otherPayments.map((otherPayment: any) => {
+				const {
+					tsm_promotion_set__code: promotionSetCode,
+					tsm_promotion_product_group_other_payment__type: type,
+					tsm_promotion_product_group_other_payment__group_code: groupCode,
+					tsm_promotion_product_group_other_payment__product_code: productCode,
+					tsm_promotion_product_group_other_payment__other_payment_type_code: otherPaymentCode,
+					tsm_promotion_product_group_other_payment__other_payment_amt: otherPaymentAmt,
+				} = otherPayment
+				return {
+					promotionSetCode,
+					type,
+					groupCode,
+					productCode,
+					otherPaymentCode,
+					otherPaymentAmt
+				}
+			})
+
+			return {
+				sku,
+				productGroup,
+				productType,
+				cartItemPosition,
+				cartItemSubPosition,
+				groupCode,
+				products: newProducts,
+				otherPayments: newOtherPayments
+			}
+		})
+
+		const productBenefits: any[] = promotionProducts.map((promotionProduct: any) => {
+			const {
+				tsm_promotion_set__code: promotionSetCode,
+				tsm_promotion_product__type: type,
+				tsm_promotion_product__product_code: productCode,
+				tsm_promotion_product__min_buy: minBuy,
+				tsm_promotion_product__discount_baht: discountBaht,
+				tsm_promotion_product__discount_percent: discountPercent,
+				tsm_promotion_product__have_otp: haveOtp,
+				tsm_promotion_product__force_promotion: forcePromotion,
+				otherPayments
+			} = promotionProduct
+
+			const newOtherPayments = otherPayments.map((otherPayment: any) => {
+				const {
+					tsm_promotion_set__code: promotionSetCode,
+					tsm_promotion_product_group_other_payment__type: type,
+					tsm_promotion_product_group_other_payment__group_code: groupCode,
+					tsm_promotion_product_group_other_payment__product_code: productCode,
+					tsm_promotion_product_group_other_payment__other_payment_type_code: otherPaymentCode,
+					tsm_promotion_product_group_other_payment__other_payment_amt: otherPaymentAmt,
+				} = otherPayment
+				return {
+					promotionSetCode,
+					type,
+					groupCode,
+					productCode,
+					otherPaymentCode,
+					otherPaymentAmt
+				}
+			})
+
+			return {
+				sku,
+				productGroup,
+				productType,
+				cartItemPosition,
+				cartItemSubPosition,
+				benefitType: 'main_product',
+				campaignCode,
+				promotionSetCode,
+				promotionSetProposition,
+				type,
+				productCode,
+				minBuy,
+				discountBaht: Number(discountBaht),
+				discountPercent: Number(discountPercent),
+				haveOtp,
+				forcePromotion,
+				otherPayments: newOtherPayments
+			}
+		})
+
+		// ! For multi promotion set & campaign need to have wrapper this benefit on top level such as "campaignCode", "promotionSetCode", "discountCode"
+		// ! For multiple cart need to handle by using cartItemPosition, cartItemSubPosition
+		return {
+			addOnBenefits,
+			productGroupBenefits,
+			productBenefits
+		}
 	}
 
 	bahtToStang(baht: number) {
@@ -432,29 +579,27 @@ class TalonOneEffectConverter {
 		}
 
 		const customerSessionId = ctCart?.id
-		const customerSession = await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, customerSessionPayload, { dry: true })
+		const { customerSession, effects } = await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, customerSessionPayload, { dry: true })
 
-		const { customerSession: customerSessionInfo, effects } = customerSession;
-		const { cartItems } = customerSessionInfo;
-
+		const { cartItems } = customerSession;
 		const distintEffects = this.groupEffect(effects);
 		const filteredEffects = this.filter(distintEffects);
-		const convertedEffects = filteredEffects.map(this.convert);
+		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
 		const promotionSets = convertedEffects.map((convertedEffect) => convertedEffect.promotionSet)
 
-		const benefits = convertedEffects.map(this.getBenefits).flat();
-		const addOnbenefits = benefits.filter((benefit: any) => benefit.type === 'add_on')
+		const benefits = convertedEffects.map(this.getBenefit);
+		const addOnBenefits = benefits.map((item: any) => item.addOnBenefits).flat();
 
 		const newCartItems = cartItems.map((cartItem: any) => {
 			const { position } = cartItem
 
-			const benefitByPositions = addOnbenefits.filter(
+			const benefitByPositions = addOnBenefits.filter(
 				(wrappedBenefit: any) => wrappedBenefit.cartItemPosition === position
 			)
 
 			return {
 				...cartItem,
-				addOnbenefits: benefitByPositions
+				addOnBenefits: benefitByPositions
 			}
 		})
 
@@ -464,15 +609,15 @@ class TalonOneEffectConverter {
 
 
 		let validateObject = mainProductCartItems.reduce((acc: any, item: any) => {
-			const { addOnbenefits, attributes } = item
+			const { addOnBenefits, attributes } = item
 			const productGroup = attributes.product_group
-			const promotionSetCode = addOnbenefits?.[0]?.promotionSetCode
+			const promotionSetCode = addOnBenefits?.[0]?.promotionSetCode
 
 			const promotionSet = promotionSets.find((promotionSet: any) => promotionSet.tsm_promotion_set__code === promotionSetCode)
 
 			const remainingMaxReceive = promotionSet?.tsm_promotion_set__max_receive || 0
 
-			const remainingMaxItem = addOnbenefits?.reduce((acc: any, addOnbenefit: any) => {
+			const remainingMaxItem = addOnBenefits?.reduce((acc: any, addOnbenefit: any) => {
 				const { maxItem, group } = addOnbenefit
 				acc[group] = maxItem
 				return acc
@@ -541,33 +686,102 @@ class TalonOneEffectConverter {
 		return customerSession
 	}
 
-	attachAddOnbenefits(cartItems: any[], wrappedAddOnbenefits: any[]) {
-		const addOnItemsMapQuantity = cartItems
+	attachMainProductBenefits(lineItems: any[], productGroupBenefits: any[], productBenefits: any[]) {
+		const newLineItems = [...lineItems].map((newLineItem: any) => {
+			const { variant, custom } = newLineItem
+			const sku = variant.sku
+			const productType = custom?.fields?.productType
+			const productGroup = custom?.fields?.productGroup
+
+			if (productType !== 'main_product') {
+				return newLineItem
+			}
+
+			const productGroupBenefit = productGroupBenefits.find((productGroupBenefit: any) => {
+				return productGroupBenefit.sku === sku &&
+					productGroupBenefit.productType === productType &&
+					productGroupBenefit.productGroup === productGroup
+			})
+
+			let privilege = {}
+
+			if (productGroupBenefit) {
+				const {
+					products,
+					// otherPayments
+				} = productGroupBenefit
+
+				const product = products.find((product: any) => product.productCode === sku)
+
+				const {
+					benefitType,
+					campaignCode,
+					promotionSetCode,
+					promotionSetProposition,
+					type,
+					groupCode,
+					// productCode,
+					// minBuy,
+					discountBaht,
+					discountPercent,
+					// haveOtp,
+					forcePromotion
+				} = product
+
+				privilege = {
+					// TODO: add promotion set detail, max received. curren total selected item
+					benefitType,
+					type,
+					campaignCode,
+					promotionSetCode,
+					promotionSetProposition,
+					groupCode,
+					discountBaht: this.bahtToStang(discountBaht),
+					discountPercent,
+					isForcePromotion: forcePromotion
+				}
+			}
+
+			return {
+				...newLineItem,
+				privilege
+			}
+		})
+
+		return newLineItems
+	}
+
+	attachAddOnBenefits(lineItems: any[], addOnbenefits: any[]) {
+		const addOnItemsMapQuantity = lineItems
 			.filter(
-				(cartItem: any) => cartItem?.attributes?.product_type === 'add_on'
+				(lineItem: any) => lineItem?.custom.fields?.productType === 'add_on'
 			)
-			.reduce((acc: any, item: any) => {
+			.reduce((acc: any, lineItem: any) => {
 				// TODO: addOnGroup
-				const { sku, quantity, attributes } = item
-				const { product_group: productGroup } = attributes
+				const { variant, quantity } = lineItem
+				const sku = variant.sku
+				const productGroup = lineItem?.custom.fields?.productGroup
 				acc[productGroup] = acc[productGroup] || {}
 				acc[productGroup][sku] = quantity
 
 				return acc;
 			}, {});
 
-		const cartItemsWithBenefits = cartItems.map((cartItem: any) => {
-			const { position, attributes } = cartItem;
-			const { product_group: productGroup } = attributes
+		const lineItemsWithBenefits = lineItems.map((lineItem: any) => {
+			const { custom, variant } = lineItem;
+			const sku = variant.sku
+			const productType = custom?.fields?.productType
+			const productGroup = custom?.fields?.productGroup
 
-			const benefitByPositions = wrappedAddOnbenefits
+			const availableBenefits = addOnbenefits
 				.filter(
-					(wrappedBenefit: any) => wrappedBenefit.cartItemPosition === position
-				)
+					(wrappedBenefit: any) => {
+						return wrappedBenefit.sku === sku &&
+							wrappedBenefit.productType === productType &&
+							wrappedBenefit.productGroup === productGroup
+					})
 				.map(
 					({
-						cartItemPosition,
-						cartItemSubPosition,
 						addOnProducts,
 						...wrappedBenefit
 					}: any) => {
@@ -603,32 +817,28 @@ class TalonOneEffectConverter {
 				);
 
 			return {
-				...cartItem,
-				availableBenefits: benefitByPositions,
+				...lineItem,
+				availableBenefits,
 			};
 		});
 
-		return cartItemsWithBenefits
-	}
-
-	attachAddOnPrivileges(cartItemWithBenefits: any[]) {
-		let newCartItems = [...cartItemWithBenefits].map((newCartItem: any) => {
-			const { attributes } = newCartItem
-			const productType = attributes?.product_type
+		const newLineItems = [...lineItemsWithBenefits].map((newLineItem: any) => {
+			const { custom } = newLineItem
+			const productType = custom?.fields?.productType
 			if (productType !== 'add_on') {
-				return newCartItem
+				return newLineItem
 			}
-			const productGroup = attributes?.product_group
-			const addOnGroup = attributes?.add_on_group
+			const productGroup = custom?.fields?.productGroup
+			const addOnGroup = custom?.fields?.addOnGroup
 			// ! Add On
 
-			const mainProductCartItemWithBenefits = cartItemWithBenefits.find((cartItemWithBenefit: any) => {
-				const { attributes } = cartItemWithBenefit
-				return attributes?.product_type === 'main_product' &&
-					attributes?.product_group === productGroup
+			const mainProductLineItemWithBenefits = lineItemsWithBenefits.find((lineItemsWithBenefit: any) => {
+				const { custom } = lineItemsWithBenefit
+				return custom?.fields?.productType === 'main_product' &&
+					custom?.fields?.productGroup === productGroup
 			})
 
-			const { availableBenefits } = mainProductCartItemWithBenefits
+			const { availableBenefits } = mainProductLineItemWithBenefits
 
 			const matchedBenefit = availableBenefits.find((availableBenefit: any) => {
 				return availableBenefit.group === addOnGroup
@@ -640,6 +850,8 @@ class TalonOneEffectConverter {
 				const {
 					campaignCode,
 					promotionSetCode,
+					promotionSetProposition,
+					benefitType,
 					type,
 					group,
 					discountBaht,
@@ -648,9 +860,12 @@ class TalonOneEffectConverter {
 					isForcePromotion
 				} = matchedBenefit
 				privilege = {
+					// TODO: add promotion set detail, max received. curren total selected item
+					benefitType,
+					type,
 					campaignCode,
 					promotionSetCode,
-					type,
+					promotionSetProposition,
 					group,
 					discountBaht,
 					discountPercent,
@@ -660,44 +875,74 @@ class TalonOneEffectConverter {
 			}
 
 			return {
-				...newCartItem,
+				...newLineItem,
 				privilege
 			}
 		})
 
-		return newCartItems
+		return newLineItems
 	}
 
-	async getCustomerSessionWithCampaignBenefit(customerSessionId: string) {
-		const customerSession = await talonOneIntegrationAdapter.getCustomerSession(customerSessionId)
-		const { customerSession: customerSessionInfo, effects } = customerSession;
-		const { cartItems } = customerSessionInfo;
+	async getBenefitByCtCart(ctCart: any) {
+		const customerSession = await talonOneIntegrationAdapter.getActiveCustomerSession(ctCart)
+		const { customerSession: { cartItems }, effects } = customerSession;
 
 		const distintEffects = this.groupEffect(effects);
 		const filteredEffects = this.filter(distintEffects);
-		const convertedEffects = filteredEffects.map(this.convert);
+		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
 
-		const benefits = convertedEffects.map(this.getBenefits).flat();
+		const benefits = convertedEffects.map(this.getBenefit)
+		const addOnBenefits = benefits.map((item: any) => item.addOnBenefits).flat();
+		const wrappedAddOnbenefits = await this.wrapCTContext(addOnBenefits);
 
-		const addOnbenefits = benefits.filter((benefit: any) => benefit.type === 'add_on')
-		const wrappedAddOnbenefits = await this.wrapCTContext(addOnbenefits);
+		const productGroupBenefits = benefits.map((item: any) => item.productGroupBenefits).flat()
+		const productBenefits = benefits.map((item: any) => item.productBenefits).flat()
 
-		let newCartItems = this.attachAddOnbenefits(cartItems, wrappedAddOnbenefits)
-		newCartItems = this.attachAddOnPrivileges(newCartItems)
 		return {
-			customerSession: {
-				...customerSessionInfo,
-				cartItems: newCartItems,
-			},
-		};
+			addOnbenefits: wrappedAddOnbenefits,
+			productGroupBenefits,
+			productBenefits
+		}
 	}
 
-	async getCustomerSessionWithConvertedEffectsById(customerSessionId: string) {
-		const customerSession = await talonOneIntegrationAdapter.getCustomerSession(customerSessionId)
-		const { customerSession: customerSessionInfo, effects } = customerSession;
+	async getBenefitByCustomerSession(customerSession: any) {
+		const { customerSession: { cartItems }, effects } = customerSession;
 		const distintEffects = this.groupEffect(effects);
 		const filteredEffects = this.filter(distintEffects);
-		const convertedEffects = filteredEffects.map(this.convert);
+		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
+
+		const benefits = convertedEffects.map(this.getBenefit);
+		const addOnBenefits = benefits.map((item: any) => item.addOnBenefits).flat();
+		const wrappedAddOnbenefits = await this.wrapCTContext(addOnBenefits);
+
+		const productGroupBenefits = benefits.map((item: any) => item.productGroupBenefits).flat()
+		const productBenefits = benefits.map((item: any) => item.productBenefits).flat()
+
+		return {
+			addOnbenefits: wrappedAddOnbenefits,
+			productGroupBenefits,
+			productBenefits
+		}
+	}
+
+	async getCtLineItemWithCampaignBenefits(ctCart: any) {
+		const { addOnbenefits, productGroupBenefits, productBenefits } = await this.getBenefitByCtCart(ctCart)
+
+		let { lineItems } = ctCart
+		lineItems = this.attachMainProductBenefits(lineItems, productGroupBenefits, productBenefits)
+		lineItems = this.attachAddOnBenefits(lineItems, addOnbenefits)
+
+
+		return lineItems;
+	}
+
+	async getCustomerSessionWithConvertedEffectsById(ctCart: any) {
+		const customerSession = await talonOneIntegrationAdapter.getActiveCustomerSession(ctCart)
+		const { customerSession: customerSessionInfo, effects } = customerSession;
+		const { cartItems } = customerSessionInfo
+		const distintEffects = this.groupEffect(effects);
+		const filteredEffects = this.filter(distintEffects);
+		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
 		return {
 			customerSession: {
 				...customerSessionInfo,

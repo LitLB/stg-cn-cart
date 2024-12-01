@@ -12,8 +12,16 @@ class TalonOneIntegrationAdapter {
 		this.integrationApi = new talonOne.IntegrationApi();
 	}
 
+
+	// ! Used to retrieve only closed customer sessions because the response is a snapshot effect.
 	getCustomerSession(customerSessionId: string) {
 		return this.integrationApi.getCustomerSession(customerSessionId);
+	}
+
+	async getActiveCustomerSession(ctCart: any) {
+		const customerSessionId = ctCart?.id
+		const customerSessionPayload = this.buildCustomerSessionPayload({ ctCartData: ctCart })
+		return talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, customerSessionPayload);
 	}
 
 	updateCustomerSession(
@@ -58,7 +66,7 @@ class TalonOneIntegrationAdapter {
 				mergedCartItems.push({
 					sku: change.sku,
 					quantity: change.quantity,
-					price: 0,
+					price: change.price || 0,
 					attributes: {
 						product_type: change.productType,
 						product_group: change.productGroup,

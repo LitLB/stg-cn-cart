@@ -16,9 +16,7 @@ export class CartItemController {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
-            console.log(id)
             const updatedCart = await this.cartItemService.addItem(accessToken, id, req.body);
-            console.log(updatedCart)
             const response: ResponseType = {
                 statusCode: 200,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
@@ -27,6 +25,7 @@ export class CartItemController {
 
             return res.status(200).json(response);
         } catch (error: any) {
+            console.log(error)
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null

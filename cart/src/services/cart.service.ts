@@ -1,5 +1,5 @@
 // cart/src/services/cart.service.ts
-
+import _ from 'lodash'
 import { CartUpdateAction } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
@@ -20,11 +20,14 @@ import { readConfiguration } from '../utils/config.utils';
 import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
 import { BlacklistService } from './blacklist.service'
 import { safelyParse } from '../utils/response.utils';
+
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
     private blacklistService: BlacklistService
+    private talonOneEffectConverter: typeof talonOneEffectConverter
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
+        this.talonOneEffectConverter = talonOneEffectConverter
         this.blacklistService = new BlacklistService()
     }
 
@@ -281,7 +284,6 @@ export class CartService {
                 deliveryContactName: `${shippingAddress.firstName} ${shippingAddress.lastName}` /* Mandarory */
             }
             const response = await this.blacklistService.checkBlacklist(body);
-
             if (!response?.status) {
                 throw new Error('Blacklist validation failed');
             }
@@ -295,59 +297,83 @@ export class CartService {
     }
 
 
-    private validateMandatoryProduct() {
-        return true
+    private validateMandatoryProduct(selectedLineItems: any[], selectedlineItemWithCampaignBenefits: any[]) {
+        const mainProductLineItems = selectedLineItems.filter((selectedLineItem: any) => selectedLineItem?.custom?.fields?.productType === 'main_product')
+        for (const mainProductLineItem of mainProductLineItems) {
+
+            console.log('mainProductLineItem', mainProductLineItem)
+            const sku = mainProductLineItem.variant.sku;
+            const productType = mainProductLineItem?.custom?.fields?.productType;
+            const productGroup = mainProductLineItem?.custom?.fields?.productGroup;
+
+            let privilege = mainProductLineItem?.custom?.fields?.privilege;
+            privilege = privilege ? JSON.parse(privilege) : null;
+
+            const selectedlineItemWithCampaignBenefit = selectedlineItemWithCampaignBenefits.find((item: any) => {
+                return item.variant.sku === sku &&
+                    item.custom.fields.productType === productType &&
+                    item.custom.fields.productGroup === productGroup
+            })
+
+            const { privilege: newPrivilege } = selectedlineItemWithCampaignBenefit
+
+            if (!_.isEqual(privilege, newPrivilege)) {
+                throw new Error('Invalid main product');
+            }
+        }
+
+
+
+        return true;
     }
 
-    private validateSecondaryProduct(selectedLineItems: any[], cartItems: any[], convertedEffects: any) {
-        const mapEffectToLineItem = selectedLineItems
-            .filter((selectedLineItem: any) => selectedLineItem.custom?.fields?.productType === 'main_product')
-            .reduce((acc: any, selectedLineItem: any) => {
-                const productType = selectedLineItem?.custom?.fields?.productType
-                const productGroup = selectedLineItem?.custom?.fields?.productGroup
-
-                const selectedCartItem = cartItems?.find((cartItem: any) => cartItem?.attributes?.product_type === productType && cartItem?.attributes?.product_group === productGroup);
-
-                if (!acc?.[selectedLineItem.id]) {
-                    acc[selectedLineItem.id] = [];
-                }
-
-                const effects = convertedEffects.filter((convertedEffect: any) => convertedEffect.cartItemPosition === selectedCartItem.position)
-
-                acc[selectedLineItem.id] = [
-                    ...acc[selectedLineItem.id],
-                    ...effects,
-                ];
-
-                return acc;
-            }, {});
-
+    private validateSecondaryProduct(selectedLineItems: any[], selectedlineItemWithCampaignBenefits: any[]) {
         const mainProductLineItems = selectedLineItems.filter((selectedLineItem: any) => selectedLineItem?.custom?.fields?.productType === 'main_product')
 
         const addOnLineItems = selectedLineItems.filter((selectedLineItem: any) => selectedLineItem?.custom?.fields?.productType === 'add_on')
 
-        let validateObject = mainProductLineItems.reduce((acc: any, lineItem: any) => {
-            const lineItemId = lineItem.id
-            const LineItemEffects = mapEffectToLineItem?.[lineItemId] || []
-            const productGroup = lineItem?.custom?.fields?.productGroup;
+        let validateObject = mainProductLineItems.reduce((acc: any, mainProductLineItem: any) => {
+            const sku = mainProductLineItem.variant.sku
+            const productType = mainProductLineItem?.custom?.fields?.productType
+            const productGroup = mainProductLineItem?.custom?.fields?.productGroup
 
-            const LineItemEffect = LineItemEffects.find(() => true);
-            const promotionSet = LineItemEffect?.promotionSet
-            const remainingMaxReceive = promotionSet?.tsm_promotion_set__max_receive || 0;
+            const selectedlineItemWithCampaignBenefit = selectedlineItemWithCampaignBenefits.find((item: any) => {
+                return item.variant.sku === sku &&
+                    item.custom.fields.productType === productType &&
+                    item.custom.fields.productGroup === productGroup
+            })
 
-            const promotionDetails = LineItemEffect?.productPromotionDetails || []
+            const { availableBenefits } = selectedlineItemWithCampaignBenefit
+            const groupMap = availableBenefits?.reduce(((acc: any, availableBenefit: any) => {
+                const { promotionSetCode, maxReceive, group, maxItem } = availableBenefit
+                if (!acc?.[promotionSetCode]) {
+                    acc[promotionSetCode] = {
+                        remainingMaxReceive: maxReceive,
+                        remainingMaxItem: {}
+                    }
+                }
 
-            const remainingMaxItem = promotionDetails?.reduce((acc: any, promotionDetail: any) => {
-                const group = promotionDetail.detail.tsm_promotion_detail__group_code
-                const maxItem = promotionDetail.detail.tsm_promotion_detail__max_items
-                acc[group] = maxItem;
+                acc[promotionSetCode].remainingMaxItem = {
+                    ...acc[promotionSetCode].remainingMaxItem,
+                    [group]: maxItem
+                }
+
                 return acc
-            }, {})
+            }), {})
 
-            acc[productGroup] = {
-                remainingMaxReceive,
-                remainingMaxItem,
-            }
+            //! {
+            //!     1: {
+            //!         xx1234: {
+            //!             remainingMaxReceive: 5,
+            //!             remainingMaxItem: {
+            //!                 addon1: 2,
+            //!                 addon2: 2
+            //!             }
+            //!         }
+            //!     }
+            //! }
+            acc[productGroup] = groupMap
+
             return acc
         }, {});
 
@@ -362,8 +388,27 @@ export class CartService {
                 throw new Error('Invalid add-on product');
             }
 
-            const { remainingMaxReceive, remainingMaxItem } = acc[productGroup]
-            acc[productGroup] = {
+            const groupMap = acc[productGroup]
+
+            if (!groupMap) {
+                throw new Error('Invalid add-on product');
+            }
+
+            const { promotionSetCode } = privilege
+            const limit = groupMap[promotionSetCode]
+
+            if (!limit) {
+                throw new Error('Invalid add-on product');
+            }
+
+            const { remainingMaxReceive, remainingMaxItem } = limit
+
+            if (!remainingMaxItem[addOnGroup]) {
+                throw new Error('Invalid add-on product');
+
+            }
+
+            acc[productGroup][promotionSetCode] = {
                 remainingMaxReceive: remainingMaxReceive - quantity,
                 remainingMaxItem: {
                     ...remainingMaxItem,
@@ -374,16 +419,36 @@ export class CartService {
             return acc;
         }, validateObject);
 
-        Object.entries(validateObject as Record<string, any>).forEach(([productGroup, limit]) => {
-            const { remainingMaxReceive, remainingMaxItem } = limit
-            if (remainingMaxReceive < 0) {
-                throw new Error(`Total add-on reach limit for product group "${productGroup}"`);
-            }
+        //! {
+        //!     1: {
+        //!         xx1234: {
+        //!             remainingMaxReceive: 5,
+        //!             remainingMaxItem: {
+        //!                 addon1: 2,
+        //!                 addon2: 2
+        //!             }
+        //!         }
+        //!     }
+        //! }
+        // Loop through the product groups
+        Object.entries(validateObject as Record<string, any>).forEach(([productGroup, groupLimits]) => {
+            // Loop through the next level (e.g., xx1234)
+            Object.entries(groupLimits as Record<string, any>).forEach(([levelKey, limits]) => {
+                const { remainingMaxReceive, remainingMaxItem } = limits;
 
-            Object.entries(remainingMaxItem as Record<string, number>).forEach(([addOnGroup, maxItem]) => {
-                if (maxItem < 0) {
-                    throw new Error(`Total add-on group "${addOnGroup}" reach limit for product group "${productGroup}"`);
+                // Check the remainingMaxReceive for this level
+                if (remainingMaxReceive < 0) {
+                    throw new Error(`Total add-on reach limit for product group "${productGroup}"`);
                 }
+
+                // Check remainingMaxItem for this level
+                Object.entries(remainingMaxItem as Record<string, any>).forEach(([addOnGroup, maxItem]) => {
+                    if (maxItem < 0) {
+                        throw new Error(
+                            `Total add-on group "${addOnGroup}" reach limit for level "${levelKey}" in product group "${productGroup}"`
+                        );
+                    }
+                });
             });
         });
 
@@ -392,23 +457,22 @@ export class CartService {
 
     private async validateCampaign(ctCart: any) {
         try {
-            const { id: cartId, lineItems } = ctCart;
-            // TODO: Change to PUT with dry = true
-            const customerSessionWithConvertedEffects: any = await talonOneEffectConverter.getCustomerSessionWithConvertedEffectsById(cartId);
+            const { lineItems } = ctCart;
+            const lineItemWithCampaignBenefits = await talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
+            // const selectedlineItemWithCampaignBenefits = lineItemWithCampaignBenefits.filter((lineItemWithCampaignBenefit: any) => lineItemWithCampaignBenefit.custom?.fields?.selected)
+            // const selectedLineItems = lineItems.filter((lineItem: any) => lineItem.custom?.fields?.selected)
+            const selectedlineItemWithCampaignBenefits = lineItemWithCampaignBenefits
+            const selectedLineItems = lineItems
 
-            const { effects, cartItems } = customerSessionWithConvertedEffects.customerSession;
-
-            const selectedLineItems = lineItems.filter((lineItem: any) => lineItem.custom?.fields?.selected)
-
-            this.validateMandatoryProduct()
-            this.validateSecondaryProduct(selectedLineItems, cartItems, effects);
+            this.validateMandatoryProduct(selectedLineItems, selectedlineItemWithCampaignBenefits)
+            this.validateSecondaryProduct(selectedLineItems, selectedlineItemWithCampaignBenefits);
 
             return true;
         } catch (error: any) {
             console.error('error-cartService-validateCampaign', error)
             throw {
                 statusCode: 400,
-                statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
+                statusMessage: error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
                 errorCode: 'CAMPAIGN_VALIDATE_FAILED'
             };
         }
