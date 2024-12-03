@@ -20,6 +20,7 @@ import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
 import { BlacklistService } from './blacklist.service'
 import { safelyParse } from '../utils/response.utils';
 import { commercetoolsOrderClient } from '../adapters/ct-order-client';
+import { logger } from '../utils/logger.utils';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -264,6 +265,8 @@ export class CartService {
             const config = readConfiguration()
             const tsmOrder = new TsmOrderModel({ ctCart: cart, config })
             const tsmOrderPayload = tsmOrder.toPayload()
+
+            logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
             const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
 
             const { code } = response || {}
@@ -331,8 +334,6 @@ export class CartService {
     private validateMandatoryProduct(selectedLineItems: any[], selectedlineItemWithCampaignBenefits: any[]) {
         const mainProductLineItems = selectedLineItems.filter((selectedLineItem: any) => selectedLineItem?.custom?.fields?.productType === 'main_product')
         for (const mainProductLineItem of mainProductLineItems) {
-
-            console.log('mainProductLineItem', mainProductLineItem)
             const sku = mainProductLineItem.variant.sku;
             const productType = mainProductLineItem?.custom?.fields?.productType;
             const productGroup = mainProductLineItem?.custom?.fields?.productGroup;
