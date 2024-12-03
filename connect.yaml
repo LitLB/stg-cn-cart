@@ -19,6 +19,9 @@ deployAs:
         - key: ONLINE_CHANNEL
           description: Commercetools inventory channel identifier
           required: true
+        - key: CTP_SUPPLY_CHANNEL_ID
+          description: Commercetools inventory channel id identifier
+          required: true
         - key: CTP_WHOLE_CART_LIMIT
           description: Commercetools whole cart item limit
           required: true

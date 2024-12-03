@@ -1,10 +1,9 @@
 // cart/src/services/cart.service.ts
 import _ from 'lodash'
-import { CartUpdateAction } from '@commercetools/platform-sdk';
+import { Cart, CartUpdateAction } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
-import CommercetoolsMeOrderClient from '../adapters/me/ct-me-order-client'; // ! For testing only
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter'
@@ -20,11 +19,13 @@ import { readConfiguration } from '../utils/config.utils';
 import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
 import { BlacklistService } from './blacklist.service'
 import { safelyParse } from '../utils/response.utils';
+import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
     private blacklistService: BlacklistService
     private talonOneEffectConverter: typeof talonOneEffectConverter
+
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
         this.talonOneEffectConverter = talonOneEffectConverter
@@ -44,7 +45,6 @@ export class CartService {
         const { shippingAddress, billingAddress, shippingMethodId, couponCodes = [], payment } = value;
 
         const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-        // const commercetoolsMeOrderClient = new CommercetoolsMeOrderClient(accessToken); // ! For testing only
 
         const cart = await commercetoolsMeCartClient.getCartById(id);
         if (!cart) {
@@ -114,8 +114,6 @@ export class CartService {
             updateActions,
         );
 
-        // const order = await commercetoolsMeOrderClient.createOrderFromCart(updatedCart); // ! For testing only
-
         const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
 
         return { ...iCart, rejectedCoupons: processedCouponEffects.rejectedCoupons };
@@ -165,8 +163,42 @@ export class CartService {
         return iCartWithBenefit;
     };
 
-    public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
+    public updateStockAllocation = async (ctCart: Cart): Promise<any> => {
+        // Fetch and validate inventory
+        for (const lineItem of ctCart.lineItems) {
+            const supplyChannel = lineItem.supplyChannel;
+            console.log('supplyChannel', supplyChannel);
+            if (!supplyChannel || !supplyChannel.id) {
+                throw new Error('Supply channel is missing on line item.');
+            }
 
+            const inventoryId = lineItem.variant.availability?.channels?.[supplyChannel.id].id;
+            console.log('inventoryId', inventoryId);
+            if (!inventoryId) {
+                throw new Error("InventoryId not found.");
+            }
+
+            // Fetch the inventory entry associated with the supply channel
+            const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(
+                inventoryId
+            );
+            console.log('inventoryEntry', inventoryEntry);
+            if (!inventoryEntry) {
+                throw new Error(`Inventory entry not found for supply channel ID: ${supplyChannel.id}`);
+            }
+
+            const orderedQuantity = lineItem.quantity;
+            console.log('orderedQuantity', orderedQuantity);
+
+            await CommercetoolsInventoryClient.updateInventoryAllocation(
+                inventoryEntry.id,
+                orderedQuantity
+            );
+        }
+    }
+
+    public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
+        
         const defaultValidateList = [
             'BLACKLIST',
             'CAMPAIGN',
@@ -199,11 +231,10 @@ export class CartService {
         //! ELSE
         //! THEN throw error
 
-        // TODO: STEP #6 - Create Order On Commercetools
-        const commercetoolsMeOrderClient = new CommercetoolsMeOrderClient(accessToken)
-        const order = await commercetoolsMeOrderClient.createOrderFromCart(ctCart); // ! For testing only
+        await this.updateStockAllocation(ctCart);
+        const order = await commercetoolsOrderClient.createOrderFromCart(ctCart);
 
-        return order
+        return order;
     };
 
     public getCtCartById = async (accessToken: string, id: string): Promise<any> => {
@@ -538,3 +569,56 @@ export class CartService {
         }
     }
 }
+
+// createOrder.rror BadRequest: Some line items are out of stock at the time of placing the order: iphone-21-pro-max-black.
+//     at createError (C:\Users\devvi\OneDrive\Desktop\opt\ascend-group\cn-cart\cart\node_modules\@commercetools\sdk-middleware-http\dist\sdk-middleware-http.cjs.js:241:29)
+//     at C:\Users\devvi\OneDrive\Desktop\opt\ascend-group\cn-cart\cart\node_modules\@commercetools\sdk-middleware-http\dist\sdk-middleware-http.cjs.js:438:25
+//     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+//   code: 400,
+//   statusCode: 400,
+//   status: 400,
+//   originalRequest: {
+//     baseUri: 'https://api.europe-west1.gcp.commercetools.com',
+//     method: 'POST',
+//     uriTemplate: '/{projectKey}/orders',
+//     pathVariables: { projectKey: 'truecorp_omni_platform_dev' },
+//     headers: {
+//       'Content-Type': 'application/json',
+//       Authorization: 'Bearer ********'
+//     },
+//     queryParams: undefined,
+//     body: {
+//       version: 15,
+//       cart: [Object],
+//       orderState: 'Open',
+//       shipmentState: 'Pending',
+//       paymentState: 'Pending',
+//       state: [Object]
+//     },
+//     uri: '/truecorp_omni_platform_dev/orders'
+//   },
+//   retryCount: 0,
+//   headers: {
+//     'access-control-allow-headers': 'Accept, Authorization, Content-Type, Origin, User-Agent, X-Correlation-ID',
+//     'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
+//     'access-control-allow-origin': '*',
+//     'access-control-expose-headers': 'X-Correlation-ID',
+//     'access-control-max-age': '299',
+//     'alt-svc': 'h3=":443"; ma=2592000,h3-29=":443"; ma=2592000',
+//     'content-encoding': 'gzip',
+//     'content-type': 'application/json; charset=utf-8',
+//     date: 'Fri, 29 Nov 2024 04:35:24 GMT',
+//     server: 'istio-envoy',
+//     'server-timing': 'projects;dur=17',
+//     'transfer-encoding': 'chunked',
+//     via: '1.1 google',
+//     'x-correlation-id': 'projects-7439e2fd-7887-4a22-a284-a8579a479d33',
+//     'x-envoy-upstream-service-time': '19',
+//     'x-http-status-caused-by-external-upstream': 'false'
+//   },
+//   body: {
+//     statusCode: 400,
+//     message: 'Some line items are out of stock at the time of placing the order: iphone-21-pro-max-black.',
+//     errors: [ [Object] ]
+//   }
+// }
