@@ -50,7 +50,7 @@ export default class TsmOrderModel {
             const {
                 campaignCode = '',
                 promotionSetCode = '',
-                promotionSetProposition, //999,
+                promotionSetProposition = 999, //999,
             } = privilege || {};
             return {
                 id: orderId,
