@@ -232,7 +232,7 @@ export class CartService {
         //! ELSE
         //! THEN throw error
 
-        await this.updateStockAllocation(ctCart);
+        // await this.updateStockAllocation(ctCart);
         const order = await commercetoolsOrderClient.createOrderFromCart(ctCart);
 
         return order;
@@ -570,56 +570,3 @@ export class CartService {
         }
     }
 }
-
-// createOrder.rror BadRequest: Some line items are out of stock at the time of placing the order: iphone-21-pro-max-black.
-//     at createError (C:\Users\devvi\OneDrive\Desktop\opt\ascend-group\cn-cart\cart\node_modules\@commercetools\sdk-middleware-http\dist\sdk-middleware-http.cjs.js:241:29)
-//     at C:\Users\devvi\OneDrive\Desktop\opt\ascend-group\cn-cart\cart\node_modules\@commercetools\sdk-middleware-http\dist\sdk-middleware-http.cjs.js:438:25
-//     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
-//   code: 400,
-//   statusCode: 400,
-//   status: 400,
-//   originalRequest: {
-//     baseUri: 'https://api.europe-west1.gcp.commercetools.com',
-//     method: 'POST',
-//     uriTemplate: '/{projectKey}/orders',
-//     pathVariables: { projectKey: 'truecorp_omni_platform_dev' },
-//     headers: {
-//       'Content-Type': 'application/json',
-//       Authorization: 'Bearer ********'
-//     },
-//     queryParams: undefined,
-//     body: {
-//       version: 15,
-//       cart: [Object],
-//       orderState: 'Open',
-//       shipmentState: 'Pending',
-//       paymentState: 'Pending',
-//       state: [Object]
-//     },
-//     uri: '/truecorp_omni_platform_dev/orders'
-//   },
-//   retryCount: 0,
-//   headers: {
-//     'access-control-allow-headers': 'Accept, Authorization, Content-Type, Origin, User-Agent, X-Correlation-ID',
-//     'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
-//     'access-control-allow-origin': '*',
-//     'access-control-expose-headers': 'X-Correlation-ID',
-//     'access-control-max-age': '299',
-//     'alt-svc': 'h3=":443"; ma=2592000,h3-29=":443"; ma=2592000',
-//     'content-encoding': 'gzip',
-//     'content-type': 'application/json; charset=utf-8',
-//     date: 'Fri, 29 Nov 2024 04:35:24 GMT',
-//     server: 'istio-envoy',
-//     'server-timing': 'projects;dur=17',
-//     'transfer-encoding': 'chunked',
-//     via: '1.1 google',
-//     'x-correlation-id': 'projects-7439e2fd-7887-4a22-a284-a8579a479d33',
-//     'x-envoy-upstream-service-time': '19',
-//     'x-http-status-caused-by-external-upstream': 'false'
-//   },
-//   body: {
-//     statusCode: 400,
-//     message: 'Some line items are out of stock at the time of placing the order: iphone-21-pro-max-black.',
-//     errors: [ [Object] ]
-//   }
-// }

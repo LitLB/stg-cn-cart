@@ -61,6 +61,7 @@ class CommercetoolsOrderClient {
 
 			return response.body;
 		} catch (error: any) {
+			console.log('createOrderFromCart.error', error);
 			if (
 				error.code === 400 &&
 				error.body &&
@@ -71,10 +72,15 @@ class CommercetoolsOrderClient {
 			) {
 				throw {
 					statusCode: 400,
+					errorCode: "CREATE_ORDER_ON_CT_FAILED",
 					statusMessage: `Cannot place order: Some line items are out of stock.`,
 				};
 			} else {
-				throw error;
+				throw {
+					statusCode: 500,
+					errorCode: "CREATE_ORDER_ON_CT_FAILED",
+					statusMessage: `Cannot create an order on Commercetools. Internal server error.`,
+				};
 			}
 		}
 	}
