@@ -31,6 +31,35 @@ export class CartService {
         this.blacklistService = new BlacklistService()
     }
 
+    public applyCoupons = async (accessToken: string, id: string, body: any): Promise<any> => {
+        console.log('CartService.applyCoupons');
+        const { couponCodes = [] } = body;
+        console.log('couponCodes', couponCodes);
+        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+        const cart = await commercetoolsMeCartClient.getCartById(id);
+        if (!cart) {
+            throw {
+                statusCode: 404,
+                statusMessage: 'Cart not found or has expired',
+            };
+        }
+        const profileId = cart?.id
+        const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({ profileId, ctCartData: cart, couponCodes });
+        const updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, customerSessionPayload);
+        const talonEffects = updatedCustomerSession.effects;
+        const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(talonEffects);
+        const talonOneUpdateActions = this.talonOneCouponAdapter.buildCouponActions(cart, processedCouponEffects);
+        const updateActions: CartUpdateAction[] = [];
+        updateActions.push(...talonOneUpdateActions);
+        const updatedCart = await CommercetoolsCartClient.updateCart(
+            cart.id,
+            cart.version,
+            updateActions,
+        );
+        const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
+        return { ...iCart, rejectedCoupons: processedCouponEffects.rejectedCoupons };
+    }
+
     public checkout = async (accessToken: string, id: string, body: any): Promise<any> => {
         const { error, value } = validateCartCheckoutBody(body);
         if (error) {

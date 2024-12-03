@@ -12,6 +12,50 @@ export class CartController {
         this.cartService = new CartService();
     }
 
+    public queryCoupons = async (req: Request, res: Response): Promise<Response> => {
+        try {
+            const response: ResponseType = {
+                statusCode: 200,
+                statusMessage: RESPONSE_MESSAGES.SUCCESS,
+                data: ['a'],
+            };
+
+            return res.status(200).json(response);
+        } catch (error: any) {
+            const statusCode = error.statusCode || 500;
+            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
+            const data = error.data || null
+
+            return res.status(statusCode).json({
+                statusCode,
+                statusMessage,
+                data,
+            });
+        }
+    };
+
+    public applyCoupons = async (req: Request, res: Response): Promise<Response> => {
+        try {
+            console.log('CartController.applyCoupons');
+            const { id } = req.params;
+            const accessToken = req.accessToken as string;
+
+            const cart = await this.cartService.applyCoupons(accessToken, id, req.body);
+
+            return res.status(200).json(cart);
+        } catch (error: any) {
+            const statusCode = error.statusCode || 500;
+            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
+            const data = error.data || null
+
+            return res.status(statusCode).json({
+                statusCode,
+                statusMessage,
+                data,
+            });
+        }
+    };
+
     public createAnonymousCart = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
             const accessToken = req.accessToken as string;

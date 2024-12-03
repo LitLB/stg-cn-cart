@@ -12,7 +12,6 @@ class TalonOneIntegrationAdapter {
 		this.integrationApi = new talonOne.IntegrationApi();
 	}
 
-
 	// ! Used to retrieve only closed customer sessions because the response is a snapshot effect.
 	getCustomerSession(customerSessionId: string) {
 		return this.integrationApi.getCustomerSession(customerSessionId);
