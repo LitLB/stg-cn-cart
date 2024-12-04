@@ -18,6 +18,19 @@ class TalonOneIntegrationAdapter {
 		return this.integrationApi.getCustomerSession(customerSessionId);
 	}
 
+
+	// Retrieves the customer inventory based on the specified options.
+	getCustomerInventoryByOptions(integrationId = 'guest', opts: {
+		profile?: boolean | undefined;
+		referrals?: boolean | undefined;
+		coupons?: boolean | undefined;
+		loyalty?: boolean | undefined;
+		giveaways?: boolean | undefined;
+		achievements?: boolean | undefined;
+	}) {
+		return this.integrationApi.getCustomerInventory(integrationId, opts);
+	}
+
 	async getActiveCustomerSession(ctCart: any) {
 		const customerSessionId = ctCart?.id
 		const customerSessionPayload = this.buildCustomerSessionPayload({ ctCartData: ctCart })
