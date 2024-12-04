@@ -59,7 +59,7 @@ export default class TsmOrderModel {
                     code: campaignCode,
                     name: '',
                 },
-                proposition: promotionSetProposition,
+                proposition: '' + promotionSetProposition,
                 promotionSet: promotionSetCode,
                 promotionType: this.getPromotionType(productType),
                 group: '' + productGroup,
