@@ -212,37 +212,37 @@ export class CartService {
 
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
 
-        // const defaultValidateList = [
-        //     'BLACKLIST',
-        //     'CAMPAIGN',
-        // ]
+        const defaultValidateList = [
+            'BLACKLIST',
+            'CAMPAIGN',
+        ]
 
-        // let validateList = defaultValidateList
-        // if (partailValidateList.length) {
-        //     validateList = partailValidateList
-        // }
+        let validateList = defaultValidateList
+        if (partailValidateList.length) {
+            validateList = partailValidateList
+        }
 
         const { cartId } = payload
         const ctCart = await this.getCtCartById(accessToken, cartId)
-        // // TODO: STEP #2 - Validate Blacklist
-        // if (validateList.includes('BLACKLIST')) {
-        //     await this.validateBlacklist(ctCart)
-        // }
+        // TODO: STEP #2 - Validate Blacklist
+        if (validateList.includes('BLACKLIST')) {
+            await this.validateBlacklist(ctCart)
+        }
 
-        // // TODO: STEP #3 - Validate Campaign & Promotion Set
-        // if (validateList.includes('CAMPAIGN')) {
-        //     await this.validateCampaign(ctCart)
-        // }
+        // TODO: STEP #3 - Validate Campaign & Promotion Set
+        if (validateList.includes('CAMPAIGN')) {
+            await this.validateCampaign(ctCart)
+        }
 
-        // // TODO: STEP #4 - Validate Available Quantity (Commercetools)
-        // await this.validateAvailableQuantity(ctCart)
+        // TODO: STEP #4 - Validate Available Quantity (Commercetools)
+        await this.validateAvailableQuantity(ctCart)
 
-        // // TODO: STEP #5 - Create Order On TSM Sale
-        // await this.createTSMSaleOrder(ctCart)
-        // //! IF available > x
-        // //! THEN continue
-        // //! ELSE
-        // //! THEN throw error
+        // TODO: STEP #5 - Create Order On TSM Sale
+        await this.createTSMSaleOrder(ctCart)
+        //! IF available > x
+        //! THEN continue
+        //! ELSE
+        //! THEN throw error
 
         // TODO: STEP #6 - Create Order On Commercetools
         const commercetoolsMeOrderClient = new CommercetoolsMeOrderClient(accessToken)
