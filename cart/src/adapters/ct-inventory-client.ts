@@ -1,6 +1,6 @@
 // server/adapters/ct-inventory-client.ts
 
-import type { ApiRoot } from '@commercetools/platform-sdk';
+import type { ApiRoot, InventoryEntry, InventoryEntryUpdateAction } from '@commercetools/platform-sdk';
 import { readConfiguration } from '../utils/config.utils';
 import CommercetoolsBaseClient from './ct-base-client'
 
@@ -21,6 +21,102 @@ class CommercetoolsInventoryClient {
 			CommercetoolsInventoryClient.instance = new CommercetoolsInventoryClient();
 		}
 		return CommercetoolsInventoryClient.instance;
+	}
+
+	/**
+	 * Fetches inventory by ID.
+	 * @param inventoryId - The ID of the inventory entry.
+	 * @returns {Promise<InventoryEntry | null>} - Returns the inventory entry or null if not found.
+	 */
+	public async getInventoryById(inventoryId: string): Promise<InventoryEntry | null> {
+		try {
+			const response = await this.apiRoot
+				.withProjectKey({ projectKey: this.projectKey })
+				.inventory()
+				.withId({ ID: inventoryId })
+				.get()
+				.execute();
+
+			return response.body;
+		} catch (error: any) {
+			console.error('Error fetching inventory by ID:', error);
+			return null;
+		}
+	}
+
+	// public async updateInventoryAllocation(
+	// 	inventoryId: string,
+	// 	version: number,
+	// 	newTotalPurchaseAllocation: number
+	// ): Promise<InventoryEntry> {
+	// 	const updateActions: InventoryEntryUpdateAction[] = [
+	// 		{
+	// 			action: 'setCustomField',
+	// 			name: 'totalPurchaseStockAllocationDeviceOnly',
+	// 			value: newTotalPurchaseAllocation,
+	// 		},
+	// 	];
+
+	// 	try {
+	// 		const response = await this.apiRoot
+	// 			.withProjectKey({ projectKey: this.projectKey })
+	// 			.inventory()
+	// 			.withId({ ID: inventoryId })
+	// 			.post({ body: { version, actions: updateActions } })
+	// 			.execute();
+
+	// 		return response.body as InventoryEntry;
+	// 	} catch (error: any) {
+	// 		console.error('Error updating inventory allocation:', error);
+	// 		throw error;
+	// 	}
+	// }
+
+	/**
+  * Updates the inventory allocation with retry logic to handle version conflicts.
+  * @param inventoryId - The ID of the inventory entry.
+  * @param orderedQuantity - The quantity being ordered.
+  * @param maxRetries - Maximum number of retry attempts.
+  * @returns {Promise<InventoryEntry>} - Returns the updated inventory entry.
+  */
+	public async updateInventoryAllocation(
+		inventoryId: string,
+		orderedQuantity: number,
+	): Promise<InventoryEntry> {
+		// Fetch the latest inventory entry
+		const inventoryEntry = await this.getInventoryById(inventoryId);
+		if (!inventoryEntry) {
+			throw new Error(`Inventory with ID ${inventoryId} not found.`);
+		}
+
+		const version = inventoryEntry.version;
+		const customFields = inventoryEntry.custom?.fields;
+		const currentTotalPurchaseAllocation = customFields?.totalPurchaseStockAllocationDeviceOnly || 0;
+		const maximumStockAllocation = customFields?.maximumStockAllocationDeviceOnly || 0;
+
+		const newTotalPurchaseAllocation = currentTotalPurchaseAllocation + orderedQuantity;
+
+		// Validate allocation
+		if (newTotalPurchaseAllocation > maximumStockAllocation) {
+			throw new Error('Device Out of Stock.');
+		}
+
+		const updateActions: InventoryEntryUpdateAction[] = [
+			{
+				action: 'setCustomField',
+				name: 'totalPurchaseStockAllocationDeviceOnly',
+				value: newTotalPurchaseAllocation,
+			},
+		];
+
+		const response = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.inventory()
+			.withId({ ID: inventoryId })
+			.post({ body: { version, actions: updateActions } })
+			.execute();
+
+		return response.body as InventoryEntry;
 	}
 
 	/**
@@ -82,7 +178,7 @@ class CommercetoolsInventoryClient {
 		if (dummyStockAfterSafetyStock <= 0) {
 			return { totalAvailableDummyStock, totalAvailableDummyPurchaseStock };
 		}
-		
+
 		const availableQuantity = inventory?.availableQuantity || 0
 		if (availableQuantity > 0) {
 			dummyStockAfterSafetyStock = 0
@@ -112,7 +208,7 @@ class CommercetoolsInventoryClient {
 	public generateKey(skus: any) {
 		const shopCode = this.onlineChannel
 		return skus ? Object.values(skus).map((sku: any) => {
-		  return shopCode + '-' + sku;
+			return shopCode + '-' + sku;
 		}) : []
 	}
 

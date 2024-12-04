@@ -1,10 +1,9 @@
 // cart/src/services/cart.service.ts
 import _ from 'lodash'
-import { CartUpdateAction } from '@commercetools/platform-sdk';
+import { Cart, CartUpdateAction } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
-import CommercetoolsMeOrderClient from '../adapters/me/ct-me-order-client'; // ! For testing only
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter'
@@ -20,11 +19,14 @@ import { readConfiguration } from '../utils/config.utils';
 import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
 import { BlacklistService } from './blacklist.service'
 import { safelyParse } from '../utils/response.utils';
+import { commercetoolsOrderClient } from '../adapters/ct-order-client';
+import { logger } from '../utils/logger.utils';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
     private blacklistService: BlacklistService
     private talonOneEffectConverter: typeof talonOneEffectConverter
+
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
         this.talonOneEffectConverter = talonOneEffectConverter
@@ -89,7 +91,6 @@ export class CartService {
         const { shippingAddress, billingAddress, shippingMethodId, couponCodes = [], payment } = value;
 
         const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-        // const commercetoolsMeOrderClient = new CommercetoolsMeOrderClient(accessToken); // ! For testing only
 
         const cart = await commercetoolsMeCartClient.getCartById(id);
         if (!cart) {
@@ -159,8 +160,6 @@ export class CartService {
             updateActions,
         );
 
-        // const order = await commercetoolsMeOrderClient.createOrderFromCart(updatedCart); // ! For testing only
-
         const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
 
         return { ...iCart, rejectedCoupons: processedCouponEffects.rejectedCoupons };
@@ -210,8 +209,42 @@ export class CartService {
         return iCartWithBenefit;
     };
 
-    public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
+    public updateStockAllocation = async (ctCart: Cart): Promise<any> => {
+        // Fetch and validate inventory
+        for (const lineItem of ctCart.lineItems) {
+            const supplyChannel = lineItem.supplyChannel;
+            console.log('supplyChannel', supplyChannel);
+            if (!supplyChannel || !supplyChannel.id) {
+                throw new Error('Supply channel is missing on line item.');
+            }
 
+            const inventoryId = lineItem.variant.availability?.channels?.[supplyChannel.id].id;
+            console.log('inventoryId', inventoryId);
+            if (!inventoryId) {
+                throw new Error("InventoryId not found.");
+            }
+
+            // Fetch the inventory entry associated with the supply channel
+            const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(
+                inventoryId
+            );
+            console.log('inventoryEntry', inventoryEntry);
+            if (!inventoryEntry) {
+                throw new Error(`Inventory entry not found for supply channel ID: ${supplyChannel.id}`);
+            }
+
+            const orderedQuantity = lineItem.quantity;
+            console.log('orderedQuantity', orderedQuantity);
+
+            await CommercetoolsInventoryClient.updateInventoryAllocation(
+                inventoryEntry.id,
+                orderedQuantity
+            );
+        }
+    }
+
+    public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
+        
         const defaultValidateList = [
             'BLACKLIST',
             'CAMPAIGN',
@@ -244,11 +277,10 @@ export class CartService {
         //! ELSE
         //! THEN throw error
 
-        // TODO: STEP #6 - Create Order On Commercetools
-        const commercetoolsMeOrderClient = new CommercetoolsMeOrderClient(accessToken)
-        const order = await commercetoolsMeOrderClient.createOrderFromCart(ctCart); // ! For testing only
+        // await this.updateStockAllocation(ctCart);
+        const order = await commercetoolsOrderClient.createOrderFromCart(ctCart);
 
-        return order
+        return order;
     };
 
     public getCtCartById = async (accessToken: string, id: string): Promise<any> => {
@@ -278,6 +310,8 @@ export class CartService {
             const config = readConfiguration()
             const tsmOrder = new TsmOrderModel({ ctCart: cart, config })
             const tsmOrderPayload = tsmOrder.toPayload()
+
+            logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
             const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
 
             const { code } = response || {}
@@ -290,6 +324,7 @@ export class CartService {
                 };
             }
         } catch (error: any) {
+            logger.info(`createTSMSaleOrder-error: ${JSON.stringify(error)}`)
             let data = error?.response?.data
             if (data) {
                 data = safelyParse(data)
@@ -345,8 +380,6 @@ export class CartService {
     private validateMandatoryProduct(selectedLineItems: any[], selectedlineItemWithCampaignBenefits: any[]) {
         const mainProductLineItems = selectedLineItems.filter((selectedLineItem: any) => selectedLineItem?.custom?.fields?.productType === 'main_product')
         for (const mainProductLineItem of mainProductLineItems) {
-
-            console.log('mainProductLineItem', mainProductLineItem)
             const sku = mainProductLineItem.variant.sku;
             const productType = mainProductLineItem?.custom?.fields?.productType;
             const productGroup = mainProductLineItem?.custom?.fields?.productGroup;

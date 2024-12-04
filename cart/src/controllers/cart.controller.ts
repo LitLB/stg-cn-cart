@@ -133,18 +133,18 @@ export class CartController {
             const payload = {
                 cartId
             };
+
             const order = await this.cartService.createOrder(accessToken, payload, validateList);
 
             const response: ResponseType = {
                 statusCode: 200,
                 statusMessage: RESPONSE_MESSAGES.SUCCESS,
-                data: {
-                    orderId: order.id
-                },
+                data: order,
             };
 
             return res.status(200).json(response);
         } catch (error: any) {
+            console.log('createOrder.error', error);
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const errorCode = error.errorCode;

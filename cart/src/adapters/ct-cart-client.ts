@@ -105,6 +105,10 @@ class CommercetoolsCartClient {
 			productId,
 			variantId,
 			quantity,
+			supplyChannel: {
+				typeId: 'channel',
+				id: readConfiguration().ctpSupplyChannel,
+			},
 			custom: {
 				type: {
 					typeId: 'type',
