@@ -6,14 +6,12 @@ import { CartController } from '../controllers/cart.controller';
 import { authenticate } from '../middleware/authenticate';
 import { CartItemController } from '../controllers/cart-item.controller';
 import { BlacklistController } from '../controllers/blacklist.controller';
-import { CouponController } from '../controllers/coupon.controller';
 
 const cartRouter = Router();
 const authController = new AuthController();
 const cartController = new CartController();
 const cartItemController = new CartItemController();
 const blacklistController = new BlacklistController();
-const couponController = new CouponController();
 
 cartRouter.post('/v1/oauth/anonymous', authController.createAnonymousSession);
 cartRouter.patch('/v1/oauth/anonymous', authController.renewAnonymousSession);
@@ -30,9 +28,6 @@ cartRouter.delete('/v1/carts/:id/items/:itemId', authenticate, cartItemControlle
 
 cartRouter.post('/v1/order/check-blacklist', blacklistController.checkBlacklist);
 cartRouter.post('/v1/orders', authenticate, cartController.createOrder);
-
-// TODO Move to coupon route
-cartRouter.get('/v1/coupons', authenticate, couponController.getQueryCoupons);
 
 
 export default cartRouter;
