@@ -92,3 +92,10 @@ deployAs:
         - key: APIGW_CLIENT_SECRET
           description: Apigee client secret
           required: true
+  # - name: coupon
+  #   applicationType: service
+  #   endpoint: /coupon
+  #   scripts:
+  #     postDeploy: npm install && npm run build
+  #     preUndeploy: npm install && npm run build
+
