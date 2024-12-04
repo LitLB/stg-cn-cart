@@ -279,6 +279,7 @@ export class CartService {
                 };
             }
         } catch (error: any) {
+            logger.info(`createTSMSaleOrder-error: ${JSON.stringify(error)}`)
             let data = error?.response?.data
             if (data) {
                 data = safelyParse(data)
