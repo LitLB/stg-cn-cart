@@ -46,6 +46,15 @@ deployAs:
         - key: AWS_REGION
           description: AWS region
           required: true
+        - key: TSM_ORDER_SHOP_CODE
+          description: Tsm order shop code
+          required: true
+        - key: TSM_ORDER_SALE_CODE
+          description: Tsm order sale code
+          required: true
+        - key: TSM_ORDER_SALE_NAME
+          description: Tsm order sale name
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: Commercetools project key identifying your specific project
