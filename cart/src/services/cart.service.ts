@@ -98,6 +98,9 @@ export class CartService {
         }
     };
 
+    // TODO: Uncomment
+    // TODO: Check updateStockAllocation() is correct / met requirements.
+    // TODO: Add orderNumber to createOrderFromCart()
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
 
         // const defaultValidateList = [
