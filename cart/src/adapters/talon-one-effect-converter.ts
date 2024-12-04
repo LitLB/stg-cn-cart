@@ -352,7 +352,7 @@ class TalonOneEffectConverter {
 			};
 		});
 
-		const productGroupBenefits: any[] = promotionProductGroups.map((promotionProductGroup: any) => {
+		const productGroupBenefits: any[] = (promotionProductGroups ?? []).map((promotionProductGroup: any) => {
 			const { groupCode, products, otherPayments } = promotionProductGroup
 
 			const newProducts = products.map((product: any) => {
@@ -414,7 +414,7 @@ class TalonOneEffectConverter {
 			}
 		})
 
-		const productBenefits: any[] = promotionProducts.map((promotionProduct: any) => {
+		const productBenefits: any[] = (promotionProducts ?? []).map((promotionProduct: any) => {
 			const {
 				tsm_promotion_set__code: promotionSetCode,
 				tsm_promotion_product__type: type,

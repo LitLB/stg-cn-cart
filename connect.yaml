@@ -19,6 +19,9 @@ deployAs:
         - key: ONLINE_CHANNEL
           description: Commercetools inventory channel identifier
           required: true
+        - key: CTP_SUPPLY_CHANNEL_ID
+          description: Commercetools inventory channel id identifier
+          required: true
         - key: CTP_WHOLE_CART_LIMIT
           description: Commercetools whole cart item limit
           required: true
@@ -42,6 +45,18 @@ deployAs:
           required: true
         - key: AWS_REGION
           description: AWS region
+          required: true
+        - key: TSM_ORDER_SHOP_CODE
+          description: Tsm order shop code
+          required: true
+        - key: TSM_ORDER_SALE_CODE
+          description: Tsm order sale code
+          required: true
+        - key: TSM_ORDER_SALE_NAME
+          description: Tsm order sale name
+          required: true
+        - key: APIGW_BASE_URL
+          description: Apigee base url
           required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
@@ -71,3 +86,16 @@ deployAs:
         - key: AWS_SECRET_ACCESS_KEY
           description: AWS secret access key
           required: true
+        - key: APIGW_CLIENT_ID
+          description: Apigee client ID
+          required: true
+        - key: APIGW_CLIENT_SECRET
+          description: Apigee client secret
+          required: true
+  # - name: coupon
+  #   applicationType: service
+  #   endpoint: /coupon
+  #   scripts:
+  #     postDeploy: npm install && npm run build
+  #     preUndeploy: npm install && npm run build
+
