@@ -30,6 +30,4 @@ cartRouter.post('/v1/carts/:id/coupons', authenticate, cartController.applyCoupo
 cartRouter.post('/v1/order/check-blacklist', blacklistController.checkBlacklist);
 cartRouter.post('/v1/orders', authenticate, cartController.createOrder);
 
-cartRouter.get('/v1/coupons', authenticate, cartController.queryCoupons);
-
 export default cartRouter;

@@ -28,6 +28,7 @@ export const readConfiguration = () => {
     bffCtpClientSecret: process.env.BFF_CTP_CLIENT_SECRET as string,
 
     ctpWholeCartLimit: process.env.CTP_WHOLE_CART_LIMIT as string,
+    ctpDefaultCouponLimit: process.env.CTP_DEFAULT_COUPON_LIMIT as string,
 
     onlineChannel: process.env.ONLINE_CHANNEL as string,
 

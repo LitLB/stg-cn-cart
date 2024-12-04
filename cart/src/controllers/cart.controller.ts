@@ -12,44 +12,29 @@ export class CartController {
         this.cartService = new CartService();
     }
 
-    public queryCoupons = async (req: Request, res: Response): Promise<Response> => {
-        try {
-            const response: ResponseType = {
-                statusCode: 200,
-                statusMessage: RESPONSE_MESSAGES.SUCCESS,
-                data: ['a'],
-            };
-
-            return res.status(200).json(response);
-        } catch (error: any) {
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
-
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                data,
-            });
-        }
-    };
-
     public applyCoupons = async (req: Request, res: Response): Promise<Response> => {
         try {
-            console.log('CartController.applyCoupons');
             const { id } = req.params;
             const accessToken = req.accessToken as string;
 
             const cart = await this.cartService.applyCoupons(accessToken, id, req.body);
 
-            return res.status(200).json(cart);
+            const response: ResponseType = {
+                statusCode: 200,
+                statusMessage: RESPONSE_MESSAGES.SUCCESS,
+                data: cart,
+            };
+
+            return res.status(200).json(response);
         } catch (error: any) {
             const statusCode = error.statusCode || 500;
+            const errorCode = error.errorCode;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null
 
             return res.status(statusCode).json({
                 statusCode,
+                errorCode,
                 statusMessage,
                 data,
             });
