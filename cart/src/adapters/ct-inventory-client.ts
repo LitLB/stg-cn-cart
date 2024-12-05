@@ -3,6 +3,7 @@
 import type { ApiRoot, InventoryEntry, InventoryEntryUpdate, InventoryEntryUpdateAction } from '@commercetools/platform-sdk';
 import { readConfiguration } from '../utils/config.utils';
 import CommercetoolsBaseClient from './ct-base-client'
+import { CART_JOURNEYS } from '../constants/cart.constant';
 
 class CommercetoolsInventoryClient {
 	private static instance: CommercetoolsInventoryClient;
@@ -27,28 +28,29 @@ class CommercetoolsInventoryClient {
   * Updates the inventory allocation based on the journey.
   * @param inventoryEntry - The inventory entry to update.
   * @param orderedQuantity - The quantity ordered.
-  * @param journey - The journey type from ctCart.custom.journey.
-  * @param customFieldsConfig - Optional custom fields configuration.
+  * @param journey - The journey type from ctCart.custom.fields.journey.
+  * @param journeyConfig - The journey configuration.
   */
 	public async updateInventoryAllocationV2(
 		inventoryEntry: InventoryEntry,
 		orderedQuantity: number,
 		journey: string,
-		customFieldsConfig: {
-			totalKey: string;
-			maximumKey: string;
-		}
+		journeyConfig: any
 	): Promise<void> {
-		if (journey === 'single_product') {
-			// Use standard CT inventory process
-			// await this.reduceInventoryQuantity(inventoryEntry, orderedQuantity);
-		} else {
-			// Use custom inventory process for other journeys
-			await this.processCustomInventory(
-				inventoryEntry,
-				orderedQuantity,
-				customFieldsConfig
-			);
+		switch (journey) {
+			case CART_JOURNEYS.SINGLE_PRODUCT:
+				// Inventory is reserved on order creation; no additional actions required.
+				console.log(`Single Product journey: Inventory for ${inventoryEntry.id} is reserved on order.`);
+				break;
+			case CART_JOURNEYS.DEVICE_ONLY:
+				await this.processCustomInventory(
+					inventoryEntry,
+					orderedQuantity,
+					journeyConfig
+				);
+				break;
+			default:
+				throw new Error(`Unhandled journey: ${journey}`);
 		}
 	}
 
@@ -56,7 +58,6 @@ class CommercetoolsInventoryClient {
 		inventoryEntry: InventoryEntry,
 		orderedQuantity: number
 	): Promise<void> {
-		// Decrease availableQuantity by orderedQuantity
 		const updateActions: InventoryEntryUpdateAction[] = [
 			{
 				action: 'removeQuantity',
@@ -69,8 +70,6 @@ class CommercetoolsInventoryClient {
 			actions: updateActions,
 		};
 
-		console.log('inventoryUpdate', inventoryUpdate);
-
 		await this.apiRoot
 			.withProjectKey({ projectKey: this.projectKey })
 			.inventory()
@@ -82,13 +81,9 @@ class CommercetoolsInventoryClient {
 	private async processCustomInventory(
 		inventoryEntry: InventoryEntry,
 		orderedQuantity: number,
-		customFieldsConfig: {
-			totalKey: string;
-			maximumKey: string;
-		}
+		journeyConfig: any,
 	): Promise<void> {
-		const { totalKey, maximumKey } = customFieldsConfig;
-
+		const { totalKey, maximumKey } = journeyConfig.inventory;
 		if (!totalKey || !maximumKey) {
 			throw {
 				statusCode: 500,
@@ -141,8 +136,6 @@ class CommercetoolsInventoryClient {
 			version: inventoryEntry.version,
 			actions: updateActions,
 		};
-
-		console.log('inventoryUpdate', inventoryUpdate);
 
 		await this.apiRoot
 			.withProjectKey({ projectKey: this.projectKey })

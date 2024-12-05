@@ -1,4 +1,5 @@
 // cart/src/services/cart.service.ts
+
 import _ from 'lodash'
 import { Cart, CartUpdateAction } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
@@ -15,12 +16,12 @@ import { validateProductQuantity } from '../validators/cart-item.validator';
 import ApigeeClientAdapter from '../adapters/apigee-client.adapter';
 import TsmOrderModel from '../models/tsm-order.model';
 import { readConfiguration } from '../utils/config.utils';
-
 import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
 import { BlacklistService } from './blacklist.service'
 import { safelyParse } from '../utils/response.utils';
 import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 import { logger } from '../utils/logger.utils';
+import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -33,106 +34,78 @@ export class CartService {
         this.blacklistService = new BlacklistService()
     }
 
-    private getCustomFieldsConfig(journey: string): {
-        totalKey: string;
-        maximumKey: string;
-    } {
-        // Define a mapping of journey types to custom field configurations
-        const journeyConfigMap: { [key: string]: { totalKey: string; maximumKey: string } } = {
-            'device_only': {
-                totalKey: 'totalPurchaseStockAllocationDeviceOnly',
-                maximumKey: 'maximumStockAllocationDeviceOnly',
-            },
-            // 'other_journey': {
-            //     totalKey: 'totalOtherJourney',
-            //     maximumKey: 'maximumOtherJourney',
-            // },
-        };
-
-        // Default configuration if journey is not in the map
-        const defaultConfig = {
-            totalKey: '',
-            maximumKey: '',
-        };
-
-        return journeyConfigMap[journey] || defaultConfig;
-    }
-
     public updateStockAllocation = async (ctCart: Cart): Promise<void> => {
-        const journey = ctCart.custom?.fields?.journey;
-        if (!journey) {
-            throw new Error('Journey is missing in cart custom fields.');
-        }
-
-        // Determine customFieldsConfig based on journey
-        const customFieldsConfig = this.getCustomFieldsConfig(journey);
-        console.log('customFieldsConfig', customFieldsConfig);
+        const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
+        const journeyConfig = journeyConfigMap[journey];
 
         for (const lineItem of ctCart.lineItems) {
             const supplyChannel = lineItem.supplyChannel;
             if (!supplyChannel || !supplyChannel.id) {
-                throw new Error('Supply channel is missing on line item.');
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'Supply channel is missing on line item.'
+                };
             }
 
             const inventoryId =
                 lineItem.variant.availability?.channels?.[supplyChannel.id]?.id;
             if (!inventoryId) {
-                throw new Error('InventoryId not found.');
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'InventoryId not found.'
+                };
             }
 
-            // Fetch the inventory entry associated with the supply channel
             const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
             if (!inventoryEntry) {
-                throw new Error(`Inventory entry not found for ID: ${inventoryId}`);
+                throw {
+                    statusCode: 400,
+                    statusMessage: `Inventory entry not found for ID: ${inventoryId}`
+                };
             }
 
             const orderedQuantity = lineItem.quantity;
-
-            // Update inventory allocation based on journey
             await CommercetoolsInventoryClient.updateInventoryAllocationV2(
                 inventoryEntry,
                 orderedQuantity,
                 journey,
-                customFieldsConfig
+                journeyConfig
             );
         }
     };
 
-    // TODO: Uncomment
-    // TODO: Check updateStockAllocation() is correct / met requirements.
     // TODO: Add orderNumber to createOrderFromCart()
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
 
-        // const defaultValidateList = [
-        //     'BLACKLIST',
-        //     'CAMPAIGN',
-        // ]
+        const defaultValidateList = [
+            'BLACKLIST',
+            'CAMPAIGN',
+        ]
 
-        // let validateList = defaultValidateList
-        // if (partailValidateList.length) {
-        //     validateList = partailValidateList
-        // }
+        let validateList = defaultValidateList
+        if (partailValidateList.length) {
+            validateList = partailValidateList
+        }
 
         const { cartId } = payload
         const ctCart = await this.getCtCartById(accessToken, cartId)
-        console.log('ctCart', ctCart);
-        console.log('ctCart.custom', ctCart.custom);
-        console.log('ctCart.custom.journey', ctCart.custom.journey); // single_product, device_only
-        // // TODO: STEP #2 - Validate Blacklist
-        // if (validateList.includes('BLACKLIST')) {
-        //     await this.validateBlacklist(ctCart)
-        // }
+        // console.log('ctCart', ctCart);
+        // console.log('ctCart.custom', ctCart.custom);
+        // TODO: STEP #2 - Validate Blacklist
+        if (validateList.includes('BLACKLIST')) {
+            await this.validateBlacklist(ctCart)
+        }
 
-        // // TODO: STEP #3 - Validate Campaign & Promotion Set
-        // if (validateList.includes('CAMPAIGN')) {
-        //     await this.validateCampaign(ctCart)
-        // }
+        // TODO: STEP #3 - Validate Campaign & Promotion Set
+        if (validateList.includes('CAMPAIGN')) {
+            await this.validateCampaign(ctCart)
+        }
 
-        // // TODO: STEP #4 - Validate Available Quantity (Commercetools)
-        // await this.validateAvailableQuantity(ctCart)
+        // TODO: STEP #4 - Validate Available Quantity (Commercetools)
+        await this.validateAvailableQuantity(ctCart)
 
-        // // TODO: STEP #5 - Create Order On TSM Sale
-        // await this.createTSMSaleOrder(ctCart)
+        // TODO: STEP #5 - Create Order On TSM Sale
+        await this.createTSMSaleOrder(ctCart)
         // //! IF available > x
         // //! THEN continue
         // //! ELSE
