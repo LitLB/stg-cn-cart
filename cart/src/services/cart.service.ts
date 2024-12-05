@@ -43,7 +43,8 @@ export class CartService {
             if (!supplyChannel || !supplyChannel.id) {
                 throw {
                     statusCode: 400,
-                    statusMessage: 'Supply channel is missing on line item.'
+                    statusMessage: 'Supply channel is missing on line item.',
+					errorCode: "SUPPLY_CHANNEL_MISSING",
                 };
             }
 
@@ -52,7 +53,8 @@ export class CartService {
             if (!inventoryId) {
                 throw {
                     statusCode: 400,
-                    statusMessage: 'InventoryId not found.'
+                    statusMessage: 'InventoryId not found.',
+					errorCode: "INVENTORY_ID_NOT_FOUND",
                 };
             }
 
@@ -60,7 +62,8 @@ export class CartService {
             if (!inventoryEntry) {
                 throw {
                     statusCode: 400,
-                    statusMessage: `Inventory entry not found for ID: ${inventoryId}`
+                    statusMessage: `Inventory entry not found for ID: ${inventoryId}`,
+					errorCode: "INVENTORY_ENTRY_NOT_FOUND",
                 };
             }
 
@@ -89,8 +92,7 @@ export class CartService {
 
         const { cartId } = payload
         const ctCart = await this.getCtCartById(accessToken, cartId)
-        // console.log('ctCart', ctCart);
-        // console.log('ctCart.custom', ctCart.custom);
+
         // TODO: STEP #2 - Validate Blacklist
         if (validateList.includes('BLACKLIST')) {
             await this.validateBlacklist(ctCart)

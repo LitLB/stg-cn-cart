@@ -72,14 +72,14 @@ class CommercetoolsOrderClient {
 			) {
 				throw {
 					statusCode: 400,
-					errorCode: "CREATE_ORDER_ON_CT_FAILED",
 					statusMessage: `Cannot place order: Some line items are out of stock.`,
+					errorCode: "CREATE_ORDER_ON_CT_FAILED",
 				};
 			} else {
 				throw {
 					statusCode: 500,
-					errorCode: "CREATE_ORDER_ON_CT_FAILED",
 					statusMessage: `Cannot create an order on Commercetools. Internal server error.`,
+					errorCode: "CREATE_ORDER_ON_CT_FAILED",
 				};
 			}
 		}

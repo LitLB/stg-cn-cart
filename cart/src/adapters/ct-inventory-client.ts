@@ -50,7 +50,11 @@ class CommercetoolsInventoryClient {
 				);
 				break;
 			default:
-				throw new Error(`Unhandled journey: ${journey}`);
+				throw {
+					statusCode: 500,
+					statusMessage: `Unhandled journey type: ${journey}.`,
+					errorCode: 'UNHANDLED_JOURNEY',
+				};
 		}
 	}
 
@@ -87,7 +91,8 @@ class CommercetoolsInventoryClient {
 		if (!totalKey || !maximumKey) {
 			throw {
 				statusCode: 500,
-				statusMessage: 'totalKey or maximumKey invalid.'
+				statusMessage: 'totalKey or maximumKey invalid.',
+				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
 			}
 		}
 
@@ -95,19 +100,19 @@ class CommercetoolsInventoryClient {
 		if (!customFields) {
 			throw {
 				statusCode: 400,
-				statusMessage: 'Custom fields are missing on inventory entry.'
+				statusMessage: 'Custom fields are missing on inventory entry.',
+				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
 			}
 		}
 
 		const total = customFields[totalKey] || 0;
 		const maximum = customFields[maximumKey] || 0;
-
 		const newTotal = total + orderedQuantity;
-
 		if (newTotal > maximum) {
 			throw {
 				statusCode: 400,
-				statusMessage: `Exceeds maximum stock allocation for journey.`
+				statusMessage: `Exceeds maximum stock allocation for journey.`,
+				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
 			};
 		}
 
