@@ -1,97 +1,97 @@
 deployAs:
-  - name: cart
-    applicationType: service
-    endpoint: /cart
-    scripts:
-      postDeploy: npm install && npm run build
-      preUndeploy: npm install && npm run build
-    configuration:
-      standardConfiguration:
-        - key: CTP_REGION
-          description: Commercetools API region (e.g., 'us-east-1')
-          required: true
-        - key: CTP_AUTH_URL
-          description: Commercetools authentication URL (e.g., 'https://auth.commercetools.com')
-          required: true
-        - key: CTP_API_URL
-          description: Commercetools API base URL (e.g., 'https://api.commercetools.com')
-          required: true
-        - key: ONLINE_CHANNEL
-          description: Commercetools inventory channel identifier
-          required: true
-        - key: CTP_SUPPLY_CHANNEL_ID
-          description: Commercetools inventory channel id identifier
-          required: true
-        - key: CTP_WHOLE_CART_LIMIT
-          description: Commercetools whole cart item limit
-          required: true
-        - key: CT_PRICE_CUSTOMER_GROUP_ID_RRP
-          description: Commercetools Price Customer Group ID for Recommended Retail Price (RRP)
-          required: true
-        - key: CTP_ADD_CUSTOM_COUPON_LINE_ITEM_PREFIX
-          description: Commercetools Coupon Line Item Prefix
-          required: true
-        - key: CTP_TAX_CATEGORY_ID
-          description: Commercetools Tax Category Id
-          required: true
-        - key: T1_URL
-          description: Talon.one service base URL (e.g., 'https://api.talon.one')
-          required: true
-        - key: T1_API_KEY_PREFIX
-          description: Talon.one API Key Prefix used for identifying API keys
-          required: true
-        - key: AWS_BUCKET_VC
-          description: AWS Bucket
-          required: true
-        - key: AWS_REGION
-          description: AWS region
-          required: true
-        - key: TSM_ORDER_SHOP_CODE
-          description: Tsm order shop code
-          required: true
-        - key: TSM_ORDER_SALE_CODE
-          description: Tsm order sale code
-          required: true
-        - key: TSM_ORDER_SALE_NAME
-          description: Tsm order sale name
-          required: true
-        - key: APIGW_BASE_URL
-          description: Apigee base url
-          required: true
-      securedConfiguration:
-        - key: CTP_PROJECT_KEY
-          description: Commercetools project key identifying your specific project
-          required: true
-        - key: CTP_CLIENT_ID
-          description: Commercetools client ID for authentication purposes
-          required: true
-        - key: CTP_CLIENT_SECRET
-          description: Commercetools client secret corresponding to the client ID
-          required: true
-        - key: CTP_SCOPE
-          description: Commercetools authentication scope (e.g., 'manage_project:cart')
-          required: true
-        - key: BFF_CTP_CLIENT_ID
-          description: Commercetools client ID for managing Anonymous Sessions
-          required: true
-        - key: BFF_CTP_CLIENT_SECRET
-          description: Commercetools client secret for managing Anonymous Sessions
-          required: true
-        - key: T1_API_KEY
-          description: Talon.one API Key used for authenticating requests to Talon.one services
-          required: true
-        - key: AWS_ACCESS_KEY_ID
-          description: AWS access key
-          required: true
-        - key: AWS_SECRET_ACCESS_KEY
-          description: AWS secret access key
-          required: true
-        - key: APIGW_CLIENT_ID
-          description: Apigee client ID
-          required: true
-        - key: APIGW_CLIENT_SECRET
-          description: Apigee client secret
-          required: true
+  # - name: cart
+  #   applicationType: service
+  #   endpoint: /cart
+  #   scripts:
+  #     postDeploy: npm install && npm run build
+  #     preUndeploy: npm install && npm run build
+  #   configuration:
+  #     standardConfiguration:
+  #       - key: CTP_REGION
+  #         description: Commercetools API region (e.g., 'us-east-1')
+  #         required: true
+  #       - key: CTP_AUTH_URL
+  #         description: Commercetools authentication URL (e.g., 'https://auth.commercetools.com')
+  #         required: true
+  #       - key: CTP_API_URL
+  #         description: Commercetools API base URL (e.g., 'https://api.commercetools.com')
+  #         required: true
+  #       - key: ONLINE_CHANNEL
+  #         description: Commercetools inventory channel identifier
+  #         required: true
+  #       - key: CTP_SUPPLY_CHANNEL_ID
+  #         description: Commercetools inventory channel id identifier
+  #         required: true
+  #       - key: CTP_WHOLE_CART_LIMIT
+  #         description: Commercetools whole cart item limit
+  #         required: true
+  #       - key: CT_PRICE_CUSTOMER_GROUP_ID_RRP
+  #         description: Commercetools Price Customer Group ID for Recommended Retail Price (RRP)
+  #         required: true
+  #       - key: CTP_ADD_CUSTOM_COUPON_LINE_ITEM_PREFIX
+  #         description: Commercetools Coupon Line Item Prefix
+  #         required: true
+  #       - key: CTP_TAX_CATEGORY_ID
+  #         description: Commercetools Tax Category Id
+  #         required: true
+  #       - key: T1_URL
+  #         description: Talon.one service base URL (e.g., 'https://api.talon.one')
+  #         required: true
+  #       - key: T1_API_KEY_PREFIX
+  #         description: Talon.one API Key Prefix used for identifying API keys
+  #         required: true
+  #       - key: AWS_BUCKET_VC
+  #         description: AWS Bucket
+  #         required: true
+  #       - key: AWS_REGION
+  #         description: AWS region
+  #         required: true
+  #       - key: TSM_ORDER_SHOP_CODE
+  #         description: Tsm order shop code
+  #         required: true
+  #       - key: TSM_ORDER_SALE_CODE
+  #         description: Tsm order sale code
+  #         required: true
+  #       - key: TSM_ORDER_SALE_NAME
+  #         description: Tsm order sale name
+  #         required: true
+  #       - key: APIGW_BASE_URL
+  #         description: Apigee base url
+  #         required: true
+  #     securedConfiguration:
+  #       - key: CTP_PROJECT_KEY
+  #         description: Commercetools project key identifying your specific project
+  #         required: true
+  #       - key: CTP_CLIENT_ID
+  #         description: Commercetools client ID for authentication purposes
+  #         required: true
+  #       - key: CTP_CLIENT_SECRET
+  #         description: Commercetools client secret corresponding to the client ID
+  #         required: true
+  #       - key: CTP_SCOPE
+  #         description: Commercetools authentication scope (e.g., 'manage_project:cart')
+  #         required: true
+  #       - key: BFF_CTP_CLIENT_ID
+  #         description: Commercetools client ID for managing Anonymous Sessions
+  #         required: true
+  #       - key: BFF_CTP_CLIENT_SECRET
+  #         description: Commercetools client secret for managing Anonymous Sessions
+  #         required: true
+  #       - key: T1_API_KEY
+  #         description: Talon.one API Key used for authenticating requests to Talon.one services
+  #         required: true
+  #       - key: AWS_ACCESS_KEY_ID
+  #         description: AWS access key
+  #         required: true
+  #       - key: AWS_SECRET_ACCESS_KEY
+  #         description: AWS secret access key
+  #         required: true
+  #       - key: APIGW_CLIENT_ID
+  #         description: Apigee client ID
+  #         required: true
+  #       - key: APIGW_CLIENT_SECRET
+  #         description: Apigee client secret
+  #         required: true
   - name: coupon
     applicationType: service
     endpoint: /coupon
