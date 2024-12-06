@@ -261,7 +261,7 @@ export function validateProductQuantity(
 	sku: string,
 	productId: string,
 	variant: ProductVariant,
-	deltaQuantity: number,
+	deltaQuantity = 0,
 ): void | ResponseType {
 	if (productType !== 'main_product') {
 		return;
@@ -269,7 +269,6 @@ export function validateProductQuantity(
 
 	// Retrieve ctpWholeCartLimit from runtime configuration
 	const ctpWholeCartLimit = readConfiguration().ctpWholeCartLimit ? Number(readConfiguration().ctpWholeCartLimit) : undefined;
-	console.log('ctpWholeCartLimit', ctpWholeCartLimit);
 
 	// Filter line items with productType 'main_product'
 	const mainProductLineItems = cart.lineItems.filter(
@@ -286,14 +285,11 @@ export function validateProductQuantity(
 		.reduce((sum, item) => sum + item.quantity, 0);
 
 	const totalCartQuantity = mainProductLineItems.reduce((sum, item) => sum + item.quantity, 0);
-	console.log('deltaQuantity', deltaQuantity);
-	console.log('totalCartQuantity', totalCartQuantity);
 
 	// Calculate new quantities
 	const newSkuQuantity = existingSkuQuantity + deltaQuantity;
 	const newProductQuantity = existingProductQuantity + deltaQuantity;
 	const newTotalCartQuantity = totalCartQuantity + deltaQuantity;
-	console.log('newTotalCartQuantity', newTotalCartQuantity);
 
 	// SKU Level Limits from Variant Attributes
 	const attributes = variant.attributes || [];

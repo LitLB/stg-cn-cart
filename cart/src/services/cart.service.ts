@@ -110,7 +110,7 @@ export class CartService {
         }
 
         // * STEP #4 - Validate Available Quantity (Commercetools)
-        await this.validateAvailableQuantity(accessToken, ctCart)
+        await this.validateAvailableQuantity(ctCart)
 
         const orderNumber = this.generateOrderNumber()
 
@@ -546,19 +546,13 @@ export class CartService {
         }
     }
 
-    private async validateAvailableQuantity(accessToken: string, ctCart: Cart) {
-        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-
+    private async validateAvailableQuantity(ctCart: Cart) {
         try {
             const { lineItems } = ctCart
             for (const lineItem of lineItems) {
-                console.log('lineItem.custom?.fields', lineItem.custom?.fields);
                 const productType = lineItem.custom?.fields?.productType;
-                const productGroup = lineItem.custom?.fields?.productGroup;
-                const addOnGroup = lineItem.custom?.fields?.addOnGroup;
                 const sku = lineItem.variant.sku as string;
                 const productId = lineItem.productId;
-                const quantity = lineItem.quantity;
 
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
@@ -591,22 +585,12 @@ export class CartService {
                     };
                 }
 
-                const existingLineItem = commercetoolsMeCartClient.findLineItem({ cart: ctCart, variantId: variant.id, productGroup, productType, addOnGroup });
-                if (!existingLineItem) {
-                    throw {
-                        statusCode: 400,
-                        statusMessage: 'Line item not found in cart',
-                    };
-                }
-                const existingLineItemQuantity = existingLineItem.quantity;
-                const deltaQuantity = quantity - existingLineItemQuantity;
                 validateProductQuantity(
                     productType,
                     ctCart,
                     sku,
                     productId,
                     variant,
-                    deltaQuantity,
                 )
             }
             return true
