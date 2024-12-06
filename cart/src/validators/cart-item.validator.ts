@@ -269,6 +269,7 @@ export function validateProductQuantity(
 
 	// Retrieve ctpWholeCartLimit from runtime configuration
 	const ctpWholeCartLimit = readConfiguration().ctpWholeCartLimit ? Number(readConfiguration().ctpWholeCartLimit) : undefined;
+	console.log('ctpWholeCartLimit', ctpWholeCartLimit);
 
 	// Filter line items with productType 'main_product'
 	const mainProductLineItems = cart.lineItems.filter(
@@ -292,6 +293,7 @@ export function validateProductQuantity(
 	const newSkuQuantity = existingSkuQuantity + deltaQuantity;
 	const newProductQuantity = existingProductQuantity + deltaQuantity;
 	const newTotalCartQuantity = totalCartQuantity + deltaQuantity;
+	console.log('newTotalCartQuantity', newTotalCartQuantity);
 
 	// SKU Level Limits from Variant Attributes
 	const attributes = variant.attributes || [];
@@ -353,9 +355,6 @@ export function validateProductQuantity(
 			statusMessage: `Cannot have more than ${quantityMax} units of product ${productId} in the cart.`,
 		};
 	}
-
-	console.log('newTotalCartQuantity', newTotalCartQuantity);
-	console.log('ctpWholeCartLimit', ctpWholeCartLimit);
 
 	// Whole Cart Level Validation
 	if (ctpWholeCartLimit !== undefined && newTotalCartQuantity > ctpWholeCartLimit) {
