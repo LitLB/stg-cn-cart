@@ -25,7 +25,7 @@ export class CouponService {
         const mapCouponData = (coupon: any): any => {
             return {
                 value: coupon.value || '',
-                discountPrice: coupon.attributes?.discount_price || coupon.attributes?.discountPrice || '', // TODO need change when discount_price constant change
+                discountPrice: coupon.attributes?.discount_price || 0,
                 discountCode: coupon.attributes?.discount_code || '',
                 couponName: coupon.attributes?.coupon_name || '',
                 marketingName: coupon.attributes?.marketing_name || '',
