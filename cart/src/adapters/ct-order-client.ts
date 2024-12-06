@@ -2,6 +2,9 @@ import type { ApiRoot, Cart, Order, OrderFromCartDraft } from '@commercetools/pl
 import CommercetoolsBaseClient from './ct-base-client';
 import { readConfiguration } from '../utils/config.utils';
 import { STATE_ORDER_KEYS } from '../constants/state.constant';
+import { ORDER_STATES } from '../constants/order.constant';
+import { SHIPMENT_STATES } from '../constants/shipment.constant';
+import { PAYMENT_STATES } from '../constants/payment.constant';
 
 class CommercetoolsOrderClient {
 	private apiRoot: ApiRoot;
@@ -47,9 +50,9 @@ class CommercetoolsOrderClient {
 				id: cart.id,
 			},
 			orderNumber,
-			orderState: 'Open',
-			shipmentState: 'Pending',
-			paymentState: 'Pending',
+			orderState: ORDER_STATES.OPEN,
+			shipmentState: SHIPMENT_STATES.PENDING,
+			paymentState: PAYMENT_STATES.PENDING,
 			state: {
 				typeId: 'state',
 				key: STATE_ORDER_KEYS.ORDER_CREATED,
