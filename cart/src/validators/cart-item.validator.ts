@@ -285,6 +285,8 @@ export function validateProductQuantity(
 		.reduce((sum, item) => sum + item.quantity, 0);
 
 	const totalCartQuantity = mainProductLineItems.reduce((sum, item) => sum + item.quantity, 0);
+	console.log('deltaQuantity', deltaQuantity);
+	console.log('totalCartQuantity', totalCartQuantity);
 
 	// Calculate new quantities
 	const newSkuQuantity = existingSkuQuantity + deltaQuantity;
@@ -351,6 +353,9 @@ export function validateProductQuantity(
 			statusMessage: `Cannot have more than ${quantityMax} units of product ${productId} in the cart.`,
 		};
 	}
+
+	console.log('newTotalCartQuantity', newTotalCartQuantity);
+	console.log('ctpWholeCartLimit', ctpWholeCartLimit);
 
 	// Whole Cart Level Validation
 	if (ctpWholeCartLimit !== undefined && newTotalCartQuantity > ctpWholeCartLimit) {

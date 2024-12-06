@@ -35,51 +35,57 @@ export class CartService {
     }
 
     public updateStockAllocation = async (ctCart: Cart): Promise<void> => {
-        const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
-        const journeyConfig = journeyConfigMap[journey];
+        try {
+            const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
+            const journeyConfig = journeyConfigMap[journey];
 
-        for (const lineItem of ctCart.lineItems) {
-            const supplyChannel = lineItem.supplyChannel;
-            if (!supplyChannel || !supplyChannel.id) {
-                throw {
-                    statusCode: 400,
-                    statusMessage: 'Supply channel is missing on line item.',
-					errorCode: "SUPPLY_CHANNEL_MISSING",
-                };
+            for (const lineItem of ctCart.lineItems) {
+                const supplyChannel = lineItem.supplyChannel;
+                if (!supplyChannel || !supplyChannel.id) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Supply channel is missing on line item.',
+                        errorCode: "SUPPLY_CHANNEL_MISSING",
+                    };
+                }
+
+                const inventoryId =
+                    lineItem.variant.availability?.channels?.[supplyChannel.id]?.id;
+                if (!inventoryId) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'InventoryId not found.',
+                        errorCode: "INVENTORY_ID_NOT_FOUND",
+                    };
+                }
+
+                const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
+                if (!inventoryEntry) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: `Inventory entry not found for ID: ${inventoryId}`,
+                        errorCode: "INVENTORY_ENTRY_NOT_FOUND",
+                    };
+                }
+
+                const orderedQuantity = lineItem.quantity;
+                await CommercetoolsInventoryClient.updateInventoryAllocationV2(
+                    inventoryEntry,
+                    orderedQuantity,
+                    journey,
+                    journeyConfig
+                );
             }
-
-            const inventoryId =
-                lineItem.variant.availability?.channels?.[supplyChannel.id]?.id;
-            if (!inventoryId) {
-                throw {
-                    statusCode: 400,
-                    statusMessage: 'InventoryId not found.',
-					errorCode: "INVENTORY_ID_NOT_FOUND",
-                };
-            }
-
-            const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
-            if (!inventoryEntry) {
-                throw {
-                    statusCode: 400,
-                    statusMessage: `Inventory entry not found for ID: ${inventoryId}`,
-					errorCode: "INVENTORY_ENTRY_NOT_FOUND",
-                };
-            }
-
-            const orderedQuantity = lineItem.quantity;
-            await CommercetoolsInventoryClient.updateInventoryAllocationV2(
-                inventoryEntry,
-                orderedQuantity,
-                journey,
-                journeyConfig
-            );
+        } catch (error) {
+            throw {
+                statusCode: 400,
+                statusMessage: `Update stock allocation failed.`,
+                errorCode: "CREATE_ORDER_ON_CT_FAILED",
+            };
         }
     };
 
-    // TODO: Add orderNumber to createOrderFromCart()
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
-
         const defaultValidateList = [
             'BLACKLIST',
             'CAMPAIGN',
@@ -104,13 +110,12 @@ export class CartService {
         }
 
         // * STEP #4 - Validate Available Quantity (Commercetools)
-        await this.validateAvailableQuantity(ctCart)
-
+        await this.validateAvailableQuantity(accessToken, ctCart)
 
         const orderNumber = this.generateOrderNumber()
 
         // * STEP #5 - Create Order On TSM Sale
-        const { success, response  } = await this.createTSMSaleOrder(orderNumber, ctCart)
+        const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
         // //! IF available > x
         // //! THEN continue
         // //! ELSE
@@ -541,14 +546,19 @@ export class CartService {
         }
     }
 
-    private async validateAvailableQuantity(ctCart: any) {
+    private async validateAvailableQuantity(accessToken: string, ctCart: Cart) {
+        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+
         try {
             const { lineItems } = ctCart
             for (const lineItem of lineItems) {
-                const productType = lineItem.custom?.fields?.productType
-                const sku = lineItem.variant.sku
-                const productId = lineItem.productId
-                const quantity = lineItem.quantity
+                console.log('lineItem.custom?.fields', lineItem.custom?.fields);
+                const productType = lineItem.custom?.fields?.productType;
+                const productGroup = lineItem.custom?.fields?.productGroup;
+                const addOnGroup = lineItem.custom?.fields?.addOnGroup;
+                const sku = lineItem.variant.sku as string;
+                const productId = lineItem.productId;
+                const quantity = lineItem.quantity;
 
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
@@ -581,13 +591,22 @@ export class CartService {
                     };
                 }
 
+                const existingLineItem = commercetoolsMeCartClient.findLineItem({ cart: ctCart, variantId: variant.id, productGroup, productType, addOnGroup });
+                if (!existingLineItem) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Line item not found in cart',
+                    };
+                }
+                const existingLineItemQuantity = existingLineItem.quantity;
+                const deltaQuantity = quantity - existingLineItemQuantity;
                 validateProductQuantity(
                     productType,
                     ctCart,
                     sku,
                     productId,
                     variant,
-                    quantity,
+                    deltaQuantity,
                 )
             }
             return true
@@ -602,7 +621,7 @@ export class CartService {
     }
 
 
-    private generateOrderNumber () {
+    private generateOrderNumber() {
         const timestamp = Date.now().toString(); // Current timestamp
         const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // Random 4-digit number
         return `ORD-${timestamp}-${random}`; // Combine parts into an order number
