@@ -93,28 +93,36 @@ export class CartService {
         const { cartId } = payload
         const ctCart = await this.getCtCartById(accessToken, cartId)
 
-        // TODO: STEP #2 - Validate Blacklist
+        // * STEP #2 - Validate Blacklist
         if (validateList.includes('BLACKLIST')) {
             await this.validateBlacklist(ctCart)
         }
 
-        // TODO: STEP #3 - Validate Campaign & Promotion Set
+        // * STEP #3 - Validate Campaign & Promotion Set
         if (validateList.includes('CAMPAIGN')) {
             await this.validateCampaign(ctCart)
         }
 
-        // TODO: STEP #4 - Validate Available Quantity (Commercetools)
+        // * STEP #4 - Validate Available Quantity (Commercetools)
         await this.validateAvailableQuantity(ctCart)
 
-        // TODO: STEP #5 - Create Order On TSM Sale
-        await this.createTSMSaleOrder(ctCart)
+
+        const orderNumber = this.generateOrderNumber()
+
+        // * STEP #5 - Create Order On TSM Sale
+        const { success, response  } = await this.createTSMSaleOrder(orderNumber, ctCart)
         // //! IF available > x
         // //! THEN continue
         // //! ELSE
         // //! THEN throw error
 
+        const tsmSaveOrder = {
+            tsmOrderIsSaved: success,
+            tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+        }
+
         await this.updateStockAllocation(ctCart);
-        const order = await commercetoolsOrderClient.createOrderFromCart(ctCart);
+        const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, ctCart, tsmSaveOrder);
 
         return order;
     };
@@ -271,11 +279,11 @@ export class CartService {
         return ctCart
     };
 
-    private createTSMSaleOrder = async (cart: any) => {
+    private createTSMSaleOrder = async (orderNumber: string, cart: any) => {
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const config = readConfiguration()
-            const tsmOrder = new TsmOrderModel({ ctCart: cart, config })
+            const tsmOrder = new TsmOrderModel({ ctCart: cart, config, orderNumber })
             const tsmOrderPayload = tsmOrder.toPayload()
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
@@ -283,25 +291,35 @@ export class CartService {
 
             const { code } = response || {}
 
-            if (code !== '0') {
-                throw {
-                    statusCode: 400,
-                    statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
-                    errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
-                };
+            // if (code !== '0') {
+            //     throw {
+            //         statusCode: 400,
+            //         statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
+            //         errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
+            //     };
+            // }
+
+            return {
+                success: code === '0',
+                response
             }
+
         } catch (error: any) {
             logger.info(`createTSMSaleOrder-error: ${JSON.stringify(error)}`)
             let data = error?.response?.data
             if (data) {
                 data = safelyParse(data)
             }
-            throw {
-                statusCode: 400,
-                statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
-                errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
-                ...(data ? { data } : {})
-            };
+            // throw {
+            //     statusCode: 400,
+            //     statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
+            //     errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
+            //     ...(data ? { data } : {})
+            // };
+            return {
+                success: false,
+                response: data
+            }
         }
     }
 
@@ -581,5 +599,12 @@ export class CartService {
                 errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
             };
         }
+    }
+
+
+    private generateOrderNumber () {
+        const timestamp = Date.now().toString(); // Current timestamp
+        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // Random 4-digit number
+        return `ORD-${timestamp}-${random}`; // Combine parts into an order number
     }
 }

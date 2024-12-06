@@ -1,16 +1,20 @@
 export default class TsmOrderModel {
     private readonly ctCart: any
     private readonly config: any
+    private readonly orderNumber: string
     constructor({
         ctCart,
+        orderNumber,
         config
     }: {
-        ctCart: any
+        ctCart: any,
+        orderNumber: string
         config: any
     }) {
 
         this.ctCart = ctCart
         this.config = config
+        this.orderNumber = orderNumber
     }
 
     toPayload() {
@@ -20,7 +24,7 @@ export default class TsmOrderModel {
         const saleName = this.config.tsmOrder.saleName
 
         // ! Generate
-        const orderId = this.generateOrderNumber()
+        const orderId = this.orderNumber
 
         // ! Cart
         const { shippingAddress, lineItems } = this.ctCart
@@ -222,13 +226,6 @@ export default class TsmOrderModel {
 
 
         return `${houseNo} ${subDistrict} ${district} ${country} ${postalCode}`
-    }
-
-
-    generateOrderNumber = () => {
-        const timestamp = Date.now().toString(); // Current timestamp
-        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // Random 4-digit number
-        return `ORD-${timestamp}-${random}`; // Combine parts into an order number
     }
 
     stangToBaht(stang: number) {
