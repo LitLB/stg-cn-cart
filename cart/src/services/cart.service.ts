@@ -44,7 +44,7 @@ export class CartService {
                 throw {
                     statusCode: 400,
                     statusMessage: 'Supply channel is missing on line item.',
-					errorCode: "SUPPLY_CHANNEL_MISSING",
+                    errorCode: "SUPPLY_CHANNEL_MISSING",
                 };
             }
 
@@ -54,7 +54,7 @@ export class CartService {
                 throw {
                     statusCode: 400,
                     statusMessage: 'InventoryId not found.',
-					errorCode: "INVENTORY_ID_NOT_FOUND",
+                    errorCode: "INVENTORY_ID_NOT_FOUND",
                 };
             }
 
@@ -63,7 +63,7 @@ export class CartService {
                 throw {
                     statusCode: 400,
                     statusMessage: `Inventory entry not found for ID: ${inventoryId}`,
-					errorCode: "INVENTORY_ENTRY_NOT_FOUND",
+                    errorCode: "INVENTORY_ENTRY_NOT_FOUND",
                 };
             }
 
@@ -107,12 +107,13 @@ export class CartService {
         await this.validateAvailableQuantity(ctCart)
 
         // TODO: STEP #5 - Create Order On TSM Sale
-        await this.createTSMSaleOrder(ctCart)
+        // await this.createTSMSaleOrder(ctCart)
         // //! IF available > x
         // //! THEN continue
         // //! ELSE
         // //! THEN throw error
 
+        // TODO: Add try, catch to return CREATE_ORDER_ON_CT_FAILED.
         await this.updateStockAllocation(ctCart);
         const order = await commercetoolsOrderClient.createOrderFromCart(ctCart);
 

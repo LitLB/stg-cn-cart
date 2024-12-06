@@ -77,8 +77,8 @@ class CommercetoolsOrderClient {
 				};
 			} else {
 				throw {
-					statusCode: 500,
-					statusMessage: `Cannot create an order on Commercetools. Internal server error.`,
+					statusCode: 400,
+					statusMessage: `Cannot create an order on Commercetools.`,
 					errorCode: "CREATE_ORDER_ON_CT_FAILED",
 				};
 			}
