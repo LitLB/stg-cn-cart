@@ -33,7 +33,6 @@ export interface ICart {
 	updatedAt: Date;
 	expiredAt: Date;
 	deleteDaysAfterLastModification?: number;
-	coupons: any;
 }
 
 export interface IItem {
