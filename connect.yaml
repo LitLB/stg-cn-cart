@@ -151,6 +151,9 @@ deployAs:
         - key: APIGW_BASE_URL
           description: Apigee base url
           required: true
+        - key: CTP_DEFAULT_COUPON_LIMIT
+          description: Config limit coupon
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: Commercetools project key identifying your specific project
