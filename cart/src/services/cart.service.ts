@@ -43,7 +43,7 @@ export class CartService {
             };
         }
 
-        const { shippingAddress, billingAddress, shippingMethodId, couponCodes = [], payment } = value;
+        const { shippingAddress, billingAddress, shippingMethodId, payment } = value;
 
         const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
@@ -56,16 +56,7 @@ export class CartService {
         }
 
         const profileId = cart?.id
-
-        const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({ profileId, ctCartData: cart, couponCodes });
-
-        const updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, customerSessionPayload);
-
-        const talonEffects = updatedCustomerSession.effects;
-        const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(talonEffects);
-
-        const talonOneUpdateActions = this.talonOneCouponAdapter.buildCouponActions(cart, processedCouponEffects);
-        // console.log('talonOneUpdateActions', talonOneUpdateActions);
+        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId);
 
         const updateActions: CartUpdateAction[] = [];
 
@@ -107,7 +98,7 @@ export class CartService {
 
         // console.log('talonOneUpdateActions', talonOneUpdateActions)
 
-        updateActions.push(...talonOneUpdateActions);
+        // updateActions.push(...talonOneUpdateActions);
 
         const updatedCart = await CommercetoolsCartClient.updateCart(
             cart.id,
@@ -117,7 +108,7 @@ export class CartService {
 
         const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
 
-        return { ...iCart, rejectedCoupons: processedCouponEffects.rejectedCoupons };
+        return { ...iCart, coupons };
     };
 
     public createAnonymousCart = async (accessToken: string, body: any) => {
@@ -160,9 +151,9 @@ export class CartService {
         }
 
         const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
-        const customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
-        // return { ...iCartWithBenefit, coupons };
-        return iCartWithBenefit;
+        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(id);
+        
+        return { ...iCartWithBenefit, coupons };
     };
 
     public updateStockAllocation = async (ctCart: Cart): Promise<any> => {

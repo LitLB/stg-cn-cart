@@ -9,6 +9,7 @@ import {
 } from '@commercetools/platform-sdk';
 import { readConfiguration } from '../utils/config.utils';
 import { COUPON_CUSTOM_EFFECT } from '../constants/cart.constant';
+import { talonOneIntegrationAdapter } from './talon-one.adapter';
 
 export class TalonOneCouponAdapter {
     private ctpAddCustomCouponLineItemPrefix: string;
@@ -26,6 +27,7 @@ export class TalonOneCouponAdapter {
         customEffects: any[];
         couponIdToCode: { [key: number]: string };
         couponIdToEffects: { [key: number]: any[] };
+        applyCoupons: { code: string; }[];
     } {
         const updateActions: CartUpdateAction[] = [];
         const acceptedCoupons: string[] = [];
@@ -33,6 +35,7 @@ export class TalonOneCouponAdapter {
         const customEffects: any[] = [];
         const couponIdToCode: { [key: number]: string } = {};
         const couponIdToEffects: { [key: number]: any[] } = {};
+        const applyCoupons: { code: string; }[] = [];
 
         // Process effects to build mappings
         effects.forEach(effect => {
@@ -48,6 +51,9 @@ export class TalonOneCouponAdapter {
             switch (effectType) {
                 case 'acceptCoupon':
                     acceptedCoupons.push(props.value);
+                    applyCoupons.push({
+                        code: props.value,
+                    });
                     if (triggeredByCoupon) {
                         couponIdToCode[triggeredByCoupon] = props.value;
                     }
@@ -82,6 +88,7 @@ export class TalonOneCouponAdapter {
             customEffects,
             couponIdToCode,
             couponIdToEffects,
+            applyCoupons,
         };
     }
 
@@ -235,4 +242,20 @@ export class TalonOneCouponAdapter {
             }
         });
     }
+
+    async getEffectsCouponsById(id: any): Promise<{ coupons: any }> {
+        // Retrieve customer session and effects
+         const customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
+         const { effects: talonEffects } = customerSession;
+     
+         // Process coupon effects
+         const { applyCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects);
+
+         return {
+            coupons: {
+                acceptedCoupons: applyCoupons,
+                rejectedCoupons: rejectedCoupons,
+            },
+        };
+	}
 }
