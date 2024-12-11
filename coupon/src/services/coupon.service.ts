@@ -5,7 +5,7 @@ import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
-import { readConfiguration } from '../utils/config.utils';
+import { validateCouponLimit } from '../validators/coupon.valicator';
 
 export class CouponService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -20,39 +20,20 @@ export class CouponService {
 
     public applyCoupons = async (accessToken: string, id: string, body: any): Promise<any> => {
         const couponCodes = body.couponCodes || [];
-        let removeCouponCodes = body.removeCouponCodes || [];
-        let applyCoupons = [...couponCodes];
-        const ctpDefaultCouponLimit = readConfiguration().ctpDefaultCouponLimit ? Number(readConfiguration().ctpDefaultCouponLimit) : undefined;
-        if(couponCodes.length > ctpDefaultCouponLimit){
-            throw {
-                statusCode: 400,
-                errorCode: "EXCEEDED_MAX_APPLIYED_COUPON",
-                statusMessage: 'exceeded limit',
-            };
+        const removeCouponCodes = body.removeCouponCodes || [];
+        
+        const validateError = validateCouponLimit(couponCodes.length)
+        if(validateError){
+            throw validateError;
         }
 
-        const customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
-        if(couponCodes.length > 0 && customerSession['customerSession']['couponCodes'] && customerSession['customerSession']['couponCodes'].length > 0){
-            applyCoupons = [...couponCodes, ...customerSession['customerSession']['couponCodes']];
-            applyCoupons = Array.from(new Set(applyCoupons));
+        const resultCoupons = await talonOneIntegrationAdapter.manageCouponsById(id, couponCodes, removeCouponCodes)
+        if(resultCoupons.error){
+            throw resultCoupons.error;
         }
 
-        removeCouponCodes = customerSession['effects']
-            .filter(effect => effect.effectType === "rejectCoupon" && !couponCodes.includes(effect.props.value))
-            .map(effect => effect.props.value);
-        if(applyCoupons.length > ctpDefaultCouponLimit){
-            throw {
-                statusCode: 400,
-                errorCode: "EXCEEDED_MAX_APPLIYED_COUPON",
-                statusMessage: 'exceeded limit',
-            };
-        }
-
-        if(removeCouponCodes.length > 0){
-            applyCoupons = applyCoupons.filter(item => !removeCouponCodes.includes(item));
-        }
-
-        couponCodes.splice(0, couponCodes.length, ...applyCoupons);
+        // Update couponCodes in-place
+        couponCodes.splice(0, couponCodes.length, ...resultCoupons.applyCoupons);
         const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
         const cart = await commercetoolsMeCartClient.getCartById(id);
         if (!cart) {
@@ -69,6 +50,18 @@ export class CouponService {
         const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(talonEffects);
         const talonOneUpdateActions = this.talonOneCouponAdapter.buildCouponActions(cart, processedCouponEffects);
         const updateActions: CartUpdateAction[] = [];
+        // const updateActions: any[] = [];
+        // updateActions.push(...talonOneUpdateActions);
+        const coupons = {
+            acceptedCoupons: processedCouponEffects.applyCoupons,
+            rejectedCoupons: processedCouponEffects.rejectedCoupons
+        }
+        // if (coupons) {
+        //     updateActions.push({
+        //         action: 'setCoupons',
+        //         address: coupons,
+        //     });
+        // }
         updateActions.push(...talonOneUpdateActions);
         const updatedCart = await CommercetoolsCartClient.updateCart(
             cart.id,
@@ -77,6 +70,6 @@ export class CouponService {
         );
 
         const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
-        return { ...iCart, rejectedCoupons: processedCouponEffects.rejectedCoupons, acceptedCoupons: processedCouponEffects.acceptedCoupons};
+        return { ...iCart, coupons };
     }
 }

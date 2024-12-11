@@ -1,5 +1,7 @@
 import * as talonOne from "talon_one";
 import { readConfiguration } from "../utils/config.utils";
+import { validateCouponLimit } from "../validators/coupon.valicator";
+import { ResponseType } from '../types/response.type';
 
 class TalonOneIntegrationAdapter {
 	private readonly integrationApi: talonOne.IntegrationApi;
@@ -136,6 +138,46 @@ class TalonOneIntegrationAdapter {
 			]
 		}
 	}
+
+	async manageCouponsById(
+		id: any,
+		couponCodes: string[],
+		removeCouponCodes: string[],
+	): Promise<{ applyCoupons: string[], error: ResponseType | undefined }> {
+
+		// Get the customer session from the adapter
+		const customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
+
+		// Initialize applyCoupons with the current coupon codes
+		let applyCoupons = [...couponCodes];
+
+		// Merge and deduplicate coupon codes from the customer session
+		if (couponCodes.length > 0 && customerSession?.customerSession?.couponCodes?.length > 0) {
+			applyCoupons = Array.from(new Set([...couponCodes, ...customerSession.customerSession.couponCodes]));
+		}
+
+		// Identify coupons to remove based on session effects
+		removeCouponCodes = customerSession.effects
+			.filter(
+				(effect: { effectType: string; props: { value: string } }) =>
+					effect.effectType === 'rejectCoupon' && !couponCodes.includes(effect.props.value)
+			)
+			.map((effect: { props: { value: string } }) => effect.props.value);
+
+		// Validate coupon limit
+		const validationError = validateCouponLimit(applyCoupons.length);
+		if (validationError) {
+			return { applyCoupons: [], error: validationError };
+		}
+
+		// Remove invalid coupons from applyCoupons
+		if (removeCouponCodes.length > 0) {
+			applyCoupons = applyCoupons.filter(item => !removeCouponCodes.includes(item));
+		}
+
+		return { applyCoupons, error: undefined };
+	}
+
 }
 
 export const talonOneIntegrationAdapter = new TalonOneIntegrationAdapter();

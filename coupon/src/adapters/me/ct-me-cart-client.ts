@@ -14,7 +14,7 @@ import type {
 	LineItem,
 	CustomLineItem,
 } from '@commercetools/platform-sdk';
-import type { ICart, IImage, IItem } from '../../interfaces/cart';
+import type { ICart, ICoupons, IImage, IItem } from '../../interfaces/cart';
 import { CART_EXPIRATION_DAYS, CART_INVENTORY_MODES } from '../../constants/cart.constant';
 import dayjs from 'dayjs';
 import CommercetoolsInventoryClient from '../ct-inventory-client';
