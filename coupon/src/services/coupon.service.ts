@@ -7,8 +7,6 @@ import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit } from '../validators/coupon.valicator';
 
-import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
-
 
 export class CouponService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;

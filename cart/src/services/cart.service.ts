@@ -10,7 +10,6 @@ import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter'
 import { ICart } from '../interfaces/cart';
 import { validateCartCheckoutBody, validateCreateAnonymousCartBody } from '../validators/cart.validator';
-import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 import { validateProductQuantity } from '../validators/cart-item.validator';
 import ApigeeClientAdapter from '../adapters/apigee-client.adapter';

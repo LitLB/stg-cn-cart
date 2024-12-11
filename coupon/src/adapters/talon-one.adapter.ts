@@ -157,13 +157,14 @@ class TalonOneIntegrationAdapter {
 		}
 
 		// Identify coupons to remove based on session effects
-		removeCouponCodes = customerSession.effects
+		const removeCodeEff = customerSession.effects
 			.filter(
 				(effect: { effectType: string; props: { value: string } }) =>
 					effect.effectType === 'rejectCoupon' && !couponCodes.includes(effect.props.value)
 			)
 			.map((effect: { props: { value: string } }) => effect.props.value);
 
+		removeCouponCodes = [...removeCouponCodes ,...removeCodeEff]
 		// Validate coupon limit
 		const validationError = validateCouponLimit(applyCoupons.length);
 		if (validationError) {
