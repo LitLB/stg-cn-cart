@@ -25,7 +25,6 @@ cartRouter.post('/v1/carts/:id/items/select', authenticate, cartItemController.s
 cartRouter.delete('/v1/carts/:id/items/bulk-delete', authenticate, cartItemController.bulkDelete);
 cartRouter.put('/v1/carts/:id/items/:itemId', authenticate, cartItemController.updateItemQuantityById);
 cartRouter.delete('/v1/carts/:id/items/:itemId', authenticate, cartItemController.deleteItemById);
-cartRouter.post('/v1/carts/:id/coupons', authenticate, cartController.applyCoupons);
 
 cartRouter.post('/v1/order/check-blacklist', blacklistController.checkBlacklist);
 cartRouter.post('/v1/orders', authenticate, cartController.createOrder);
