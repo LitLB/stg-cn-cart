@@ -261,7 +261,7 @@ export function validateProductQuantity(
 	sku: string,
 	productId: string,
 	variant: ProductVariant,
-	deltaQuantity: number,
+	deltaQuantity = 0,
 ): void | ResponseType {
 	if (productType !== 'main_product') {
 		return;

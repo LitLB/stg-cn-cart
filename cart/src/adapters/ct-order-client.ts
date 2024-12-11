@@ -2,6 +2,9 @@ import type { ApiRoot, Cart, Order, OrderFromCartDraft } from '@commercetools/pl
 import CommercetoolsBaseClient from './ct-base-client';
 import { readConfiguration } from '../utils/config.utils';
 import { STATE_ORDER_KEYS } from '../constants/state.constant';
+import { ORDER_STATES } from '../constants/order.constant';
+import { SHIPMENT_STATES } from '../constants/shipment.constant';
+import { PAYMENT_STATES } from '../constants/payment.constant';
 
 class CommercetoolsOrderClient {
 	private apiRoot: ApiRoot;
@@ -34,22 +37,36 @@ class CommercetoolsOrderClient {
 
 	/**
 	 * Creates a new Order from a Cart.
+	 * @param orderNumber - The reference id for order
 	 * @param cart - The Cart object to convert into an Order.
+	 * @param tsmSaveOrder - The detail of TSM save order.
 	 */
-	public async createOrderFromCart(cart: Cart): Promise<Order> {
+	public async createOrderFromCart(orderNumber: string, cart: Cart, tsmSaveOrder:any): Promise<Order> {
+		const { tsmOrderIsSaved, tsmOrderResponse } = tsmSaveOrder || {}
 		const orderDraft: OrderFromCartDraft = {
 			version: cart.version,
 			cart: {
 				typeId: 'cart',
 				id: cart.id,
 			},
-			orderState: 'Open',
-			shipmentState: 'Pending',
-			paymentState: 'Pending',
+			orderNumber,
+			orderState: ORDER_STATES.OPEN,
+			shipmentState: SHIPMENT_STATES.PENDING,
+			paymentState: PAYMENT_STATES.PENDING,
 			state: {
 				typeId: 'state',
 				key: STATE_ORDER_KEYS.ORDER_CREATED,
 			},
+			custom: {
+				type: {
+					typeId: 'type',
+					key: 'cartOrderCustomType',
+				},
+				fields: {
+					...(tsmOrderIsSaved !== undefined && tsmOrderIsSaved !== null ? { tsmOrderIsSaved } : {}),
+					...(tsmOrderResponse ? { tsmOrderResponse }: {})
+				}
+			}
 		};
 
 		try {
@@ -72,14 +89,14 @@ class CommercetoolsOrderClient {
 			) {
 				throw {
 					statusCode: 400,
-					errorCode: "CREATE_ORDER_ON_CT_FAILED",
 					statusMessage: `Cannot place order: Some line items are out of stock.`,
+					errorCode: "CREATE_ORDER_ON_CT_FAILED",
 				};
 			} else {
 				throw {
 					statusCode: 500,
-					errorCode: "CREATE_ORDER_ON_CT_FAILED",
 					statusMessage: `Cannot create an order on Commercetools. Internal server error.`,
+					errorCode: "CREATE_ORDER_ON_CT_FAILED",
 				};
 			}
 		}

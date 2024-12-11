@@ -178,6 +178,17 @@ class TalonOneIntegrationAdapter {
 		return { applyCoupons, error: undefined };
 	}
 
+	// Retrieves the customer inventory based on the specified options.
+	getCustomerInventoryByOptions(integrationId = 'guest', opts: {
+		profile?: boolean | undefined;
+		referrals?: boolean | undefined;
+		coupons?: boolean | undefined;
+		loyalty?: boolean | undefined;
+		giveaways?: boolean | undefined;
+		achievements?: boolean | undefined;
+	}) {
+		return this.integrationApi.getCustomerInventory(integrationId, opts);
+	}
 }
 
 export const talonOneIntegrationAdapter = new TalonOneIntegrationAdapter();

@@ -1,8 +1,9 @@
 // server/adapters/ct-inventory-client.ts
 
-import type { ApiRoot, InventoryEntry, InventoryEntryUpdateAction } from '@commercetools/platform-sdk';
+import type { ApiRoot, InventoryEntry, InventoryEntryUpdate, InventoryEntryUpdateAction } from '@commercetools/platform-sdk';
 import { readConfiguration } from '../utils/config.utils';
 import CommercetoolsBaseClient from './ct-base-client'
+import { CART_JOURNEYS } from '../constants/cart.constant';
 
 class CommercetoolsInventoryClient {
 	private static instance: CommercetoolsInventoryClient;
@@ -24,6 +25,132 @@ class CommercetoolsInventoryClient {
 	}
 
 	/**
+  * Updates the inventory allocation based on the journey.
+  * @param inventoryEntry - The inventory entry to update.
+  * @param orderedQuantity - The quantity ordered.
+  * @param journey - The journey type from ctCart.custom.fields.journey.
+  * @param journeyConfig - The journey configuration.
+  */
+	public async updateInventoryAllocationV2(
+		inventoryEntry: InventoryEntry,
+		orderedQuantity: number,
+		journey: string,
+		journeyConfig: any
+	): Promise<void> {
+		switch (journey) {
+			case CART_JOURNEYS.SINGLE_PRODUCT:
+				// Inventory is reserved on order creation; no additional actions required.
+				console.log(`Single Product journey: Inventory for ${inventoryEntry.id} is reserved on order.`);
+				break;
+			case CART_JOURNEYS.DEVICE_ONLY:
+				await this.processCustomInventory(
+					inventoryEntry,
+					orderedQuantity,
+					journeyConfig
+				);
+				break;
+			default:
+				throw {
+					statusCode: 500,
+					statusMessage: `Unhandled journey type: ${journey}.`,
+					errorCode: 'UNHANDLED_JOURNEY',
+				};
+		}
+	}
+
+	private async reduceInventoryQuantity(
+		inventoryEntry: InventoryEntry,
+		orderedQuantity: number
+	): Promise<void> {
+		const updateActions: InventoryEntryUpdateAction[] = [
+			{
+				action: 'removeQuantity',
+				quantity: orderedQuantity,
+			},
+		];
+
+		const inventoryUpdate: InventoryEntryUpdate = {
+			version: inventoryEntry.version,
+			actions: updateActions,
+		};
+
+		await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.inventory()
+			.withId({ ID: inventoryEntry.id })
+			.post({ body: inventoryUpdate })
+			.execute();
+	}
+
+	private async processCustomInventory(
+		inventoryEntry: InventoryEntry,
+		orderedQuantity: number,
+		journeyConfig: any,
+	): Promise<void> {
+		const { totalKey, maximumKey } = journeyConfig.inventory;
+		if (!totalKey || !maximumKey) {
+			throw {
+				statusCode: 500,
+				statusMessage: 'totalKey or maximumKey invalid.',
+				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
+			}
+		}
+
+		const customFields = inventoryEntry.custom?.fields;
+		if (!customFields) {
+			throw {
+				statusCode: 400,
+				statusMessage: 'Custom fields are missing on inventory entry.',
+				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
+			}
+		}
+
+		const total = customFields[totalKey] || 0;
+		const maximum = customFields[maximumKey] || 0;
+		const newTotal = total + orderedQuantity;
+		if (newTotal > maximum) {
+			throw {
+				statusCode: 400,
+				statusMessage: `Exceeds maximum stock allocation for journey.`,
+				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
+			};
+		}
+
+		// Update the custom field with the new total
+		await this.updateInventoryCustomField(
+			inventoryEntry,
+			totalKey,
+			newTotal
+		);
+	}
+
+	private async updateInventoryCustomField(
+		inventoryEntry: InventoryEntry,
+		fieldName: string,
+		fieldValue: any
+	): Promise<void> {
+		const updateActions: InventoryEntryUpdateAction[] = [
+			{
+				action: 'setCustomField',
+				name: fieldName,
+				value: fieldValue,
+			},
+		];
+
+		const inventoryUpdate: InventoryEntryUpdate = {
+			version: inventoryEntry.version,
+			actions: updateActions,
+		};
+
+		await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.inventory()
+			.withId({ ID: inventoryEntry.id })
+			.post({ body: inventoryUpdate })
+			.execute();
+	}
+
+	/**
 	 * Fetches inventory by ID.
 	 * @param inventoryId - The ID of the inventory entry.
 	 * @returns {Promise<InventoryEntry | null>} - Returns the inventory entry or null if not found.
@@ -42,81 +169,6 @@ class CommercetoolsInventoryClient {
 			console.error('Error fetching inventory by ID:', error);
 			return null;
 		}
-	}
-
-	// public async updateInventoryAllocation(
-	// 	inventoryId: string,
-	// 	version: number,
-	// 	newTotalPurchaseAllocation: number
-	// ): Promise<InventoryEntry> {
-	// 	const updateActions: InventoryEntryUpdateAction[] = [
-	// 		{
-	// 			action: 'setCustomField',
-	// 			name: 'totalPurchaseStockAllocationDeviceOnly',
-	// 			value: newTotalPurchaseAllocation,
-	// 		},
-	// 	];
-
-	// 	try {
-	// 		const response = await this.apiRoot
-	// 			.withProjectKey({ projectKey: this.projectKey })
-	// 			.inventory()
-	// 			.withId({ ID: inventoryId })
-	// 			.post({ body: { version, actions: updateActions } })
-	// 			.execute();
-
-	// 		return response.body as InventoryEntry;
-	// 	} catch (error: any) {
-	// 		console.error('Error updating inventory allocation:', error);
-	// 		throw error;
-	// 	}
-	// }
-
-	/**
-  * Updates the inventory allocation with retry logic to handle version conflicts.
-  * @param inventoryId - The ID of the inventory entry.
-  * @param orderedQuantity - The quantity being ordered.
-  * @param maxRetries - Maximum number of retry attempts.
-  * @returns {Promise<InventoryEntry>} - Returns the updated inventory entry.
-  */
-	public async updateInventoryAllocation(
-		inventoryId: string,
-		orderedQuantity: number,
-	): Promise<InventoryEntry> {
-		// Fetch the latest inventory entry
-		const inventoryEntry = await this.getInventoryById(inventoryId);
-		if (!inventoryEntry) {
-			throw new Error(`Inventory with ID ${inventoryId} not found.`);
-		}
-
-		const version = inventoryEntry.version;
-		const customFields = inventoryEntry.custom?.fields;
-		const currentTotalPurchaseAllocation = customFields?.totalPurchaseStockAllocationDeviceOnly || 0;
-		const maximumStockAllocation = customFields?.maximumStockAllocationDeviceOnly || 0;
-
-		const newTotalPurchaseAllocation = currentTotalPurchaseAllocation + orderedQuantity;
-
-		// Validate allocation
-		if (newTotalPurchaseAllocation > maximumStockAllocation) {
-			throw new Error('Device Out of Stock.');
-		}
-
-		const updateActions: InventoryEntryUpdateAction[] = [
-			{
-				action: 'setCustomField',
-				name: 'totalPurchaseStockAllocationDeviceOnly',
-				value: newTotalPurchaseAllocation,
-			},
-		];
-
-		const response = await this.apiRoot
-			.withProjectKey({ projectKey: this.projectKey })
-			.inventory()
-			.withId({ ID: inventoryId })
-			.post({ body: { version, actions: updateActions } })
-			.execute();
-
-		return response.body as InventoryEntry;
 	}
 
 	/**

@@ -13,7 +13,7 @@ import { notFoundHandler } from './middleware/not-found.middleware';
 
 readConfiguration();
 
-const PORT = 8081;
+const PORT = 8080; // For local dev change to 8081
 
 const app: Express = express();
 

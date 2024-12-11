@@ -1,4 +1,5 @@
 // cart/src/services/cart.service.ts
+
 import _ from 'lodash'
 import { Cart, CartUpdateAction } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
@@ -15,12 +16,12 @@ import { validateProductQuantity } from '../validators/cart-item.validator';
 import ApigeeClientAdapter from '../adapters/apigee-client.adapter';
 import TsmOrderModel from '../models/tsm-order.model';
 import { readConfiguration } from '../utils/config.utils';
-
 import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
 import { BlacklistService } from './blacklist.service'
 import { safelyParse } from '../utils/response.utils';
 import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 import { logger } from '../utils/logger.utils';
+import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -32,6 +33,104 @@ export class CartService {
         this.talonOneEffectConverter = talonOneEffectConverter
         this.blacklistService = new BlacklistService()
     }
+
+    public updateStockAllocation = async (ctCart: Cart): Promise<void> => {
+        try {
+            const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
+            const journeyConfig = journeyConfigMap[journey];
+
+            for (const lineItem of ctCart.lineItems) {
+                const supplyChannel = lineItem.supplyChannel;
+                if (!supplyChannel || !supplyChannel.id) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Supply channel is missing on line item.',
+                        errorCode: "SUPPLY_CHANNEL_MISSING",
+                    };
+                }
+
+                const inventoryId =
+                    lineItem.variant.availability?.channels?.[supplyChannel.id]?.id;
+                if (!inventoryId) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'InventoryId not found.',
+                        errorCode: "INVENTORY_ID_NOT_FOUND",
+                    };
+                }
+
+                const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
+                if (!inventoryEntry) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: `Inventory entry not found for ID: ${inventoryId}`,
+                        errorCode: "INVENTORY_ENTRY_NOT_FOUND",
+                    };
+                }
+
+                const orderedQuantity = lineItem.quantity;
+                await CommercetoolsInventoryClient.updateInventoryAllocationV2(
+                    inventoryEntry,
+                    orderedQuantity,
+                    journey,
+                    journeyConfig
+                );
+            }
+        } catch (error) {
+            throw {
+                statusCode: 400,
+                statusMessage: `Update stock allocation failed.`,
+                errorCode: "CREATE_ORDER_ON_CT_FAILED",
+            };
+        }
+    };
+
+    public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
+        const defaultValidateList = [
+            'BLACKLIST',
+            'CAMPAIGN',
+        ]
+
+        let validateList = defaultValidateList
+        if (partailValidateList.length) {
+            validateList = partailValidateList
+        }
+
+        const { cartId } = payload
+        const ctCart = await this.getCtCartById(accessToken, cartId)
+
+        // * STEP #2 - Validate Blacklist
+        if (validateList.includes('BLACKLIST')) {
+            await this.validateBlacklist(ctCart)
+        }
+
+        // * STEP #3 - Validate Campaign & Promotion Set
+        if (validateList.includes('CAMPAIGN')) {
+            await this.validateCampaign(ctCart)
+        }
+
+        // * STEP #4 - Validate Available Quantity (Commercetools)
+        await this.validateAvailableQuantity(ctCart)
+
+        const orderNumber = this.generateOrderNumber()
+
+        // * STEP #5 - Create Order On TSM Sale
+        const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+        // //! IF available > x
+        // //! THEN continue
+        // //! ELSE
+        // //! THEN throw error
+
+        const tsmSaveOrder = {
+            tsmOrderIsSaved: success,
+            tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+        }
+
+        await this.updateStockAllocation(ctCart);
+        const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, ctCart, tsmSaveOrder);
+
+        return order;
+    };
 
     public checkout = async (accessToken: string, id: string, body: any): Promise<any> => {
         const { error, value } = validateCartCheckoutBody(body);
@@ -156,80 +255,6 @@ export class CartService {
         return { ...iCartWithBenefit, coupons };
     };
 
-    public updateStockAllocation = async (ctCart: Cart): Promise<any> => {
-        // Fetch and validate inventory
-        for (const lineItem of ctCart.lineItems) {
-            const supplyChannel = lineItem.supplyChannel;
-            console.log('supplyChannel', supplyChannel);
-            if (!supplyChannel || !supplyChannel.id) {
-                throw new Error('Supply channel is missing on line item.');
-            }
-
-            const inventoryId = lineItem.variant.availability?.channels?.[supplyChannel.id].id;
-            console.log('inventoryId', inventoryId);
-            if (!inventoryId) {
-                throw new Error("InventoryId not found.");
-            }
-
-            // Fetch the inventory entry associated with the supply channel
-            const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(
-                inventoryId
-            );
-            console.log('inventoryEntry', inventoryEntry);
-            if (!inventoryEntry) {
-                throw new Error(`Inventory entry not found for supply channel ID: ${supplyChannel.id}`);
-            }
-
-            const orderedQuantity = lineItem.quantity;
-            console.log('orderedQuantity', orderedQuantity);
-
-            await CommercetoolsInventoryClient.updateInventoryAllocation(
-                inventoryEntry.id,
-                orderedQuantity
-            );
-        }
-    }
-
-    public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
-        
-        const defaultValidateList = [
-            'BLACKLIST',
-            'CAMPAIGN',
-        ]
-
-        let validateList = defaultValidateList
-        if (partailValidateList.length) {
-            validateList = partailValidateList
-        }
-
-        const { cartId } = payload
-        const ctCart = await this.getCtCartById(accessToken, cartId)
-        // TODO: STEP #2 - Validate Blacklist
-        if (validateList.includes('BLACKLIST')) {
-            await this.validateBlacklist(ctCart)
-        }
-
-        // TODO: STEP #3 - Validate Campaign & Promotion Set
-        if (validateList.includes('CAMPAIGN')) {
-            await this.validateCampaign(ctCart)
-        }
-
-        // TODO: STEP #4 - Validate Available Quantity (Commercetools)
-        await this.validateAvailableQuantity(ctCart)
-
-        // TODO: STEP #5 - Create Order On TSM Sale
-        await this.createTSMSaleOrder(ctCart)
-        //! IF available > x
-        //! THEN continue
-        //! ELSE
-        //! THEN throw error
-
-        // await this.updateStockAllocation(ctCart);
-        const order = await commercetoolsOrderClient.createOrderFromCart(ctCart);
-
-        return order;
-    };
-
     public getCtCartById = async (accessToken: string, id: string): Promise<any> => {
         if (!id) {
             throw {
@@ -251,11 +276,11 @@ export class CartService {
         return ctCart
     };
 
-    private createTSMSaleOrder = async (cart: any) => {
+    private createTSMSaleOrder = async (orderNumber: string, cart: any) => {
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const config = readConfiguration()
-            const tsmOrder = new TsmOrderModel({ ctCart: cart, config })
+            const tsmOrder = new TsmOrderModel({ ctCart: cart, config, orderNumber })
             const tsmOrderPayload = tsmOrder.toPayload()
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
@@ -263,25 +288,35 @@ export class CartService {
 
             const { code } = response || {}
 
-            if (code !== '0') {
-                throw {
-                    statusCode: 400,
-                    statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
-                    errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
-                };
+            // if (code !== '0') {
+            //     throw {
+            //         statusCode: 400,
+            //         statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
+            //         errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
+            //     };
+            // }
+
+            return {
+                success: code === '0',
+                response
             }
+
         } catch (error: any) {
             logger.info(`createTSMSaleOrder-error: ${JSON.stringify(error)}`)
             let data = error?.response?.data
             if (data) {
                 data = safelyParse(data)
             }
-            throw {
-                statusCode: 400,
-                statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
-                errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
-                ...(data ? { data } : {})
-            };
+            // throw {
+            //     statusCode: 400,
+            //     statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
+            //     errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
+            //     ...(data ? { data } : {})
+            // };
+            return {
+                success: false,
+                response: data
+            }
         }
     }
 
@@ -503,14 +538,13 @@ export class CartService {
         }
     }
 
-    private async validateAvailableQuantity(ctCart: any) {
+    private async validateAvailableQuantity(ctCart: Cart) {
         try {
             const { lineItems } = ctCart
             for (const lineItem of lineItems) {
-                const productType = lineItem.custom?.fields?.productType
-                const sku = lineItem.variant.sku
-                const productId = lineItem.productId
-                const quantity = lineItem.quantity
+                const productType = lineItem.custom?.fields?.productType;
+                const sku = lineItem.variant.sku as string;
+                const productId = lineItem.productId;
 
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
@@ -549,7 +583,6 @@ export class CartService {
                     sku,
                     productId,
                     variant,
-                    quantity,
                 )
             }
             return true
@@ -561,5 +594,12 @@ export class CartService {
                 errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
             };
         }
+    }
+
+
+    private generateOrderNumber() {
+        const timestamp = Date.now().toString(); // Current timestamp
+        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // Random 4-digit number
+        return `ORD-${timestamp}-${random}`; // Combine parts into an order number
     }
 }
