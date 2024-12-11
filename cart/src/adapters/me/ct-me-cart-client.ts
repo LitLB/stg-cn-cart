@@ -708,14 +708,8 @@ export default class CommercetoolsMeCartClient {
 			deleteDaysAfterLastModification,
 		);
 
-
-		// TODO: 
-
-		// const iCart: ICart = {
-		const iCart: any = {
+		const iCart: ICart = {
 			cartId: ctCart.id,
-			acceptCopuons: [],
-			rejectedCopuons: [],
 			campaignGroup: ctCart.custom?.fields.campaignGroup,
 			journey: ctCart.custom?.fields.journey,
 			subtotalPrice,
