@@ -679,9 +679,11 @@ class TalonOneEffectConverter {
 		const customerSessionPayload = this.talonOneIntegrationAdapter.buildCustomerSessionPayload({
 			ctCartData
 		})
+		// console.log('customerSessionPayload', customerSessionPayload);
 
 		const customerSessionId = ctCartData?.id
 		const customerSession = await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, customerSessionPayload)
+		// console.log('customerSession', customerSession);
 
 		return customerSession
 	}
@@ -888,12 +890,22 @@ class TalonOneEffectConverter {
 		const { customerSession: { cartItems }, effects } = customerSession;
 
 		const distintEffects = this.groupEffect(effects);
+		console.log('distintEffects', distintEffects);
+
 		const filteredEffects = this.filter(distintEffects);
+		console.log('filteredEffects', filteredEffects);
+
 		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
+		console.log('convertedEffects', convertedEffects);
 
 		const benefits = convertedEffects.map(this.getBenefit)
+		console.log('benefits', benefits);
+
 		const addOnBenefits = benefits.map((item: any) => item.addOnBenefits).flat();
+		console.log('addOnBenefits', addOnBenefits);
+
 		const wrappedAddOnbenefits = await this.wrapCTContext(addOnBenefits);
+		console.log('wrappedAddOnbenefits', wrappedAddOnbenefits);
 
 		const productGroupBenefits = benefits.map((item: any) => item.productGroupBenefits).flat()
 		const productBenefits = benefits.map((item: any) => item.productBenefits).flat()
@@ -926,7 +938,7 @@ class TalonOneEffectConverter {
 	}
 
 	async getCtLineItemWithCampaignBenefits(ctCart: any) {
-		const { addOnbenefits, productGroupBenefits, productBenefits } = await this.getBenefitByCtCart(ctCart)
+		const { addOnbenefits, productGroupBenefits, productBenefits } = await this.getBenefitByCtCart(ctCart);
 
 		let { lineItems } = ctCart
 		lineItems = this.attachMainProductBenefits(lineItems, productGroupBenefits, productBenefits)

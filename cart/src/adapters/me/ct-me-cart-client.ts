@@ -1077,9 +1077,16 @@ export default class CommercetoolsMeCartClient {
 	}
 
 	async updateCartWithBenefit(ctCart: any) {
+		// 1. Upsert T1 Customer Session.
 		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
+
+		// 2. Get availableBenefits?
 		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
+		console.log('lineItemWithCampaignBenefits', lineItemWithCampaignBenefits);
+
+		// 3. Update CT
 		const updatedCart = await this.upsertPrivilegeToCtCart(ctCart, lineItemWithCampaignBenefits)
+		// console.log('updatedCart', updatedCart);
 
 		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
 		const inventoryKey = skus.map((sku: any) => sku).join(',');
