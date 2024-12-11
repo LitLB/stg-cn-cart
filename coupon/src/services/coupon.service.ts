@@ -50,19 +50,11 @@ export class CouponService {
         const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(talonEffects);
         const talonOneUpdateActions = this.talonOneCouponAdapter.buildCouponActions(cart, processedCouponEffects);
         const updateActions: CartUpdateAction[] = [];
-        // const updateActions: any[] = [];
-        // updateActions.push(...talonOneUpdateActions);
+        updateActions.push(...talonOneUpdateActions);
         const coupons = {
             acceptedCoupons: processedCouponEffects.applyCoupons,
             rejectedCoupons: processedCouponEffects.rejectedCoupons
         }
-        // if (coupons) {
-        //     updateActions.push({
-        //         action: 'setCoupons',
-        //         address: coupons,
-        //     });
-        // }
-        updateActions.push(...talonOneUpdateActions);
         const updatedCart = await CommercetoolsCartClient.updateCart(
             cart.id,
             cart.version,

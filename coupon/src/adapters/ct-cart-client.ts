@@ -24,8 +24,7 @@ class CommercetoolsCartClient {
 	async updateCart(
 		cartId: string,
 		version: number,
-		// actions: CartUpdateAction[],
-		actions: any[],
+		actions: CartUpdateAction[],
 	) {
 		try {
 			const cartUpdate: CartUpdate = {
