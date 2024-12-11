@@ -206,7 +206,7 @@ export class CartService {
 
         const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
 
-        return { ...iCart, coupons };
+        return { ...iCart, ...coupons };
     };
 
     public createAnonymousCart = async (accessToken: string, body: any) => {
@@ -251,7 +251,7 @@ export class CartService {
         const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
         const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(id);
         
-        return { ...iCartWithBenefit, coupons };
+        return { ...iCartWithBenefit, ...coupons };
     };
 
     public getCtCartById = async (accessToken: string, id: string): Promise<any> => {

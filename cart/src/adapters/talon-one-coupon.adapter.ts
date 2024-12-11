@@ -243,19 +243,17 @@ export class TalonOneCouponAdapter {
         });
     }
 
-    async getEffectsCouponsById(id: any): Promise<{ coupons: any }> {
-        // Retrieve customer session and effects
-         const customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
-         const { effects: talonEffects } = customerSession;
-     
-         // Process coupon effects
-         const { applyCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects);
-
-         return {
-            coupons: {
-                acceptedCoupons: applyCoupons,
-                rejectedCoupons: rejectedCoupons,
-            },
+    async getEffectsCouponsById(id: any): Promise<{ coupons: { acceptedCoupons: any; rejectedCoupons: any } }> {
+        // Retrieve customer session and extract effects
+        const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(id);
+    
+        // Process coupon effects
+        const { applyCoupons: acceptedCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects);
+    
+        // Return structured coupon data
+        return { 
+            coupons: { acceptedCoupons, rejectedCoupons } 
         };
-	}
+    }
+    
 }
