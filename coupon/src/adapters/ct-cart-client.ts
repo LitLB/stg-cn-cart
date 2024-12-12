@@ -3,6 +3,7 @@
 import type { ApiRoot, Cart, CartUpdate, CartUpdateAction, MyCartUpdate, MyCartUpdateAction, LineItemDraft } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from './ct-base-client';
 import { readConfiguration } from '../utils/config.utils';
+import { logger } from '../utils/logger.utils';
 
 class CommercetoolsCartClient {
 	private static instance: CommercetoolsCartClient;
@@ -43,8 +44,12 @@ class CommercetoolsCartClient {
 
 			return response.body;
 		} catch (error) {
-			console.error(`updateCart.error`, error);
-			throw error;
+			logger.info('Commercetools updateCart error', error);
+            throw {
+                statusCode: 400,
+                statusMessage: `An error occurred while updating from Commercetools.`,
+                errorCode: 'UPDATE_CART_CT_FAILED',
+            }
 		}
 	}
 
