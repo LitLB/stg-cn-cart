@@ -146,7 +146,16 @@ class TalonOneIntegrationAdapter {
 	): Promise<{ applyCoupons: string[], error: ResponseType | undefined }> {
 
 		// Get the customer session from the adapter
-		const customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
+		let customerSession;
+		try {
+			customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
+		} catch (error) {
+			return { applyCoupons: [], error: {
+				statusCode: 400,
+                errorCode: "EXCEEDED_MAX_APPLIYED_COUPON",
+                statusMessage: `No products found.`,
+			} };
+		}
 
 		// Initialize applyCoupons with the current coupon codes
 		let applyCoupons = [...couponCodes];

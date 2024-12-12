@@ -58,7 +58,7 @@ export class CouponController {
             return res.status(200).json(response);
         } catch (error: any) {
             const statusCode = error.statusCode || 500;
-            const errorCode = error.errorCode;
+            const errorCode = error.errorCode || 'EXCEEDED_MAX_APPLIYED_COUPON';
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null
 

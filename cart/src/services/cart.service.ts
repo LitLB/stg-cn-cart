@@ -136,6 +136,7 @@ export class CartService {
         if (error) {
             throw {
                 statusCode: 400,
+                errorCode: "CHECKOUT",
                 statusMessage: 'Validation failed',
                 data: error.details.map((err) => err.message),
             };
@@ -149,12 +150,22 @@ export class CartService {
         if (!cart) {
             throw {
                 statusCode: 404,
+                errorCode: "CHECKOUT",
                 statusMessage: 'Cart not found or has expired',
             };
         }
 
         const profileId = cart?.id
-        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, cart.lineItems);
+        let coupons;
+        try {
+             coupons  = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, cart.lineItems);
+        } catch (error) {
+            throw {
+                statusCode: 404,
+                errorCode: "CHECKOUT",
+                statusMessage: 'No discount coupon effect found.',
+            };
+        }
 
         const updateActions: CartUpdateAction[] = [];
 
@@ -234,6 +245,7 @@ export class CartService {
         if (!id) {
             throw {
                 statusCode: 400,
+                errorCode: "GET_CART_BY_ID",
                 statusMessage: 'Cart ID is required',
             };
         }
@@ -244,12 +256,23 @@ export class CartService {
         if (!ctCart) {
             throw {
                 statusCode: 404,
+                errorCode: "GET_CART_BY_ID",
                 statusMessage: 'Cart not found or has expired',
             };
         }
 
         const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
-        const coupons  = await this.talonOneCouponAdapter.getEffectsCouponsById(id, ctCart.lineItems);
+        
+        let coupons;
+        try {
+             coupons  = await this.talonOneCouponAdapter.getEffectsCouponsById(id, ctCart.lineItems);
+        } catch (error) {
+            throw {
+                statusCode: 404,
+                errorCode: "GET_CART_BY_ID",
+                statusMessage: 'No discount coupon effect found.',
+            };
+        }
         
         return { ...iCartWithBenefit, ...coupons };
     };
