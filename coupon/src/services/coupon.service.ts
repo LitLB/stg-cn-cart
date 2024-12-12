@@ -6,6 +6,7 @@ import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit } from '../validators/coupon.valicator';
+import { logger } from '../utils/logger.utils';
 
 
 export class CouponService {
@@ -16,11 +17,27 @@ export class CouponService {
     }
 
     public getQueryCoupons = async (profileId: any, options: any) => {
-
-        const data = await talonOneIntegrationAdapter.getCustomerInventoryByOptions(profileId, options);
+        let data;
+        try {
+            data = await talonOneIntegrationAdapter.getCustomerInventoryByOptions(profileId, options);
+        } catch (error: any) {
+            logger.info('TalonOne getCustomerInventory error', error);
+            throw {
+                statusCode: 400,
+                statusMessage: `Error retrieving coupons from TalonOne`,
+                errorCode: 'QUERY_COUPONS_ON_CT_FAIL',
+            }
+        }
 
         // filter active coupons coupon_status === true and state === 'active'
         const filterActiveCoupons = (coupons: any[]): any[] => {
+            if (!Array.isArray(coupons)) {
+                throw {
+                    statusCode: 400,
+                    statusMessage: `Error Invalid datatype for coupons`,
+                    errorCode: 'QUERY_COUPONS_ON_CT_INVALID_DATATYPE',
+                }
+            }
             return coupons.filter((coupon: any) => {
                 return coupon.attributes?.coupon_status === true && coupon.state === 'active';
             });
