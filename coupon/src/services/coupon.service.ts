@@ -96,6 +96,7 @@ export class CouponService {
         if (!cart) {
             throw {
                 statusCode: 404,
+                errorCode: "EXCEEDED_MAX_APPLIYED_COUPON",
                 statusMessage: 'Cart not found or has expired',
             };
         }

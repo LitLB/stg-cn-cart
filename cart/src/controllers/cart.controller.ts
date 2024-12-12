@@ -55,11 +55,13 @@ export class CartController {
             return res.status(200).json(response);
         } catch (error: any) {
             const statusCode = error.statusCode || 500;
+            const errorCode = error.errorCode;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null
 
             return res.status(statusCode).json({
                 statusCode,
+                errorCode,
                 statusMessage,
                 data,
             });
@@ -82,11 +84,13 @@ export class CartController {
             return res.status(200).json(response);
         } catch (error: any) {
             const statusCode = error.statusCode || 500;
+            const errorCode = error.errorCode;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null
 
             return res.status(statusCode).json({
                 statusCode,
+                errorCode,
                 statusMessage,
                 data,
             });
