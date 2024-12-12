@@ -243,17 +243,30 @@ export class TalonOneCouponAdapter {
         });
     }
 
-    async getEffectsCouponsById(id: any): Promise<{ coupons: { acceptedCoupons: any; rejectedCoupons: any } }> {
-        // Retrieve customer session and extract effects
-        const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(id);
-    
-        // Process coupon effects
-        const { applyCoupons: acceptedCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects);
-    
-        // Return structured coupon data
-        return { 
-            coupons: { acceptedCoupons, rejectedCoupons } 
-        };
-    }
+    async getEffectsCouponsById(id: any, lineItems: any): Promise<{ coupons: { acceptedCoupons: any; rejectedCoupons: any } }> {
+        // Initialize default response
+        const defaultCoupons = { acceptedCoupons: [], rejectedCoupons: [] };
+      
+        // Early return if no line items are provided
+        if (lineItems.length <= 0) {
+          return { coupons: defaultCoupons };
+        }
+      
+        try {
+          // Retrieve customer session and extract effects
+          const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(id);
+      
+          // Process coupon effects
+          const { applyCoupons: acceptedCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects);
+      
+          // Return structured coupon data
+          return { coupons: { acceptedCoupons, rejectedCoupons } };
+        } catch (error) {
+          console.error("Error retrieving or processing coupon effects:", error);
+      
+          // Return default response in case of an error
+          return { coupons: defaultCoupons };
+        }
+      }
     
 }

@@ -154,7 +154,7 @@ export class CartService {
         }
 
         const profileId = cart?.id
-        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId);
+        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, cart.lineItems);
 
         const updateActions: CartUpdateAction[] = [];
 
@@ -249,7 +249,7 @@ export class CartService {
         }
 
         const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
-        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(id);
+        const coupons  = await this.talonOneCouponAdapter.getEffectsCouponsById(id, ctCart.lineItems);
         
         return { ...iCartWithBenefit, ...coupons };
     };
