@@ -676,15 +676,17 @@ class TalonOneEffectConverter {
 	}
 
 	async updateCustomerSession(ctCartData: any) {
+		// 1.1 Make T1 Customer Session Body
 		const customerSessionPayload = this.talonOneIntegrationAdapter.buildCustomerSessionPayload({
 			ctCartData
 		})
 		// console.log('customerSessionPayload', customerSessionPayload);
 
+		// 1.2 Request to T1 Integration API Customer Session to upsert Customer Session (T1 Cart).
 		const customerSessionId = ctCartData?.id
 		const customerSession = await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, customerSessionPayload)
-		// console.log('customerSession', customerSession);
 
+		// 1.3 Return Customer Session
 		return customerSession
 	}
 
@@ -820,7 +822,7 @@ class TalonOneEffectConverter {
 
 			return {
 				...lineItem,
-				availableBenefits,
+				availableBenefits, // ! 1
 			};
 		});
 
@@ -888,24 +890,25 @@ class TalonOneEffectConverter {
 	async getBenefitByCtCart(ctCart: any) {
 		const customerSession = await talonOneIntegrationAdapter.getActiveCustomerSession(ctCart)
 		const { customerSession: { cartItems }, effects } = customerSession;
+		console.log('JSON.stringify(effects)', JSON.stringify(effects));
 
 		const distintEffects = this.groupEffect(effects);
-		console.log('distintEffects', distintEffects);
+		console.log('JSON.stringify(distintEffects)', JSON.stringify(distintEffects));
 
 		const filteredEffects = this.filter(distintEffects);
-		console.log('filteredEffects', filteredEffects);
+		console.log('JSON.stringify(filteredEffects)', JSON.stringify(filteredEffects));
 
 		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
-		console.log('convertedEffects', convertedEffects);
+		console.log('JSON.stringify(convertedEffects)', JSON.stringify(convertedEffects));
 
 		const benefits = convertedEffects.map(this.getBenefit)
-		console.log('benefits', benefits);
+		console.log('JSON.stringify(benefits)', JSON.stringify(benefits));
 
 		const addOnBenefits = benefits.map((item: any) => item.addOnBenefits).flat();
-		console.log('addOnBenefits', addOnBenefits);
+		console.log('JSON.stringify(addOnBenefits)', JSON.stringify(addOnBenefits));
 
 		const wrappedAddOnbenefits = await this.wrapCTContext(addOnBenefits);
-		console.log('wrappedAddOnbenefits', wrappedAddOnbenefits);
+		console.log('JSON.stringify(wrappedAddOnbenefits)', JSON.stringify(wrappedAddOnbenefits));
 
 		const productGroupBenefits = benefits.map((item: any) => item.productGroupBenefits).flat()
 		const productBenefits = benefits.map((item: any) => item.productBenefits).flat()

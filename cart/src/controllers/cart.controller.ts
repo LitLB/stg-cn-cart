@@ -38,6 +38,10 @@ export class CartController {
         }
     };
 
+    // Cart ถ้ามีส่วนลด ต้องมีเลข Campaign
+    // ถ้ามี Campaign ต้องส่ง Thai ID ไป
+    // ต้อง Display กล่องหน้าบ้าน
+    // ถ้ามี Campaign ต้องมี Verify Key
     public getCartById = async (req: Request, res: Response): Promise<Response> => {
         try {
             const { id } = req.params;
