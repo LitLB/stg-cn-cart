@@ -136,7 +136,7 @@ export class CartService {
         if (error) {
             throw {
                 statusCode: 400,
-                errorCode: "CHECKOUT",
+                errorCode: "CHECK_OUT_CT_FAILED",
                 statusMessage: 'Validation failed',
                 data: error.details.map((err) => err.message),
             };
@@ -150,7 +150,7 @@ export class CartService {
         if (!cart) {
             throw {
                 statusCode: 404,
-                errorCode: "CHECKOUT",
+                errorCode: "CHECK_OUT_CT_FAILED",
                 statusMessage: 'Cart not found or has expired',
             };
         }
@@ -162,7 +162,7 @@ export class CartService {
         } catch (error) {
             throw {
                 statusCode: 404,
-                errorCode: "CHECKOUT",
+                errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
                 statusMessage: 'No discount coupon effect found.',
             };
         }
@@ -245,7 +245,7 @@ export class CartService {
         if (!id) {
             throw {
                 statusCode: 400,
-                errorCode: "GET_CART_BY_ID",
+                errorCode: "GET_CART_BY_ID_CT_FAILED",
                 statusMessage: 'Cart ID is required',
             };
         }
@@ -256,7 +256,7 @@ export class CartService {
         if (!ctCart) {
             throw {
                 statusCode: 404,
-                errorCode: "GET_CART_BY_ID",
+                errorCode: "GET_CART_BY_ID_CT_FAILED",
                 statusMessage: 'Cart not found or has expired',
             };
         }
@@ -269,7 +269,7 @@ export class CartService {
         } catch (error) {
             throw {
                 statusCode: 404,
-                errorCode: "GET_CART_BY_ID",
+                errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
                 statusMessage: 'No discount coupon effect found.',
             };
         }
