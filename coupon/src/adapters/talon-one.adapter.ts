@@ -152,7 +152,7 @@ class TalonOneIntegrationAdapter {
 		} catch (error) {
 			return { applyCoupons: [], error: {
 				statusCode: 400,
-                errorCode: "EXCEEDED_MAX_APPLIYED_COUPON",
+                errorCode: "APPLIYED_COUPON_CT_FAILED",
                 statusMessage: `No products found.`,
 			} };
 		}
