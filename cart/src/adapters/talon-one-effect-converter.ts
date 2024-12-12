@@ -676,15 +676,17 @@ class TalonOneEffectConverter {
 	}
 
 	async updateCustomerSession(ctCartData: any) {
+		// 1.1 Make T1 Customer Session Body
 		const customerSessionPayload = this.talonOneIntegrationAdapter.buildCustomerSessionPayload({
 			ctCartData
 		})
 		// console.log('customerSessionPayload', customerSessionPayload);
 
+		// 1.2 Request to T1 Integration API Customer Session to upsert Customer Session (T1 Cart).
 		const customerSessionId = ctCartData?.id
 		const customerSession = await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, customerSessionPayload)
-		// console.log('customerSession', customerSession);
 
+		// 1.3 Return Customer Session
 		return customerSession
 	}
 
@@ -820,7 +822,7 @@ class TalonOneEffectConverter {
 
 			return {
 				...lineItem,
-				availableBenefits,
+				availableBenefits, // ! 1
 			};
 		});
 
@@ -891,21 +893,259 @@ class TalonOneEffectConverter {
 
 		const distintEffects = this.groupEffect(effects);
 		console.log('distintEffects', distintEffects);
+		// distintEffects [
+		//   {
+		//     campaignId: 448,
+		//     rulesetId: 8767,
+		//     ruleIndex: 5,
+		//     ruleName: 'campaignGroup__promotion_set#1',
+		//     effectType: 'customEffect',
+		//     props: {
+		//       effectId: 16,
+		//       name: 'campaign_group',
+		//       payload: [Object],
+		//       cartItemSubPosition: [Array]
+		//     },
+		//     evaluationGroupID: 1,
+		//     evaluationGroupMode: 'stackable'
+		//   },
+		//   {
+		//     campaignId: 448,
+		//     rulesetId: 8767,
+		//     ruleIndex: 5,
+		//     ruleName: 'campaignGroup__promotion_set#1',
+		//     effectType: 'customEffect',
+		//     props: {
+		//       effectId: 29,
+		//       name: 'bundle_package_item_device_only_v2',
+		//       cartItemPosition: 0,
+		//       cartItemSubPosition: [Array],
+		//       payload: [Object]
+		//     },
+		//     evaluationGroupID: 1,
+		//     evaluationGroupMode: 'stackable'
+		//   }
+		// ]
 
 		const filteredEffects = this.filter(distintEffects);
 		console.log('filteredEffects', filteredEffects);
+		// filteredEffects [
+		//   {
+		//     campaignId: 448,
+		//     rulesetId: 8767,
+		//     ruleIndex: 5,
+		//     ruleName: 'campaignGroup__promotion_set#1',
+		//     effectType: 'customEffect',
+		//     props: {
+		//       effectId: 29,
+		//       name: 'bundle_package_item_device_only_v2',
+		//       cartItemPosition: 0,
+		//       cartItemSubPosition: [Array],
+		//       payload: [Object]
+		//     },
+		//     evaluationGroupID: 1,
+		//     evaluationGroupMode: 'stackable'
+		//   }
+		// ]
 
 		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
 		console.log('convertedEffects', convertedEffects);
+		// convertedEffects [
+		//   {
+		//     sku: 'o-main-product-sku-1001',
+		//     productGroup: 1,
+		//     productType: 'main_product',
+		//     cartItemPosition: 0,
+		//     cartItemSubPosition: [ 0, 1, 2 ],
+		//     campaignCode: '',
+		//     discountCode: '',
+		//     otherPaymentCode: '',
+		//     promotionSetCode: 'MOCK007',
+		//     campaign: null,
+		//     campaignVerifyKey: null,
+		//     discount: null,
+		//     otherPayment: null,
+		//     promotionSet: {
+		//       env: 'sit',
+		//       tsm_promotion_set__code: 'MOCK007',
+		//       tsm_promotion_set__create_user: 'Admin',
+		//       tsm_promotion_set__description: 'Promotion Set for test E2E',
+		//       tsm_promotion_set__company_code: '1068',
+		//       tsm_promotion_set__end_date_time: '00:00:00',
+		//       tsm_promotion_set__start_date_time: '00:00:00',
+		//       tsm_promotion_set__create_date_time: '15:05:52',
+		//       tsm_promotion_set__proposition_code: '886',
+		//       sku: '6e6ebc62c47acd8ac98f0922881174704e46159921caff03d5e150a45773beee',
+		//       tsm_promotion_set__max_receive: 3,
+		//       tsm_promotion_set__min_sale_item: 1,
+		//       tsm_promotion_set__is_delete: false,
+		//       tsm_promotion_set__is_free_item: false,
+		//       tsm_promotion_set__flag_campaign: true,
+		//       tsm_promotion_set__end_date: '2025-05-02T00:00:00+00:00',
+		//       tsm_promotion_set__start_date: '2012-12-03T00:00:00+00:00',
+		//       tsm_promotion_set__create_date: '2013-09-17T00:00:00+00:00'
+		//     },
+		//     promotionProducts: undefined,
+		//     promotionProductParams: null,
+		//     promotionProductGroups: [],
+		//     productPromotionDetails: [ [Object], [Object] ]
+		//   }
+		// ]
 
 		const benefits = convertedEffects.map(this.getBenefit)
 		console.log('benefits', benefits);
+		// benefits [
+		//   {
+		//     addOnBenefits: [ [Object], [Object] ],
+		//     productGroupBenefits: [],
+		//     productBenefits: []
+		//   }
+		// ]
+		console.log('benefits[0].addOnBenefits', benefits[0].addOnBenefits);
+		// benefits[0].addOnBenefits [
+		//   {
+		//     sku: 'o-main-product-sku-1001',
+		//     productGroup: 1,
+		//     productType: 'main_product',
+		//     cartItemPosition: 0,
+		//     cartItemSubPosition: [ 0, 1, 2, 3 ],
+		//     benefitType: 'add_on',
+		//     campaignCode: '',
+		//     promotionSetCode: 'MOCK007',
+		//     promotionSetProposition: '886',
+		//     addOnType: 'redeem',
+		//     maxReceive: 3,
+		//     maxItem: 2,
+		//     group: 'add_on_1',
+		//     addOnProductSkus: [ [Object], [Object] ],
+		//     discountBaht: 0,
+		//     discountPercent: 0,
+		//     specialPrice: 790,
+		//     isForcePromotion: false,
+		//     subsidies: [],
+		//     totalSelectedItem: 0
+		//   },
+		//   {
+		//     sku: 'o-main-product-sku-1001',
+		//     productGroup: 1,
+		//     productType: 'main_product',
+		//     cartItemPosition: 0,
+		//     cartItemSubPosition: [ 0, 1, 2, 3 ],
+		//     benefitType: 'add_on',
+		//     campaignCode: '',
+		//     promotionSetCode: 'MOCK007',
+		//     promotionSetProposition: '886',
+		//     addOnType: 'redeem',
+		//     maxReceive: 3,
+		//     maxItem: 2,
+		//     group: 'add_on_2',
+		//     addOnProductSkus: [ [Object], [Object] ],
+		//     discountBaht: 0,
+		//     discountPercent: 0,
+		//     specialPrice: 500,
+		//     isForcePromotion: false,
+		//     subsidies: [],
+		//     totalSelectedItem: 0
+		//   }
+		// ]
 
 		const addOnBenefits = benefits.map((item: any) => item.addOnBenefits).flat();
 		console.log('addOnBenefits', addOnBenefits);
+		// addOnBenefits [
+		//   {
+		//     sku: 'o-main-product-sku-1001',
+		//     productGroup: 1,
+		//     productType: 'main_product',
+		//     cartItemPosition: 0,
+		//     cartItemSubPosition: [ 0, 1, 2, 3 ],
+		//     benefitType: 'add_on',
+		//     campaignCode: '',
+		//     promotionSetCode: 'MOCK007',
+		//     promotionSetProposition: '886',
+		//     addOnType: 'redeem',
+		//     maxReceive: 3,
+		//     maxItem: 2,
+		//     group: 'add_on_1',
+		//     addOnProductSkus: [ [Object], [Object] ],
+		//     discountBaht: 0,
+		//     discountPercent: 0,
+		//     specialPrice: 790,
+		//     isForcePromotion: false,
+		//     subsidies: [],
+		//     totalSelectedItem: 0
+		//   },
+		//   {
+		//     sku: 'o-main-product-sku-1001',
+		//     productGroup: 1,
+		//     productType: 'main_product',
+		//     cartItemPosition: 0,
+		//     cartItemSubPosition: [ 0, 1, 2, 3 ],
+		//     benefitType: 'add_on',
+		//     campaignCode: '',
+		//     promotionSetCode: 'MOCK007',
+		//     promotionSetProposition: '886',
+		//     addOnType: 'redeem',
+		//     maxReceive: 3,
+		//     maxItem: 2,
+		//     group: 'add_on_2',
+		//     addOnProductSkus: [ [Object], [Object] ],
+		//     discountBaht: 0,
+		//     discountPercent: 0,
+		//     specialPrice: 500,
+		//     isForcePromotion: false,
+		//     subsidies: [],
+		//     totalSelectedItem: 0
+		//   }
+		// ]
 
 		const wrappedAddOnbenefits = await this.wrapCTContext(addOnBenefits);
 		console.log('wrappedAddOnbenefits', wrappedAddOnbenefits);
+		// wrappedAddOnbenefits [
+		//   {
+		//     sku: 'o-main-product-sku-1001',
+		//     productGroup: 1,
+		//     productType: 'main_product',
+		//     cartItemPosition: 0,
+		//     cartItemSubPosition: [ 0 ],
+		//     benefitType: 'add_on',
+		//     campaignCode: '',
+		//     promotionSetCode: 'MOCK007',
+		//     promotionSetProposition: '886',
+		//     addOnType: 'redeem',
+		//     maxReceive: 3,
+		//     maxItem: 2,
+		//     group: 'add_on_1',
+		//     discountBaht: 0,
+		//     discountPercent: 0,
+		//     specialPrice: 79000,
+		//     isForcePromotion: false,
+		//     subsidies: [],
+		//     totalSelectedItem: 0,
+		//     addOnProducts: [ [Object] ]
+		//   },
+		//   {
+		//     sku: 'o-main-product-sku-1001',
+		//     productGroup: 1,
+		//     productType: 'main_product',
+		//     cartItemPosition: 0,
+		//     cartItemSubPosition: [ 0 ],
+		//     benefitType: 'add_on',
+		//     campaignCode: '',
+		//     promotionSetCode: 'MOCK007',
+		//     promotionSetProposition: '886',
+		//     addOnType: 'redeem',
+		//     maxReceive: 3,
+		//     maxItem: 2,
+		//     group: 'add_on_2',
+		//     discountBaht: 0,
+		//     discountPercent: 0,
+		//     specialPrice: 50000,
+		//     isForcePromotion: false,
+		//     subsidies: [],
+		//     totalSelectedItem: 0,
+		//     addOnProducts: [ [Object] ]
+		//   }
+		// ]
 
 		const productGroupBenefits = benefits.map((item: any) => item.productGroupBenefits).flat()
 		const productBenefits = benefits.map((item: any) => item.productBenefits).flat()
