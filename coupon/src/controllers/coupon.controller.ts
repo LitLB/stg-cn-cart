@@ -1,9 +1,11 @@
 // coupon/src/controllers/coupon.controller.ts
 
 import { Request, Response } from 'express';
-import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../utils/messages.utils';
+import { RESPONSE_MESSAGES } from '../utils/messages.utils';
 import { ResponseType } from '../types/response.type';
 import { CouponService } from '../services/coupon.service';
+import { logger } from '../utils/logger.utils';
+import { sendCustomError } from '../utils/error.utils';
 
 export class CouponController {
 
@@ -12,7 +14,7 @@ export class CouponController {
     constructor() {
         this.couponService = new CouponService();
     }
-    public getQueryCoupons = async (req: Request, res: Response): Promise<Response> => {
+    public getQueryCoupons = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
 
             const body = req.body
@@ -28,21 +30,13 @@ export class CouponController {
             return res.status(200).json(response);
 
         } catch (error: any) {
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const errorCode = error.errorCode;
-            const data = error.data || null
+            logger.info(`CouponController.getQueryCoupons.error`, error);
 
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                errorCode,
-                data
-            });
+            return sendCustomError(res, error);
         }
     }
 
-    public applyCoupons = async (req: Request, res: Response): Promise<Response> => {
+    public applyCoupons = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
@@ -57,17 +51,9 @@ export class CouponController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            const statusCode = error.statusCode || 500;
-            const errorCode = error.errorCode || 'APPLIYED_COUPON_CT_FAILED';
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
+            logger.info(`CouponController.applyCoupons.error`, error);
 
-            return res.status(statusCode).json({
-                statusCode,
-                errorCode,
-                statusMessage,
-                data,
-            });
+            return sendCustomError(res, error);
         }
     };
 }
