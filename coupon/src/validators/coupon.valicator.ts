@@ -1,5 +1,6 @@
 import { readConfiguration } from '../utils/config.utils';
 import { ResponseType } from '../types/response.type';
+import { logger } from '../utils/logger.utils';
 
 export function validateCouponLimit(
 	applyCouponsQuantity: number,
@@ -11,6 +12,7 @@ export function validateCouponLimit(
 
 	// Validate coupon limit
 	if (ctpDefaultCouponLimit !== undefined && applyCouponsQuantity > ctpDefaultCouponLimit) {
+		logger.info(`'Config limit ${ctpDefaultCouponLimit} error : exceeded limit`);
 		throw {
 			statusCode: 400,
             errorCode: "EXCEEDED_MAX_APPLIYED_COUPON",

@@ -2,6 +2,7 @@ import * as talonOne from "talon_one";
 import { readConfiguration } from "../utils/config.utils";
 import { validateCouponLimit } from "../validators/coupon.valicator";
 import { ResponseType } from '../types/response.type';
+import { logger } from "../utils/logger.utils";
 
 class TalonOneIntegrationAdapter {
 	private readonly integrationApi: talonOne.IntegrationApi;
@@ -150,6 +151,7 @@ class TalonOneIntegrationAdapter {
 		try {
 			customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
 		} catch (error) {
+			logger.info('TalonOne getCustomerSession error', error);
 			return { applyCoupons: [], error: {
 				statusCode: 400,
                 errorCode: "APPLIYED_COUPON_CT_FAILED",
