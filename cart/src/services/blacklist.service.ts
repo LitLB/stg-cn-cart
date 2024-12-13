@@ -1,4 +1,5 @@
 import { dynamoClient } from '../adapters/dynamodb-client';
+import { formatError } from '../utils/error.utils';
 
 interface ShippingAddress {
   city: string;

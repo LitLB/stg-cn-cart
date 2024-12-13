@@ -1,9 +1,11 @@
 // cart/src/controllers/cart-item.controller.ts
 
 import { Request, Response } from 'express';
-import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../utils/messages.utils';
+import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../constants/messages.utils';
 import { ResponseType } from '../types/response.type';
 import { CartItemService } from '../services/cart-item.service';
+import { logger } from '../utils/logger.utils';
+import { formatError } from '../utils/error.utils';
 
 export class CartItemController {
     private cartItemService: CartItemService;
@@ -25,14 +27,13 @@ export class CartItemController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log(error)
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
+            logger.info(`CartItemController.addItem.error`, error);
 
+            const { statusCode, statusMessage, errorCode, data } = formatError(error);
             return res.status(statusCode).json({
                 statusCode,
                 statusMessage,
+                errorCode,
                 data,
             });
         }
@@ -53,13 +54,13 @@ export class CartItemController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
+            logger.info(`CartItemController.updateItemQuantityById.error`, error);
 
+            const { statusCode, statusMessage, errorCode, data } = formatError(error);
             return res.status(statusCode).json({
                 statusCode,
                 statusMessage,
+                errorCode,
                 data,
             });
         }
@@ -80,13 +81,13 @@ export class CartItemController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
+            logger.info(`CartItemController.deleteItemById.error`, error);
 
+            const { statusCode, statusMessage, errorCode, data } = formatError(error);
             return res.status(statusCode).json({
                 statusCode,
                 statusMessage,
+                errorCode,
                 data,
             });
         }
@@ -107,13 +108,13 @@ export class CartItemController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
+            logger.info(`CartItemController.bulkDelete.error`, error);
 
+            const { statusCode, statusMessage, errorCode, data } = formatError(error);
             return res.status(statusCode).json({
                 statusCode,
                 statusMessage,
+                errorCode,
                 data,
             });
         }
@@ -134,13 +135,13 @@ export class CartItemController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
+            logger.info(`CartItemController.select.error`, error);
 
+            const { statusCode, statusMessage, errorCode, data } = formatError(error);
             return res.status(statusCode).json({
                 statusCode,
                 statusMessage,
+                errorCode,
                 data,
             });
         }

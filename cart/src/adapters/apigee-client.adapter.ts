@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from 'axios'
 import { readConfiguration } from "../utils/config.utils";
-import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
+import { EXCEPTION_MESSAGES } from '../constants/messages.utils';
 
 class ApigeeClientAdapter {
     private readonly client: any

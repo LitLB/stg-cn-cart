@@ -2,8 +2,9 @@
 
 import { Request, Response } from 'express';
 import { BlacklistService } from '../services/blacklist.service';
-import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../utils/messages.utils';
+import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../constants/messages.utils';
 import { ResponseType } from '../types/response.type';
+import { logger } from '../utils/logger.utils';
 
 export class BlacklistController {
     private blacklistService: BlacklistService;
@@ -25,13 +26,17 @@ export class BlacklistController {
 
             return res.status(200).json(response);
         } catch (error: any) {
+            logger.info(`BlacklistController.checkBlacklist.error`, error);
+
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
+            const errorCode = error.errorCode;
             const data = error.data || null
 
             return res.status(statusCode).json({
                 statusCode,
                 statusMessage,
+                errorCode,
                 data,
             });
         }
