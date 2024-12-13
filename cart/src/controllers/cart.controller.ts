@@ -2,7 +2,7 @@
 
 import { Request, Response } from 'express';
 import { CartService } from '../services/cart.service';
-import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../constants/messages.constant';
+import { RESPONSE_MESSAGES } from '../constants/messages.constant';
 import { ResponseType } from '../types/response.type';
 import { logger } from '../utils/logger.utils';
 import { sendCustomError } from '../utils/error.utils';

@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { CART_JOURNEYS } from '../constants/cart.constant';
 
 export function validateCreateAnonymousCartBody(body: any) {
 	return Joi.object({
@@ -7,11 +8,15 @@ export function validateCreateAnonymousCartBody(body: any) {
 			'any.required': 'Campaign Group is required',
 			'string.max': 'Campaign Group must not exceed 100 characters',
 		}),
-		journey: Joi.string().max(100).required().messages({
-			'string.empty': 'Journey cannot be empty',
-			'any.required': 'Journey is required',
-			'string.max': 'Journey must not exceed 100 characters',
-		}),
+		journey: Joi.string()
+			.valid(CART_JOURNEYS.SINGLE_PRODUCT, CART_JOURNEYS.DEVICE_ONLY)
+			.required()
+			.messages({
+				'string.empty': 'Journey cannot be empty',
+				'any.required': 'Journey is required',
+				'string.max': 'Journey must not exceed 100 characters',
+				'any.only': `Journey must be one of: ${Object.values(CART_JOURNEYS).join(', ')}`,
+			}),
 	}).validate(body, { abortEarly: false });
 }
 

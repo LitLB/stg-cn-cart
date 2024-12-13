@@ -34,6 +34,31 @@ export class CartService {
         this.blacklistService = new BlacklistService()
     }
 
+    public createAnonymousCart = async (accessToken: string, body: any) => {
+        try {
+            const { campaignGroup, journey } = body;
+
+            const { error } = validateCreateAnonymousCartBody({ campaignGroup, journey });
+            if (error) {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'Validation failed',
+                    data: error.details.map((err: any) => err.message),
+                };
+            }
+
+            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+
+            const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey);
+
+            const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cart);
+
+            return iCart;
+        } catch (error: any) {
+            throw createStandardizedError(error, 'createAnonymousCart');
+        }
+    }
+
     public updateStockAllocation = async (ctCart: Cart): Promise<void> => {
         try {
             const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
@@ -142,7 +167,6 @@ export class CartService {
             if (error) {
                 throw {
                     statusCode: 400,
-                    errorCode: "CHECK_OUT_CT_FAILED",
                     statusMessage: 'Validation failed',
                     data: error.details.map((err) => err.message),
                 };
@@ -156,7 +180,6 @@ export class CartService {
             if (!cart) {
                 throw {
                     statusCode: 404,
-                    errorCode: "CHECK_OUT_CT_FAILED",
                     statusMessage: 'Cart not found or has expired',
                 };
             }
@@ -229,37 +252,11 @@ export class CartService {
         }
     };
 
-    public createAnonymousCart = async (accessToken: string, body: any) => {
-        try {
-            const { campaignGroup, journey } = body;
-
-            const { error } = validateCreateAnonymousCartBody({ campaignGroup, journey });
-            if (error) {
-                throw {
-                    statusCode: 400,
-                    statusMessage: 'Validation failed',
-                    data: error.details.map((err: any) => err.message),
-                };
-            }
-
-            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-
-            const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey);
-
-            const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cart);
-
-            return iCart;
-        } catch (error: any) {
-            throw createStandardizedError(error, 'createAnonymousCart');
-        }
-    }
-
     public getCartById = async (accessToken: string, id: string, selectedOnly: boolean): Promise<any> => {
         try {
             if (!id) {
                 throw {
                     statusCode: 400,
-                    errorCode: "GET_CART_BY_ID_CT_FAILED",
                     statusMessage: 'Cart ID is required',
                 };
             }
@@ -270,7 +267,6 @@ export class CartService {
             if (!ctCart) {
                 throw {
                     statusCode: 404,
-                    errorCode: "GET_CART_BY_ID_CT_FAILED",
                     statusMessage: 'Cart not found or has expired',
                 };
             }

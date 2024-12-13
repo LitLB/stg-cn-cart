@@ -4,7 +4,7 @@ import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
-import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateJourneyCompatibility, validateProductQuantity, validateSelectCartItemBody, validateUpdateCartItemBody } from '../validators/cart-item.validator';
+import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateProductQuantity, validateSelectCartItemBody, validateUpdateCartItemBody } from '../validators/cart-item.validator';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { readConfiguration } from '../utils/config.utils';
 import { MyCartUpdateAction } from '@commercetools/platform-sdk';
