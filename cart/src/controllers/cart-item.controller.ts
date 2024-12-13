@@ -1,11 +1,11 @@
 // cart/src/controllers/cart-item.controller.ts
 
 import { Request, Response } from 'express';
-import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../constants/messages.utils';
+import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../constants/messages.constant';
 import { ResponseType } from '../types/response.type';
 import { CartItemService } from '../services/cart-item.service';
 import { logger } from '../utils/logger.utils';
-import { formatError } from '../utils/error.utils';
+import { sendCustomError } from '../utils/error.utils';
 
 export class CartItemController {
     private cartItemService: CartItemService;
@@ -29,13 +29,7 @@ export class CartItemController {
         } catch (error: any) {
             logger.info(`CartItemController.addItem.error`, error);
 
-            const { statusCode, statusMessage, errorCode, data } = formatError(error);
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                errorCode,
-                data,
-            });
+            return sendCustomError(res, error);
         }
     };
 
@@ -56,13 +50,7 @@ export class CartItemController {
         } catch (error: any) {
             logger.info(`CartItemController.updateItemQuantityById.error`, error);
 
-            const { statusCode, statusMessage, errorCode, data } = formatError(error);
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                errorCode,
-                data,
-            });
+            return sendCustomError(res, error);
         }
     }
 
@@ -83,13 +71,7 @@ export class CartItemController {
         } catch (error: any) {
             logger.info(`CartItemController.deleteItemById.error`, error);
 
-            const { statusCode, statusMessage, errorCode, data } = formatError(error);
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                errorCode,
-                data,
-            });
+            return sendCustomError(res, error);
         }
     }
 
@@ -110,13 +92,7 @@ export class CartItemController {
         } catch (error: any) {
             logger.info(`CartItemController.bulkDelete.error`, error);
 
-            const { statusCode, statusMessage, errorCode, data } = formatError(error);
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                errorCode,
-                data,
-            });
+            return sendCustomError(res, error);
         }
     };
 
@@ -137,13 +113,7 @@ export class CartItemController {
         } catch (error: any) {
             logger.info(`CartItemController.select.error`, error);
 
-            const { statusCode, statusMessage, errorCode, data } = formatError(error);
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                errorCode,
-                data,
-            });
+            return sendCustomError(res, error);
         }
     };
 }

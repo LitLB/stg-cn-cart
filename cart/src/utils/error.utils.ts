@@ -2,7 +2,7 @@
 
 import { camelToUpperSnakeCase, camelToTitleCase } from './string.utils';
 import { ResponseType } from '../types/response.type';
-import { EXCEPTION_MESSAGES } from '../constants/messages.utils';
+import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
 
 /**
  * Generates a standardized error code based on the function name.
@@ -20,7 +20,12 @@ export function generateFailedStatusMessage(functionName: string): string {
     return `${camelToTitleCase(functionName)} Failed.`;
 }
 
-export function formatError(error: any, fallbackFunctionName?: string): ResponseType {
+/**
+ * Create a standardized error object for the service layer.
+ * This can be used when `catch`ing errors in the service and re-throwing
+ * them in a standard format.
+ */
+export function createStandardizedError(error: any, fallbackFunctionName?: string): ResponseType {
     const statusCode = error?.statusCode || 500;
     const statusMessage = error?.statusMessage ||
         (fallbackFunctionName ? generateFailedStatusMessage(fallbackFunctionName) : EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR);
@@ -34,4 +39,18 @@ export function formatError(error: any, fallbackFunctionName?: string): Response
         errorCode,
         data,
     };
+}
+
+/**
+ * Send a standardized error response from the controller layer.
+ * Takes an error (already formatted) and returns the appropriate JSON response.
+ */
+export function sendCustomError(res: any, error: any): ResponseType {
+    const { statusCode = 500, statusMessage = EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR, errorCode, data = null } = error;
+    return res.status(statusCode).json({
+        statusCode,
+        statusMessage,
+        errorCode,
+        data,
+    });
 }

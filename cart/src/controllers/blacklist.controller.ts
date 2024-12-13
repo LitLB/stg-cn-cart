@@ -2,9 +2,10 @@
 
 import { Request, Response } from 'express';
 import { BlacklistService } from '../services/blacklist.service';
-import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../constants/messages.utils';
+import { RESPONSE_MESSAGES } from '../constants/messages.constant';
 import { ResponseType } from '../types/response.type';
 import { logger } from '../utils/logger.utils';
+import { sendCustomError } from '../utils/error.utils';
 
 export class BlacklistController {
     private blacklistService: BlacklistService;
@@ -13,9 +14,8 @@ export class BlacklistController {
         this.blacklistService = new BlacklistService();
     }
 
-    public checkBlacklist = async (req: Request, res: Response): Promise<Response> => {
+    public checkBlacklist = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
-
             const checkBlacklist = await this.blacklistService.checkBlacklist(req.body);
 
             const response: ResponseType = {
@@ -28,17 +28,7 @@ export class BlacklistController {
         } catch (error: any) {
             logger.info(`BlacklistController.checkBlacklist.error`, error);
 
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const errorCode = error.errorCode;
-            const data = error.data || null
-
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                errorCode,
-                data,
-            });
+            return sendCustomError(res, error);
         }
     };
 }

@@ -1,7 +1,7 @@
 // src/services/auth.service.ts
 
 import CommercetoolsAuthClient from '../adapters/ct-auth-client';
-import { formatError, generateFailedErrorCode, generateFailedStatusMessage } from '../utils/error.utils';
+import { createStandardizedError } from '../utils/error.utils';
 import { calculateExpiration } from '../utils/session-utils';
 
 export class AuthService {
@@ -26,7 +26,7 @@ export class AuthService {
                 expiredAtWithBuffer,
             };
         } catch (error: any) {
-            throw formatError(error, 'createAnonymousSession');
+            throw createStandardizedError(error, 'createAnonymousSession');
         }
     }
 
@@ -53,7 +53,7 @@ export class AuthService {
                 expiredAtWithBuffer,
             };
         } catch (error: any) {
-            throw formatError(error, 'renewAnonymousSession');
+            throw createStandardizedError(error, 'renewAnonymousSession');
         }
     }
 }

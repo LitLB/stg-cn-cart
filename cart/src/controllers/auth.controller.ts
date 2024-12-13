@@ -2,10 +2,10 @@
 
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
-import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../constants/messages.utils';
+import { RESPONSE_MESSAGES } from '../constants/messages.constant';
 import { ResponseType } from '../types/response.type';
 import { logger } from '../utils/logger.utils';
-import { formatError } from '../utils/error.utils';
+import { sendCustomError } from '../utils/error.utils';
 
 export class AuthController {
     private authService: AuthService;
@@ -28,13 +28,7 @@ export class AuthController {
         } catch (error: any) {
             logger.info(`AuthController.createAnonymousSession.error`, error);
 
-            const { statusCode, statusMessage, errorCode, data } = formatError(error);
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                errorCode,
-                data,
-            });
+            return sendCustomError(res, error);
         }
     };
 
@@ -52,13 +46,7 @@ export class AuthController {
         } catch (error: any) {
             logger.info(`AuthController.renewAnonymousSession.error`, error);
 
-            const { statusCode, statusMessage, errorCode, data } = formatError(error);
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                errorCode,
-                data,
-            });
+            return sendCustomError(res, error);
         }
     };
 }

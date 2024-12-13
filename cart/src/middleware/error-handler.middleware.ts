@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { EXCEPTION_MESSAGES } from '../constants/messages.utils';
+import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
 
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
     console.error('Unhandled Error:', err);

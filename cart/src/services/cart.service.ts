@@ -15,13 +15,13 @@ import { validateProductQuantity } from '../validators/cart-item.validator';
 import ApigeeClientAdapter from '../adapters/apigee-client.adapter';
 import TsmOrderModel from '../models/tsm-order.model';
 import { readConfiguration } from '../utils/config.utils';
-import { EXCEPTION_MESSAGES } from '../constants/messages.utils';
+import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
 import { BlacklistService } from './blacklist.service'
 import { safelyParse } from '../utils/response.utils';
 import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 import { logger } from '../utils/logger.utils';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
-import { formatError } from '../utils/error.utils';
+import { createStandardizedError } from '../utils/error.utils';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -132,7 +132,7 @@ export class CartService {
     
             return order;
         } catch (error) {
-            throw formatError(error, 'createOrder');
+            throw createStandardizedError(error, 'createOrder');
         }
     };
 
@@ -225,7 +225,7 @@ export class CartService {
 
             return { ...iCart, ...coupons };
         } catch (error) {
-            throw formatError(error, 'checkout');
+            throw createStandardizedError(error, 'checkout');
         }
     };
 
@@ -250,7 +250,7 @@ export class CartService {
 
             return iCart;
         } catch (error: any) {
-            throw formatError(error, 'createAnonymousCart');
+            throw createStandardizedError(error, 'createAnonymousCart');
         }
     }
 
@@ -290,7 +290,7 @@ export class CartService {
 
             return { ...iCartWithBenefit, ...coupons };
         } catch (error) {
-            throw formatError(error, 'getCartById');
+            throw createStandardizedError(error, 'getCartById');
         }
     };
 
@@ -315,7 +315,7 @@ export class CartService {
 
             return ctCart
         } catch (error) {
-            throw formatError(error, 'getCtCartById');
+            throw createStandardizedError(error, 'getCtCartById');
         }
     };
 

@@ -2,10 +2,10 @@
 
 import { Request, Response } from 'express';
 import { CartService } from '../services/cart.service';
-import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../constants/messages.utils';
+import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../constants/messages.constant';
 import { ResponseType } from '../types/response.type';
 import { logger } from '../utils/logger.utils';
-import { formatError } from '../utils/error.utils';
+import { sendCustomError } from '../utils/error.utils';
 
 export class CartController {
     private cartService: CartService;
@@ -30,17 +30,11 @@ export class CartController {
         } catch (error: any) {
             logger.info(`CartController.createAnonymousCart.error`, error);
 
-            const { statusCode, statusMessage, errorCode, data } = formatError(error);
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                errorCode,
-                data,
-            });
+            return sendCustomError(res, error);
         }
     };
 
-    public getCartById = async (req: Request, res: Response): Promise<Response> => {
+    public getCartById = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
             const { id } = req.params;
             const selectedOnly = req.query.selectedOnly === 'true';
@@ -58,17 +52,11 @@ export class CartController {
         } catch (error: any) {
             logger.info(`CartController.getCartById.error`, error);
 
-            const { statusCode, statusMessage, errorCode, data } = formatError(error);
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                errorCode,
-                data,
-            });
+            return sendCustomError(res, error);
         }
     };
 
-    public checkout = async (req: Request, res: Response): Promise<Response> => {
+    public checkout = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
@@ -85,18 +73,12 @@ export class CartController {
         } catch (error: any) {
             logger.info(`CartController.checkout.error`, error);
 
-            const { statusCode, statusMessage, errorCode, data } = formatError(error);
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                errorCode,
-                data,
-            });
+            return sendCustomError(res, error);
         }
     };
 
     // TODO (CN-CART) /cart/v1/orders
-    public createOrder = async (req: Request, res: Response): Promise<Response> => {
+    public createOrder = async (req: Request, res: Response): Promise<ResponseType> => {
         try {
             // TODO: STEP #1 - Validate Request Body
             const accessToken = req.accessToken as string;
@@ -119,13 +101,7 @@ export class CartController {
         } catch (error: any) {
             logger.info(`CartController.createOrder.error`, error);
 
-            const { statusCode, statusMessage, errorCode, data } = formatError(error);
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                errorCode,
-                data,
-            });
+            return sendCustomError(res, error);
         }
     }
 }

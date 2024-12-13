@@ -8,7 +8,7 @@ import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDelete
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { readConfiguration } from '../utils/config.utils';
 import { MyCartUpdateAction } from '@commercetools/platform-sdk';
-import { formatError } from '../utils/error.utils';
+import { createStandardizedError } from '../utils/error.utils';
 
 export class CartItemService {
     // private getJourneyDeviceOnly = (variant: any): string | undefined => {
@@ -169,7 +169,7 @@ export class CartItemService {
 
             return iCartWithBenefit;
         } catch (error) {
-            throw formatError(error, 'addItem');
+            throw createStandardizedError(error, 'addItem');
         }
     }
 
@@ -275,7 +275,7 @@ export class CartItemService {
 
             return iCartWithBenefit;
         } catch (error) {
-            throw formatError(error, 'updateItemQuantityById');
+            throw createStandardizedError(error, 'updateItemQuantityById');
         }
     }
 
@@ -332,7 +332,7 @@ export class CartItemService {
 
             return iCartWithBenefit;
         } catch (error) {
-            throw formatError(error, 'deleteItemById');
+            throw createStandardizedError(error, 'deleteItemById');
         }
     }
 
@@ -392,7 +392,7 @@ export class CartItemService {
 
             return iCartWithBenefit;
         } catch (error) {
-            throw formatError(error, 'bulkDelete');
+            throw createStandardizedError(error, 'bulkDelete');
         }
     }
 
@@ -457,7 +457,7 @@ export class CartItemService {
 
             return iCartWithBenefit;
         } catch (error) {
-            throw formatError(error, 'select');
+            throw createStandardizedError(error, 'select');
         }
     }
 
