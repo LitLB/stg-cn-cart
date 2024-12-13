@@ -7,9 +7,7 @@ import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit } from '../validators/coupon.valicator';
 import { logger } from '../utils/logger.utils';
-import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
 import { createStandardizedError } from '../utils/error.utils';
-
 
 export class CouponService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -140,12 +138,8 @@ export class CouponService {
 
             const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
             return { ...iCart, coupons };
-        } catch (error) {
-            throw {
-                statusCode: 500,
-                statusMessage: EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR,
-                errorCode: 'APPLIYED_COUPON_CT_FAILED'
-            }
+        } catch (error: any) {
+            throw createStandardizedError(error, 'applyCoupons')
         }
     }
 }
