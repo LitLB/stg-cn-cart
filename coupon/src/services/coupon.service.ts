@@ -6,6 +6,7 @@ import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit } from '../validators/coupon.valicator';
+import { logger } from '../utils/logger.utils';
 
 
 export class CouponService {
@@ -77,6 +78,7 @@ export class CouponService {
         const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
         const cart = await commercetoolsMeCartClient.getCartById(id);
         if (!cart) {
+            logger.info('Commercetools getCartById error');
             throw {
                 statusCode: 404,
                 errorCode: "APPLIYED_COUPON_CT_FAILED",
@@ -86,7 +88,18 @@ export class CouponService {
         
         const profileId = cart?.id
         const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({ profileId, ctCartData: cart, couponCodes });
-        const updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, customerSessionPayload);
+        let updatedCustomerSession;
+        try {
+            updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, customerSessionPayload);
+        } catch (error) {
+            logger.info('TalonOne updateCustomerSession error', error);
+            throw {
+                statusCode: 400,
+                errorCode: "APPLIYED_COUPON_CT_FAILED",
+                statusMessage: `An error occurred while updateCustomerSession from talonOne.`,
+            };
+        }
+        
         const talonEffects = updatedCustomerSession.effects;
         const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(talonEffects);
         const talonOneUpdateActions = this.talonOneCouponAdapter.buildCouponActions(cart, processedCouponEffects);
