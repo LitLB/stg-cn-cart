@@ -4,6 +4,7 @@ import { Request, Response } from 'express';
 import { CartService } from '../services/cart.service';
 import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../utils/messages.utils';
 import { ResponseType } from '../types/response.type';
+import { logger } from '../utils/logger.utils';
 
 export class CartController {
     private cartService: CartService;
@@ -24,8 +25,12 @@ export class CartController {
                 data: createdCart,
             };
 
+            logger.info(`CartController.createAnonymousCart.response`, response);
+
             return res.status(200).json(response);
         } catch (error: any) {
+            logger.info(`CartController.createAnonymousCart.error`, error);
+
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const data = error.data || null
@@ -117,9 +122,11 @@ export class CartController {
                 data: order,
             };
 
+            logger.info(`CartController.createOrder.response`, response);
+
             return res.status(200).json(response);
         } catch (error: any) {
-            console.log('createOrder.error', error);
+            logger.info(`CartController.createOrder.error`, error);
             const statusCode = error.statusCode || 500;
             const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
             const errorCode = error.errorCode;
