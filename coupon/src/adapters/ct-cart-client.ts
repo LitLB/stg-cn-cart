@@ -4,6 +4,7 @@ import type { ApiRoot, Cart, CartUpdate, CartUpdateAction, MyCartUpdate, MyCartU
 import CommercetoolsBaseClient from './ct-base-client';
 import { readConfiguration } from '../utils/config.utils';
 import { logger } from '../utils/logger.utils';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 class CommercetoolsCartClient {
 	private static instance: CommercetoolsCartClient;
@@ -43,10 +44,10 @@ class CommercetoolsCartClient {
 				.execute();
 
 			return response.body;
-		} catch (error) {
+		} catch (error: any) {
 			logger.info('Commercetools updateCart error', error);
             throw {
-                statusCode: 400,
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: `An error occurred while updating from Commercetools.`,
                 errorCode: 'UPDATE_CART_CT_FAILED',
             }

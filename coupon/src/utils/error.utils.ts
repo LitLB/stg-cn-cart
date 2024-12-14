@@ -1,6 +1,6 @@
 // coupon/src/utils/error.utils.ts
 
-import { ResponseType } from '../types/response.type';
+import { ApiResponse } from '../types/response.type';
 import { EXCEPTION_MESSAGES } from './messages.utils';
 import { camelToTitleCase, camelToUpperSnakeCase } from './string.utils';
 
@@ -25,7 +25,7 @@ export function generateFailedStatusMessage(functionName: string): string {
  * This can be used when `catch`ing errors in the service and re-throwing
  * them in a standard format.
  */
-export function createStandardizedError(error: any, fallbackFunctionName?: string): ResponseType {
+export function createStandardizedError(error: any, fallbackFunctionName?: string): ApiResponse {
     const statusCode = error?.statusCode || 500;
     const statusMessage = error?.statusMessage ||
         (fallbackFunctionName ? generateFailedStatusMessage(fallbackFunctionName) : EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR);
@@ -45,7 +45,7 @@ export function createStandardizedError(error: any, fallbackFunctionName?: strin
  * Send a standardized error response from the controller layer.
  * Takes an error (already formatted) and returns the appropriate JSON response.
  */
-export function sendCustomError(res: any, error: any): ResponseType {
+export function sendCustomError(res: any, error: any): ApiResponse {
     const { statusCode = 500, statusMessage = EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR, errorCode, data = null } = error;
     return res.status(statusCode).json({
         statusCode,

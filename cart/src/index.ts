@@ -17,7 +17,7 @@ readConfiguration();
 // Import global process error handlers after configuration is loaded
 import './core/process-error-handlers.core';
 
-const PORT = 8080;
+const PORT = readConfiguration().appPort || 8080;
 
 const app: Express = express();
 

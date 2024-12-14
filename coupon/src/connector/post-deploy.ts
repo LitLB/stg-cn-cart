@@ -24,7 +24,7 @@ async function run(): Promise<void> {
   try {
     const properties = new Map(Object.entries(process.env));
     await postDeploy(properties);
-  } catch (error) {
+  } catch (error: any) {
     assertError(error);
     process.stderr.write(`Post-deploy failed: ${error.message}`);
     process.exitCode = 1;

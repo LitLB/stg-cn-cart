@@ -8,6 +8,7 @@ import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit } from '../validators/coupon.valicator';
 import { logger } from '../utils/logger.utils';
 import { createStandardizedError } from '../utils/error.utils';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class CouponService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -24,7 +25,7 @@ export class CouponService {
             } catch (error: any) {
                 logger.info('TalonOne getCustomerInventory error', error);
                 throw {
-                    statusCode: 400,
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: `Error retrieving coupons from TalonOne`,
                     errorCode: 'QUERY_COUPONS_ON_CT_FAIL',
                 }
@@ -34,7 +35,7 @@ export class CouponService {
             const filterActiveCoupons = (coupons: any[]): any[] => {
                 if (!Array.isArray(coupons)) {
                     throw {
-                        statusCode: 400,
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: `Error Invalid datatype for coupons`,
                         errorCode: 'QUERY_COUPONS_ON_CT_INVALID_DATATYPE',
                     }
@@ -74,7 +75,7 @@ export class CouponService {
 
             const activeCoupons = filterActiveCoupons(data.coupons);
             return activeCoupons.map(mapCouponData);
-        } catch (error) {
+        } catch (error: any) {
             throw createStandardizedError(error, 'getQueryCoupons');
         }
     }
@@ -101,7 +102,7 @@ export class CouponService {
             if (!cart) {
                 logger.info('Commercetools getCartById error');
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     errorCode: "APPLIYED_COUPON_CT_FAILED",
                     statusMessage: 'Cart not found or has expired',
                 };
@@ -112,10 +113,10 @@ export class CouponService {
             let updatedCustomerSession;
             try {
                 updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, customerSessionPayload);
-            } catch (error) {
+            } catch (error: any) {
                 logger.info('TalonOne updateCustomerSession error', error);
                 throw {
-                    statusCode: 400,
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
                     errorCode: "APPLIYED_COUPON_CT_FAILED",
                     statusMessage: `An error occurred while updateCustomerSession from talonOne.`,
                 };

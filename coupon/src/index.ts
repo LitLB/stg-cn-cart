@@ -11,26 +11,34 @@ import { readConfiguration } from './utils/config.utils';
 import { errorHandler } from './middleware/error-handler.middleware';
 import { notFoundHandler } from './middleware/not-found.middleware';
 
+// Load configuration settings early
 readConfiguration();
 
-const PORT = 8080; // For local dev change to 8081
+// Import global process error handlers after configuration is loaded
+import './core/process-error-handlers.core';
+
+const PORT = readConfiguration().appPort || 8080;
 
 const app: Express = express();
 
 app.disable('x-powered-by');
 
+// Middleware to parse JSON and URL-encoded data
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Define routes
 app.use('/coupon', couponRouter);
 
+// Handle 404 Not Found errors
 app.use(notFoundHandler);
+
+// Global error handling middleware (must be after all other middleware and routes)
 app.use(errorHandler);
 
-// Listen the application
+// Start the Express server
 const server = app.listen(PORT, () => {
-  logger.info(`⚡️ Service application listening on port ${PORT}`);
+    logger.info(`⚡️ Service application listening on port ${PORT}`);
 });
 
 export default server;

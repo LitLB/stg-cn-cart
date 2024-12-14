@@ -1,4 +1,4 @@
-// src/middleware/authenticate.ts
+// cart/src/middleware/authenticate.ts
 
 import { Request, Response, NextFunction } from 'express';
 import CommercetoolsAuthClient from '../adapters/ct-auth-client';

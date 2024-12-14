@@ -22,6 +22,7 @@ import CommercetoolsCartClient from '../ct-cart-client';
 import CommercetoolsProductClient from '../ct-product-client';
 import { talonOneEffectConverter } from '../talon-one-effect-converter'
 import { readConfiguration } from '../../utils/config.utils';
+import { HTTP_STATUSES } from '../../constants/http.constant';
 
 export default class CommercetoolsMeCartClient {
 	private apiRoot: ApiRoot;
@@ -100,7 +101,7 @@ export default class CommercetoolsMeCartClient {
 				.execute();
 
 			return response.body;
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error fetching active cart:', error);
 			return null;
 		}
@@ -121,7 +122,7 @@ export default class CommercetoolsMeCartClient {
 				.execute();
 
 			return response.body;
-		} catch (error) {
+		} catch (error: any) {
 			console.error(`Error fetching cart with ID ${cartId}:`, error);
 			return null;
 		}
@@ -218,7 +219,7 @@ export default class CommercetoolsMeCartClient {
 				.execute();
 
 			return response.body;
-		} catch (error) {
+		} catch (error: any) {
 			console.error('updateCart.error', error);
 			throw error;
 		}
@@ -351,7 +352,7 @@ export default class CommercetoolsMeCartClient {
 
 			} else {
 				throw {
-					statusCode: 400,
+					statusCode: HTTP_STATUSES.BAD_REQUEST,
 					statusMessage: `Line item with variant ID ${variantId} not found in cart.`
 				}
 			}

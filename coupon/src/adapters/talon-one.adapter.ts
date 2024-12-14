@@ -1,8 +1,9 @@
 import * as talonOne from "talon_one";
 import { readConfiguration } from "../utils/config.utils";
 import { validateCouponLimit } from "../validators/coupon.valicator";
-import { ResponseType } from '../types/response.type';
+import { ApiResponse } from '../types/response.type';
 import { logger } from "../utils/logger.utils";
+import { HTTP_STATUSES } from "../constants/http.constant";
 
 class TalonOneIntegrationAdapter {
 	private readonly integrationApi: talonOne.IntegrationApi;
@@ -144,16 +145,16 @@ class TalonOneIntegrationAdapter {
 		id: any,
 		couponCodes: string[],
 		removeCouponCodes: string[],
-	): Promise<{ applyCoupons: string[], error: ResponseType | undefined }> {
+	): Promise<{ applyCoupons: string[], error: ApiResponse | undefined }> {
 
 		// Get the customer session from the adapter
 		let customerSession;
 		try {
 			customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
-		} catch (error) {
+		} catch (error: any) {
 			logger.info('TalonOne getCustomerSession error', error);
 			return { applyCoupons: [], error: {
-				statusCode: 400,
+				statusCode: HTTP_STATUSES.BAD_REQUEST,
                 errorCode: "APPLIYED_COUPON_CT_FAILED",
                 statusMessage: `No products found.`,
 			} };
