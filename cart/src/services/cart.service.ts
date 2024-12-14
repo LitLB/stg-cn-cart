@@ -104,7 +104,7 @@ export class CartService {
                     journeyConfig
                 );
             }
-        } catch (error) {
+        } catch (error: any) {
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: `Update stock allocation failed.`,
@@ -159,7 +159,7 @@ export class CartService {
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, ctCart, tsmSaveOrder);
 
             return order;
-        } catch (error) {
+        } catch (error: any) {
             throw createStandardizedError(error, 'createOrder');
         }
     };
@@ -191,7 +191,7 @@ export class CartService {
             let coupons;
             try {
                 coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, cart.lineItems);
-            } catch (error) {
+            } catch (error: any) {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
                     errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
@@ -250,7 +250,7 @@ export class CartService {
             const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
 
             return { ...iCart, ...coupons };
-        } catch (error) {
+        } catch (error: any) {
             throw createStandardizedError(error, 'checkout');
         }
     };
@@ -269,7 +269,7 @@ export class CartService {
             let coupons;
             try {
                 coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(id, ctCart.lineItems);
-            } catch (error) {
+            } catch (error: any) {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
                     errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
@@ -278,7 +278,7 @@ export class CartService {
             }
 
             return { ...iCartWithBenefit, ...coupons };
-        } catch (error) {
+        } catch (error: any) {
             throw createStandardizedError(error, 'getCartById');
         }
     };
@@ -303,7 +303,7 @@ export class CartService {
             }
 
             return ctCart
-        } catch (error) {
+        } catch (error: any) {
             throw createStandardizedError(error, 'getCtCartById');
         }
     };

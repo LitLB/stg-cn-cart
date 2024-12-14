@@ -28,7 +28,7 @@ class ApigeeClientAdapter {
             }, { headers });
 
             return response.data
-        } catch (error) {
+        } catch (error: any) {
             if (axios.isAxiosError(error)) {
                 // Handle known Axios errors
                 return { code: error.response?.status || 500, message: error.message };

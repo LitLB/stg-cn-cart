@@ -30,7 +30,7 @@ class CommercetoolsOrderClient {
 				.execute();
 
 			return response.body;
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error fetching order:', error);
 			throw error;
 		}

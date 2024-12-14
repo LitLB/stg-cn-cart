@@ -170,7 +170,7 @@ export class BlacklistService {
       return {
         status: true,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error querying DynamoDB:', error);
       return {
         status: false,

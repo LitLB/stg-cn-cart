@@ -103,7 +103,7 @@ export default class CommercetoolsMeCartClient {
 				.execute();
 
 			return response.body;
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error fetching active cart:', error);
 			return null;
 		}
@@ -124,7 +124,7 @@ export default class CommercetoolsMeCartClient {
 				.execute();
 
 			return response.body;
-		} catch (error) {
+		} catch (error: any) {
 			console.error(`Error fetching cart with ID ${cartId}:`, error);
 			return null;
 		}
@@ -221,7 +221,7 @@ export default class CommercetoolsMeCartClient {
 				.execute();
 
 			return response.body;
-		} catch (error) {
+		} catch (error: any) {
 			console.error('updateCart.error', error);
 			throw error;
 		}

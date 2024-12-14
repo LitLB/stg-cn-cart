@@ -1,8 +1,10 @@
 // cart/src/utils/error.utils.ts
 
+import { Response } from 'express';
 import createError from 'http-errors';
 import { camelToUpperSnakeCase, camelToTitleCase } from './string.utils';
 import { ApiResponse } from '../interfaces/response.interface';
+import { CustomError } from './custom-error.utils';
 import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
 
 /**
@@ -41,38 +43,23 @@ export function generateFailedStatusMessage(functionName: string): string {
 
 /**
  * Creates a standardized HTTP error object using the `http-errors` library.
- * 
- * This function aims to produce a consistently formatted error that can be thrown from the service layer.
- * It accepts an incoming error (which may or may not have specific properties) and a fallback function name.
- * If certain properties are not defined in the original error, it uses:
- * - a default or fallback statusCode (default: 500)
- * - a default or fallback statusMessage derived from the provided fallback function name or a generic internal server error message
- * - a default or fallback errorCode derived from the provided fallback function name
- * - a default data object (null) if not provided
- * 
- * The returned object is an `http-errors` error instance with additional custom properties (`errorCode` and `data`).
- * This allows for easy integration with existing error-handling middleware and ensures all errors have a uniform structure.
- * 
- * @example
- * try {
- *   // some logic that throws error
- * } catch (error) {
- *   // If error is missing expected fields, fallback to standardized defaults:
- *   throw createStandardizedError(error, 'createAnonymousSession');
- * }
- * 
- * @param error - The original error object caught in the service. May contain partial or no expected fields.
- * @param fallbackFunctionName - A function name used to generate fallback statusMessage and errorCode if needed.
- * @returns An Error object with HTTP-friendly fields (`statusCode` and `message`) and custom properties (`errorCode` and `data`).
+ * Prevents double wrapping by returning the error as-is if it's already standardized.
  */
 export function createStandardizedError(error: any, fallbackFunctionName?: string): Error {
+    console.log('createStandardizedError.error', error);
+
+    // Check if the error is already standardized
+    if (error?.statusCode) {
+        return error;
+    }
+
     const statusCode = error?.statusCode || 500;
     const statusMessage = error?.statusMessage ||
         (fallbackFunctionName
             ? generateFailedStatusMessage(fallbackFunctionName)
             : EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR);
     const errorCode = error?.errorCode ||
-        (fallbackFunctionName ? generateFailedErrorCode(fallbackFunctionName) : undefined);
+        (fallbackFunctionName ? generateFailedErrorCode(fallbackFunctionName) : 'UNKNOWN_ERROR');
     const data = error?.data || null;
 
     const httpError = createError(statusCode, statusMessage);
@@ -81,36 +68,19 @@ export function createStandardizedError(error: any, fallbackFunctionName?: strin
     (httpError as any).errorCode = errorCode;
     (httpError as any).data = data;
 
+    console.log('httpError', httpError);
+
     return httpError;
 }
 
 /**
  * Sends a standardized error response from the controller layer.
- * 
- * This function is intended to be used in controller `catch` blocks. It takes an Error object that ideally was created or transformed by `createStandardizedError`, 
- * ensuring it has at least a `statusCode` and `message`. It then sends a JSON response to the client with a consistent structure:
- * 
- * {
- *   "statusCode": <number>,
- *   "statusMessage": <string>,
- *   "errorCode": <string | undefined>,
- *   "data": <any | null>
- * }
- * 
- * If any of these fields are missing, it uses sensible defaults:
- * - `statusCode` defaults to 500
- * - `statusMessage` defaults to a generic internal server error message
- * - `data` defaults to null if not provided
- * 
- * This ensures that every error response sent back to the client is uniform and easy to parse.
- * 
- * @param res - The Express response object.
- * @param error - The Error object to be sent to the client. Should ideally be from `createStandardizedError`.
- * @returns The standardized error response sent to the client.
  */
 export function sendCustomError(res: any, error: any): ApiResponse {
+    console.log('sendCustomError.error', error);
+
     const statusCode = error.statusCode || 500;
-    const statusMessage = error.message || EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR;
+    const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR;
     const errorCode = error.errorCode;
     const data = error.data || null;
 
@@ -120,4 +90,54 @@ export function sendCustomError(res: any, error: any): ApiResponse {
         errorCode,
         data,
     });
+}
+
+/**
+ * Creates a standardized error using the CustomError class.
+ * 
+ * @param params - Parameters to create the error.
+ * @param context - Optional context string indicating where the error originated.
+ * @returns An instance of CustomError.
+ */
+export function createStandardizedErrorV2(error: {
+    statusCode: number;
+    statusMessage: string;
+    errorCode?: string;
+    data?: any;
+}, fallbackFunctionName?: string): CustomError {
+    const statusCode = error?.statusCode || 500;
+    const statusMessage = error?.statusMessage ||
+        (fallbackFunctionName
+            ? generateFailedStatusMessage(fallbackFunctionName)
+            : EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR);
+    const errorCode = error?.errorCode ||
+        (fallbackFunctionName ? generateFailedErrorCode(fallbackFunctionName) : undefined);
+    const data = error?.data || null;
+
+    const customError = new CustomError(statusCode, statusMessage, errorCode, data);
+
+    console.log(customError);
+
+    return customError;
+}
+
+/**
+ * Sends a standardized error response to the client.
+ * 
+ * @param res - Express Response object.
+ * @param error - The CustomError object containing statusCode, statusMessage, errorCode, and data.
+ * @returns The standardized error response sent to the client.
+ */
+export function sendCustomErrorV2(res: Response, error: CustomError): Response<ApiResponse> {
+    console.log('error', error);
+    const { statusCode, message: statusMessage, errorCode, data = null } = error;
+
+    const response: ApiResponse = {
+        statusCode,
+        statusMessage,
+        errorCode,
+        data,
+    };
+
+    return res.status(statusCode).json(response);
 }

@@ -57,7 +57,7 @@ class CommercetoolsStateClient {
                 .execute();
 
             return response.body;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error transitioning order state:', error);
             throw error;
         }

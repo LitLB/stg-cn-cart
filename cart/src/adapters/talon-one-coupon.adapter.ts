@@ -261,7 +261,7 @@ export class TalonOneCouponAdapter {
       
           // Return structured coupon data
           return { coupons: { acceptedCoupons, rejectedCoupons } };
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error retrieving or processing coupon effects:", error);
       
           // Return default response in case of an error

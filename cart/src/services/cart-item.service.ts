@@ -169,7 +169,7 @@ export class CartItemService {
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
 
             return iCartWithBenefit;
-        } catch (error) {
+        } catch (error: any) {
             throw createStandardizedError(error, 'addItem');
         }
     }
@@ -275,7 +275,7 @@ export class CartItemService {
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
 
             return iCartWithBenefit;
-        } catch (error) {
+        } catch (error: any) {
             throw createStandardizedError(error, 'updateItemQuantityById');
         }
     }
@@ -332,7 +332,7 @@ export class CartItemService {
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
 
             return iCartWithBenefit;
-        } catch (error) {
+        } catch (error: any) {
             throw createStandardizedError(error, 'deleteItemById');
         }
     }
@@ -392,7 +392,7 @@ export class CartItemService {
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
 
             return iCartWithBenefit;
-        } catch (error) {
+        } catch (error: any) {
             throw createStandardizedError(error, 'bulkDelete');
         }
     }
@@ -457,7 +457,7 @@ export class CartItemService {
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
 
             return iCartWithBenefit;
-        } catch (error) {
+        } catch (error: any) {
             throw createStandardizedError(error, 'select');
         }
     }

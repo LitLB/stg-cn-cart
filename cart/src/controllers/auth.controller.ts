@@ -27,7 +27,7 @@ export class AuthController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            logger.info(`AuthController.createAnonymousSession.error`, error);
+            // logger.info(`AuthController.createAnonymousSession.error`, error);
 
             return sendCustomError(res, error);
         }
@@ -45,7 +45,7 @@ export class AuthController {
 
             return res.status(200).json(response);
         } catch (error: any) {
-            logger.info(`AuthController.renewAnonymousSession.error`, error);
+            // logger.info(`AuthController.renewAnonymousSession.error`, error);
 
             return sendCustomError(res, error);
         }
