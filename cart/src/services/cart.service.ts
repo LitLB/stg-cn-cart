@@ -9,9 +9,9 @@ import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter'
 import { ICart } from '../interfaces/cart';
-import { validateCartCheckoutBody } from '../validators/cart.validator';
+import { validateCartCheckoutBody } from '../schemas/cart.schema';
 import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
-import { validateProductQuantity } from '../validators/cart-item.validator';
+import { validateProductQuantity } from '../schemas/cart-item.schema';
 import ApigeeClientAdapter from '../adapters/apigee-client.adapter';
 import TsmOrderModel from '../models/tsm-order.model';
 import { readConfiguration } from '../utils/config.utils';

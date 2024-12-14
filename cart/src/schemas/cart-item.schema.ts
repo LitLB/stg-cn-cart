@@ -1,6 +1,6 @@
-// src/validators/cart-item.validator.ts
+// cart/src/schemas/cart-item.schema.ts
 
-import type { Cart, CustomObject, LineItem, ProductVariant } from '@commercetools/platform-sdk';
+import type { Cart, LineItem, ProductVariant } from '@commercetools/platform-sdk';
 import Joi from 'joi';
 import { getAttributeValue } from '../utils/product-utils';
 import { readConfiguration } from '../utils/config.utils';

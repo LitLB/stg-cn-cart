@@ -1,4 +1,4 @@
-// cart/src/validators/cart.validator.ts
+// cart/src/schemas/cart.schema.ts
 
 import Joi from 'joi';
 import { CART_JOURNEYS } from '../constants/cart.constant';

@@ -7,7 +7,7 @@ import { authenticate } from '../middleware/authenticate';
 import { CartItemController } from '../controllers/cart-item.controller';
 import { BlacklistController } from '../controllers/blacklist.controller';
 import { validateRequest } from '../middleware/validate.middleware';
-import { createAnonymousCartSchema } from '../validators/cart.validator';
+import { createAnonymousCartSchema } from '../schemas/cart.schema';
 
 const cartRouter = Router();
 const authController = new AuthController();
