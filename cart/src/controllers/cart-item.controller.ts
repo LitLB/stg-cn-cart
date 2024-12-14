@@ -1,11 +1,12 @@
 // cart/src/controllers/cart-item.controller.ts
 
 import { Request, Response } from 'express';
-import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../constants/messages.constant';
+import { RESPONSE_MESSAGES } from '../constants/messages.constant';
 import { ApiResponse } from '../interfaces/response.interface';
 import { CartItemService } from '../services/cart-item.service';
 import { logger } from '../utils/logger.utils';
 import { sendCustomError } from '../utils/error.utils';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class CartItemController {
     private cartItemService: CartItemService;
@@ -20,7 +21,7 @@ export class CartItemController {
             const accessToken = req.accessToken as string;
             const updatedCart = await this.cartItemService.addItem(accessToken, id, req.body);
             const response: ApiResponse = {
-                statusCode: 200,
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
             };
@@ -41,7 +42,7 @@ export class CartItemController {
             const updatedCart = await this.cartItemService.updateItemQuantityById(accessToken, id, itemId, req.body);
 
             const response: ApiResponse = {
-                statusCode: 200,
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
             };
@@ -62,7 +63,7 @@ export class CartItemController {
             const updatedCart = await this.cartItemService.deleteItemById(accessToken, id, itemId, req.body);
 
             const response: ApiResponse = {
-                statusCode: 200,
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
             };
@@ -83,7 +84,7 @@ export class CartItemController {
             const updatedCart = await this.cartItemService.bulkDelete(accessToken, id, req.body);
 
             const response: ApiResponse = {
-                statusCode: 200,
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
             };
@@ -104,7 +105,7 @@ export class CartItemController {
             const updatedCart = await this.cartItemService.select(accessToken, id, req.body);
 
             const response: ApiResponse = {
-                statusCode: 200,
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
             };

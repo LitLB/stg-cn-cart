@@ -5,6 +5,7 @@ import Joi from 'joi';
 import { getAttributeValue } from '../utils/product-utils';
 import { readConfiguration } from '../utils/config.utils';
 import { ApiResponse } from '../interfaces/response.interface';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export function validateSelectCartItemBody(body: any) {
 	return Joi.object({
@@ -303,21 +304,21 @@ export function validateProductQuantity(
 	// Negative Quantity Checks
 	if (newSkuQuantity < 0) {
 		throw {
-			statusCode: 400,
+			statusCode: HTTP_STATUSES.BAD_REQUEST,
 			statusMessage: `Cannot have less than 0 units of SKU ${sku} in the cart.`,
 		};
 	}
 
 	if (newProductQuantity < 0) {
 		throw {
-			statusCode: 400,
+			statusCode: HTTP_STATUSES.BAD_REQUEST,
 			statusMessage: `Cannot have less than 0 units of product ${productId} in the cart.`,
 		};
 	}
 
 	if (newTotalCartQuantity < 0) {
 		throw {
-			statusCode: 400,
+			statusCode: HTTP_STATUSES.BAD_REQUEST,
 			statusMessage: `Cannot have less than 0 units in the cart.`,
 		};
 	}
@@ -325,14 +326,14 @@ export function validateProductQuantity(
 	// SKU Level Validations
 	if (newSkuQuantity < skuQuantityMin) {
 		throw {
-			statusCode: 400,
+			statusCode: HTTP_STATUSES.BAD_REQUEST,
 			statusMessage: `Cannot have less than ${skuQuantityMin} units of SKU ${sku} in the cart.`,
 		};
 	}
 
 	if (skuQuantityMax !== null && skuQuantityMax !== undefined && newSkuQuantity > skuQuantityMax) {
 		throw {
-			statusCode: 400,
+			statusCode: HTTP_STATUSES.BAD_REQUEST,
 			statusMessage: `Cannot have more than ${skuQuantityMax} units of SKU ${sku} in the cart.`,
 		};
 	}
@@ -340,14 +341,14 @@ export function validateProductQuantity(
 	// Product Level Validations
 	if (newProductQuantity < quantityMin) {
 		throw {
-			statusCode: 400,
+			statusCode: HTTP_STATUSES.BAD_REQUEST,
 			statusMessage: `Cannot have less than ${quantityMin} units of product ${productId} in the cart.`,
 		};
 	}
 
 	if (quantityMax !== null && quantityMax !== undefined && newProductQuantity > quantityMax) {
 		throw {
-			statusCode: 400,
+			statusCode: HTTP_STATUSES.BAD_REQUEST,
 			statusMessage: `Cannot have more than ${quantityMax} units of product ${productId} in the cart.`,
 		};
 	}
@@ -355,7 +356,7 @@ export function validateProductQuantity(
 	// Whole Cart Level Validation
 	if (ctpWholeCartLimit !== undefined && newTotalCartQuantity > ctpWholeCartLimit) {
 		throw {
-			statusCode: 400,
+			statusCode: HTTP_STATUSES.BAD_REQUEST,
 			statusMessage: `Cannot have more than ${ctpWholeCartLimit} units in the cart.`,
 		};
 	}
@@ -368,7 +369,7 @@ export const validateJourneyCompatibility = (
 	if (cartJourney === 'device_only') {
 		if (variantJourney !== 'device_only') {
 			throw {
-				statusCode: 400,
+				statusCode: HTTP_STATUSES.BAD_REQUEST,
 				statusMessage: 'Cannot add a non-"device_only" item to a "device_only" cart.'
 			}
 		}

@@ -5,6 +5,7 @@ import { STATE_ORDER_KEYS } from '../constants/state.constant';
 import { ORDER_STATES } from '../constants/order.constant';
 import { SHIPMENT_STATES } from '../constants/shipment.constant';
 import { PAYMENT_STATES } from '../constants/payment.constant';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 class CommercetoolsOrderClient {
 	private apiRoot: ApiRoot;
@@ -88,13 +89,13 @@ class CommercetoolsOrderClient {
 				)
 			) {
 				throw {
-					statusCode: 400,
+					statusCode: HTTP_STATUSES.BAD_REQUEST,
 					statusMessage: `Cannot place order: Some line items are out of stock.`,
 					errorCode: "CREATE_ORDER_ON_CT_FAILED",
 				};
 			} else {
 				throw {
-					statusCode: 500,
+					statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
 					statusMessage: `Cannot create an order on Commercetools. Internal server error.`,
 					errorCode: "CREATE_ORDER_ON_CT_FAILED",
 				};

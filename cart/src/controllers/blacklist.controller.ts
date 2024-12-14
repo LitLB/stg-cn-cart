@@ -6,6 +6,7 @@ import { RESPONSE_MESSAGES } from '../constants/messages.constant';
 import { ApiResponse } from '../interfaces/response.interface';
 import { logger } from '../utils/logger.utils';
 import { sendCustomError } from '../utils/error.utils';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class BlacklistController {
     private blacklistService: BlacklistService;
@@ -19,7 +20,7 @@ export class BlacklistController {
             const checkBlacklist = await this.blacklistService.checkBlacklist(req.body);
 
             const response: ApiResponse = {
-                statusCode: 200,
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.SUCCESS,
                 data: checkBlacklist,
             };

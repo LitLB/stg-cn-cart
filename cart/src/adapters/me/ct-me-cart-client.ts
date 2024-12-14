@@ -24,6 +24,7 @@ import { talonOneEffectConverter } from '../talon-one-effect-converter'
 import { readConfiguration } from '../../utils/config.utils';
 import { CURRENCY_CODES } from '../../constants/currency.constant';
 import { COUNTRIES } from '../../constants/country.constant';
+import { HTTP_STATUSES } from '../../constants/http.constant';
 
 export default class CommercetoolsMeCartClient {
 	private apiRoot: ApiRoot;
@@ -353,7 +354,7 @@ export default class CommercetoolsMeCartClient {
 
 			} else {
 				throw {
-					statusCode: 400,
+					statusCode: HTTP_STATUSES.BAD_REQUEST,
 					statusMessage: `Line item with variant ID ${variantId} not found in cart.`
 				}
 			}

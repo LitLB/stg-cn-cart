@@ -8,6 +8,7 @@ import { logger } from '../utils/logger.utils';
 import { sendCustomError } from '../utils/error.utils';
 import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.interface';
 import { ICart } from '../interfaces/cart';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class CartController {
     private cartService: CartService;
@@ -31,7 +32,7 @@ export class CartController {
             const createdCart = await this.cartService.createAnonymousCart(accessToken, createAnonymousCartInput);
 
             const response: ApiResponse<ICart> = {
-                statusCode: 200,
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: createdCart,
             };
@@ -53,7 +54,7 @@ export class CartController {
             const cart = await this.cartService.getCartById(accessToken, id, selectedOnly);
 
             const response: ApiResponse = {
-                statusCode: 200,
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.SUCCESS,
                 data: cart,
             };
@@ -74,7 +75,7 @@ export class CartController {
             const updatedCart = await this.cartService.checkout(accessToken, id, req.body);
 
             const response: ApiResponse = {
-                statusCode: 200,
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.SUCCESS,
                 data: updatedCart,
             };
@@ -102,7 +103,7 @@ export class CartController {
             const order = await this.cartService.createOrder(accessToken, payload, validateList);
 
             const response: ApiResponse = {
-                statusCode: 200,
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.SUCCESS,
                 data: order,
             };

@@ -9,6 +9,7 @@ import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter'
 import { readConfiguration } from '../utils/config.utils';
 import { MyCartUpdateAction } from '@commercetools/platform-sdk';
 import { createStandardizedError } from '../utils/error.utils';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class CartItemService {
     // private getJourneyDeviceOnly = (variant: any): string | undefined => {
@@ -31,7 +32,7 @@ export class CartItemService {
             const { error, value } = validateAddItemCartBody(body);
             if (error) {
                 throw {
-                    statusCode: 400,
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Validation failed',
                     data: error.details.map((err) => err.message),
                 };
@@ -45,7 +46,7 @@ export class CartItemService {
             const cart = await commercetoolsMeCartClient.getCartById(id);
             if (!cart) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Cart not found or has expired',
                 };
             }
@@ -54,7 +55,7 @@ export class CartItemService {
             const product = await CommercetoolsProductClient.getProductById(productId);
             if (!product) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Product not found',
                 };
             }
@@ -62,13 +63,13 @@ export class CartItemService {
             const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
             if (!variant) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'SKU not found in the specified product',
                 };
             }
             if (!variant.prices || variant.prices.length === 0) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'No prices found for this variant',
                 };
             }
@@ -83,7 +84,7 @@ export class CartItemService {
             });
             if (!validPrice) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'No valid price found for the specified customer group and date range',
                 };
             }
@@ -101,14 +102,14 @@ export class CartItemService {
             const inventories = await CommercetoolsInventoryClient.getInventory(sku);
             if (inventories.length === 0) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Inventory not found',
                 };
             }
             const inventory = inventories[0];
             if (inventory.isOutOfStock) {
                 throw {
-                    statusCode: 400,
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Insufficient stock for the requested quantity',
                 };
             }
@@ -178,7 +179,7 @@ export class CartItemService {
             const { error, value } = validateUpdateCartItemBody(body);
             if (error) {
                 throw {
-                    statusCode: 400,
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Validation failed',
                     data: error.details.map((err) => err.message),
                 };
@@ -191,7 +192,7 @@ export class CartItemService {
             const cart = await commercetoolsMeCartClient.getCartById(id);
             if (!cart) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Cart not found or has expired',
                 };
             }
@@ -199,7 +200,7 @@ export class CartItemService {
             const product = await CommercetoolsProductClient.getProductById(productId);
             if (!product) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Product not found',
                 };
             }
@@ -207,7 +208,7 @@ export class CartItemService {
             const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
             if (!variant) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'SKU not found in the specified product',
                 };
             }
@@ -215,14 +216,14 @@ export class CartItemService {
             const inventories = await CommercetoolsInventoryClient.getInventory(sku);
             if (inventories.length === 0) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Inventory not found',
                 };
             }
             const inventory = inventories[0];
             if (inventory.isOutOfStock) {
                 throw {
-                    statusCode: 400,
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Insufficient stock for the requested quantity',
                 };
             }
@@ -230,7 +231,7 @@ export class CartItemService {
             const existingLineItem = commercetoolsMeCartClient.findLineItem({ cart, variantId: variant.id, productGroup, productType, addOnGroup });
             if (!existingLineItem) {
                 throw {
-                    statusCode: 400,
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Line item not found in cart',
                 };
             }
@@ -284,7 +285,7 @@ export class CartItemService {
             const { error, value } = validateDeleteCartItemBody(body);
             if (error) {
                 throw {
-                    statusCode: 400,
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Validation failed',
                     data: error.details.map((err) => err.message),
                 };
@@ -297,7 +298,7 @@ export class CartItemService {
             const cart = await commercetoolsMeCartClient.getCartById(id);
             if (!cart) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Cart not found or has expired',
                 };
             }
@@ -305,7 +306,7 @@ export class CartItemService {
             const product = await CommercetoolsProductClient.getProductById(productId);
             if (!product) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Product not found',
                 };
             }
@@ -313,7 +314,7 @@ export class CartItemService {
             const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
             if (!variant) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'SKU not found in the specified product',
                 };
             }
@@ -341,7 +342,7 @@ export class CartItemService {
             const { error, value } = validateBulkDeleteCartItemBody(body);
             if (error) {
                 throw {
-                    statusCode: 400,
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Validation failed',
                     data: error.details.map((err) => err.message),
                 };
@@ -354,7 +355,7 @@ export class CartItemService {
             const cart = await commercetoolsMeCartClient.getCartById(id);
             if (!cart) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Cart not found or has expired',
                 };
             }
@@ -365,7 +366,7 @@ export class CartItemService {
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
                     throw {
-                        statusCode: 404,
+                        statusCode: HTTP_STATUSES.NOT_FOUND,
                         statusMessage: `Product with ID ${productId} not found.`,
                     };
                 }
@@ -373,7 +374,7 @@ export class CartItemService {
                 const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
                 if (!variant) {
                     throw {
-                        statusCode: 404,
+                        statusCode: HTTP_STATUSES.NOT_FOUND,
                         statusMessage: `SKU ${sku} not found in product ${productId}.`,
                     };
                 }
@@ -401,7 +402,7 @@ export class CartItemService {
             const { value, error } = validateSelectCartItemBody(body);
             if (error) {
                 throw {
-                    statusCode: 400,
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Validation failed',
                     data: error.details.map((err) => err.message),
                 };
@@ -414,7 +415,7 @@ export class CartItemService {
             const cart = await commercetoolsMeCartClient.getCartById(id);
             if (!cart) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Cart not found or has expired',
                 };
             }
@@ -432,7 +433,7 @@ export class CartItemService {
 
                 if (!lineItem) {
                     throw {
-                        statusCode: 404,
+                        statusCode: HTTP_STATUSES.NOT_FOUND,
                         statusMessage: `Line item with SKU ${sku} not found in the cart.`,
                     };
                 }

@@ -1,7 +1,9 @@
 // cart/src/interfaces/response.interface.ts
 
+import { HTTP_STATUSES } from "../constants/http.constant";
+
 export interface ApiResponse<T = any> {
-    statusCode: number;
+    statusCode: HTTP_STATUSES;
     statusMessage: string;
     errorCode?: string;
     message?: string;

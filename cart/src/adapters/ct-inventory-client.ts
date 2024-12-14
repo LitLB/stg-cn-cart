@@ -4,6 +4,7 @@ import type { ApiRoot, InventoryEntry, InventoryEntryUpdate, InventoryEntryUpdat
 import { readConfiguration } from '../utils/config.utils';
 import CommercetoolsBaseClient from './ct-base-client'
 import { CART_JOURNEYS } from '../constants/cart.constant';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 class CommercetoolsInventoryClient {
 	private static instance: CommercetoolsInventoryClient;
@@ -51,7 +52,7 @@ class CommercetoolsInventoryClient {
 				break;
 			default:
 				throw {
-					statusCode: 500,
+					statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
 					statusMessage: `Unhandled journey type: ${journey}.`,
 					errorCode: 'UNHANDLED_JOURNEY',
 				};
@@ -90,7 +91,7 @@ class CommercetoolsInventoryClient {
 		const { totalKey, maximumKey } = journeyConfig.inventory;
 		if (!totalKey || !maximumKey) {
 			throw {
-				statusCode: 500,
+				statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
 				statusMessage: 'totalKey or maximumKey invalid.',
 				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
 			}
@@ -99,7 +100,7 @@ class CommercetoolsInventoryClient {
 		const customFields = inventoryEntry.custom?.fields;
 		if (!customFields) {
 			throw {
-				statusCode: 400,
+				statusCode: HTTP_STATUSES.BAD_REQUEST,
 				statusMessage: 'Custom fields are missing on inventory entry.',
 				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
 			}
@@ -110,7 +111,7 @@ class CommercetoolsInventoryClient {
 		const newTotal = total + orderedQuantity;
 		if (newTotal > maximum) {
 			throw {
-				statusCode: 400,
+				statusCode: HTTP_STATUSES.BAD_REQUEST,
 				statusMessage: `Exceeds maximum stock allocation for journey.`,
 				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
 			};

@@ -6,6 +6,7 @@ import { RESPONSE_MESSAGES } from '../constants/messages.constant';
 import { ApiResponse } from '../interfaces/response.interface';
 import { logger } from '../utils/logger.utils';
 import { sendCustomError } from '../utils/error.utils';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class AuthController {
     private authService: AuthService;
@@ -19,7 +20,7 @@ export class AuthController {
             const anonymousSession = await this.authService.createAnonymousSession();
 
             const response: ApiResponse = {
-                statusCode: 200,
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: anonymousSession,
             };
@@ -37,7 +38,7 @@ export class AuthController {
             const anonymousSession = await this.authService.renewAnonymousSession(req.body);
 
             const response: ApiResponse = {
-                statusCode: 200,
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: anonymousSession,
             };

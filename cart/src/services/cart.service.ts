@@ -23,6 +23,7 @@ import { logger } from '../utils/logger.utils';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { createStandardizedError } from '../utils/error.utils';
 import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.interface';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -70,7 +71,7 @@ export class CartService {
                 const supplyChannel = lineItem.supplyChannel;
                 if (!supplyChannel || !supplyChannel.id) {
                     throw {
-                        statusCode: 400,
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: 'Supply channel is missing on line item.',
                         errorCode: "SUPPLY_CHANNEL_MISSING",
                     };
@@ -80,7 +81,7 @@ export class CartService {
                     lineItem.variant.availability?.channels?.[supplyChannel.id]?.id;
                 if (!inventoryId) {
                     throw {
-                        statusCode: 400,
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: 'InventoryId not found.',
                         errorCode: "INVENTORY_ID_NOT_FOUND",
                     };
@@ -89,7 +90,7 @@ export class CartService {
                 const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
                 if (!inventoryEntry) {
                     throw {
-                        statusCode: 400,
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: `Inventory entry not found for ID: ${inventoryId}`,
                         errorCode: "INVENTORY_ENTRY_NOT_FOUND",
                     };
@@ -105,7 +106,7 @@ export class CartService {
             }
         } catch (error) {
             throw {
-                statusCode: 400,
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: `Update stock allocation failed.`,
                 errorCode: "CREATE_ORDER_ON_CT_FAILED",
             };
@@ -168,7 +169,7 @@ export class CartService {
             const { error, value } = validateCartCheckoutBody(body);
             if (error) {
                 throw {
-                    statusCode: 400,
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Validation failed',
                     data: error.details.map((err) => err.message),
                 };
@@ -181,7 +182,7 @@ export class CartService {
             const cart = await commercetoolsMeCartClient.getCartById(id);
             if (!cart) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Cart not found or has expired',
                 };
             }
@@ -192,7 +193,7 @@ export class CartService {
                 coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, cart.lineItems);
             } catch (error) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
                     statusMessage: 'No discount coupon effect found.',
                 };
@@ -258,7 +259,7 @@ export class CartService {
         try {
             if (!id) {
                 throw {
-                    statusCode: 400,
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Cart ID is required',
                 };
             }
@@ -268,7 +269,7 @@ export class CartService {
             const ctCart = await commercetoolsMeCartClient.getCartById(id);
             if (!ctCart) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Cart not found or has expired',
                 };
             }
@@ -280,7 +281,7 @@ export class CartService {
                 coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(id, ctCart.lineItems);
             } catch (error) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
                     statusMessage: 'No discount coupon effect found.',
                 };
@@ -296,7 +297,7 @@ export class CartService {
         try {
             if (!id) {
                 throw {
-                    statusCode: 400,
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Cart ID is required',
                 };
             }
@@ -306,7 +307,7 @@ export class CartService {
             const ctCart = await commercetoolsMeCartClient.getCartById(id);
             if (!ctCart) {
                 throw {
-                    statusCode: 404,
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Cart not found or has expired',
                 };
             }
@@ -331,7 +332,7 @@ export class CartService {
 
             // if (code !== '0') {
             //     throw {
-            //         statusCode: 400,
+            //         statusCode: HTTP_STATUSES.BAD_REQUEST,
             //         statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
             //         errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
             //     };
@@ -349,7 +350,7 @@ export class CartService {
                 data = safelyParse(data)
             }
             // throw {
-            //     statusCode: 400,
+            //     statusCode: HTTP_STATUSES.BAD_REQUEST,
             //     statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
             //     errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
             //     ...(data ? { data } : {})
@@ -392,7 +393,7 @@ export class CartService {
             }
         } catch (e) {
             throw {
-                statusCode: 400,
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
                 errorCode: 'BLACKLIST_VALIDATE_FAILED'
             };
@@ -572,7 +573,7 @@ export class CartService {
         } catch (error: any) {
             console.error('error-cartService-validateCampaign', error)
             throw {
-                statusCode: 400,
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
                 errorCode: 'CAMPAIGN_VALIDATE_FAILED'
             };
@@ -590,7 +591,7 @@ export class CartService {
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
                     throw {
-                        statusCode: 404,
+                        statusCode: HTTP_STATUSES.NOT_FOUND,
                         statusMessage: 'Product not found',
                     };
                 }
@@ -598,7 +599,7 @@ export class CartService {
                 const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
                 if (!variant) {
                     throw {
-                        statusCode: 404,
+                        statusCode: HTTP_STATUSES.NOT_FOUND,
                         statusMessage: 'SKU not found in the specified product',
                     };
                 }
@@ -606,14 +607,14 @@ export class CartService {
                 const inventories = await CommercetoolsInventoryClient.getInventory(sku);
                 if (inventories.length === 0) {
                     throw {
-                        statusCode: 404,
+                        statusCode: HTTP_STATUSES.NOT_FOUND,
                         statusMessage: 'Inventory not found',
                     };
                 }
                 const inventory = inventories[0];
                 if (inventory.isOutOfStock) {
                     throw {
-                        statusCode: 400,
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: 'Insufficient stock for the requested quantity',
                     };
                 }
@@ -630,7 +631,7 @@ export class CartService {
         } catch (error: any) {
             console.error(error)
             throw {
-                statusCode: 400,
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
                 errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
             };

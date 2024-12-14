@@ -1,6 +1,7 @@
 // src/services/auth.service.ts
 
 import CommercetoolsAuthClient from '../adapters/ct-auth-client';
+import { HTTP_STATUSES } from '../constants/http.constant';
 import { createStandardizedError } from '../utils/error.utils';
 import { calculateExpiration } from '../utils/session-utils';
 
@@ -35,7 +36,7 @@ export class AuthService {
             const { refreshToken } = body;
 
             if (!refreshToken) {
-                throw createStandardizedError({ statusCode: 400, statusMessage: 'Refresh token is required.' });
+                throw createStandardizedError({ statusCode: HTTP_STATUSES.BAD_REQUEST, statusMessage: 'Refresh token is required.' });
             }
 
             const newTokenData = await this.commercetoolsAuthClient.renewAnonymousToken(refreshToken);
