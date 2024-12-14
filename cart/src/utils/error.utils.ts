@@ -2,7 +2,7 @@
 
 import createError from 'http-errors';
 import { camelToUpperSnakeCase, camelToTitleCase } from './string.utils';
-import { ResponseType } from '../types/response.type';
+import { ApiResponse } from '../interfaces/response.interface';
 import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
 
 /**
@@ -108,7 +108,7 @@ export function createStandardizedError(error: any, fallbackFunctionName?: strin
  * @param error - The Error object to be sent to the client. Should ideally be from `createStandardizedError`.
  * @returns The standardized error response sent to the client.
  */
-export function sendCustomError(res: any, error: any): ResponseType {
+export function sendCustomError(res: any, error: any): ApiResponse {
     const statusCode = error.statusCode || 500;
     const statusMessage = error.message || EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR;
     const errorCode = error.errorCode;

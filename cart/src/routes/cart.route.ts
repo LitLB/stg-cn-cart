@@ -6,6 +6,8 @@ import { CartController } from '../controllers/cart.controller';
 import { authenticate } from '../middleware/authenticate';
 import { CartItemController } from '../controllers/cart-item.controller';
 import { BlacklistController } from '../controllers/blacklist.controller';
+import { validateRequest } from '../middleware/validate.middleware';
+import { createAnonymousCartSchema } from '../validators/cart.validator';
 
 const cartRouter = Router();
 const authController = new AuthController();
@@ -16,7 +18,7 @@ const blacklistController = new BlacklistController();
 cartRouter.post('/v1/oauth/anonymous', authController.createAnonymousSession);
 cartRouter.patch('/v1/oauth/anonymous', authController.renewAnonymousSession);
 
-cartRouter.post('/v1/carts', authenticate, cartController.createAnonymousCart);
+cartRouter.post('/v1/carts', authenticate, validateRequest({ body: createAnonymousCartSchema }), cartController.createAnonymousCart);
 cartRouter.get('/v1/carts/:id', authenticate, cartController.getCartById);
 cartRouter.post('/v1/checkout/:id', authenticate, cartController.checkout);
 

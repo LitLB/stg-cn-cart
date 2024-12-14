@@ -2,7 +2,7 @@
 
 import { Request, Response } from 'express';
 import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../constants/messages.constant';
-import { ResponseType } from '../types/response.type';
+import { ApiResponse } from '../interfaces/response.interface';
 import { CartItemService } from '../services/cart-item.service';
 import { logger } from '../utils/logger.utils';
 import { sendCustomError } from '../utils/error.utils';
@@ -14,12 +14,12 @@ export class CartItemController {
         this.cartItemService = new CartItemService();
     }
 
-    public addItem = async (req: Request, res: Response): Promise<ResponseType> => {
+    public addItem = async (req: Request, res: Response): Promise<ApiResponse> => {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
             const updatedCart = await this.cartItemService.addItem(accessToken, id, req.body);
-            const response: ResponseType = {
+            const response: ApiResponse = {
                 statusCode: 200,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
@@ -33,14 +33,14 @@ export class CartItemController {
         }
     };
 
-    public updateItemQuantityById = async (req: Request, res: Response): Promise<ResponseType> => {
+    public updateItemQuantityById = async (req: Request, res: Response): Promise<ApiResponse> => {
         try {
             const { id, itemId } = req.params;
             const accessToken = req.accessToken as string;
 
             const updatedCart = await this.cartItemService.updateItemQuantityById(accessToken, id, itemId, req.body);
 
-            const response: ResponseType = {
+            const response: ApiResponse = {
                 statusCode: 200,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
@@ -54,14 +54,14 @@ export class CartItemController {
         }
     }
 
-    public deleteItemById = async (req: Request, res: Response): Promise<ResponseType> => {
+    public deleteItemById = async (req: Request, res: Response): Promise<ApiResponse> => {
         try {
             const { id, itemId } = req.params;
             const accessToken = req.accessToken as string;
 
             const updatedCart = await this.cartItemService.deleteItemById(accessToken, id, itemId, req.body);
 
-            const response: ResponseType = {
+            const response: ApiResponse = {
                 statusCode: 200,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
@@ -75,14 +75,14 @@ export class CartItemController {
         }
     }
 
-    public bulkDelete = async (req: Request, res: Response): Promise<ResponseType> => {
+    public bulkDelete = async (req: Request, res: Response): Promise<ApiResponse> => {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
 
             const updatedCart = await this.cartItemService.bulkDelete(accessToken, id, req.body);
 
-            const response: ResponseType = {
+            const response: ApiResponse = {
                 statusCode: 200,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
@@ -96,14 +96,14 @@ export class CartItemController {
         }
     };
 
-    public select = async (req: Request, res: Response): Promise<ResponseType> => {
+    public select = async (req: Request, res: Response): Promise<ApiResponse> => {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
 
             const updatedCart = await this.cartItemService.select(accessToken, id, req.body);
 
-            const response: ResponseType = {
+            const response: ApiResponse = {
                 statusCode: 200,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,

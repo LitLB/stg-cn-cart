@@ -22,6 +22,8 @@ import CommercetoolsCartClient from '../ct-cart-client';
 import CommercetoolsProductClient from '../ct-product-client';
 import { talonOneEffectConverter } from '../talon-one-effect-converter'
 import { readConfiguration } from '../../utils/config.utils';
+import { CURRENCY_CODES } from '../../constants/currency.constant';
+import { COUNTRIES } from '../../constants/country.constant';
 
 export default class CommercetoolsMeCartClient {
 	private apiRoot: ApiRoot;
@@ -61,8 +63,8 @@ export default class CommercetoolsMeCartClient {
 	 */
 	public async createCart(campaignGroup: string, journey: string): Promise<Cart> {
 		const cartDraft: MyCartDraft = {
-			country: 'TH',
-			currency: 'THB',
+			country: COUNTRIES.TH,
+			currency: CURRENCY_CODES.THB,
 			inventoryMode: CART_INVENTORY_MODES.RESERVE_ON_ORDER,
 			deleteDaysAfterLastModification: CART_EXPIRATION_DAYS,
 			custom: {

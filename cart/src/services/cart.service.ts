@@ -9,7 +9,7 @@ import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter'
 import { ICart } from '../interfaces/cart';
-import { validateCartCheckoutBody, validateCreateAnonymousCartBody } from '../validators/cart.validator';
+import { validateCartCheckoutBody } from '../validators/cart.validator';
 import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 import { validateProductQuantity } from '../validators/cart-item.validator';
 import ApigeeClientAdapter from '../adapters/apigee-client.adapter';
@@ -22,6 +22,7 @@ import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 import { logger } from '../utils/logger.utils';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { createStandardizedError } from '../utils/error.utils';
+import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.interface';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -34,18 +35,19 @@ export class CartService {
         this.blacklistService = new BlacklistService()
     }
 
-    public createAnonymousCart = async (accessToken: string, body: any) => {
+    /**
+      * Creates an anonymous cart.
+      *
+      * @param accessToken - The access token for authentication.
+      * @param body - The validated request body containing campaignGroup and journey.
+      * @returns A Promise resolving to an ICart object.
+      */
+    public createAnonymousCart = async (
+        accessToken: string,
+        createAnonymousCartInput: CreateAnonymousCartInput,
+    ): Promise<ICart> => {
         try {
-            const { campaignGroup, journey } = body;
-
-            const { error } = validateCreateAnonymousCartBody({ campaignGroup, journey });
-            if (error) {
-                throw {
-                    statusCode: 400,
-                    statusMessage: 'Validation failed',
-                    data: error.details.map((err: any) => err.message),
-                };
-            }
+            const { campaignGroup, journey } = createAnonymousCartInput;
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
@@ -57,7 +59,7 @@ export class CartService {
         } catch (error: any) {
             throw createStandardizedError(error, 'createAnonymousCart');
         }
-    }
+    };
 
     public updateStockAllocation = async (ctCart: Cart): Promise<void> => {
         try {
@@ -116,45 +118,45 @@ export class CartService {
                 'BLACKLIST',
                 'CAMPAIGN',
             ]
-    
+
             let validateList = defaultValidateList
             if (partailValidateList.length) {
                 validateList = partailValidateList
             }
-    
+
             const { cartId } = payload
             const ctCart = await this.getCtCartById(accessToken, cartId)
-    
+
             // * STEP #2 - Validate Blacklist
             if (validateList.includes('BLACKLIST')) {
                 await this.validateBlacklist(ctCart)
             }
-    
+
             // * STEP #3 - Validate Campaign & Promotion Set
             if (validateList.includes('CAMPAIGN')) {
                 await this.validateCampaign(ctCart)
             }
-    
+
             // * STEP #4 - Validate Available Quantity (Commercetools)
             await this.validateAvailableQuantity(ctCart)
-    
+
             const orderNumber = this.generateOrderNumber()
-    
+
             // * STEP #5 - Create Order On TSM Sale
             const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
             // //! IF available > x
             // //! THEN continue
             // //! ELSE
             // //! THEN throw error
-    
+
             const tsmSaveOrder = {
                 tsmOrderIsSaved: success,
                 tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
             }
-    
+
             await this.updateStockAllocation(ctCart);
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, ctCart, tsmSaveOrder);
-    
+
             return order;
         } catch (error) {
             throw createStandardizedError(error, 'createOrder');

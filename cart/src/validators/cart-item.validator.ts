@@ -4,7 +4,7 @@ import type { Cart, CustomObject, LineItem, ProductVariant } from '@commercetool
 import Joi from 'joi';
 import { getAttributeValue } from '../utils/product-utils';
 import { readConfiguration } from '../utils/config.utils';
-import { ResponseType } from '../types/response.type';
+import { ApiResponse } from '../interfaces/response.interface';
 
 export function validateSelectCartItemBody(body: any) {
 	return Joi.object({
@@ -262,7 +262,7 @@ export function validateProductQuantity(
 	productId: string,
 	variant: ProductVariant,
 	deltaQuantity = 0,
-): void | ResponseType {
+): void | ApiResponse {
 	if (productType !== 'main_product') {
 		return;
 	}

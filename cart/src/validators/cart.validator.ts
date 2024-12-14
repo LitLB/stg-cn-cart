@@ -1,24 +1,39 @@
+// cart/src/validators/cart.validator.ts
+
 import Joi from 'joi';
 import { CART_JOURNEYS } from '../constants/cart.constant';
 
-export function validateCreateAnonymousCartBody(body: any) {
-	return Joi.object({
-		campaignGroup: Joi.string().max(100).required().messages({
-			'string.empty': 'Campaign Group cannot be empty',
-			'any.required': 'Campaign Group is required',
-			'string.max': 'Campaign Group must not exceed 100 characters',
+/**
+ * Validation schema for querying carts.
+ *
+ * @returns Joi schema object.
+ */
+export const getCartQuerySchema = Joi.object({
+	selectedOnly: Joi.boolean().optional().messages({
+		'boolean.base': 'selectedOnly must be a boolean',
+	}),
+});
+
+/**
+ * Validation schema for creating an anonymous cart.
+ *
+ * @returns Joi schema object.
+ */
+export const createAnonymousCartSchema = Joi.object({
+	campaignGroup: Joi.string().max(100).required().messages({
+		'string.empty': 'Campaign Group cannot be empty',
+		'any.required': 'Campaign Group is required',
+		'string.max': 'Campaign Group must not exceed 100 characters',
+	}),
+	journey: Joi.string()
+		.valid(CART_JOURNEYS.SINGLE_PRODUCT, CART_JOURNEYS.DEVICE_ONLY)
+		.required()
+		.messages({
+			'string.empty': 'Journey cannot be empty',
+			'any.required': 'Journey is required',
+			'any.only': `Journey must be one of: ${Object.values(CART_JOURNEYS).join(', ')}`,
 		}),
-		journey: Joi.string()
-			.valid(CART_JOURNEYS.SINGLE_PRODUCT, CART_JOURNEYS.DEVICE_ONLY)
-			.required()
-			.messages({
-				'string.empty': 'Journey cannot be empty',
-				'any.required': 'Journey is required',
-				'string.max': 'Journey must not exceed 100 characters',
-				'any.only': `Journey must be one of: ${Object.values(CART_JOURNEYS).join(', ')}`,
-			}),
-	}).validate(body, { abortEarly: false });
-}
+});
 
 export function validateCartCheckoutBody(body: any) {
 	return Joi.any().validate(body, { abortEarly: false });

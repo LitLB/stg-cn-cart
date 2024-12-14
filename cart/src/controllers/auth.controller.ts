@@ -3,7 +3,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { RESPONSE_MESSAGES } from '../constants/messages.constant';
-import { ResponseType } from '../types/response.type';
+import { ApiResponse } from '../interfaces/response.interface';
 import { logger } from '../utils/logger.utils';
 import { sendCustomError } from '../utils/error.utils';
 
@@ -14,11 +14,11 @@ export class AuthController {
         this.authService = new AuthService();
     }
 
-    public createAnonymousSession = async (req: Request, res: Response): Promise<ResponseType> => {
+    public createAnonymousSession = async (req: Request, res: Response): Promise<ApiResponse> => {
         try {
             const anonymousSession = await this.authService.createAnonymousSession();
 
-            const response: ResponseType = {
+            const response: ApiResponse = {
                 statusCode: 200,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: anonymousSession,
@@ -32,11 +32,11 @@ export class AuthController {
         }
     };
 
-    public renewAnonymousSession = async (req: Request, res: Response): Promise<ResponseType> => {
+    public renewAnonymousSession = async (req: Request, res: Response): Promise<ApiResponse> => {
         try {
             const anonymousSession = await this.authService.renewAnonymousSession(req.body);
 
-            const response: ResponseType = {
+            const response: ApiResponse = {
                 statusCode: 200,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: anonymousSession,
