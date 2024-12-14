@@ -58,6 +58,10 @@ export class CartService {
 
             return iCart;
         } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+            
             throw createStandardizedError(error, 'createAnonymousCart');
         }
     };
@@ -160,6 +164,10 @@ export class CartService {
 
             return order;
         } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+            
             throw createStandardizedError(error, 'createOrder');
         }
     };
@@ -251,6 +259,10 @@ export class CartService {
 
             return { ...iCart, ...coupons };
         } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+            
             throw createStandardizedError(error, 'checkout');
         }
     };
@@ -279,6 +291,10 @@ export class CartService {
 
             return { ...iCartWithBenefit, ...coupons };
         } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+
             throw createStandardizedError(error, 'getCartById');
         }
     };
@@ -304,6 +320,10 @@ export class CartService {
 
             return ctCart
         } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+            
             throw createStandardizedError(error, 'getCtCartById');
         }
     };

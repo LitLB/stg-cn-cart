@@ -76,6 +76,10 @@ export class CouponService {
             const activeCoupons = filterActiveCoupons(data.coupons);
             return activeCoupons.map(mapCouponData);
         } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+
             throw createStandardizedError(error, 'getQueryCoupons');
         }
     }
@@ -140,6 +144,10 @@ export class CouponService {
             const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
             return { ...iCart, coupons };
         } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+            
             throw createStandardizedError(error, 'applyCoupons')
         }
     }

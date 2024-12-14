@@ -27,6 +27,10 @@ export class AuthService {
                 expiredAtWithBuffer,
             };
         } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+            
             throw createStandardizedError({
                 statusCode: 500,
             }, 'createAnonymousSession');

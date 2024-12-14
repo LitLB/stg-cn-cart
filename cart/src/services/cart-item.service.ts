@@ -170,6 +170,10 @@ export class CartItemService {
 
             return iCartWithBenefit;
         } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+            
             throw createStandardizedError(error, 'addItem');
         }
     }
@@ -276,6 +280,10 @@ export class CartItemService {
 
             return iCartWithBenefit;
         } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+            
             throw createStandardizedError(error, 'updateItemQuantityById');
         }
     }
@@ -333,6 +341,10 @@ export class CartItemService {
 
             return iCartWithBenefit;
         } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+
             throw createStandardizedError(error, 'deleteItemById');
         }
     }
@@ -393,6 +405,10 @@ export class CartItemService {
 
             return iCartWithBenefit;
         } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+
             throw createStandardizedError(error, 'bulkDelete');
         }
     }
@@ -458,6 +474,10 @@ export class CartItemService {
 
             return iCartWithBenefit;
         } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+            
             throw createStandardizedError(error, 'select');
         }
     }
