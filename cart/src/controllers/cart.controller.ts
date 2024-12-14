@@ -45,7 +45,7 @@ export class CartController {
         }
     };
 
-    public getCartById = async (req: Request, res: Response): Promise<ApiResponse> => {
+    public getCartById = async (req: Request, res: Response): Promise<ApiResponse<ICart>> => {
         try {
             const { id } = req.params;
             const selectedOnly = req.query.selectedOnly === 'true';
@@ -53,7 +53,7 @@ export class CartController {
 
             const cart = await this.cartService.getCartById(accessToken, id, selectedOnly);
 
-            const response: ApiResponse = {
+            const response: ApiResponse<ICart> = {
                 statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.SUCCESS,
                 data: cart,

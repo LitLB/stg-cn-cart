@@ -1,18 +1,26 @@
 // cart/src/middleware/error-handler.middleware.ts
 
-import { Request, Response } from 'express';
+// cart/src/middleware/error-handler.middleware.ts
+
+import { Request, Response, NextFunction } from 'express';
 import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
-import { logger } from '../utils/logger.utils';
+import { ApiResponse } from '../interfaces/response.interface';
 
-export const errorHandler = (err: any, req: Request, res: Response) => {
-    logger.error('Unhandled Error:', err);
-
+/**
+ * Custom error handling middleware.
+ *
+ * @param err - The error object.
+ * @param req - Express Request object.
+ * @param res - Express Response object.
+ * @param next - Express NextFunction.
+ */
+export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
     const statusCode = err.statusCode || 500;
     const statusMessage = err.statusMessage || EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR;
-    const errorCode = err.errorCode;
+    const errorCode = err.errorCode || 'UNKNOWN_ERROR';
     const data = err.data || null;
 
-    const response = {
+    const response: ApiResponse = {
         statusCode,
         statusMessage,
         errorCode,

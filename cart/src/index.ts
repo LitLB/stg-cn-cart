@@ -33,7 +33,7 @@ app.use('/cart', cartRouter);
 // Handle 404 Not Found errors
 app.use(notFoundHandler);
 
-// Global error handling middleware
+// Global error handling middleware (must be after all other middleware and routes)
 app.use(errorHandler);
 
 // Start the Express server

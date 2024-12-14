@@ -255,23 +255,13 @@ export class CartService {
         }
     };
 
-    public getCartById = async (accessToken: string, id: string, selectedOnly: boolean): Promise<any> => {
+    public getCartById = async (accessToken: string, id: string, selectedOnly: boolean): Promise<ICart> => {
         try {
-            if (!id) {
-                throw {
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'Cart ID is required',
-                };
-            }
-
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
             const ctCart = await commercetoolsMeCartClient.getCartById(id);
             if (!ctCart) {
-                throw {
-                    statusCode: HTTP_STATUSES.NOT_FOUND,
-                    statusMessage: 'Cart not found or has expired',
-                };
+                throw createStandardizedError({ statusCode: HTTP_STATUSES.BAD_REQUEST, statusMessage: 'Cart not found or has expired' });
             }
 
             const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);

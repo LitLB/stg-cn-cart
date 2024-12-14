@@ -4,6 +4,18 @@ import Joi from 'joi';
 import { CART_JOURNEYS } from '../constants/cart.constant';
 
 /**
+ * Validation schema for cart route parameters.
+ *
+ * @returns Joi schema object.
+ */
+export const cartParamsSchema = Joi.object({
+	id: Joi.string().guid({ version: 'uuidv4' }).required().messages({
+		'string.guid': 'Cart ID must be a valid UUID',
+		'any.required': 'Cart ID is required',
+	}),
+});
+
+/**
  * Validation schema for querying carts.
  *
  * @returns Joi schema object.
