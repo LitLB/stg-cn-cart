@@ -21,14 +21,14 @@ export const errorHandler = (
     next: NextFunction,
 ): void => {
     // Log the error details for debugging
-    // logger.error('Unhandled Error:', {
-    //     message: err.message || 'Unknown error',
-    //     stack: err.stack || 'No stack trace available',
-    //     status: err.status,
-    //     statusCode: err.statusCode,
-    //     errorCode: err.errorCode,
-    //     data: err.data,
-    // });
+    logger.error('Unhandled Error:', {
+        message: err.message || 'Unknown error',
+        stack: err.stack || 'No stack trace available',
+        status: err.status,
+        statusCode: err.statusCode,
+        errorCode: err.errorCode,
+        data: err.data,
+    });
 
     // Set default values if not provided
     const statusCode = err.statusCode || 500;

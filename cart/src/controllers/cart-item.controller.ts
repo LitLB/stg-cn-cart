@@ -1,11 +1,10 @@
 // cart/src/controllers/cart-item.controller.ts
 
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { RESPONSE_MESSAGES } from '../constants/messages.constant';
 import { ApiResponse } from '../interfaces/response.interface';
 import { CartItemService } from '../services/cart-item.service';
 import { logger } from '../utils/logger.utils';
-import { sendCustomError } from '../utils/error.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class CartItemController {
@@ -15,7 +14,7 @@ export class CartItemController {
         this.cartItemService = new CartItemService();
     }
 
-    public addItem = async (req: Request, res: Response): Promise<ApiResponse> => {
+    public addItem = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
@@ -26,15 +25,15 @@ export class CartItemController {
                 data: updatedCart,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            logger.info(`CartItemController.addItem.error`, error);
+            logger.error(`CartItemController.addItem.error`, error);
 
-            return sendCustomError(res, error);
+            next(error);
         }
     };
 
-    public updateItemQuantityById = async (req: Request, res: Response): Promise<ApiResponse> => {
+    public updateItemQuantityById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { id, itemId } = req.params;
             const accessToken = req.accessToken as string;
@@ -47,15 +46,15 @@ export class CartItemController {
                 data: updatedCart,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            logger.info(`CartItemController.updateItemQuantityById.error`, error);
+            logger.error(`CartItemController.updateItemQuantityById.error`, error);
 
-            return sendCustomError(res, error);
+            next(error);
         }
     }
 
-    public deleteItemById = async (req: Request, res: Response): Promise<ApiResponse> => {
+    public deleteItemById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { id, itemId } = req.params;
             const accessToken = req.accessToken as string;
@@ -68,15 +67,15 @@ export class CartItemController {
                 data: updatedCart,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            logger.info(`CartItemController.deleteItemById.error`, error);
+            logger.error(`CartItemController.deleteItemById.error`, error);
 
-            return sendCustomError(res, error);
+            next(error);
         }
     }
 
-    public bulkDelete = async (req: Request, res: Response): Promise<ApiResponse> => {
+    public bulkDelete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
@@ -89,15 +88,15 @@ export class CartItemController {
                 data: updatedCart,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            logger.info(`CartItemController.bulkDelete.error`, error);
+            logger.error(`CartItemController.bulkDelete.error`, error);
 
-            return sendCustomError(res, error);
+            next(error);
         }
     };
 
-    public select = async (req: Request, res: Response): Promise<ApiResponse> => {
+    public select = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
@@ -110,11 +109,11 @@ export class CartItemController {
                 data: updatedCart,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            logger.info(`CartItemController.select.error`, error);
+            logger.error(`CartItemController.select.error`, error);
 
-            return sendCustomError(res, error);
+            next(error);
         }
     };
 }

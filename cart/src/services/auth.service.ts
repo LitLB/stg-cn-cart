@@ -1,6 +1,5 @@
 // src/services/auth.service.ts
 
-import createError from 'http-errors';
 import CommercetoolsAuthClient from '../adapters/ct-auth-client';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { createStandardizedError } from '../utils/error.utils';
@@ -30,7 +29,7 @@ export class AuthService {
         } catch (error: any) {
             throw createStandardizedError({
                 statusCode: 500,
-            });
+            }, 'createAnonymousSession');
         }
     }
 

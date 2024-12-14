@@ -1,11 +1,10 @@
 // cart/src/controllers/cart.controller.ts
 
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { CartService } from '../services/cart.service';
 import { RESPONSE_MESSAGES } from '../constants/messages.constant';
 import { ApiResponse } from '../interfaces/response.interface';
 import { logger } from '../utils/logger.utils';
-import { sendCustomError } from '../utils/error.utils';
 import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.interface';
 import { ICart } from '../interfaces/cart';
 import { HTTP_STATUSES } from '../constants/http.constant';
@@ -24,7 +23,7 @@ export class CartController {
      * @param res - Express Response object.
      * @returns A Promise resolving to a ApiResponse object.
      */
-    public createAnonymousCart = async (req: Request, res: Response): Promise<ApiResponse> => {
+    public createAnonymousCart = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const accessToken = req.accessToken as string;
             const createAnonymousCartInput: CreateAnonymousCartInput = req.body;
@@ -37,15 +36,15 @@ export class CartController {
                 data: createdCart,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            logger.info(`CartController.createAnonymousCart.error`, error);
+            logger.error(`CartController.createAnonymousCart.error`, error);
 
-            return sendCustomError(res, error);
+            next(error);
         }
     };
 
-    public getCartById = async (req: Request, res: Response): Promise<ApiResponse<ICart>> => {
+    public getCartById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { id } = req.params;
             const selectedOnly = req.query.selectedOnly === 'true';
@@ -59,15 +58,15 @@ export class CartController {
                 data: cart,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            logger.info(`CartController.getCartById.error`, error);
+            logger.error(`CartController.getCartById.error`, error);
 
-            return sendCustomError(res, error);
+            next(error);
         }
     };
 
-    public checkout = async (req: Request, res: Response): Promise<ApiResponse> => {
+    public checkout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
@@ -80,16 +79,16 @@ export class CartController {
                 data: updatedCart,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            logger.info(`CartController.checkout.error`, error);
+            logger.error(`CartController.checkout.error`, error);
 
-            return sendCustomError(res, error);
+            next(error);
         }
     };
 
     // TODO (CN-CART) /cart/v1/orders
-    public createOrder = async (req: Request, res: Response): Promise<ApiResponse> => {
+    public createOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             // TODO: STEP #1 - Validate Request Body
             const accessToken = req.accessToken as string;
@@ -108,11 +107,11 @@ export class CartController {
                 data: order,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            logger.info(`CartController.createOrder.error`, error);
+            logger.error(`CartController.createOrder.error`, error);
 
-            return sendCustomError(res, error);
+            next(error);
         }
     }
 }

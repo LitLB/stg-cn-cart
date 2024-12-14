@@ -1,10 +1,7 @@
 // cart/src/utils/error.utils.ts
 
-import { Response } from 'express';
 import createError, { HttpError } from 'http-errors';
 import { camelToUpperSnakeCase, camelToTitleCase } from './string.utils';
-import { ApiResponse } from '../interfaces/response.interface';
-import { CustomError } from './custom-error.utils';
 import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
 import { HTTP_STATUSES } from '../constants/http.constant';
 
@@ -73,105 +70,4 @@ export function createStandardizedError(params: {
     error.data = params.data || null;
 
     return error;
-}
-
-/**
- * Creates a standardized HTTP error object using the `http-errors` library.
- * Prevents double wrapping by returning the error as-is if it's already standardized.
- */
-export function createStandardizedErrorV3(error: any, fallbackFunctionName?: string): Error {
-    console.log('createStandardizedError.error', error);
-
-    // Check if the error is already standardized
-    if (error?.statusCode) {
-        return error;
-    }
-
-    const statusCode = error?.statusCode || 500;
-    const statusMessage = error?.statusMessage ||
-        (fallbackFunctionName
-            ? generateFailedStatusMessage(fallbackFunctionName)
-            : EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR);
-    const errorCode = error?.errorCode ||
-        (fallbackFunctionName ? generateFailedErrorCode(fallbackFunctionName) : 'UNKNOWN_ERROR');
-    const data = error?.data || null;
-
-    const httpError = createError(statusCode, statusMessage);
-
-    // Attach additional custom fields to the error
-    (httpError as any).errorCode = errorCode;
-    (httpError as any).data = data;
-
-    console.log('httpError', httpError);
-
-    return httpError;
-}
-
-/**
- * Sends a standardized error response from the controller layer.
- */
-export function sendCustomError(res: any, error: any): ApiResponse {
-    console.log('sendCustomError.error', error);
-
-    const statusCode = error.statusCode || 500;
-    const statusMessage = error.message || EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR;
-    const errorCode = error.errorCode;
-    const data = error.data || null;
-
-    return res.status(statusCode).json({
-        statusCode,
-        statusMessage,
-        errorCode,
-        data,
-    });
-}
-
-/**
- * Creates a standardized error using the CustomError class.
- * 
- * @param params - Parameters to create the error.
- * @param context - Optional context string indicating where the error originated.
- * @returns An instance of CustomError.
- */
-export function createStandardizedErrorV2(error: {
-    statusCode: number;
-    statusMessage: string;
-    errorCode?: string;
-    data?: any;
-}, fallbackFunctionName?: string): CustomError {
-    const statusCode = error?.statusCode || 500;
-    const statusMessage = error?.statusMessage ||
-        (fallbackFunctionName
-            ? generateFailedStatusMessage(fallbackFunctionName)
-            : EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR);
-    const errorCode = error?.errorCode ||
-        (fallbackFunctionName ? generateFailedErrorCode(fallbackFunctionName) : undefined);
-    const data = error?.data || null;
-
-    const customError = new CustomError(statusCode, statusMessage, errorCode, data);
-
-    console.log(customError);
-
-    return customError;
-}
-
-/**
- * Sends a standardized error response to the client.
- * 
- * @param res - Express Response object.
- * @param error - The CustomError object containing statusCode, statusMessage, errorCode, and data.
- * @returns The standardized error response sent to the client.
- */
-export function sendCustomErrorV2(res: Response, error: CustomError): Response<ApiResponse> {
-    console.log('error', error);
-    const { statusCode, message: statusMessage, errorCode, data = null } = error;
-
-    const response: ApiResponse = {
-        statusCode,
-        statusMessage,
-        errorCode,
-        data,
-    };
-
-    return res.status(statusCode).json(response);
 }
