@@ -1,11 +1,10 @@
 // src/controllers/auth.controller.ts
 
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { RESPONSE_MESSAGES } from '../constants/messages.constant';
 import { ApiResponse } from '../interfaces/response.interface';
 import { logger } from '../utils/logger.utils';
-import { sendCustomError } from '../utils/error.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class AuthController {
@@ -15,7 +14,7 @@ export class AuthController {
         this.authService = new AuthService();
     }
 
-    public createAnonymousSession = async (req: Request, res: Response): Promise<ApiResponse> => {
+    public createAnonymousSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const anonymousSession = await this.authService.createAnonymousSession();
 
@@ -25,15 +24,15 @@ export class AuthController {
                 data: anonymousSession,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
             // logger.info(`AuthController.createAnonymousSession.error`, error);
 
-            return sendCustomError(res, error);
+            next(error);
         }
     };
 
-    public renewAnonymousSession = async (req: Request, res: Response): Promise<ApiResponse> => {
+    public renewAnonymousSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const anonymousSession = await this.authService.renewAnonymousSession(req.body);
 
@@ -43,11 +42,11 @@ export class AuthController {
                 data: anonymousSession,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
             // logger.info(`AuthController.renewAnonymousSession.error`, error);
 
-            return sendCustomError(res, error);
+            next(error);
         }
     };
 }

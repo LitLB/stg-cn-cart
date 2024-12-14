@@ -6,6 +6,6 @@
     "outDir": "./build",
     "rootDir": "./src",
     "inlineSourceMap": true,
-    "typeRoots": ["./node_modules/@types", "./src/express/*"]
+    "typeRoots": ["./node_modules/@types"]
   }
 }

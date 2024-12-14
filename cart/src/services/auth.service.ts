@@ -1,5 +1,6 @@
 // src/services/auth.service.ts
 
+import createError from 'http-errors';
 import CommercetoolsAuthClient from '../adapters/ct-auth-client';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { createStandardizedError } from '../utils/error.utils';
@@ -27,7 +28,9 @@ export class AuthService {
                 expiredAtWithBuffer,
             };
         } catch (error: any) {
-            throw createStandardizedError(error, 'createAnonymousSession');
+            throw createStandardizedError({
+                statusCode: 500,
+            });
         }
     }
 
@@ -36,7 +39,10 @@ export class AuthService {
             const { refreshToken } = body;
 
             if (!refreshToken) {
-                throw createStandardizedError({ statusCode: HTTP_STATUSES.BAD_REQUEST, statusMessage: 'Refresh token is required.' });
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Refresh token is required.',
+                }, 'renewAnonymousSession');
             }
 
             const newTokenData = await this.commercetoolsAuthClient.renewAnonymousToken(refreshToken);
@@ -52,7 +58,13 @@ export class AuthService {
                 expiredAtWithBuffer,
             };
         } catch (error: any) {
-            throw createStandardizedError(error, 'renewAnonymousSession');
+            if (error.status && error.message) {
+                throw error;
+            }
+
+            throw createStandardizedError({
+                statusCode: 500,
+            }, 'renewAnonymousSession');
         }
     }
 }

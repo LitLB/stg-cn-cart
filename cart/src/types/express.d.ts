@@ -1,4 +1,4 @@
-// cart/src/types/express/index.d.ts
+// cart/src/types/express.d.ts
 
 import { Request } from 'express-serve-static-core';
 
