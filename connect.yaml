@@ -8,10 +8,10 @@ deployAs:
     configuration:
       standardConfiguration:
         - key: APP_PORT
-          description:
+          description: App port
           required: true
         - key: SHUTDOWN_ON_FATAL_ERROR
-          description:
+          description: Shutdown on fatal error
           required: true
         - key: CTP_REGION
           description: Commercetools API region (e.g., 'us-east-1')
@@ -66,10 +66,10 @@ deployAs:
           required: true
       securedConfiguration:
         - key: APP_PORT
-          description:
+          description: App port
           required: true
         - key: SHUTDOWN_ON_FATAL_ERROR
-          description:
+          description: Shutdown on fatal error
           required: true
         - key: CTP_PROJECT_KEY
           description: Commercetools project key identifying your specific project
