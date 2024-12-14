@@ -1,14 +1,18 @@
+// cart/src/middleware/not-found.middleware.ts
 
 import { Request, Response, NextFunction } from 'express';
-import { ResponseType } from '../types/response.type'
+import { createStandardizedError } from '../utils/error.utils';
 import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
+import { logger } from '../utils/logger.utils';
 
 export const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
-    const statusCode = 404;
-    const response: ResponseType = {
-        statusCode,
-        statusMessage: EXCEPTION_MESSAGES.NOT_FOUND,
-    };
+    logger.error(`Route not found: ${req.method} ${req.originalUrl}`);
 
-    res.status(statusCode).json(response);
+    const error = createStandardizedError({
+        statusCode: 404,
+        statusMessage: EXCEPTION_MESSAGES.NOT_FOUND,
+        errorCode: 'NOT_FOUND'
+    });
+
+    next(error);
 };

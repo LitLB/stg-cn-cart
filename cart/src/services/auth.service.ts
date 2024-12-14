@@ -33,11 +33,9 @@ export class AuthService {
     public renewAnonymousSession = async (body: any) => {
         try {
             const { refreshToken } = body;
+
             if (!refreshToken) {
-                throw {
-                    statusCode: 400,
-                    statusMessage: 'Refresh token is required.',
-                }
+                throw createStandardizedError({ statusCode: 400, statusMessage: 'Refresh token is required.' });
             }
 
             const newTokenData = await this.commercetoolsAuthClient.renewAnonymousToken(refreshToken);

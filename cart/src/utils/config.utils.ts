@@ -10,6 +10,8 @@ import { getValidateMessages } from '../validators/helpers.validators';
  */
 export const readConfiguration = () => {
   const envVars = {
+    shutdownOnFatalError: process.env.SHUTDOWN_ON_FATAL_ERROR as string,
+
     clientId: process.env.CTP_CLIENT_ID as string,
     clientSecret: process.env.CTP_CLIENT_SECRET as string,
     projectKey: process.env.CTP_PROJECT_KEY as string,
@@ -68,10 +70,4 @@ export const readConfiguration = () => {
   }
 
   return envVars;
-};
-
-export const ETLConfig = () => {
-  return {
-    clientUrl: process.env.ETL_CLIENT_URL as string,
-  };
 };
