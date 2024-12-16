@@ -45,6 +45,7 @@ export const createAnonymousCartSchema = Joi.object({
 			'any.required': 'Journey is required',
 			'any.only': `Journey must be one of: ${Object.values(CART_JOURNEYS).join(', ')}`,
 		}),
+	locale: Joi.string().optional(),
 });
 
 export function validateCartCheckoutBody(body: any) {

@@ -25,6 +25,7 @@ import { readConfiguration } from '../../utils/config.utils';
 import { CURRENCY_CODES } from '../../constants/currency.constant';
 import { COUNTRIES } from '../../constants/country.constant';
 import { HTTP_STATUSES } from '../../constants/http.constant';
+import { logger } from '../../utils/logger.utils';
 
 export default class CommercetoolsMeCartClient {
 	private apiRoot: ApiRoot;
@@ -62,12 +63,13 @@ export default class CommercetoolsMeCartClient {
 	 * @param campaignGroup - The campaign group for the cart.
 	 * @param journey - The journey for the cart.
 	 */
-	public async createCart(campaignGroup: string, journey: string): Promise<Cart> {
+	public async createCart(campaignGroup: string, journey: string, locale?: string): Promise<Cart> {
 		const cartDraft: MyCartDraft = {
 			country: COUNTRIES.TH,
 			currency: CURRENCY_CODES.THB,
 			inventoryMode: CART_INVENTORY_MODES.RESERVE_ON_ORDER,
 			deleteDaysAfterLastModification: CART_EXPIRATION_DAYS,
+			locale,
 			custom: {
 				type: {
 					typeId: 'type',
@@ -696,7 +698,7 @@ export default class CommercetoolsMeCartClient {
 
 		// Check is that the calculated grandTotal matches the value from the cart.
 		if (grandTotal !== totalPriceAfterDiscount + shippingCost) {
-			console.warn('Calculated grandTotal does not match ctCart.totalPrice.centAmount');
+			logger.warn('Calculated grandTotal does not match ctCart.totalPrice.centAmount');
 		}
 
 		// Calculate total discount: subtotalPrice minus totalPriceAfterDiscount

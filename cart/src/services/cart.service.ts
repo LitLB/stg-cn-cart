@@ -48,11 +48,11 @@ export class CartService {
         createAnonymousCartInput: CreateAnonymousCartInput,
     ): Promise<ICart> => {
         try {
-            const { campaignGroup, journey } = createAnonymousCartInput;
+            const { campaignGroup, journey, locale } = createAnonymousCartInput;
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
-            const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey);
+            const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey, locale);
 
             const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cart);
 

@@ -6,6 +6,7 @@ dotenv.config(); // Load environment variables from .env file
 import express, { Express } from 'express';
 import bodyParser from 'body-parser';
 import cartRouter from './routes/cart.route';
+import orderRouter from './routes/order.route';
 import { logger } from './utils/logger.utils';
 import { readConfiguration } from './utils/config.utils';
 import { errorHandler } from './middleware/error-handler.middleware';
@@ -29,6 +30,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Define application routes
 app.use('/cart', cartRouter);
+app.use('/order', orderRouter);
 
 // Handle 404 Not Found errors
 app.use(notFoundHandler);
