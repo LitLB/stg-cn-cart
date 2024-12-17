@@ -26,6 +26,7 @@ import { CURRENCY_CODES } from '../../constants/currency.constant';
 import { COUNTRIES } from '../../constants/country.constant';
 import { HTTP_STATUSES } from '../../constants/http.constant';
 import { logger } from '../../utils/logger.utils';
+import { LOCALES } from '../../constants/locale.constant';
 
 export default class CommercetoolsMeCartClient {
 	private apiRoot: ApiRoot;
@@ -63,7 +64,7 @@ export default class CommercetoolsMeCartClient {
 	 * @param campaignGroup - The campaign group for the cart.
 	 * @param journey - The journey for the cart.
 	 */
-	public async createCart(campaignGroup: string, journey: string, locale?: string): Promise<Cart> {
+	public async createCart(campaignGroup: string, journey: string, locale = LOCALES.TH_TH): Promise<Cart> {
 		const cartDraft: MyCartDraft = {
 			country: COUNTRIES.TH,
 			currency: CURRENCY_CODES.THB,

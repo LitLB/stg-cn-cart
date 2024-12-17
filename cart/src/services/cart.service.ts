@@ -24,6 +24,7 @@ import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { createStandardizedError } from '../utils/error.utils';
 import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.interface';
 import { HTTP_STATUSES } from '../constants/http.constant';
+import { LOCALES } from '../constants/locale.constant';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -61,7 +62,7 @@ export class CartService {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'createAnonymousCart');
         }
     };
@@ -167,7 +168,7 @@ export class CartService {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'createOrder');
         }
     };
@@ -212,7 +213,7 @@ export class CartService {
             try {
                 const dataRetchCoupon = await this.talonOneCouponAdapter.fetchEffectsCouponsById(profileId, cart, coupons.coupons);
                 coupons.coupons = dataRetchCoupon.couponsEffects;
-                if(dataRetchCoupon.talonOneUpdateActions){
+                if (dataRetchCoupon.talonOneUpdateActions) {
                     updateActions.push(...dataRetchCoupon.talonOneUpdateActions);
                 }
             } catch (error: any) {
@@ -223,7 +224,7 @@ export class CartService {
                     statusMessage: 'An unexpected error occurred while processing the coupon effects.',
                 };
             }
-            
+
             if (shippingAddress) {
                 updateActions.push({
                     action: 'setShippingAddress',
@@ -277,7 +278,7 @@ export class CartService {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'checkout');
         }
     };
@@ -338,7 +339,7 @@ export class CartService {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'getCtCartById');
         }
     };
