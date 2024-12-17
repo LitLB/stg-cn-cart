@@ -272,14 +272,20 @@ export class TalonOneCouponAdapter {
 
     async fetchEffectsCouponsById(profileId: string, cart: any, couponsEffects: any) {
         try {
-            
+
             if (couponsEffects.acceptedCoupons.length <= 0) {
                 return { couponsEffects };
             }
 
             // Step 1: Extract coupon codes
-            const couponCodes: string[] = couponsEffects.acceptedCoupons.map((coupon: { code: string }) => coupon.code);
-        
+            let couponCodes: string[] = couponsEffects.acceptedCoupons.map((coupon: { code: string }) => coupon.code);
+
+            // Merge and deduplicate coupon codes from couponsEffects rejectedCoupons
+            if (couponsEffects?.rejectedCoupons?.length > 0) {
+                const rejectedCouponCodes: string[] = couponsEffects.rejectedCoupons.map((coupon: { code: string }) => coupon.code);
+                couponCodes = Array.from(new Set([...couponCodes, ...rejectedCouponCodes]));
+            }
+           
             // Step 2: Build the customer session payload
             const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
                 profileId,
@@ -310,11 +316,7 @@ export class TalonOneCouponAdapter {
         
             // Step 6: Update acceptedCoupons and rejectedCoupons
             couponsEffects.acceptedCoupons = processedCouponEffects.applyCoupons;
-            couponsEffects.rejectedCoupons = Array.from(
-                new Set(processedCouponEffects.rejectedCoupons.map((coupon: { code: string }) => coupon.code))
-            ).map((code: string) => {
-                return processedCouponEffects.rejectedCoupons.find((coupon: { code: string }) => coupon.code === code);
-            });
+            couponsEffects.rejectedCoupons = processedCouponEffects.rejectedCoupons;
         
             return { couponsEffects, talonOneUpdateActions };
         } catch (error) {
