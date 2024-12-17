@@ -154,7 +154,8 @@ export class CartService {
         }
 
         const profileId = cart?.id
-        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, cart.lineItems);
+
+     
 
         const updateActions: CartUpdateAction[] = [];
 
@@ -204,7 +205,12 @@ export class CartService {
             updateActions,
         );
 
-        const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
+        // TODO :: Cart HasChanged
+
+        const newCtCart = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, newCtCart.lineItems);
+
+        const iCart: ICart = commercetoolsMeCartClient.mapCartChangedToICart(newCtCart);
 
         return { ...iCart, ...coupons };
     };
@@ -248,10 +254,17 @@ export class CartService {
             };
         }
 
-        const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
-        const coupons  = await this.talonOneCouponAdapter.getEffectsCouponsById(id, ctCart.lineItems);
-        
-        return { ...iCartWithBenefit, ...coupons };
+
+        // TODO: replace changed value to cart 
+        const newCtCart = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+
+        //TODO : should sent new ctCart / lineItems to function below
+        const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(newCtCart, selectedOnly);
+
+        const coupons  = await this.talonOneCouponAdapter.getEffectsCouponsById(id, newCtCart.lineItems);
+
+
+        return {  ...iCartWithBenefit, ...coupons };
     };
 
     public getCtCartById = async (accessToken: string, id: string): Promise<any> => {
@@ -265,6 +278,7 @@ export class CartService {
         const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
         const ctCart = await commercetoolsMeCartClient.getCartById(id);
+        
         if (!ctCart) {
             throw {
                 statusCode: 404,

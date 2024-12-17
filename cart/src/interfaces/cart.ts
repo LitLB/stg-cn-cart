@@ -59,6 +59,7 @@ export interface IItem {
 	selected: boolean;
 	image: IImage | null;
 	inventory?: any;
+	hasChanged?: any
 }
 
 export interface IImage {

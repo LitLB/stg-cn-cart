@@ -1,9 +1,12 @@
+import { LineItem } from '@commercetools/platform-sdk';
 // src/server/adapters/ct-product-client.ts
 
 import type { ApiRoot, Product, ProductDraft, ProductVariant } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
 import { CT_PRODUCT_ACTIONS } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
+import { getAttributeValue } from '../utils/product-utils';
+import CommercetoolsMeCartClient from './me/ct-me-cart-client';
 
 class CommercetoolsProductClient {
 	private static instance: CommercetoolsProductClient;
@@ -238,6 +241,153 @@ class CommercetoolsProductClient {
 		// Return the price with the highest priority
 		return sortedPrices[0];
 	}
+
+	findStockAvailable(supplyChannel: any, cartQuantity: number, stock: any){
+		const inventory = stock.channels?.[supplyChannel.id];
+		return {
+			isOnStock : inventory.isOnStock,
+			isStockAvailable : inventory.isOnStock && inventory.availableQuantity >= cartQuantity 
+		}
+	}
+
+	findVariantByKey(variantKey: string, masterVariant: ProductVariant, variants: ProductVariant[]) {
+		const allVariant = variants.concat(masterVariant)
+		const variant = allVariant.find((v) => v.key === variantKey);
+
+		if (!variant) {
+            throw new Error(`Could not find variant with key "${variantKey}"`);
+        }
+	
+
+		return variant
+	}
+
+	async checkCartHasChanged(ctCart: any){
+
+		const {lineItems} = ctCart
+
+
+        const skus = lineItems.map((item: any) => item.variant.sku)
+        const { body } = await this.getProductsBySkus(skus)
+        const skuItems = body.results
+
+		// items in cart
+
+		
+		// TODO 1.Description: Item ที่อยู่ใน Cart ข้อมูลไม่อัพเดท ทำให้ FE แสดงผลหรือประมวลผลผิด เช่น price, Parent Min, Max, Sku Min, Max. ✅
+		// TODO 2.Cart Details Page จะต้อง remove variant ถ้า sku_status = inactive
+		// TODO 3.Main Product
+		// TODO 4.Default false
+		// TODO 5.Check only Custom Group RRP (Valid Price)
+
+		const mainProducts = lineItems.filter((item:any) => item.custom?.fields?.productType === 'main_product')
+
+
+		const mainProductHasChanged = mainProducts.map((cartItem: any) => {
+
+			const matchingSkuItem = skuItems.find((skuItem: any) => cartItem.productId === skuItem.id)
+
+			if (matchingSkuItem) {
+
+				const now = new Date()
+				const validPrice = this.findValidPrice({
+					prices: matchingSkuItem.masterVariant.prices,
+					customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
+					date: now
+				});
+
+				const supplyChannel = cartItem.supplyChannel
+
+				const matchedVariant = this.findVariantByKey(cartItem.variant.key as string, matchingSkuItem.masterVariant, matchingSkuItem.variants)
+
+				const { isStockAvailable } = this.findStockAvailable(supplyChannel, cartItem.quantity, matchedVariant?.availability)
+
+				const skuAttributes = matchedVariant?.attributes ?? [];
+				const parentMaxHasChanged = getAttributeValue(skuAttributes, 'quantity_max') !== getAttributeValue(cartItem.variant.attributes, 'quantity_max')
+				const parentMinHasChanged = getAttributeValue(skuAttributes, 'quantity_min') !== getAttributeValue(cartItem.variant.attributes, 'quantity_max')
+				const skuMaxHasChanged = getAttributeValue(skuAttributes, 'sku_quantity_max') !== getAttributeValue(cartItem.variant.attributes, 'sku_quantity_max')
+				const skuMinHasChanged = getAttributeValue(skuAttributes, 'sku_quantity_min') !== getAttributeValue(cartItem.variant.attributes, 'sku_quantity_min')
+				const itemQuantityOverParentMax = cartItem.quantity > getAttributeValue(skuAttributes, 'quantity_max')
+				const itemQuantityLowerParentMin = cartItem.quantity < getAttributeValue(skuAttributes, 'quantity_min')
+                const itemQuantityOverSkuMax = cartItem.quantity > getAttributeValue(skuAttributes, 'sku_quantity_max')
+                const itemQuantityLowerSkuMin = cartItem.quantity < getAttributeValue(skuAttributes, 'sku_quantity_min')
+				const priceHasChanged = validPrice.value.centAmount !== cartItem.price.value.centAmount
+				const skuStatus = getAttributeValue(skuAttributes, 'status')
+
+                const itemHasChanged =
+                    priceHasChanged ||
+                    parentMinHasChanged ||
+                    parentMaxHasChanged ||
+                    skuMaxHasChanged ||
+                    skuMinHasChanged ||
+                    itemQuantityOverParentMax ||
+                    itemQuantityLowerParentMin ||
+                    itemQuantityOverSkuMax ||
+                    itemQuantityLowerSkuMin;
+
+					
+
+					const hasChanged = {
+						priceHasChanged,
+						parentMinHasChanged,
+						parentMaxHasChanged,
+						skuMinHasChanged,
+						skuMaxHasChanged,
+						stockAvailable: isStockAvailable,
+						itemQuantityOverParentMax,
+						itemQuantityLowerParentMin,
+						itemQuantityOverSkuMax,
+                        itemQuantityLowerSkuMin,
+					}
+
+				if (!itemHasChanged) return {...cartItem ,hasChanged}
+
+				if (skuStatus.key === 'disabled') return {}
+
+				const newTotalPrice = validPrice.value
+
+				const updatedItem = {
+					...cartItem,
+					name: matchingSkuItem.name,
+					productType: matchingSkuItem.productType,
+					variant: matchedVariant,
+					price: validPrice,
+					productSlug: matchingSkuItem.productSlug,
+					supplyChannel: matchingSkuItem.supplyChannel,
+					totalPrice: {
+						...newTotalPrice,
+						centAmount: newTotalPrice.centAmount * cartItem.quantity
+					},
+					availability:matchedVariant?.availability
+
+				}
+
+				console.log(`updatedItem => `,updatedItem)
+
+
+				return {
+					...updatedItem,
+					hasChanged
+				};
+
+			}
+
+		})
+
+		const totalPrice = mainProductHasChanged.reduce((acc:number, product:any) => acc + product.totalPrice.centAmount, 0) || 0
+		const newCart = {
+			...ctCart,
+			lineItems: mainProductHasChanged,
+			totalPrice: {
+				...ctCart.totalPrice,
+                centAmount: totalPrice
+			},
+			totalLineItemQuantity: mainProductHasChanged.reduce((total:number, item:any) => total + item.quantity, 0) || 0
+		}
+
+		return newCart
+	}
+	
 }
 
 export default CommercetoolsProductClient.getInstance();
