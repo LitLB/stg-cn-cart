@@ -26,6 +26,7 @@ import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.in
 import { IOrderAdditional, IPaymentInfo } from '../interfaces/order-additional.interface';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { PAYMENT_STATES } from '../constants/payment.constant';
+import { LOCALES } from '../constants/locale.constant';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -63,7 +64,7 @@ export class CartService {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'createAnonymousCart');
         }
     };
@@ -169,7 +170,7 @@ export class CartService {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'createOrder');
         }
     };
@@ -202,6 +203,7 @@ export class CartService {
             try {
                 coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, cart.lineItems);
             } catch (error: any) {
+                logger.info(`CartService.checkout.getEffectsCouponsById.error`, error);
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
                     errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
@@ -210,6 +212,20 @@ export class CartService {
             }
 
             const updateActions: CartUpdateAction[] = [];
+            try {
+                const dataRetchCoupon = await this.talonOneCouponAdapter.fetchEffectsCouponsById(profileId, cart, coupons.coupons);
+                coupons.coupons = dataRetchCoupon.couponsEffects;
+                if (dataRetchCoupon.talonOneUpdateActions) {
+                    updateActions.push(...dataRetchCoupon.talonOneUpdateActions);
+                }
+            } catch (error: any) {
+                logger.info(`CartService.checkout.fetchEffectsCouponsById.error`, error);
+                throw {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    errorCode: "CART_FETCH_EFFECTS_COUPONS_CT_FAILED",
+                    statusMessage: 'An unexpected error occurred while processing the coupon effects.',
+                };
+            }
 
             if (shippingAddress) {
                 updateActions.push({
@@ -264,7 +280,7 @@ export class CartService {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'checkout');
         }
     };
@@ -325,7 +341,7 @@ export class CartService {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'getCtCartById');
         }
     };
