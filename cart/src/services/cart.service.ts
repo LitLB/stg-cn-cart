@@ -251,12 +251,13 @@ export class CartService {
                 });
             }
 
-            if (payment && (payment.source || payment.token)) {
+            if (payment && payment?.key) {
                 const paymentTransaction = {
                     paymentOptionContainer: 'paymentOptions',
                     paymentOptionKey: payment.key, // e.g., 'installment', 'ccw', etc.
-                    source: payment.source || null,
-                    token: payment.token || null,
+                    source: payment?.source || null,
+                    token: payment?.token || null,
+                    additionalData: payment?.additionalData || null,
                     createdAt: new Date().toISOString(),
                 };
 
@@ -676,7 +677,7 @@ export class CartService {
     public createOrderAdditional = async (
         cart: Cart,
         order: Order,
-      ) => {
+    ) => {
 
         const paymentInfo: IPaymentInfo = {
             tmhAccountNumber: '',
@@ -686,9 +687,9 @@ export class CartService {
             created: new Date().toISOString(),
             paymentState: PAYMENT_STATES.PENDING,
         }
-        
+
         const orderAdditionalData: IOrderAdditional = {
-            orderInfo: { journey : _.get(order, 'custom.fields.journey') },
+            orderInfo: { journey: _.get(order, 'custom.fields.journey') },
             paymentInfo: [paymentInfo],
             customerInfo: {
                 ipAddress: _.get(cart, 'ipAddress', ''),
@@ -697,7 +698,7 @@ export class CartService {
         }
 
         await CommercetoolsCustomObjectClient.addOrderAdditional(order.id, orderAdditionalData);
-    
+
         return true;
     };
 }
