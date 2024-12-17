@@ -1,7 +1,7 @@
 // cart/src/services/cart.service.ts
 
 import _ from 'lodash'
-import { Cart, CartUpdateAction } from '@commercetools/platform-sdk';
+import { Cart, CartUpdateAction, Order } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
@@ -23,7 +23,9 @@ import { logger } from '../utils/logger.utils';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { createStandardizedError } from '../utils/error.utils';
 import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.interface';
+import { IOrderAdditional, IPaymentInfo } from '../interfaces/order-additional.interface';
 import { HTTP_STATUSES } from '../constants/http.constant';
+import { PAYMENT_STATES } from '../constants/payment.constant';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -161,7 +163,7 @@ export class CartService {
 
             await this.updateStockAllocation(ctCart);
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, ctCart, tsmSaveOrder);
-
+            await this.createOrderAdditional(ctCart, order);
             return order;
         } catch (error: any) {
             if (error.status && error.message) {
@@ -654,4 +656,32 @@ export class CartService {
         const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // Random 4-digit number
         return `ORD-${timestamp}-${random}`; // Combine parts into an order number
     }
+
+    public createOrderAdditional = async (
+        cart: Cart,
+        order: Order,
+      ) => {
+
+        const paymentInfo: IPaymentInfo = {
+            tmhAccountNumber: '',
+            bankAccount: '',
+            bankAccountName: '',
+            creditCardNumber: '',
+            created: new Date().toISOString(),
+            paymentState: PAYMENT_STATES.PENDING,
+        }
+        
+        const orderAdditionalData: IOrderAdditional = {
+            orderInfo: { journey : _.get(order, 'custom.fields.journey') },
+            paymentInfo: [paymentInfo],
+            customerInfo: {
+                ipAddress: _.get(cart, 'ipAddress', ''),
+                googleID: _.get(cart, 'googleID', '')
+            },
+        }
+
+        await CommercetoolsCustomObjectClient.addOrderAdditional(order.id, orderAdditionalData);
+    
+        return true;
+    };
 }
