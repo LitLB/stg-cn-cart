@@ -255,13 +255,13 @@ export class CartService {
         }
 
 
-        // TODO: replace changed value to cart 
-        const newCtCart = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+        
+        const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+        
+        const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCartWithChanged, selectedOnly);
 
-        //TODO : should sent new ctCart / lineItems to function below
-        const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(newCtCart, selectedOnly);
 
-        const coupons  = await this.talonOneCouponAdapter.getEffectsCouponsById(id, newCtCart.lineItems);
+        const coupons  = await this.talonOneCouponAdapter.getEffectsCouponsById(id, ctCartWithChanged.lineItems);
 
 
         return {  ...iCartWithBenefit, ...coupons };
