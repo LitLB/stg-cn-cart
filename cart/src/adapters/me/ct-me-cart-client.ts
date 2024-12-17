@@ -715,6 +715,7 @@ export default class CommercetoolsMeCartClient {
 
 		const iCart: ICart = {
 			cartId: ctCart.id,
+			locale: ctCart?.locale || null,
 			campaignGroup: ctCart.custom?.fields.campaignGroup,
 			journey: ctCart.custom?.fields.journey,
 			subtotalPrice,

@@ -5,6 +5,7 @@ import { ProductType } from '../types/share.types';
 
 export interface IOrder {
     orderId: string;
+	locale?: string | null,
     // isPrivilege: boolean;
     campaignGroup: string;
     journey: string;

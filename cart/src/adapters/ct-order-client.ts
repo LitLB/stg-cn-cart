@@ -245,6 +245,7 @@ class CommercetoolsOrderClient {
 
 		const iOrder: IOrder = {
 			orderId: ctOrder.id,
+			locale: ctOrder?.locale || null,
 			campaignGroup: ctOrder.custom?.fields.campaignGroup,
 			journey: ctOrder.custom?.fields.journey,
 			subtotalPrice,
