@@ -153,6 +153,8 @@ export class CartService {
             };
         }
 
+        
+
         const profileId = cart?.id
 
      
@@ -205,12 +207,14 @@ export class CartService {
             updateActions,
         );
 
-        // TODO :: Cart HasChanged
+        // TODO : CHECK LOGIC
+        // * Implement done response include itemHasChanged
+        const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
 
-        const newCtCart = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
-        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, newCtCart.lineItems);
+        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, updatedCart.lineItems);
 
-        const iCart: ICart = commercetoolsMeCartClient.mapCartChangedToICart(newCtCart);
+        let iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cartWithChanged);
+        iCart = commercetoolsMeCartClient.mapCartChangedToICart(iCart, cartWithChanged)
 
         return { ...iCart, ...coupons };
     };
@@ -245,7 +249,6 @@ export class CartService {
         }
 
         const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-
         const ctCart = await commercetoolsMeCartClient.getCartById(id);
         if (!ctCart) {
             throw {
@@ -253,17 +256,9 @@ export class CartService {
                 statusMessage: 'Cart not found or has expired',
             };
         }
-
-
-        
         const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
-        
         const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCartWithChanged, selectedOnly);
-
-
         const coupons  = await this.talonOneCouponAdapter.getEffectsCouponsById(id, ctCartWithChanged.lineItems);
-
-
         return {  ...iCartWithBenefit, ...coupons };
     };
 

@@ -1090,6 +1090,7 @@ export default class CommercetoolsMeCartClient {
 			const sku = key.replace(`${this.onlineChannel}-`, '');
 			inventoryMap.set(sku, inventory);
 		});
+		// TODO :: Add has Change function to here
 		let iCart: ICart = this.mapCartToICart(updatedCart);
 		iCart = await this.attachInsuranceToICart(iCart);
 
@@ -1108,8 +1109,9 @@ export default class CommercetoolsMeCartClient {
 	}
 
 	async getCartWithBenefit(ctCart: any, selectedOnly = false) {
-		const filteredLineItems = this.filterLineItems(ctCart.lineItems, selectedOnly);
 
+		
+		const filteredLineItems = this.filterLineItems(ctCart.lineItems, selectedOnly);
 		const cartToProcess = { ...ctCart, lineItems: filteredLineItems };
 
 		const skus = cartToProcess.lineItems.map((lineItem: any) => lineItem.variant.sku);
@@ -1121,7 +1123,7 @@ export default class CommercetoolsMeCartClient {
 			const sku = key.replace(`${this.onlineChannel}-`, '');
 			inventoryMap.set(sku, inventory);
 		});
-
+		// TODO :: Add function has change to here
 		let iCart: ICart = this.mapCartToICart(cartToProcess);
 		iCart = await this.attachInsuranceToICart(iCart);
 

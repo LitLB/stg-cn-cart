@@ -25,6 +25,8 @@ export class CartItemService {
     //     return undefined;
     // }
 
+
+    // TODO :: ADD FLAG ITEM HAS CHANGE 
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
         const { error, value } = validateAddItemCartBody(body);
         if (error) {
@@ -47,7 +49,7 @@ export class CartItemService {
                 statusMessage: 'Cart not found or has expired',
             };
         }
-        // const cartJourney = cart.custom?.fields?.journey;
+
 
         const product = await CommercetoolsProductClient.getProductById(productId);
         if (!product) {
@@ -163,11 +165,13 @@ export class CartItemService {
             externalPrice: validPrice.value,
         });
 
-        const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+        const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+        const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithChanged);
 
         return iCartWithBenefit;
     }
 
+    // TODO :: ADD FLAG ITEM HAS CHANGE 
     public updateItemQuantityById = async (accessToken: string, id: string, itemId: string, body: any): Promise<any> => {
         const { error, value } = validateUpdateCartItemBody(body);
         if (error) {
@@ -189,6 +193,7 @@ export class CartItemService {
                 statusMessage: 'Cart not found or has expired',
             };
         }
+
 
         const product = await CommercetoolsProductClient.getProductById(productId);
         if (!product) {
@@ -265,7 +270,8 @@ export class CartItemService {
             quantity
         });
 
-        const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+        const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+        const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithChanged);
 
         return iCartWithBenefit;
     }
@@ -291,6 +297,10 @@ export class CartItemService {
                 statusMessage: 'Cart not found or has expired',
             };
         }
+
+        // TODO : CHECK LOGIC
+        // const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cart)
+
 
         const product = await CommercetoolsProductClient.getProductById(productId);
         if (!product) {
@@ -344,6 +354,9 @@ export class CartItemService {
                 statusMessage: 'Cart not found or has expired',
             };
         }
+
+        // TODO : CHECK LOGIC
+        // const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cart)
 
         const lineItemKeys: any[] = [];
         for (const item of items) {
@@ -400,6 +413,9 @@ export class CartItemService {
                 statusMessage: 'Cart not found or has expired',
             };
         }
+
+        // TODO : CHECK LOGIC
+        // const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cart)
 
         const updateActions: MyCartUpdateAction[] = [];
 

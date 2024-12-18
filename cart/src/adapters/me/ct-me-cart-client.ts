@@ -743,136 +743,31 @@ export default class CommercetoolsMeCartClient {
 	 * @param ctCart 
 	 * @returns 
 	 */
-	mapCartChangedToICart(ctCart: Cart): ICart {
-		const items: IItem[] = [...ctCart.lineItems]
-			.sort((a: LineItem, b: LineItem) => {
-				const productGroupA = a.custom?.fields?.productGroup || 0;
-				const productGroupB = b.custom?.fields?.productGroup || 0;
-
-				if (productGroupA !== productGroupB) {
-					return productGroupA - productGroupB;
-				}
-
-				const dateA = new Date(a.addedAt ?? 0).getTime();
-				const dateB = new Date(b.addedAt ?? 0).getTime();
-				return dateA - dateB;
-			})
-			.map((lineItem: any) => {
-				if (!lineItem.variant.sku) {
-					throw new Error(`SKU is undefined for productId: ${lineItem.productId}`);
-				}
+	mapCartChangedToICart(iCart: ICart,ctCartWithChanged: any) {
+		
+		const itemInCart = iCart.items
+		const itemHasChanged = ctCartWithChanged.lineItems
 
 
-				const selected = lineItem.custom?.fields?.selected ?? false;
-				const productType = lineItem.custom?.fields?.productType;
-				const productGroup = lineItem.custom?.fields?.productGroup;
-				const addOnGroup = lineItem.custom?.fields?.addOnGroup;
-				const image = this.getVariantImage(lineItem);
-				const totalUnitPrice = lineItem.price.value.centAmount * lineItem.quantity;
-				const discountAmount = this.calculateTotalDiscountAmount(lineItem);
-				const priceAfterDiscount = lineItem.totalPrice.centAmount;
+		const itemsWithChanged = itemInCart.map((item: any) => {
+			const matchedItem =  itemHasChanged.find(
+				(ctItem: any) => ctItem.productId === item.productId
+			);
 
-				const item: IItem = {
-					productId: lineItem.productId,
-					productKey: lineItem.productKey,
-					productName: lineItem.name,
-					ctProductType: lineItem.productType,
-					productSlug: lineItem.productSlug,
-					variantId: lineItem.variant.id,
-					sku: lineItem.variant.sku,
-					productType,
-					productGroup,
-					addOnGroup,
-					image,
-					quantity: lineItem.quantity,
-					unitPrice: lineItem.price.value.centAmount,
-					totalUnitPrice,
-					discountAmount,
-					priceAfterDiscount,
-					// Since there are no shipping costs or VAT/tax at the item level,
-					// finalPrice is equal to priceAfterDiscount for now.
-					finalPrice: priceAfterDiscount,
-					appliedEffects: [],
-					attributes: lineItem.variant.attributes || [],
-					selected,
-					hasChanged: lineItem.hasChanged
-				};
 
-				return item;
-			});
+			if(!matchedItem) return
 
-		const { totalQuantity, quantitiesByProductType } = this.calculateQuantities(items);
+			return {
+				...item,
+                itemHasChange: matchedItem.hasChanged
+			}
+		})
 
-		// Subtotal price: sum of unit prices times quantities before discounts
-		const subtotalPrice = items.reduce(
-			(total, item) => total + item.unitPrice * item.quantity,
-			0
-		);
-
-		// Total price after discounts for line items
-		const lineItemsTotalPrice = items.reduce(
-			(total, item) => total + item.priceAfterDiscount,
-			0
-		);
-
-		// Process customLineItems (e.g., cart-level discounts)
-		const customLineItems = ctCart.customLineItems || [];
-
-		// Use the new function to calculate the total price of custom line items
-		const customLineItemsTotalPrice = this.calculateCustomLineItemsTotalPrice(customLineItems);
-
-		// Total price after discount (line items + custom line items)
-		const totalPriceAfterDiscount = lineItemsTotalPrice + customLineItemsTotalPrice;
-
-		// Shipping cost
-		const shippingCost = ctCart.shippingInfo?.price?.centAmount || 0;
-
-		// Grand total: totalPriceAfterDiscount plus shipping cost
-		const grandTotal = ctCart.totalPrice.centAmount;
-
-		// Check is that the calculated grandTotal matches the value from the cart.
-		if (grandTotal !== totalPriceAfterDiscount + shippingCost) {
-			console.warn('Calculated grandTotal does not match ctCart.totalPrice.centAmount');
+		
+		return {
+			...iCart,
+			items: itemsWithChanged
 		}
-
-		// Calculate total discount: subtotalPrice minus totalPriceAfterDiscount
-		const totalDiscount = subtotalPrice - totalPriceAfterDiscount;
-
-		// Calculate expiredAt using lastModifiedAt and deleteDaysAfterLastModification
-		const lastModifiedAt = ctCart.lastModifiedAt;
-		const deleteDaysAfterLastModification =
-			ctCart.deleteDaysAfterLastModification || CART_EXPIRATION_DAYS;
-		const expiredAt = this.calculateExpiredAt(
-			lastModifiedAt,
-			deleteDaysAfterLastModification,
-		);
-
-		const iCart: ICart = {
-			cartId: ctCart.id,
-			campaignGroup: ctCart.custom?.fields.campaignGroup,
-			journey: ctCart.custom?.fields.journey,
-			subtotalPrice,
-			totalDiscount,
-			totalPriceAfterDiscount,
-			shippingCost,
-			grandTotal,
-			currencyCode: ctCart.totalPrice.currencyCode,
-			totalQuantity,
-			shippingMethod: ctCart.shippingInfo?.shippingMethod || null,
-			paymentMethod: ctCart.custom?.fields?.paymentMethod || null,
-			shippingAddress: ctCart.shippingAddress || null,
-			billingAddress: ctCart.billingAddress || null,
-			quantitiesByProductType,
-			items,
-			triggeredCampaigns: [],
-			appliedEffects: [],
-			createdAt: new Date(ctCart.createdAt),
-			updatedAt: new Date(ctCart.lastModifiedAt),
-			deleteDaysAfterLastModification: ctCart.deleteDaysAfterLastModification || 30,
-			expiredAt,
-		};
-
-		return iCart;
 	}
 
 	mapInventoryToItems(items: IItem[], inventoryMap: Map<string, any>): void {
@@ -950,6 +845,7 @@ export default class CommercetoolsMeCartClient {
 	}
 
 	async upsertPrivilegeToCtCart(updatedCart: any, lineItemWithCampaignBenefits: any) {
+
 		const { id: cartId, version, lineItems } = updatedCart;
 		const myCartUpdateActions: MyCartUpdateAction[] = [];
 		const newDirectDiscounts: any[] = [];
@@ -987,6 +883,7 @@ export default class CommercetoolsMeCartClient {
 			if (newPrivilege) {
 				// ! Main product
 				// ! Add-on
+
 				const {
 					specialPrice,
 					discountBaht,
@@ -1052,8 +949,12 @@ export default class CommercetoolsMeCartClient {
 			}
 		});
 
+
 		let newCart = updatedCart
+
+		console.log(`newCart before update =>`, newCart.lineItems[0].price);
 		let currentVersion = version
+
 		if (myCartUpdateActions.length) {
 			newCart = await this.updateCart(cartId, currentVersion, myCartUpdateActions)
 			currentVersion = newCart.version
@@ -1063,6 +964,8 @@ export default class CommercetoolsMeCartClient {
 			action: 'setDirectDiscounts',
 			discounts: newDirectDiscounts
 		}])
+
+		console.log(`newCart after updated =>`, newCart.lineItems[0].price);
 
 		return newCart
 	}
@@ -1218,7 +1121,10 @@ export default class CommercetoolsMeCartClient {
 	async updateCartWithBenefit(ctCart: any) {
 		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
 		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
+		// console.log(`lineItemWithCampaignBenefits => `,lineItemWithCampaignBenefits[0].price)
+
 		const updatedCart = await this.upsertPrivilegeToCtCart(ctCart, lineItemWithCampaignBenefits)
+
 
 		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
 		const inventoryKey = skus.map((sku: any) => sku).join(',');
@@ -1229,7 +1135,8 @@ export default class CommercetoolsMeCartClient {
 			const sku = key.replace(`${this.onlineChannel}-`, '');
 			inventoryMap.set(sku, inventory);
 		});
-		let iCart: ICart = this.mapCartToICart(updatedCart);
+		let iCart: ICart = this.mapCartToICart(updatedCart);	
+		iCart = this.mapCartChangedToICart(iCart,updatedCart)	
 		iCart = await this.attachInsuranceToICart(iCart);
 
 		this.mapInventoryToItems(iCart.items, inventoryMap);
@@ -1263,7 +1170,8 @@ export default class CommercetoolsMeCartClient {
 		});
 
 
-		let iCart: ICart = this.mapCartChangedToICart(cartToProcess);
+		let iCart: ICart = this.mapCartToICart(cartToProcess);
+		iCart = this.mapCartChangedToICart(iCart, cartToProcess)
 		iCart = await this.attachInsuranceToICart(iCart);
 
 		this.mapInventoryToItems(iCart.items, inventoryMap);
