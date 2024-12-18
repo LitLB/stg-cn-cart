@@ -1,0 +1,11 @@
+{
+  "benefitType": "add_on",
+  "campaignCode": "",
+  "promotionSetCode": "MOCK007",
+  "promotionSetProposition": "886",
+  "group": "add_on_1",
+  "discountBaht": 0,
+  "discountPercent": 0,
+  "specialPrice": 79000,
+  "isForcePromotion": false
+}

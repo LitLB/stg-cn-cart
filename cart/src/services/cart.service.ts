@@ -389,8 +389,10 @@ export class CartService {
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const config = readConfiguration()
+            console.log('JSON.stringify(cart)', JSON.stringify(cart));
             const tsmOrder = new TsmOrderModel({ ctCart: cart, config, orderNumber })
             const tsmOrderPayload = tsmOrder.toPayload()
+            console.log('JSON.stringify(tsmOrderPayload)', JSON.stringify(tsmOrderPayload));
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
             const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
@@ -403,6 +405,45 @@ export class CartService {
             //         statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
             //         errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
             //     };
+            // }
+
+            // console.log(JSON.parse("{\"benefitType\":\"add_on\",\"campaignCode\":\"\",\"promotionSetCode\":\"MOCK007\",\"promotionSetProposition\":\"886\",\"group\":\"add_on_1\",\"discountBaht\":0,\"discountPercent\":0,\"specialPrice\":79000,\"isForcePromotion\":false}"))
+            // {
+            //     benefitType: 'add_on',
+            //     campaignCode: '',
+            //     promotionSetCode: 'MOCK007',
+            //     promotionSetProposition: '886',
+            //     group: 'add_on_1',
+            //     discountBaht: 0,
+            //     discountPercent: 0,
+            //     specialPrice: 79000,
+            //     isForcePromotion: false
+            // }
+
+            // Double Stringify
+            // console.log(JSON.stringify(JSON.stringify({
+            //     "benefitType": "free_gift",
+            //     "campaignCode": "",
+            //     "promotionSetCode": "UI034",
+            //     "promotionSetProposition": "999",
+            //     "group": "free_gift_1",
+            //     "discountBaht": 0,
+            //     "discountPercent": 0,
+            //     "specialPrice": 79000,
+            //     "isForcePromotion": false
+            // }
+            // )));
+            console.log(JSON.parse("{\"benefitType\":\"free_gift\",\"campaignCode\":\"\",\"promotionSetCode\":\"UI034\",\"promotionSetProposition\":\"999\",\"group\":\"free_gift_1\",\"discountBaht\":0,\"discountPercent\":0,\"specialPrice\":79000,\"isForcePromotion\":false}"));
+            // {
+            //   benefitType: 'free_gift',
+            //   campaignCode: '',
+            //   promotionSetCode: 'UI034',
+            //   promotionSetProposition: '999',
+            //   group: 'free_gift_1',
+            //   discountBaht: 0,
+            //   discountPercent: 0,
+            //   specialPrice: 79000,
+            //   isForcePromotion: false
             // }
 
             return {
