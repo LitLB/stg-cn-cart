@@ -706,7 +706,6 @@ class TalonOneEffectConverter {
 			if (productType !== 'main_product') {
 				return newLineItem
 			}
-
 			const productGroupBenefit = productGroupBenefits.find((productGroupBenefit: any) => {
 				return productGroupBenefit.sku === sku &&
 					productGroupBenefit.productType === productType &&
@@ -760,6 +759,57 @@ class TalonOneEffectConverter {
 					haveOtp,
 					forcePromotion
 				})
+			}
+
+			const productBenefit = productBenefits.find((productBenefit: any) => {
+				return productBenefit.sku === sku &&
+				productBenefit.productType === productType &&
+				productBenefit.productGroup === productGroup
+			})
+
+			if (productBenefit) {
+				const {
+					benefitType,
+					campaignCode,
+					promotionSetCode,
+					promotionSetProposition,
+					// groupCode,
+					product
+				} = productBenefit
+
+				const {
+					source,
+					productType,
+					productCode,
+					minBuy,
+					discountBaht,
+					discountPercent,
+					haveOtp,
+					forcePromotion
+				} = product
+
+				privilege = {
+					campaignCode,
+					promotionSetCode,
+					promotionSetProposition
+				}
+
+				discounts.push({
+					benefitType,
+					campaignCode,
+					promotionSetCode,
+					promotionSetProposition,
+					source,
+					productType,
+					// groupCode,
+					productCode,
+					minBuy,
+					discountBaht,
+					discountPercent,
+					haveOtp,
+					forcePromotion
+				})
+
 			}
 
 			return {
