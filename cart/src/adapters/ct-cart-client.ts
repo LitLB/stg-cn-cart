@@ -87,6 +87,8 @@ class CommercetoolsCartClient {
 			);
 		});
 		const privilege = existingLineItem?.custom?.fields?.privilege;
+		const discounts = existingLineItem?.custom?.fields?.discounts;
+		const otherPayments = existingLineItem?.custom?.fields?.otherPayments;
 		const selected = existingLineItem?.custom?.fields?.selected;
 
 		if (existingLineItem) {
@@ -120,6 +122,8 @@ class CommercetoolsCartClient {
 					addOnGroup,
 					...(privilege ? { privilege } : {}),
 					...(selected != null ? { selected } : {}),
+					...(discounts?.length ? { discounts } : {}),
+					...(otherPayments?.length ? { otherPayments } : {})
 				},
 			},
 			externalPrice,
