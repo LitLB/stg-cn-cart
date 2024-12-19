@@ -603,7 +603,7 @@ class TalonOneEffectConverter {
 		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
 		const promotionSets = convertedEffects.map((convertedEffect) => convertedEffect.promotionSet)
 
-		const benefits = convertedEffects.map((convertedEffect:any) => this.getBenefit(convertedEffect));
+		const benefits = convertedEffects.map((convertedEffect: any) => this.getBenefit(convertedEffect));
 		const addOnBenefits = benefits.map((item: any) => item.addOnBenefits).flat();
 
 		const newCartItems = cartItems.map((cartItem: any) => {
@@ -719,10 +719,10 @@ class TalonOneEffectConverter {
 			})
 
 			let privilege = {}
-			const discounts:any[] = []
-			const otherPayments:any[] = []
+			const discounts: any[] = []
+			const otherPayments: any[] = []
 			if (productGroupBenefit) {
-				const { 
+				const {
 					benefitType,
 					campaignCode,
 					campaignName,
@@ -1013,20 +1013,41 @@ class TalonOneEffectConverter {
 		return newLineItems
 	}
 
+	// TODO: 1.2.1 Get Benefit(s) from CT Cart
 	async getBenefitByCtCart(ctCart: any) {
+		// TODO: 1.2.1.1 Upsert T1 Custom Session with CT Cart
 		const customerSession = await talonOneIntegrationAdapter.getActiveCustomerSession(ctCart)
 		const { customerSession: { cartItems }, effects } = customerSession;
+		// console.log('JSON.stringify(customerSession)', JSON.stringify(customerSession));
+		console.log('JSON.stringify(effects)', JSON.stringify(effects));
 
+		// TODO: 1.2.1.2 Group multiple effect(s) to 1 effect.
 		const distintEffects = this.groupEffect(effects);
-		const filteredEffects = this.filter(distintEffects);
-		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
+		console.log('JSON.stringify(distintEffects)', JSON.stringify(distintEffects));
 
-		const benefits = convertedEffects.map((convertedEffect:any) => this.getBenefit(convertedEffect))
+		// TODO: 1.2.1.3 Filtered and get only effect type = bundle_package_item_device_only_v2.
+		const filteredEffects = this.filter(distintEffects);
+		console.log('JSON.stringify(filteredEffects)', JSON.stringify(filteredEffects));
+
+		// TODO: 1.2.1.4 Convert filteredEffects to convertedEffects
+		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
+		console.log('JSON.stringify(convertedEffects)', JSON.stringify(convertedEffects));
+
+		// TODO: 1.2.1.5 Get Benefit(s) from convertedEffects.
+		const benefits = convertedEffects.map((convertedEffect: any) => this.getBenefit(convertedEffect))
+		console.log('JSON.stringify(benefits)', JSON.stringify(benefits));
+
 		const addOnBenefits = benefits.map((item: any) => item.addOnBenefits).flat();
+		console.log('JSON.stringify(addOnBenefits)', JSON.stringify(addOnBenefits));
+
 		const wrappedAddOnbenefits = await this.wrapCTContext(addOnBenefits);
+		console.log('JSON.stringify(wrappedAddOnbenefits)', JSON.stringify(wrappedAddOnbenefits));
 
 		const productGroupBenefits = benefits.map((item: any) => item.productGroupBenefits).flat()
+		console.log('JSON.stringify(productGroupBenefits)', JSON.stringify(productGroupBenefits));
+
 		const productBenefits = benefits.map((item: any) => item.productBenefits).flat()
+		console.log('JSON.stringify(productBenefits)', JSON.stringify(productBenefits));
 
 		return {
 			addOnbenefits: wrappedAddOnbenefits,
@@ -1041,7 +1062,7 @@ class TalonOneEffectConverter {
 		const filteredEffects = this.filter(distintEffects);
 		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
 
-		const benefits = convertedEffects.map((convertedEffect:any) => this.getBenefit(convertedEffect));
+		const benefits = convertedEffects.map((convertedEffect: any) => this.getBenefit(convertedEffect));
 		const addOnBenefits = benefits.map((item: any) => item.addOnBenefits).flat();
 		const wrappedAddOnbenefits = await this.wrapCTContext(addOnBenefits);
 
@@ -1055,11 +1076,17 @@ class TalonOneEffectConverter {
 		}
 	}
 
+	// TODO: 1.2 Get Benefit(s)
 	async getCtLineItemWithCampaignBenefits(ctCart: any) {
+		// TODO: 1.2.1 Get Benefit(s) from CT Cart
 		const { addOnbenefits, productGroupBenefits, productBenefits } = await this.getBenefitByCtCart(ctCart)
 
 		let { lineItems } = ctCart
+
+		// TODO: 1.2.2 Attach Main Product Benefits
 		lineItems = this.attachMainProductBenefits(lineItems, productGroupBenefits, productBenefits)
+
+		// TODO: 1.2.3 Attach Addon Benefits
 		lineItems = this.attachAddOnBenefits(lineItems, addOnbenefits)
 
 

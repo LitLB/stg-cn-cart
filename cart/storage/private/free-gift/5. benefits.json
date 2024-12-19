@@ -1,0 +1,58 @@
+[
+  {
+    "addOnBenefits": [
+      {
+        "sku": "o-main-product-sku-1001",
+        "productGroup": 1,
+        "productType": "main_product",
+        "cartItemPosition": 0,
+        "cartItemSubPosition": [0, 1, 2],
+        "benefitType": "add_on",
+        "campaignCode": "",
+        "promotionSetCode": "MOCK007",
+        "promotionSetProposition": "886",
+        "addOnType": "redeem",
+        "maxReceive": 3,
+        "maxItem": 2,
+        "group": "add_on_1",
+        "addOnProductSkus": [
+          { "sku": "o-add-on-1-sku-1001", "type": "P" },
+          { "sku": "o-add-on-1-sku-1002", "type": "P" }
+        ],
+        "discountBaht": 0,
+        "discountPercent": 0,
+        "specialPrice": 790,
+        "isForcePromotion": false,
+        "subsidies": [],
+        "totalSelectedItem": 0
+      },
+      {
+        "sku": "o-main-product-sku-1001",
+        "productGroup": 1,
+        "productType": "main_product",
+        "cartItemPosition": 0,
+        "cartItemSubPosition": [0, 1, 2],
+        "benefitType": "add_on",
+        "campaignCode": "",
+        "promotionSetCode": "MOCK007",
+        "promotionSetProposition": "886",
+        "addOnType": "redeem",
+        "maxReceive": 3,
+        "maxItem": 2,
+        "group": "add_on_2",
+        "addOnProductSkus": [
+          { "sku": "o-add-on-2-sku-2001", "type": "P" },
+          { "sku": "o-add-on-2-sku-2002", "type": "P" }
+        ],
+        "discountBaht": 0,
+        "discountPercent": 0,
+        "specialPrice": 500,
+        "isForcePromotion": false,
+        "subsidies": [],
+        "totalSelectedItem": 0
+      }
+    ],
+    "productGroupBenefits": [],
+    "productBenefits": []
+  }
+]

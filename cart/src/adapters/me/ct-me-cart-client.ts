@@ -1173,9 +1173,16 @@ export default class CommercetoolsMeCartClient {
 		};
 	}
 
+	// TODO: 1. first step
 	async updateCartWithBenefit(ctCart: any) {
+		// TODO: 1.1 Make body and Request
 		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
+		
+		// TODO: 1.2 Get Benefit(s)
 		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
+		console.log('JSON.stringify(lineItemWithCampaignBenefits)', JSON.stringify(lineItemWithCampaignBenefits));
+
+		// TODO: 1.3 Update Effect to CT Cart
 		const updatedCart = await this.upsertPrivilegeToCtCart(ctCart, lineItemWithCampaignBenefits)
 
 		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
