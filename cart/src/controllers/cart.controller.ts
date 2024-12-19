@@ -94,9 +94,11 @@ export class CartController {
             const accessToken = req.accessToken as string;
             const body = req.body
             const cartId = body.cartId
+            const client = body.client
             const validateList = body.validateList || []
             const payload = {
-                cartId
+                cartId,
+                client
             };
 
             const order = await this.cartService.createOrder(accessToken, payload, validateList);

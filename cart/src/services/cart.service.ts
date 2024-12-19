@@ -132,12 +132,12 @@ export class CartService {
                 validateList = partailValidateList
             }
 
-            const { cartId } = payload
+            const { cartId, client } = payload
             const ctCart = await this.getCtCartById(accessToken, cartId)
 
             // * STEP #2 - Validate Blacklist
             if (validateList.includes('BLACKLIST')) {
-                await this.validateBlacklist(ctCart)
+                await this.validateBlacklist(ctCart, client)
             }
 
             // * STEP #3 - Validate Campaign & Promotion Set
@@ -403,21 +403,50 @@ export class CartService {
         }
     }
 
-    private async validateBlacklist(ctCart: any) {
+    private async validateBlacklist(ctCart: any, client: any) {
         try {
-            // return true
             const { custom: cartCustomField, shippingAddress } = ctCart
             const journey = cartCustomField?.fields?.journey
+            const { googleId, ip } = client || {}
+
+            const paymentTransaction = await CommercetoolsCustomObjectClient.getPaymentTransaction(ctCart.id);
+            const paymentTransactions = paymentTransaction?.value || []
+            const latestPaymentTransaction = paymentTransactions.at(-1)
+            const {
+                paymentOptionKey,
+                additionalData
+            } = latestPaymentTransaction || {}
+
+            const {
+                firstDigits,
+                lastDigits,
+                phoneNumber,
+            } = additionalData || {}
+
+            let paymentTMNAccountNumber = null
+            let paymentCreditCardNumber = {
+                firstDigits: null,
+                lastDigits: null
+            }
+
+            if (['truemoney'].includes(paymentOptionKey)) {
+                paymentTMNAccountNumber = phoneNumber
+            }
+
+            if (['ccw', 'installment'].includes(paymentOptionKey)) {
+                paymentCreditCardNumber = {
+                    firstDigits,
+                    lastDigits
+                }
+            }
+
             const body: any =
             {
                 journey, /* Mandarory */
-                // paymentTMNAccountNumber: '0830053853',
-                // paymentCreditCardNumber: {
-                //     'firstDigits': null,
-                //     'lastDigits': '1234'
-                // },
-                // ipAddress: '127.0.0.1',
-                // googleID: 'thiamkhae.pap@ascendcorp.com', //! ASK PO
+                ...(['truemoney'].includes(paymentOptionKey) ? { paymentTMNAccountNumber } : {  }),
+                ...(['ccw', 'installment'].includes(paymentOptionKey) ? { paymentCreditCardNumber } : {  }),
+                ...(ip ? { ipAddress: ip } : {  }),
+                ...(googleId ? { googleID: googleId } : {  }),
                 shippingAddress: {
                     city: shippingAddress.state, /* Mandarory */
                     district: shippingAddress.city, /* Mandarory */
@@ -428,11 +457,14 @@ export class CartService {
                 deliveryContactNumber: shippingAddress.phone, /* Mandarory */
                 deliveryContactName: `${shippingAddress.firstName} ${shippingAddress.lastName}` /* Mandarory */
             }
+
+            logger.info(`CartService-validateBlacklist-body: ${JSON.stringify(body)}`)
             const response = await this.blacklistService.checkBlacklist(body);
             if (!response?.status) {
                 throw new Error('Blacklist validation failed');
             }
         } catch (e) {
+            logger.info(`CartService-validateBlacklist-error: ${JSON.stringify(e)}`)
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,

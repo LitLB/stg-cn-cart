@@ -147,6 +147,20 @@ class CommercetoolsCustomObjectClient {
 		}
 	}
 
+	async getPaymentTransaction(cartId: string): Promise<CustomObject> {
+		const container = PAYMENT_OMISE_CONTAINER;
+		const key = `${PAYMENT_OMISE_KEY_PREFIX}${cartId}`;
+
+		try {
+			const existingObject = await this.getCustomObjectByContainerAndKey(container, key);
+
+			return existingObject;
+		} catch (err: any) {
+			console.error('Error getting payment transaction:', err);
+			throw err;
+		}
+	}
+
 	/**
   * Add a new payment transaction to the Custom Object.
   * Reuses existing get and createOrUpdate methods for efficiency.
