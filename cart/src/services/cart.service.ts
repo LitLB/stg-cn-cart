@@ -1,7 +1,7 @@
 // cart/src/services/cart.service.ts
 
 import _ from 'lodash'
-import { Cart, CartUpdateAction } from '@commercetools/platform-sdk';
+import { Cart, CartUpdateAction, Order } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
@@ -23,7 +23,10 @@ import { logger } from '../utils/logger.utils';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { createStandardizedError } from '../utils/error.utils';
 import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.interface';
+import { IOrderAdditional, IPaymentInfo } from '../interfaces/order-additional.interface';
 import { HTTP_STATUSES } from '../constants/http.constant';
+import { PAYMENT_STATES } from '../constants/payment.constant';
+import { LOCALES } from '../constants/locale.constant';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -61,7 +64,7 @@ export class CartService {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'createAnonymousCart');
         }
     };
@@ -161,13 +164,13 @@ export class CartService {
 
             await this.updateStockAllocation(ctCart);
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, ctCart, tsmSaveOrder);
-
+            await this.createOrderAdditional(ctCart, order);
             return order;
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'createOrder');
         }
     };
@@ -212,18 +215,30 @@ export class CartService {
             try {
                 const dataRetchCoupon = await this.talonOneCouponAdapter.fetchEffectsCouponsById(profileId, cart, coupons.coupons);
                 coupons.coupons = dataRetchCoupon.couponsEffects;
-                if(dataRetchCoupon.talonOneUpdateActions){
+                if (coupons.coupons.rejectedCoupons && coupons.coupons.rejectedCoupons.length > 0) {
+                    throw {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        errorCode: "COUPON_VALIDATION_FAILED",
+                        statusMessage: 'Some coupons were rejected during processing.',
+                        data: coupons.coupons.rejectedCoupons,
+                    };
+                }
+                if (dataRetchCoupon.talonOneUpdateActions) {
                     updateActions.push(...dataRetchCoupon.talonOneUpdateActions);
                 }
             } catch (error: any) {
                 logger.info(`CartService.checkout.fetchEffectsCouponsById.error`, error);
+                if (error.errorCode && error.statusMessage) {
+                    throw error;
+                }
+                
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
                     errorCode: "CART_FETCH_EFFECTS_COUPONS_CT_FAILED",
                     statusMessage: 'An unexpected error occurred while processing the coupon effects.',
                 };
             }
-            
+
             if (shippingAddress) {
                 updateActions.push({
                     action: 'setShippingAddress',
@@ -248,12 +263,13 @@ export class CartService {
                 });
             }
 
-            if (payment && (payment.source || payment.token)) {
+            if (payment && payment?.key) {
                 const paymentTransaction = {
                     paymentOptionContainer: 'paymentOptions',
                     paymentOptionKey: payment.key, // e.g., 'installment', 'ccw', etc.
-                    source: payment.source || null,
-                    token: payment.token || null,
+                    source: payment?.source || null,
+                    token: payment?.token || null,
+                    additionalData: payment?.additionalData || null,
                     createdAt: new Date().toISOString(),
                 };
 
@@ -277,7 +293,7 @@ export class CartService {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'checkout');
         }
     };
@@ -338,7 +354,7 @@ export class CartService {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'getCtCartById');
         }
     };
@@ -669,4 +685,32 @@ export class CartService {
         const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // Random 4-digit number
         return `ORD-${timestamp}-${random}`; // Combine parts into an order number
     }
+
+    public createOrderAdditional = async (
+        cart: Cart,
+        order: Order,
+    ) => {
+
+        const paymentInfo: IPaymentInfo = {
+            tmhAccountNumber: '',
+            bankAccount: '',
+            bankAccountName: '',
+            creditCardNumber: '',
+            created: new Date().toISOString(),
+            paymentState: PAYMENT_STATES.PENDING,
+        }
+
+        const orderAdditionalData: IOrderAdditional = {
+            orderInfo: { journey: _.get(order, 'custom.fields.journey') },
+            paymentInfo: [paymentInfo],
+            customerInfo: {
+                ipAddress: _.get(cart, 'ipAddress', ''),
+                googleID: _.get(cart, 'googleID', '')
+            },
+        }
+
+        await CommercetoolsCustomObjectClient.addOrderAdditional(order.id, orderAdditionalData);
+
+        return true;
+    };
 }

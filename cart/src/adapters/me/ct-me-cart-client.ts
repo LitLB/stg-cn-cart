@@ -26,6 +26,7 @@ import { CURRENCY_CODES } from '../../constants/currency.constant';
 import { COUNTRIES } from '../../constants/country.constant';
 import { HTTP_STATUSES } from '../../constants/http.constant';
 import { logger } from '../../utils/logger.utils';
+import { LOCALES } from '../../constants/locale.constant';
 
 export default class CommercetoolsMeCartClient {
 	private apiRoot: ApiRoot;
@@ -63,7 +64,7 @@ export default class CommercetoolsMeCartClient {
 	 * @param campaignGroup - The campaign group for the cart.
 	 * @param journey - The journey for the cart.
 	 */
-	public async createCart(campaignGroup: string, journey: string, locale?: string): Promise<Cart> {
+	public async createCart(campaignGroup: string, journey: string, locale = LOCALES.TH_TH): Promise<Cart> {
 		const cartDraft: MyCartDraft = {
 			country: COUNTRIES.TH,
 			currency: CURRENCY_CODES.THB,
@@ -715,6 +716,7 @@ export default class CommercetoolsMeCartClient {
 
 		const iCart: ICart = {
 			cartId: ctCart.id,
+			locale: ctCart?.locale || null,
 			campaignGroup: ctCart.custom?.fields.campaignGroup,
 			journey: ctCart.custom?.fields.journey,
 			subtotalPrice,
@@ -826,7 +828,7 @@ export default class CommercetoolsMeCartClient {
 			const lineItemProductType = lineItem.custom.fields.productType
 			const lineItemProductGroup = lineItem.custom.fields.productGroup
 			const lineItemAddOnGroup = lineItem.custom.fields.addOnGroup
-			const lineItemPrivilege = lineItem?.custom?.privilege
+			// const lineItemOtherPayments = lineItem?.custom?.otherPayments
 			const quantity = lineItem.quantity
 			const cartItem = lineItemWithCampaignBenefits.find((item: any) => {
 				return lineItem.variant.sku === item.variant.sku &&
@@ -835,87 +837,83 @@ export default class CommercetoolsMeCartClient {
 					(!lineItemAddOnGroup || lineItemAddOnGroup === item.custom.fields.addOnGroup)
 			})
 
-			const oldPrivilege = lineItemPrivilege && JSON.parse(lineItemPrivilege);
 			const newPrivilege = cartItem?.privilege
-			if (!oldPrivilege && !newPrivilege) {
-				return
-			}
 
-			if (oldPrivilege && !newPrivilege) {
-				myCartUpdateActions.push({
-					action: 'setLineItemCustomField',
-					lineItemId,
-					name: 'privilege',
-					value: null,
-				});
-			}
+			myCartUpdateActions.push({
+				action: 'setLineItemCustomField',
+				lineItemId,
+				name: 'privilege',
+				value: newPrivilege ? JSON.stringify(newPrivilege) : null,
+			});
 
-			if (newPrivilege) {
+			const newLineItemDiscounts: any[] = (cartItem.discounts ?? [])
+			const discounts = []
+			if (newLineItemDiscounts.length) {
 				// ! Main product
 				// ! Add-on
-				const {
-					specialPrice,
-					discountBaht,
-					benefitType
-				} = newPrivilege
+				
+				for (const newLineItemDiscount of newLineItemDiscounts) {
+					const { benefitType, discountBaht } = newLineItemDiscount
+					if (benefitType === 'main_product') {
+						const predicate = [
+							`product.id ="${lineItem.productId}"`,
+							`custom.productType = "${lineItemProductType}"`,
+							`custom.productGroup = ${lineItemProductGroup}`
+						].join(' AND ');
+	
+						newDirectDiscounts.push({
+							target: {
+								type: 'lineItems',
+								predicate,
+							},
+							value: {
+								type: 'absolute',
+								money: [
+									{
+										currencyCode: 'THB',
+										centAmount: quantity * discountBaht,
+									},
+								],
+							},
+						})
+					}
+	
+					const { specialPrice } = newLineItemDiscount
+					if (benefitType === 'add_on') {
+						const predicate = [
+							`product.id ="${lineItem.productId}"`,
+							`custom.productType = "${lineItemProductType}"`,
+							`custom.productGroup = ${lineItemProductGroup}`,
+							`custom.addOnGroup = "${lineItemAddOnGroup}"`,
+						].join(' AND ');
+	
+						newDirectDiscounts.push({
+							target: {
+								type: 'lineItems',
+								predicate,
+							},
+							value: {
+								type: 'fixed',
+								money: [
+									{
+										currencyCode: 'THB',
+										centAmount: specialPrice,
+									},
+								],
+							},
+						})
+					}
 
-
-				if (benefitType === 'main_product') {
-					const predicate = [
-						`product.id ="${lineItem.productId}"`,
-						`custom.productType = "${lineItemProductType}"`,
-						`custom.productGroup = ${lineItemProductGroup}`
-					].join(' AND ');
-
-					newDirectDiscounts.push({
-						target: {
-							type: 'lineItems',
-							predicate,
-						},
-						value: {
-							type: 'absolute',
-							money: [
-								{
-									currencyCode: 'THB',
-									centAmount: quantity * discountBaht,
-								},
-							],
-						},
-					})
+					discounts.push(JSON.stringify(newLineItemDiscount))
 				}
-
-				if (benefitType === 'add_on') {
-					const predicate = [
-						`product.id ="${lineItem.productId}"`,
-						`custom.productType = "${lineItemProductType}"`,
-						`custom.productGroup = ${lineItemProductGroup}`,
-						`custom.addOnGroup = "${lineItemAddOnGroup}"`,
-					].join(' AND ');
-
-					newDirectDiscounts.push({
-						target: {
-							type: 'lineItems',
-							predicate,
-						},
-						value: {
-							type: 'fixed',
-							money: [
-								{
-									currencyCode: 'THB',
-									centAmount: specialPrice,
-								},
-							],
-						},
-					})
-				}
-
-				myCartUpdateActions.push({
-					action: 'setLineItemCustomField',
-					lineItemId,
-					name: 'privilege',
-					value: JSON.stringify(newPrivilege),
-				});
 			}
+
+			myCartUpdateActions.push({
+				action: 'setLineItemCustomField',
+				lineItemId,
+				name: 'discounts',
+				value: discounts,
+			});
 		});
 
 		let newCart = updatedCart
@@ -940,10 +938,12 @@ export default class CommercetoolsMeCartClient {
 			const lineItem = lineItemWithCampaignBenefits.find((lineItem: any) => lineItem.variant.sku === sku)
 			const availableBenefits = lineItem?.availableBenefits || []
 			const privilege = lineItem?.privilege
+			const discounts = lineItem?.discounts
 			return {
 				...item,
 				availableBenefits,
-				privilege
+				privilege,
+				discounts
 			}
 		})
 		const newICart = {

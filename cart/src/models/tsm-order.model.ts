@@ -164,28 +164,46 @@ export default class TsmOrderModel {
 
     getItemDiscount = (orderId: string, lineItem: any) => {
         let discountAmount = 0
-        let discounts: any[] = []
+        const discounts: any[] = []
         let privilege = lineItem?.custom?.fields?.privilege
         privilege = privilege && JSON.parse(privilege);
+        let lineItemDiscounts = lineItem?.custom?.fields?.discounts
+        lineItemDiscounts = (lineItemDiscounts ?? []).map((v:any) => JSON.parse(v))
+        const { promotionSetCode } = privilege
+        for (const lineItemDiscount of lineItemDiscounts) {
+            const { benefitType, specialPrice, discountBaht } = lineItemDiscount
+            if (benefitType === 'add_on') {
+                const price = lineItem.price.value.centAmount
+                const discount = price - specialPrice
+                discounts.push(
+                    {
+                        id: orderId,
+                        sequence: '1',
+                        no: '1',
+                        code: promotionSetCode,
+                        amount: '' + this.stangToBaht(discount),
+                        serial: '',
+                    }
+                )
+            }
 
-        const { type, promotionSetCode, specialPrice } = privilege || {}
-
-
-        if (type === 'add_on') {
-            discountAmount = this.calculateTotalDiscountAmount(lineItem)
-            const price = lineItem.price.value.centAmount
-            const discount = price - specialPrice
-            discounts = [
-                {
-                    id: orderId,
-                    sequence: '1',
-                    no: '1',
-                    code: promotionSetCode,
-                    amount: '' + this.stangToBaht(discount),
-                    serial: '',
-                }
-            ]
+            if (benefitType === 'main_product') {
+                const discount = discountBaht
+                discounts.push(
+                    {
+                        id: orderId,
+                        sequence: '1',
+                        no: '1',
+                        code: promotionSetCode,
+                        amount: '' + this.stangToBaht(discount),
+                        serial: '',
+                    }
+                )
+            }
         }
+
+        discountAmount = this.calculateTotalDiscountAmount(lineItem)
+
         return {
             discountAmount,
             discounts
