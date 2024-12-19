@@ -159,6 +159,8 @@ export default class TsmOrderModel {
         switch (lineItemType) {
             case 'main_product':
                 return '0'
+            case 'free_gift':
+                return '1'
             case 'service':
                 return '0'
             case 'add_on':

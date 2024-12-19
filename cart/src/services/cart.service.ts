@@ -27,6 +27,7 @@ import { IOrderAdditional, IPaymentInfo, IClientInfo } from '../interfaces/order
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { PAYMENT_STATES } from '../constants/payment.constant';
 import { LOCALES } from '../constants/locale.constant';
+import { cartWithFreeGift } from '../mocks/carts.mock';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -390,7 +391,7 @@ export class CartService {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const config = readConfiguration()
             console.log('JSON.stringify(cart)', JSON.stringify(cart));
-            const tsmOrder = new TsmOrderModel({ ctCart: cart, config, orderNumber })
+            const tsmOrder = new TsmOrderModel({ ctCart: cartWithFreeGift, config, orderNumber })
             const tsmOrderPayload = tsmOrder.toPayload()
             console.log('JSON.stringify(tsmOrderPayload)', JSON.stringify(tsmOrderPayload));
 
