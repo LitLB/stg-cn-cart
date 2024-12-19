@@ -215,11 +215,23 @@ export class CartService {
             try {
                 const dataRetchCoupon = await this.talonOneCouponAdapter.fetchEffectsCouponsById(profileId, cart, coupons.coupons);
                 coupons.coupons = dataRetchCoupon.couponsEffects;
+                if (coupons.coupons.rejectedCoupons && coupons.coupons.rejectedCoupons.length > 0) {
+                    throw {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        errorCode: "COUPON_VALIDATION_FAILED",
+                        statusMessage: 'Some coupons were rejected during processing.',
+                        data: coupons.coupons.rejectedCoupons,
+                    };
+                }
                 if (dataRetchCoupon.talonOneUpdateActions) {
                     updateActions.push(...dataRetchCoupon.talonOneUpdateActions);
                 }
             } catch (error: any) {
                 logger.info(`CartService.checkout.fetchEffectsCouponsById.error`, error);
+                if (error.errorCode && error.statusMessage) {
+                    throw error;
+                }
+                
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
                     errorCode: "CART_FETCH_EFFECTS_COUPONS_CT_FAILED",
