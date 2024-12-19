@@ -84,7 +84,7 @@ export function validateAddItemCartBody(body: any) {
 		campaignByJourney: Joi.string().optional().allow(null, ''),
 		propositionGroup: Joi.string().optional().allow(null, ''),
 		productType: Joi.string()
-			.valid('main_product', 'add_on', 'insurance')
+			.valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: free_gift added.
 			.required()
 			.messages({
 				'string.base': 'Product Type must be a string',

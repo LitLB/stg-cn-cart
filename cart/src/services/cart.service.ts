@@ -18,7 +18,6 @@ import { readConfiguration } from '../utils/config.utils';
 import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
 import { BlacklistService } from './blacklist.service'
 import { safelyParse } from '../utils/response.utils';
-import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 import { logger } from '../utils/logger.utils';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { createStandardizedError } from '../utils/error.utils';
@@ -26,8 +25,7 @@ import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.in
 import { IOrderAdditional, IPaymentInfo, IClientInfo } from '../interfaces/order-additional.interface';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { PAYMENT_STATES } from '../constants/payment.constant';
-import { LOCALES } from '../constants/locale.constant';
-import { cartWithFreeGift } from '../mocks/carts.mock';
+import { ctCartWithFreeGift } from '../mocks/ctCartWithFreeGift.mock';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -392,7 +390,7 @@ export class CartService {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const config = readConfiguration()
             console.log('JSON.stringify(cart)', JSON.stringify(cart));
-            const tsmOrder = new TsmOrderModel({ ctCart: cartWithFreeGift, config, orderNumber })
+            const tsmOrder = new TsmOrderModel({ ctCart: ctCartWithFreeGift, config, orderNumber })
             const tsmOrderPayload = tsmOrder.toPayload()
             console.log('JSON.stringify(tsmOrderPayload)', JSON.stringify(tsmOrderPayload));
 

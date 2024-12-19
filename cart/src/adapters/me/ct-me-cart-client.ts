@@ -33,6 +33,7 @@ import { COUNTRIES } from '../../constants/country.constant';
 import { HTTP_STATUSES } from '../../constants/http.constant';
 import { logger } from '../../utils/logger.utils';
 import { LOCALES } from '../../constants/locale.constant';
+import { lineItemWithCampaignBenefitsMock } from '../../mocks/lineItemWithCampaignBenefits.mock';
 
 export default class CommercetoolsMeCartClient {
 	private apiRoot: ApiRoot;
@@ -1179,7 +1180,8 @@ export default class CommercetoolsMeCartClient {
 		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
 		
 		// TODO: 1.2 Get Benefit(s)
-		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
+		// const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
+		const lineItemWithCampaignBenefits = lineItemWithCampaignBenefitsMock; // Bypass by using mock data named lineItemWithCampaignBenefitsMock.
 		console.log('JSON.stringify(lineItemWithCampaignBenefits)', JSON.stringify(lineItemWithCampaignBenefits));
 
 		// TODO: 1.3 Update Effect to CT Cart
