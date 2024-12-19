@@ -124,9 +124,11 @@ export class CartService {
             tsmOrderIsSaved: success,
             tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
         }
+        const newCtCart = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
 
-        await this.updateStockAllocation(ctCart);
-        const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, ctCart, tsmSaveOrder);
+        await this.updateStockAllocation(newCtCart);
+
+        const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, newCtCart, tsmSaveOrder);
 
         return order;
     };

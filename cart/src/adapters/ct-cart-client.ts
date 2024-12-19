@@ -40,12 +40,17 @@ class CommercetoolsCartClient {
 					body: cartUpdate,
 				})
 				.execute();
+				
 
 			return response.body;
 		} catch (error) {
 			console.error(`updateCart.error`, error);
 			throw error;
 		}
+	}
+
+	async updatePriceInCart() {
+		return
 	}
 
 	/**

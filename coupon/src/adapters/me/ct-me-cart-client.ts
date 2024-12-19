@@ -1123,7 +1123,7 @@ export default class CommercetoolsMeCartClient {
 			const sku = key.replace(`${this.onlineChannel}-`, '');
 			inventoryMap.set(sku, inventory);
 		});
-		// TODO :: Add function has change to here
+	// TODO :: Add function has change to here
 		let iCart: ICart = this.mapCartToICart(cartToProcess);
 		iCart = await this.attachInsuranceToICart(iCart);
 

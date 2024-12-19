@@ -224,7 +224,7 @@ export default class CommercetoolsMeCartClient {
 		}
 	}
 
-	public async updateLineItemSelected(
+	async updateLineItemSelected(
 		cartId: string,
 		version: number,
 		lineItem: LineItem,
@@ -952,6 +952,8 @@ export default class CommercetoolsMeCartClient {
 
 		let newCart = updatedCart
 
+		
+
 		console.log(`newCart before update =>`, newCart.lineItems[0].price);
 		let currentVersion = version
 
@@ -1121,7 +1123,6 @@ export default class CommercetoolsMeCartClient {
 	async updateCartWithBenefit(ctCart: any) {
 		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
 		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
-		// console.log(`lineItemWithCampaignBenefits => `,lineItemWithCampaignBenefits[0].price)
 
 		const updatedCart = await this.upsertPrivilegeToCtCart(ctCart, lineItemWithCampaignBenefits)
 
@@ -1144,6 +1145,56 @@ export default class CommercetoolsMeCartClient {
 		const iCartWithBenefit = this.attachBenefitToICart(iCart, lineItemWithCampaignBenefits)
 
 		return iCartWithBenefit;
+	}
+
+	async updateCartPriceWithHasChange(ctCartWithUpdated: any) {
+
+		const { lineItems, version: cartVersion, id: cartId } = ctCartWithUpdated;
+
+		// TODO :: should update price in ct in this function
+
+		const itemUpdatedPrice = lineItems.map((item: any) => {
+			return {
+				action: 'changeLineItemQuantity',
+				lineItemId: item.id,
+				quantity: item.quantity,
+				externalPrice: item.price.value,
+			}
+		})
+
+		console.log(`itemUpdatedPrice :`,itemUpdatedPrice )
+	
+		const updatedCart = await this.updateCart(cartId, cartVersion, itemUpdatedPrice);
+
+		console.log(`updatedCart => `,updatedCart.lineItems[0].price)
+
+		return updatedCart
+	}
+
+	public async updateCartPrice(
+		cartId: string,
+		version: number,
+		actions: MyCartUpdateAction[],
+	): Promise<Cart> {
+		try {
+			const cartUpdate: MyCartUpdate = {
+				version,
+				actions,
+			};
+
+			const response = await this.apiRoot
+				.withProjectKey({ projectKey: this.projectKey })
+				.me()
+				.carts()
+				.withId({ ID: cartId })
+				.post({ body: cartUpdate })
+				.execute();
+
+			return response.body;
+		} catch (error) {
+			console.error('updateCart.error', error);
+			throw error;
+		}
 	}
 
 	filterLineItems(lineItems: LineItem[], selectedOnly: boolean): LineItem[] {

@@ -7,7 +7,7 @@ import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
 import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateJourneyCompatibility, validateProductQuantity, validateSelectCartItemBody, validateUpdateCartItemBody } from '../validators/cart-item.validator';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { readConfiguration } from '../utils/config.utils';
-import { MyCartUpdateAction } from '@commercetools/platform-sdk';
+import { MyCartAddLineItemAction, MyCartUpdateAction } from '@commercetools/platform-sdk';
 
 export class CartItemService {
     // private getJourneyDeviceOnly = (variant: any): string | undefined => {
@@ -271,7 +271,10 @@ export class CartItemService {
         });
 
         const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
-        const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithChanged);
+
+        const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartPriceWithHasChange(cartWithChanged)
+
+        const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
         return iCartWithBenefit;
     }
@@ -435,7 +438,7 @@ export class CartItemService {
                 };
             }
 
-            const action: MyCartUpdateAction = {
+            const action: MyCartAddLineItemAction = {
                 action: 'setLineItemCustomField',
                 lineItemId: lineItem.id,
                 name: 'selected',
