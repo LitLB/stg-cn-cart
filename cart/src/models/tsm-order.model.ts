@@ -89,7 +89,9 @@ export default class TsmOrderModel {
         })
 
         const totalAmount = items.reduce((total: any, item: any) => total + +item.netAmount, 0,)
-        const discountAmount = items.reduce((total: any, item: any) => total + +item.discountAmount, 0,)
+         // Calculate Discount outside of lineItem Discount coupon
+        const discountsOutSideItem: any[] = []
+        const discountAmount = discountsOutSideItem.reduce((total: any, item: any) => total + +item.amount, 0,)
         const otherPaymentAmount = items.reduce((total: any, item: any) => total + +item.otherPaymentAmount, 0,)
         const totalAfterDiscount = totalAmount
         const grandTotal = totalAmount
@@ -114,7 +116,7 @@ export default class TsmOrderModel {
                 totalAfterDiscount: '' + totalAfterDiscount,
                 otherPaymentAmount: '' + otherPaymentAmount,
                 grandTotal: '' + grandTotal,
-                discounts: [],
+                discounts: discountsOutSideItem,
                 otherPayments: [],
                 items,
             },
