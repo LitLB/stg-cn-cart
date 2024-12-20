@@ -270,16 +270,7 @@ export class CartService {
 
             const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
 
-            let coupons;
-            try {
-                coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(id, ctCart.lineItems);
-            } catch (error: any) {
-                throw {
-                    statusCode: HTTP_STATUSES.NOT_FOUND,
-                    errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
-                    statusMessage: 'No discount coupon effect found.',
-                };
-            }
+            const coupons = await this.getCoupons(ctCart?.id, ctCart.lineItems);
 
             return { ...iCartWithBenefit, ...coupons };
         } catch (error: any) {
