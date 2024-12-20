@@ -9,7 +9,7 @@ import { secondItem } from "./secondItem.mock";
 * 1. ลูกค้าเลือกสินค้าหลัก: เมื่อเลือกสินค้าหลัก (Main Product) ทาง FE จะทำการเรียก API เส้นทาง 3.1 Add Item to Cart เพื่อเพิ่มสินค้าหลักลงในตะกร้า (Cart)
 * 2. ระบบค้นหาแคมเปญของแถม: ระบบ BE จะทำการค้นหาว่ามีแคมเปญของแถมหรือไม่ หากมี ระบบจะเพิ่มข้อมูลลงใน availableBenefits ในรูปแบบ Array เพื่อให้ลูกค้าเลือกของแถม
 * 3. ลูกค้าเลือกของแถม: เมื่อลูกค้าเลือกสินค้าของแถม FE จะเรียก API เส้นทาง 3.2 Add Item to Cart เพื่อเพิ่มสินค้าของแถมลงในตะกร้า (Cart) และส่ง Privilege ไปยัง TSM
-* 4. ระบบคำนวณส่วนลด: ระบบจะคำนวณส่วนลด โดยตั้งค่าราคาของสินค้าของแถมเป็น 0 และให้ส่วนลด 100%
+* 4. ระบบคำนวณส่วนลด: ระบบจะคำนวณส่วนลด โดยตั้งค่าราคาของสินค้าของแถมเป็น 0 และให้ส่วนลด 100% แล้วอัพเดท ตะกร้าสินค้า (Cart) เพื่อปรับให้ตะกร้าได้รับเอฟเฟคจากส่วนลด
 */
 
 export const updatedCartWithFreeGiftAdded = {
@@ -33,7 +33,7 @@ export const updatedCartWithFreeGiftAdded = {
         free_gift: 1,
     },
     items: [
-        firstItem,
+        firstItem, // Main Product Added with Free Gift List
         secondItem,
     ],
     triggeredCampaigns: [],

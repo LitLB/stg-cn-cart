@@ -23,9 +23,9 @@ export const secondItem = {
     quantity: 1,
     unitPrice: 89000,
     totalUnitPrice: 89000,
-    discountAmount: 0,
-    priceAfterDiscount: 89000,
-    finalPrice: 89000,
+    discountAmount: 89000,
+    priceAfterDiscount: 0,
+    finalPrice: 0,
     appliedEffects: [],
     attributes: [
         {
@@ -65,7 +65,7 @@ export const secondItem = {
         group: 'free_gift_1', // TODO: Free Gift
         discountBaht: 0,
         discountPercent: 0,
-        specialPrice: 79000,
+        specialPrice: 0,
         isForcePromotion: false,
     },
 };

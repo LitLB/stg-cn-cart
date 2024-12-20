@@ -1180,8 +1180,8 @@ export default class CommercetoolsMeCartClient {
 		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
 		
 		// TODO: 1.2 Get Benefit(s)
-		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
-		// const lineItemWithCampaignBenefits = lineItemWithCampaignBenefitsMock; // Bypass by using mock data named lineItemWithCampaignBenefitsMock.
+		// const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
+		const lineItemWithCampaignBenefits = lineItemWithCampaignBenefitsMock; // Bypass by using mock data named lineItemWithCampaignBenefitsMock.
 		console.log('JSON.stringify(lineItemWithCampaignBenefits)', JSON.stringify(lineItemWithCampaignBenefits));
 
 		// TODO: 1.3 Update Effect to CT Cart

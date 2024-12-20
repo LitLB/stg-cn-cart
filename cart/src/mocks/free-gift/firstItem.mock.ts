@@ -1,3 +1,4 @@
+// availableBenefits จะมีได้หลายอันถ้ามีหลาย Promotion Detail Group
 export const availableBenefits = [
     {
         sku: 'o-main-product-sku-1001',
@@ -10,17 +11,17 @@ export const availableBenefits = [
         promotionSetCode: 'UI034', // TODO: Free Gift
         promotionSetProposition: '999',
         // addOnType: 'redeem', // TODO: Free Gift
-        maxReceive: 3,
-        maxItem: 2,
-        group: 'free_gift_1', // TODO: Free Gift
+        maxReceive: 3, // ทั้ง Order มีโปรโมชั่นเสริม (Promotion Detail) ได้ทั้งหมด 3 ชิ้น
+        maxItem: 2, // availableBenefits[0].group = free_gift_1 (Group แรก) มีได้ทั้งหมดกี่ชิ้น
+        group: 'free_gift_1', // tsm_promotion_detail.tsm_promotion_detail__group_code, Group ของโปรโมชั่นเสริม
         discountBaht: 0,
         discountPercent: 0,
         specialPrice: 79000,
         isForcePromotion: false,
         subsidies: [],
-        totalSelectedItem: 1,
+        totalSelectedItem: 1, // Group นี้มีการเลือกไปแล้วกี่ชิ้น
         // addOnProducts: [
-        freeGiftProducts: [ // TODO: Free Gift
+        freeGiftProducts: [ // TODO: Free Gift, น่าจะ Support หลายชิ้นแล้ว เป็น Array, filtered เอามาเฉพาะใน promotion_detail_item จาก effect
             {
                 id: '2973331a-c3b1-4d5b-a042-7db5cb84ee09',
                 version: 16,

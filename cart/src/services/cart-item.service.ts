@@ -156,6 +156,7 @@ export class CartItemService {
                 }
             }
 
+            // ! ยังไม่ได้เช็ค
             const action = 'add_product'
             const validateResult = await talonOneEffectConverter.validate(cart, changes, action)
 
