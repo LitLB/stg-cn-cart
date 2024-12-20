@@ -135,19 +135,6 @@ export class CouponService {
                 acceptedCoupons: processedCouponEffects.applyCoupons,
                 rejectedCoupons: processedCouponEffects.rejectedCoupons
             }
-            // if (coupons) {
-            //     const acceptedCouponsSet = coupons.acceptedCoupons.map((coupon: any) => 
-            //         JSON.stringify({
-            //             code: coupon.code,
-            //             description: coupon.description || "No description"
-            //         })
-            //     );
-            //     updateActions.push({
-            //         action: 'setCustomField',
-            //         name: 'acceptedCouponsSet',
-            //         value: acceptedCouponsSet
-            //     });
-            // }
             const updatedCart = await CommercetoolsCartClient.updateCart(
                 cart.id,
                 cart.version,

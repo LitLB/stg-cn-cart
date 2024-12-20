@@ -5,7 +5,6 @@ import {
     CartAddLineItemAction,
     CartChangeCustomLineItemMoneyAction,
     CartRemoveCustomLineItemAction,
-    // CartSetCustomFieldAction,
     CartUpdateAction,
 } from '@commercetools/platform-sdk';
 import { readConfiguration } from '../utils/config.utils';
@@ -126,9 +125,6 @@ export class TalonOneCouponAdapter {
                         this.handleAddFreeItemEffect(updateActions, props);
                         break;
 
-                    // case 'customEffect':
-                    //     this.handleAddItemEffect(updateActions, props);
-                    //     break;
                     // Handle other effect types if needed
                     default:
                         break;
@@ -245,16 +241,4 @@ export class TalonOneCouponAdapter {
             }
         });
     }
-
-    // private handleAddItemEffect(
-    //     updateActions: CartUpdateAction[],
-    //     props: any
-    // ): void {
-    //     const addItemEffectAction: CartSetCustomFieldAction = {
-    //         action: 'setCustomField',
-    //         name: 'acceptedCouponsSet',
-    //         value: [JSON.stringify(props.payload)]
-    //     };
-    //     updateActions.push(addItemEffectAction);
-    // }
 }
