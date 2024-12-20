@@ -60,9 +60,9 @@ export const secondItem = {
     privilege: {
         benefitType: 'free_gift',
         campaignCode: '',
-        promotionSetCode: 'MOCK007',
-        promotionSetProposition: '886',
-        group: 'free_gift_1',
+        promotionSetCode: 'UI034', // TODO: Free Gift
+        promotionSetProposition: '999',
+        group: 'free_gift_1', // TODO: Free Gift
         discountBaht: 0,
         discountPercent: 0,
         specialPrice: 79000,

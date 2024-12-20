@@ -7,9 +7,9 @@ export const availableBenefits = [
         cartItemSubPosition: [0, 1, 2, 3],
         benefitType: 'free_gift', // TODO: Free Gift
         campaignCode: '',
-        promotionSetCode: 'MOCK007',
-        promotionSetProposition: '886',
-        addOnType: 'redeem',
+        promotionSetCode: 'UI034', // TODO: Free Gift
+        promotionSetProposition: '999',
+        // addOnType: 'redeem', // TODO: Free Gift
         maxReceive: 3,
         maxItem: 2,
         group: 'free_gift_1', // TODO: Free Gift
@@ -166,9 +166,9 @@ export const availableBenefits = [
         cartItemSubPosition: [0, 1, 2, 3],
         benefitType: 'free_gift', // TODO: Free Gift
         campaignCode: '',
-        promotionSetCode: 'MOCK007',
-        promotionSetProposition: '886',
-        addOnType: 'redeem',
+        promotionSetCode: 'UI034', // TODO: Free Gift
+        promotionSetProposition: '999',
+        // addOnType: 'redeem', // TODO: Free Gift
         maxReceive: 3,
         maxItem: 2,
         group: 'free_gift_2', // TODO: Free Gift
