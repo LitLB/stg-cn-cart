@@ -2,9 +2,10 @@
 
 import type { ApiRoot, CustomObject, CustomObjectDraft } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
-import { PAYMENT_OMISE_CONTAINER, PAYMENT_OMISE_KEY_PREFIX, ORDER_ADDITIONAL_INFO } from '../constants/ct.constant';
+import { PAYMENT_OMISE_CONTAINER, PAYMENT_OMISE_KEY_PREFIX, ORDER_ADDITIONAL_INFO, COUPON_INFO_CONTAINER } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
 import { IOrderAdditional } from '../interfaces/order-additional.interface';
+import { logger } from '../utils/logger.utils';
 
 class CommercetoolsCustomObjectClient {
 	private static instance: CommercetoolsCustomObjectClient;
@@ -190,6 +191,39 @@ class CommercetoolsCustomObjectClient {
 				throw err;
 			}
 		}
+	}
+
+	async addCouponInformation(cartId: string, couponInformation: any): Promise<CustomObject> {
+		const container = COUPON_INFO_CONTAINER;
+		const key = cartId;
+
+		try {
+			const existingObject = await this.getCustomObjectByContainerAndKey(container, key);
+			const updatedValue = this.mergeCouponInformation(existingObject?.value, couponInformation);
+			return await this.createOrUpdateCustomObject({ container, key, value: updatedValue });
+
+		} catch (error: any) {
+			if (error.statusCode === 404) {
+				return await this.createOrUpdateCustomObject({
+					container,
+					key,
+					value: couponInformation,
+				});
+			}
+			logger.error('Error adding coupon information:', error);
+			throw error;
+		}
+	}
+
+	private mergeCouponInformation(existingValue: any, newCouponInformation: any[]): any[] {
+		if (Array.isArray(existingValue)) {
+			const existingCodes = new Map(existingValue.map((item: any) => [item.code, item]));
+			newCouponInformation.forEach((newCoupon: any) => {
+				existingCodes.set(newCoupon.code, newCoupon);
+			});
+			return Array.from(existingCodes.values());
+		}
+		return [...newCouponInformation];
 	}
 }
 

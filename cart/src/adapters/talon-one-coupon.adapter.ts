@@ -102,13 +102,13 @@ export class TalonOneCouponAdapter {
             couponIdToCode: { [key: number]: string };
             couponIdToEffects: { [key: number]: any[] };
         }
-    ): CartUpdateAction[] {
+    ): { updateActions: CartUpdateAction[]; couponsInformation: any[] } {
         const updateActions: CartUpdateAction[] = [];
-
-        const { acceptedCoupons, rejectedCoupons, couponIdToCode, couponIdToEffects } = processedEffects;
+        const { acceptedCoupons, couponIdToCode, couponIdToEffects } = processedEffects;
 
         // Keep track of coupons that have custom line items
         const couponsWithCustomLineItems = new Set<string>();
+        const couponsInformation: any[] = [];
 
         // Process accepted coupons and their associated effects
         for (const triggeredByCoupon in couponIdToCode) {
@@ -128,6 +128,10 @@ export class TalonOneCouponAdapter {
                         this.handleAddFreeItemEffect(updateActions, props);
                         break;
 
+                    case 'customEffect':
+                        couponsInformation.push(this.prepareCouponInformation(couponCode, props));
+                        break;
+
                     // Handle other effect types if needed
                     default:
                         break;
@@ -138,7 +142,7 @@ export class TalonOneCouponAdapter {
         // Remove custom line items for rejected or missing coupons
         this.removeInvalidCustomLineItems(cart, updateActions, couponsWithCustomLineItems, acceptedCoupons);
 
-        return updateActions;
+        return { updateActions, couponsInformation };
     }
 
     private handleSetDiscountEffect(
@@ -327,5 +331,20 @@ export class TalonOneCouponAdapter {
                 statusMessage: "An unexpected error occurred while processing the coupon effects."
             };
         }
+    }
+
+    private prepareCouponInformation(couponCode: string, props: any): any {
+        return {
+            marketingName: {
+                en: props.payload.marketing_name_en,
+                th: props.payload.marketing_name_th,
+            },
+            couponName: props.payload.name_en,
+            couponCode: couponCode,
+            discountCode: props.payload.discount_code,
+            otherPaymentCode: props.payload.other_payment_code,
+            discountPrice: Number(props.payload.discount_price) || 0,
+            discountPercentage: Number(props.payload.discount_percentage) || 0,
+        };
     }
 }

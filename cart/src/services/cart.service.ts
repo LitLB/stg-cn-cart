@@ -1,7 +1,7 @@
 // cart/src/services/cart.service.ts
 
 import _ from 'lodash'
-import { Cart, CartUpdateAction, Order } from '@commercetools/platform-sdk';
+import { Cart, CartSetCustomFieldAction, CartUpdateAction, Order } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
@@ -198,46 +198,8 @@ export class CartService {
                 };
             }
 
-            const profileId = cart?.id
-            let coupons;
-            try {
-                coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, cart.lineItems);
-            } catch (error: any) {
-                logger.info(`CartService.checkout.getEffectsCouponsById.error`, error);
-                throw {
-                    statusCode: HTTP_STATUSES.NOT_FOUND,
-                    errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
-                    statusMessage: 'No discount coupon effect found.',
-                };
-            }
-
-            const updateActions: CartUpdateAction[] = [];
-            try {
-                const dataRetchCoupon = await this.talonOneCouponAdapter.fetchEffectsCouponsById(profileId, cart, coupons.coupons);
-                coupons.coupons = dataRetchCoupon.couponsEffects;
-                if (coupons.coupons.rejectedCoupons && coupons.coupons.rejectedCoupons.length > 0) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        errorCode: "COUPON_VALIDATION_FAILED",
-                        statusMessage: 'Some coupons were rejected during processing.',
-                        data: coupons.coupons.rejectedCoupons,
-                    };
-                }
-                if (dataRetchCoupon.talonOneUpdateActions) {
-                    updateActions.push(...dataRetchCoupon.talonOneUpdateActions);
-                }
-            } catch (error: any) {
-                logger.info(`CartService.checkout.fetchEffectsCouponsById.error`, error);
-                if (error.errorCode && error.statusMessage) {
-                    throw error;
-                }
-                
-                throw {
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    errorCode: "CART_FETCH_EFFECTS_COUPONS_CT_FAILED",
-                    statusMessage: 'An unexpected error occurred while processing the coupon effects.',
-                };
-            }
+            const coupons = await this.getCoupons(cart?.id, cart.lineItems);
+            const updateActions = await this.processCoupons(cart, coupons);
 
             if (shippingAddress) {
                 updateActions.push({
@@ -275,10 +237,6 @@ export class CartService {
 
                 await CommercetoolsCustomObjectClient.addPaymentTransaction(cart.id, paymentTransaction);
             }
-
-            // console.log('talonOneUpdateActions', talonOneUpdateActions)
-
-            // updateActions.push(...talonOneUpdateActions);
 
             const updatedCart = await CommercetoolsCartClient.updateCart(
                 cart.id,
@@ -713,4 +671,62 @@ export class CartService {
 
         return true;
     };
+
+    private async getCoupons(profileId: string, lineItems: any[]) {
+        try {
+            return await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, lineItems);
+        } catch (error: any) {
+            logger.info(`CartService.checkout.getEffectsCouponsById.error`, error);
+            throw {
+                statusCode: HTTP_STATUSES.NOT_FOUND,
+                errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
+                statusMessage: 'No discount coupon effect found.',
+            };
+        }
+    }
+
+    private async processCoupons(cart: any, coupons: any) {
+        const updateActions: CartUpdateAction[] = [];
+        try {
+            const dataRetchCoupon = await this.talonOneCouponAdapter.fetchEffectsCouponsById(cart.id, cart, coupons.coupons);
+            coupons.coupons = dataRetchCoupon.couponsEffects;
+    
+            if (coupons.coupons.rejectedCoupons?.length > 0) {
+                throw {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    errorCode: "COUPON_VALIDATION_FAILED",
+                    statusMessage: 'Some coupons were rejected during processing.',
+                    data: coupons.coupons.rejectedCoupons,
+                };
+            }
+    
+            if (dataRetchCoupon.talonOneUpdateActions?.updateActions) {
+                updateActions.push(...dataRetchCoupon.talonOneUpdateActions.updateActions);
+            }
+    
+            if (dataRetchCoupon.talonOneUpdateActions?.couponsInformation && dataRetchCoupon.talonOneUpdateActions.couponsInformation.length > 0) {
+                const couponsInformation = await CommercetoolsCustomObjectClient.addCouponInformation(cart.id, dataRetchCoupon.talonOneUpdateActions.couponsInformation);
+                const updateCustom: CartSetCustomFieldAction = {
+                    action: 'setCustomField',
+                    name: 'couponInfomation',
+                    value: [{
+                        typeId: "key-value-document",
+                        id: couponsInformation.id,
+                    }],
+                };
+                updateActions.push(updateCustom);
+            }
+        } catch (error: any) {
+            logger.info(`CartService.checkout.fetchEffectsCouponsById.error`, error);
+            if (error.errorCode && error.statusMessage) {
+                throw error;
+            }
+            throw {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                errorCode: "CART_FETCH_EFFECTS_COUPONS_CT_FAILED",
+                statusMessage: 'An unexpected error occurred while processing the coupon effects.',
+            };
+        }
+        return updateActions;
+    }
 }
