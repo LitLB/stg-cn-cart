@@ -42,6 +42,19 @@ export default class TsmOrderModel {
             let privilege = lineItem?.custom?.fields?.privilege
             privilege = privilege && JSON.parse(privilege);
 
+            // TODO : parse other payment
+            let otherPaymentByItem = lineItem?.custom?.fields?.otherPayments
+            otherPaymentByItem = (otherPaymentByItem ?? []).map((v:any) => JSON.parse(v))
+
+            otherPaymentByItem = otherPaymentByItem.map((v: any) =>  ({
+                id: orderId,
+                sequence: "1",
+                no: "1",
+                code: v.otherPaymentCode ,
+                amount: this.stangToBaht(v.otherPaymentAmt).toString(),
+                serial: ""
+            }))
+
 
             const price = lineItem.price.value.centAmount
             const quantity = lineItem.quantity
@@ -82,7 +95,7 @@ export default class TsmOrderModel {
                 otherPaymentAmount: '' + this.stangToBaht(otherPaymentAmount),
                 privilegeRequiredValue: '',
                 discounts,
-                otherPayments,
+                otherPayments : otherPaymentByItem,
                 serials: [],
                 range: [],
             }
@@ -94,7 +107,15 @@ export default class TsmOrderModel {
         const discountAmount = discountsOutSideItem.reduce((total: any, item: any) => total + +item.amount, 0,)
         const otherPaymentAmount = items.reduce((total: any, item: any) => total + +item.otherPaymentAmount, 0,)
         const totalAfterDiscount = totalAmount
-        const grandTotal = totalAmount
+
+        // Sum the amount of all items in the otherPayments array
+        const totalOtherPaymentAmount = items.reduce((total:any, item:any) => {
+            return total + item.otherPayments.reduce((subTotal:any, payment:any) => {
+            return subTotal + payment.amount;
+            }, 0);
+        }, 0);
+
+        const grandTotal = totalAmount - totalOtherPaymentAmount
 
         return {
             order: {

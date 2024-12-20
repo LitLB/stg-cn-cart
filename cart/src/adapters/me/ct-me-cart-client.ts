@@ -914,6 +914,24 @@ export default class CommercetoolsMeCartClient {
 				name: 'discounts',
 				value: discounts,
 			});
+
+			// TODO - Add otherPayments
+			const newLineItemOtherPayments: any[] = (cartItem.otherPayments ?? [])
+			const otherPayments = []
+
+			if (newLineItemOtherPayments.length) {
+				for (const newLineItemOtherPayment of newLineItemOtherPayments) {
+					otherPayments.push(JSON.stringify(newLineItemOtherPayment))
+				}
+				// Logic add Custom Line item
+			}
+
+			myCartUpdateActions.push({
+				action: 'setLineItemCustomField',
+				lineItemId,
+				name: 'otherPayments',
+				value: otherPayments,
+			});
 		});
 
 		let newCart = updatedCart
@@ -939,11 +957,14 @@ export default class CommercetoolsMeCartClient {
 			const availableBenefits = lineItem?.availableBenefits || []
 			const privilege = lineItem?.privilege
 			const discounts = lineItem?.discounts
+			// TODO - Add otherPayments
+			const otherPayments = lineItem?.otherPayments
 			return {
 				...item,
 				availableBenefits,
 				privilege,
-				discounts
+				discounts,
+				otherPayments
 			}
 		})
 		const newICart = {
