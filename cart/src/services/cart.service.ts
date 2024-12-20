@@ -692,7 +692,6 @@ export class CartService {
         try {
             const dataRetchCoupon = await this.talonOneCouponAdapter.fetchEffectsCouponsById(cart.id, cart, coupons.coupons);
             coupons.coupons = dataRetchCoupon.couponsEffects;
-    
             if (coupons.coupons.rejectedCoupons?.length > 0) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -705,14 +704,15 @@ export class CartService {
             if (dataRetchCoupon.talonOneUpdateActions?.updateActions) {
                 updateActions.push(...dataRetchCoupon.talonOneUpdateActions.updateActions);
             }
-    
-            if (Array.isArray(dataRetchCoupon.talonOneUpdateActions?.couponsInformation) && dataRetchCoupon.talonOneUpdateActions.couponsInformation.length > 0) {
-                try {
-                    const couponsInformation = await CommercetoolsCustomObjectClient.addCouponInformation(
-                        cart.id,
-                        dataRetchCoupon.talonOneUpdateActions.couponsInformation
-                    );
-                    const updateCustom: CartSetCustomFieldAction = {
+
+            try {
+                const couponsInformation = await CommercetoolsCustomObjectClient.addCouponInformation(
+                    cart.id,
+                    dataRetchCoupon.talonOneUpdateActions?.couponsInformation
+                );
+                let updateCustom: CartSetCustomFieldAction;
+                if (couponsInformation) {
+                    updateCustom = {
                         action: 'setCustomField',
                         name: 'couponInfomation',
                         value: [
@@ -722,15 +722,22 @@ export class CartService {
                             },
                         ],
                     };
-                    updateActions.push(updateCustom);
-                } catch (error: any) {
-                    logger.error('Failed to process coupons information', error);
-                    throw {
-                        statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
-                        errorCode: "COUPONS_INFORMATION_PROCESSING_FAILED",
-                        statusMessage: 'An error occurred while processing coupon information.',
+                } else {
+                    updateCustom = {
+                        action: 'setCustomField',
+                        name: 'couponInfomation',
+                        value: null,
                     };
                 }
+                
+                updateActions.push(updateCustom);
+            } catch (error: any) {
+                logger.error('Failed to process coupons information', error);
+                throw {
+                    statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
+                    errorCode: "COUPONS_INFORMATION_PROCESSING_FAILED",
+                    statusMessage: 'An error occurred while processing coupon information.',
+                };
             }
         } catch (error: any) {
             logger.info(`CartService.checkout.fetchEffectsCouponsById.error`, error);
