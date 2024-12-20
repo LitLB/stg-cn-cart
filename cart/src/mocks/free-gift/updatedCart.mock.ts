@@ -18,10 +18,10 @@ export const updatedCartWithFreeGiftAdded = {
     campaignGroup: 'mass',
     journey: 'single_product',
     subtotalPrice: 5089000,
-    totalDiscount: 0,
-    totalPriceAfterDiscount: 5089000,
+    totalDiscount: 89000,
+    totalPriceAfterDiscount: 5000000, // 5089000 - 89000 = 5000000
     shippingCost: 0,
-    grandTotal: 5089000,
+    grandTotal: 5000000,
     currencyCode: 'THB',
     totalQuantity: 5,
     shippingMethod: null,
