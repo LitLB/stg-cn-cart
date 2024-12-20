@@ -198,8 +198,11 @@ export class CartService {
                 };
             }
 
+            
             const coupons = await this.getCoupons(cart?.id, cart.lineItems);
-            const updateActions = await this.processCoupons(cart, coupons);
+
+            const updateActions: CartUpdateAction[] = [];
+            await this.processCoupons(cart, coupons, updateActions);
 
             if (shippingAddress) {
                 updateActions.push({
@@ -685,8 +688,7 @@ export class CartService {
         }
     }
 
-    private async processCoupons(cart: any, coupons: any) {
-        const updateActions: CartUpdateAction[] = [];
+    private async processCoupons(cart: any, coupons: any, updateActions: CartUpdateAction[]) {
         try {
             const dataRetchCoupon = await this.talonOneCouponAdapter.fetchEffectsCouponsById(cart.id, cart, coupons.coupons);
             coupons.coupons = dataRetchCoupon.couponsEffects;
@@ -704,17 +706,31 @@ export class CartService {
                 updateActions.push(...dataRetchCoupon.talonOneUpdateActions.updateActions);
             }
     
-            if (dataRetchCoupon.talonOneUpdateActions?.couponsInformation && dataRetchCoupon.talonOneUpdateActions.couponsInformation.length > 0) {
-                const couponsInformation = await CommercetoolsCustomObjectClient.addCouponInformation(cart.id, dataRetchCoupon.talonOneUpdateActions.couponsInformation);
-                const updateCustom: CartSetCustomFieldAction = {
-                    action: 'setCustomField',
-                    name: 'couponInfomation',
-                    value: [{
-                        typeId: "key-value-document",
-                        id: couponsInformation.id,
-                    }],
-                };
-                updateActions.push(updateCustom);
+            if (Array.isArray(dataRetchCoupon.talonOneUpdateActions?.couponsInformation) && dataRetchCoupon.talonOneUpdateActions.couponsInformation.length > 0) {
+                try {
+                    const couponsInformation = await CommercetoolsCustomObjectClient.addCouponInformation(
+                        cart.id,
+                        dataRetchCoupon.talonOneUpdateActions.couponsInformation
+                    );
+                    const updateCustom: CartSetCustomFieldAction = {
+                        action: 'setCustomField',
+                        name: 'couponInfomation',
+                        value: [
+                            {
+                                typeId: "key-value-document",
+                                id: couponsInformation.id,
+                            },
+                        ],
+                    };
+                    updateActions.push(updateCustom);
+                } catch (error: any) {
+                    logger.error('Failed to process coupons information', error);
+                    throw {
+                        statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
+                        errorCode: "COUPONS_INFORMATION_PROCESSING_FAILED",
+                        statusMessage: 'An error occurred while processing coupon information.',
+                    };
+                }
             }
         } catch (error: any) {
             logger.info(`CartService.checkout.fetchEffectsCouponsById.error`, error);
@@ -727,6 +743,5 @@ export class CartService {
                 statusMessage: 'An unexpected error occurred while processing the coupon effects.',
             };
         }
-        return updateActions;
     }
 }
