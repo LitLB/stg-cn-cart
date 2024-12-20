@@ -23,7 +23,7 @@ export const secondItem = {
     quantity: 1,
     unitPrice: 89000,
     totalUnitPrice: 89000,
-    discountAmount: 89000,
+    discountAmount: 89000,  // Direct Discount 100%
     priceAfterDiscount: 0,
     finalPrice: 0,
     appliedEffects: [],

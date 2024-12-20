@@ -34,7 +34,7 @@ export const updatedCartWithFreeGiftAdded = {
     },
     items: [
         firstItem, // Main Product Added with Free Gift List
-        secondItem,
+        secondItem, // Free Gift
     ],
     triggeredCampaigns: [],
     appliedEffects: [],

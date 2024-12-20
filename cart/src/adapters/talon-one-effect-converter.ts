@@ -1018,7 +1018,7 @@ class TalonOneEffectConverter {
 		// TODO: 1.2.1.1 Upsert T1 Custom Session with CT Cart
 		const customerSession = await talonOneIntegrationAdapter.getActiveCustomerSession(ctCart)
 		const { customerSession: { cartItems }, effects } = customerSession;
-		// console.log('JSON.stringify(customerSession)', JSON.stringify(customerSession));
+		console.log('JSON.stringify(cartItems)', JSON.stringify(cartItems));
 		console.log('JSON.stringify(effects)', JSON.stringify(effects));
 
 		// TODO: 1.2.1.2 Group multiple effect(s) to 1 effect.

@@ -34,6 +34,7 @@ import { HTTP_STATUSES } from '../../constants/http.constant';
 import { logger } from '../../utils/logger.utils';
 import { LOCALES } from '../../constants/locale.constant';
 import { updatedCartWithFreeGiftAdded } from '../../mocks/free-gift/updatedCart.mock';
+import { lineItemWithCampaignBenefitsMock } from '../../mocks/lineItemWithCampaignBenefits.mock';
 
 export default class CommercetoolsMeCartClient {
 	private apiRoot: ApiRoot;
@@ -1181,7 +1182,7 @@ export default class CommercetoolsMeCartClient {
 		
 		// TODO: 1.2 Get Benefit(s)
 		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
-		// const lineItemWithCampaignBenefits = updatedCartWithFreeGiftAdded; // Bypass by using mock data named lineItemWithCampaignBenefitsMock.
+		// const lineItemWithCampaignBenefits = lineItemWithCampaignBenefitsMock; // Bypass by using mock data named lineItemWithCampaignBenefitsMock.
 		console.log('JSON.stringify(lineItemWithCampaignBenefits)', JSON.stringify(lineItemWithCampaignBenefits));
 
 		// TODO: 1.3 Update Effect to CT Cart
