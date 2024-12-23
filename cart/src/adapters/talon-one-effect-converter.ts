@@ -134,13 +134,10 @@ class TalonOneEffectConverter {
 		otherPayment = otherPayment ? JSON.parse(otherPayment) : null;
 
 		promotionSet = promotionSet ? JSON.parse(promotionSet) : null;
-
 		promotionProduct = promotionProduct ? JSON.parse(promotionProduct) : null;
-		promotionProductOtherPayment = promotionProductOtherPayment
-			? JSON.parse(promotionProductOtherPayment)
-			: null;
+		promotionProductOtherPayment = promotionProductOtherPayment ? JSON.parse(promotionProductOtherPayment) : null;
 
-		const promotionProducts = promotionProduct?.map(
+		const promotionProducts = (promotionProduct ?? [])?.map(
 			(eachPromotionProduct: any) => {
 				const { tsm_promotion_product__product_code } = eachPromotionProduct;
 				const otherPayments =
@@ -203,7 +200,7 @@ class TalonOneEffectConverter {
 			? JSON.parse(productPromotionDetail)
 			: null;
 
-		const productPromotionDetails = productPromotionDetail?.map(
+		const productPromotionDetails = (productPromotionDetail ?? [])?.map(
 			(eachProductPromotionDetail: any) => {
 				const groupCode =
 					eachProductPromotionDetail.tsm_promotion_detail__group_code;
@@ -380,7 +377,7 @@ class TalonOneEffectConverter {
 					forcePromotion
 				}
 			})
-
+			// TODO
 			const newOtherPayments = otherPayments.map((otherPayment: any) => {
 				const {
 					tsm_promotion_set__code: promotionSetCode,
@@ -397,7 +394,7 @@ class TalonOneEffectConverter {
 					groupCode,
 					productCode,
 					otherPaymentCode,
-					otherPaymentAmt
+					otherPaymentAmt : this.bahtToStang(Number(otherPaymentAmt))
 				}
 			})
 
@@ -442,23 +439,25 @@ class TalonOneEffectConverter {
 				haveOtp,
 				forcePromotion,
 			}
+			// TODO
 			const newOtherPayments = otherPayments.map((otherPayment: any) => {
 				const {
 					tsm_promotion_set__code: promotionSetCode,
-					tsm_promotion_product_group_other_payment__type: type,
-					tsm_promotion_product_group_other_payment__group_code: groupCode,
-					tsm_promotion_product_group_other_payment__product_code: productCode,
-					tsm_promotion_product_group_other_payment__other_payment_type_code: otherPaymentCode,
-					tsm_promotion_product_group_other_payment__other_payment_amt: otherPaymentAmt,
+					// tsm_promotion_product_group_other_payment__type: type,
+					tsm_promotion_product_other_payment__group_code: productCode,
+					tsm_promotion_product_other_payment__promotion_set_code: otherPaymentPromotionSetCode,
+					tsm_promotion_product_other_payment__other_payment_type_code: otherPaymentCode,
+					tsm_promotion_product_other_payment__other_payment_amt: otherPaymentAmt,
 				} = otherPayment
 				return {
-					source: 'promotionProductGroupOtherPayment',
+					source: 'promotionProductOtherPayment',
 					promotionSetCode,
-					productType: type,
-					groupCode,
+					// productType: type,
+					// groupCode,
 					productCode,
+					otherPaymentPromotionSetCode,
 					otherPaymentCode,
-					otherPaymentAmt
+					otherPaymentAmt : this.bahtToStang(Number(otherPaymentAmt))
 				}
 			})
 
@@ -722,11 +721,11 @@ class TalonOneEffectConverter {
 					promotionSetCode,
 					promotionSetProposition,
 					groupCode,
-					products
+					products,
+					otherPayments : otherPaymentsFromGroup
 				} = productGroupBenefit
 
 				const product = products.find((product: any) => product.productCode === sku)
-
 				const {
 					source,
 					productType,
@@ -737,6 +736,24 @@ class TalonOneEffectConverter {
 					haveOtp,
 					forcePromotion
 				} = product
+
+				// Find other payments
+				const otherPayment = otherPaymentsFromGroup.find((otherPayment: any) => otherPayment.productCode === sku)
+				if (otherPayment) {
+					const {
+						otherPaymentCode,
+						otherPaymentAmt
+					} = otherPayment
+					otherPayments.push({
+						source: 'promotionProductGroupOtherPayment',
+						promotionSetCode,
+						productType,
+						groupCode,
+						productCode,
+						otherPaymentCode,
+						otherPaymentAmt
+					})
+				}
 
 				privilege = {
 					campaignCode,
@@ -774,7 +791,8 @@ class TalonOneEffectConverter {
 					promotionSetCode,
 					promotionSetProposition,
 					// groupCode,
-					product
+					product,
+					otherPayments : otherPaymentsFromProduct
 				} = productBenefit
 
 				const {
@@ -794,6 +812,22 @@ class TalonOneEffectConverter {
 					promotionSetProposition
 				}
 
+				// Find other payments
+				const otherPayment = otherPaymentsFromProduct.find((otherPayment: any) => otherPayment.productCode === sku)
+				if (otherPayment) {
+					const {
+						otherPaymentCode,
+						otherPaymentAmt
+					} = otherPayment
+					otherPayments.push({
+						source: 'promotionProductOtherPayment',
+						promotionSetCode,
+						productCode,
+						otherPaymentCode,
+						otherPaymentAmt
+					})
+				}
+
 				discounts.push({
 					benefitType,
 					campaignCode,
@@ -811,7 +845,7 @@ class TalonOneEffectConverter {
 				})
 
 			}
-
+/// why
 			return {
 				...newLineItem,
 				privilege,
@@ -917,14 +951,14 @@ class TalonOneEffectConverter {
 			})
 
 			let privilege = {}
-
+			const discounts = []
 			if (matchedBenefit) {
 				const {
 					campaignCode,
 					promotionSetCode,
 					promotionSetProposition,
 					benefitType,
-					type,
+					// type,
 					group,
 					discountBaht,
 					discountPercent,
@@ -933,22 +967,36 @@ class TalonOneEffectConverter {
 				} = matchedBenefit
 				privilege = {
 					// TODO: add promotion set detail, max received. curren total selected item
-					benefitType,
-					type,
+					// benefitType,
+					// type,
 					campaignCode,
 					promotionSetCode,
 					promotionSetProposition,
+					// group,
+					// discountBaht,
+					// discountPercent,
+					// specialPrice,
+					// isForcePromotion
+				}
+
+				discounts.push({
+					benefitType,
+					campaignCode,
+					promotionSetCode,
+					promotionSetProposition,
+					// type,
 					group,
 					discountBaht,
 					discountPercent,
 					specialPrice,
 					isForcePromotion
-				}
+				})
 			}
 
 			return {
 				...newLineItem,
-				privilege
+				privilege,
+				discounts
 			}
 		})
 

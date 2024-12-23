@@ -34,67 +34,98 @@ export default class TsmOrderModel {
             lastName: shippingAddress.lastName,
         }
 
-        const items = lineItems.map((lineItem: any, index: number) => {
-
+        const sequenceItems = lineItems.flatMap((lineItem: any, lineItemIndex: number) => {
             const productCode = lineItem.variant.sku
             const productGroup = lineItem.custom?.fields?.productGroup
             const productType = lineItem.custom?.fields?.productType
             let privilege = lineItem?.custom?.fields?.privilege
             privilege = privilege && JSON.parse(privilege);
 
-
-            const price = lineItem.price.value.centAmount
-            const quantity = lineItem.quantity
-            const totalAmount = price * quantity
-            const netAmount = lineItem.totalPrice.centAmount
-
-            const { discountAmount, discounts } = this.getItemDiscount(orderId, lineItem)
-            const { otherPaymentAmount, otherPayments } = this.getItemOtherPayment()
-
             const {
                 campaignCode = '',
                 promotionSetCode = '',
                 promotionSetProposition = 999, //999,
             } = privilege || {};
-            return {
-                id: orderId,
-                sequence: '' + (index + 1),
-                campaign: {
-                    code: campaignCode,
-                    name: '',
-                },
-                proposition: '' + promotionSetProposition,
-                promotionSet: promotionSetCode,
-                promotionType: this.getPromotionType(productType),
-                group: '' + productGroup,
-                product: {
-                    productType: this.getProductType(productType),
-                    productCode,
-                },
-                mobile: '',
-                price: '' + this.stangToBaht(price),
-                quantity: '' + quantity,
-                totalAmount: '' + this.stangToBaht(totalAmount),
-                installmentAmount: '0',
-                depositAmount: '0',
-                netAmount: '' + this.stangToBaht(netAmount),
-                discountAmount: '' + this.stangToBaht(discountAmount),
-                otherPaymentAmount: '' + this.stangToBaht(otherPaymentAmount),
-                privilegeRequiredValue: '',
-                discounts,
-                otherPayments,
-                serials: [],
-                range: [],
+
+            const price = lineItem.price.value.centAmount
+            let quantity = lineItem.quantity
+            let noOfItem = 1
+            if (this.getProductType(productType) === 'P') {
+                quantity = 1
+                noOfItem = lineItem.quantity
             }
+
+            //! items.totalAmount = ค่า price * quantity
+            const totalAmount = price * quantity
+
+            return Array.from({ length: noOfItem }, (_, quantityIndex) => {
+                const sequence = `${(lineItemIndex + 1) + quantityIndex}`.toString()
+
+                //! items.discountAmount = ค่า amount ใน discounts ทั้งหมดรวมกัน
+                const { discountAmount: discountAmountBaht, discounts } = this.getItemDiscount({
+                    orderId,
+                    lineItem,
+                    sequence
+                })
+
+                //! items.otherPaymentAmount = ค่า amount ใน otherPayments ทั้งหมดรวมกัน
+                const { otherPaymentAmount: otherPaymentAmountBaht, otherPayments } = this.getItemOtherPayment({
+                    orderId,
+                    lineItem,
+                    sequence
+                })
+
+                //! items.netAmount = ค่า (price * quantity) - discountAmount
+                let netAmount = price * quantity
+                netAmount -= this.BahtToStang(discountAmountBaht)
+
+                return {
+                    id: orderId,
+                    sequence: sequence,
+                    campaign: {
+                        code: campaignCode,
+                        name: '',
+                    },
+                    proposition: '' + promotionSetProposition,
+                    promotionSet: promotionSetCode,
+                    promotionType: this.getPromotionType(productType),
+                    group: '' + productGroup,
+                    product: {
+                        productType: this.getProductType(productType),
+                        productCode,
+                    },
+                    mobile: '',
+                    price: '' + this.stangToBaht(price),
+                    quantity: '' + quantity,
+                    totalAmount: '' + this.stangToBaht(totalAmount),
+                    installmentAmount: '0',
+                    depositAmount: '0',
+                    netAmount: '' + this.stangToBaht(netAmount),
+                    discountAmount: '' + discountAmountBaht,
+                    otherPaymentAmount: '' + otherPaymentAmountBaht,
+                    privilegeRequiredValue: '',
+                    discounts,
+                    otherPayments,
+                    serials: [],
+                    range: [],
+                }
+            })
         })
 
-        const totalAmount = items.reduce((total: any, item: any) => total + +item.netAmount, 0,)
-         // Calculate Discount outside of lineItem Discount coupon
-        const discountsOutSideItem: any[] = []
-        const discountAmount = discountsOutSideItem.reduce((total: any, item: any) => total + +item.amount, 0,)
-        const otherPaymentAmount = items.reduce((total: any, item: any) => total + +item.otherPaymentAmount, 0,)
-        const totalAfterDiscount = totalAmount
-        const grandTotal = totalAmount
+        //! ค่า netAmount ใน items ทั้งหมดรวมกัน
+        const totalAmount = sequenceItems.reduce((total: any, item: any) => total + +item.netAmount, 0,)
+        //! ค่า discounts (นอก items) ทั้งหมดรวมกัน
+        const discounts: any[] = []
+        const discountAmount = 0
+        //! ค่า ค่า otherPayments (นอก items) ทั้งหมดรวมกัน
+        const otherPayments: any[] = []
+        const otherPaymentAmount = 0
+        //! ค่า totalAmount - discountAmount
+        const totalAfterDiscount = totalAmount - discountAmount
+
+        //! ค่า totalAmount - discountAmount - otherPaymentAmount - (ผลรวมของ otherPaymentAmount ใน items) 
+        const itemOtherPaymentAmount = sequenceItems.reduce((total: any, item: any) => total + +item.otherPaymentAmount, 0,)
+        const grandTotal = totalAmount - discountAmount - otherPaymentAmount - itemOtherPaymentAmount
 
         return {
             order: {
@@ -116,9 +147,9 @@ export default class TsmOrderModel {
                 totalAfterDiscount: '' + totalAfterDiscount,
                 otherPaymentAmount: '' + otherPaymentAmount,
                 grandTotal: '' + grandTotal,
-                discounts: discountsOutSideItem,
-                otherPayments: [],
-                items,
+                discounts,
+                otherPayments,
+                items: sequenceItems,
             },
         };
     }
@@ -154,23 +185,22 @@ export default class TsmOrderModel {
         }
     }
 
-    calculateTotalDiscountAmount = (lineItem: any) => {
-        return lineItem.discountedPricePerQuantity.reduce((totalDiscount: any, quantity: any) => {
-            const unitDiscount = quantity.discountedPrice.includedDiscounts.reduce(
-                (sum: any, discount: any) => sum + discount.discountedAmount.centAmount,
-                0
-            );
-            return totalDiscount + unitDiscount * quantity.quantity;
-        }, 0);
-    }
-
-    getItemDiscount = (orderId: string, lineItem: any) => {
+    getItemDiscount = ({
+        orderId,
+        lineItem,
+        sequence,
+    }: {
+        orderId: string
+        lineItem: any
+        sequence: any
+    }) => {
         let discountAmount = 0
+        let no = 1
         const discounts: any[] = []
         let privilege = lineItem?.custom?.fields?.privilege
         privilege = privilege && JSON.parse(privilege);
         let lineItemDiscounts = lineItem?.custom?.fields?.discounts
-        lineItemDiscounts = (lineItemDiscounts ?? []).map((v:any) => JSON.parse(v))
+        lineItemDiscounts = (lineItemDiscounts ?? []).map((v: any) => JSON.parse(v))
         const { promotionSetCode } = privilege
         for (const lineItemDiscount of lineItemDiscounts) {
             const { benefitType, specialPrice, discountBaht } = lineItemDiscount
@@ -180,8 +210,8 @@ export default class TsmOrderModel {
                 discounts.push(
                     {
                         id: orderId,
-                        sequence: '1',
-                        no: '1',
+                        sequence,
+                        no: '' + no,
                         code: promotionSetCode,
                         amount: '' + this.stangToBaht(discount),
                         serial: '',
@@ -194,17 +224,19 @@ export default class TsmOrderModel {
                 discounts.push(
                     {
                         id: orderId,
-                        sequence: '1',
-                        no: '1',
+                        sequence,
+                        no: '' + no,
                         code: promotionSetCode,
                         amount: '' + this.stangToBaht(discount),
                         serial: '',
                     }
                 )
             }
+            no++
         }
-
-        discountAmount = this.calculateTotalDiscountAmount(lineItem)
+        discountAmount = discounts.reduce((total: number, discount: any) => {
+            return total += +discount.amount
+        }, 0)
 
         return {
             discountAmount,
@@ -212,9 +244,32 @@ export default class TsmOrderModel {
         }
     }
 
-    getItemOtherPayment = () => {
-        const otherPaymentAmount = 0
-        const otherPayments: any[] = []
+    getItemOtherPayment = ({
+        orderId,
+        lineItem,
+        sequence,
+    }: {
+        orderId: string
+        lineItem: any
+        sequence: any
+    }) => {
+        let otherPaymentAmount = 0
+        let lineItemOtherPayments = lineItem?.custom?.fields?.otherPayments
+        lineItemOtherPayments = (lineItemOtherPayments ?? []).map((v: any) => JSON.parse(v))
+
+        const otherPayments: any[] = lineItemOtherPayments.map((v: any, index: any) => ({
+            id: orderId,
+            sequence,
+            no: `${index + 1}`.toString(),
+            code: v.otherPaymentCode,
+            amount: this.stangToBaht(v.otherPaymentAmt).toString(),
+            serial: ""
+        }))
+
+        otherPaymentAmount = otherPayments.reduce((total: number, otherPayment: any) => {
+            return total += +otherPayment.amount
+        }, 0)
+
         return {
             otherPaymentAmount,
             otherPayments
@@ -252,5 +307,11 @@ export default class TsmOrderModel {
         const fractionDigits = 2
 
         return stang / Math.pow(10, fractionDigits)
+    }
+
+    BahtToStang(baht: number) {
+        const fractionDigits = 2
+
+        return baht * Math.pow(10, fractionDigits)
     }
 }

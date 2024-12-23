@@ -112,6 +112,7 @@ export class CartService {
                 );
             }
         } catch (error: any) {
+            console.log('error', error)
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: `Update stock allocation failed.`,
@@ -161,7 +162,7 @@ export class CartService {
                 tsmOrderIsSaved: success,
                 tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
             }
-
+            // return tsmSaveOrder
             await this.updateStockAllocation(ctCart);
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, ctCart, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
@@ -368,7 +369,7 @@ export class CartService {
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
             const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
-
+            // const response = { code: '0'}
             const { code } = response || {}
 
             // if (code !== '0') {
@@ -444,7 +445,7 @@ export class CartService {
             {
                 journey, /* Mandarory */
                 ...(['truemoney'].includes(paymentOptionKey) ? { paymentTMNAccountNumber } : {  }),
-                ...(['ccw', 'installment'].includes(paymentOptionKey) ? { paymentCreditCardNumber } : {  }),
+                // ...(['ccw', 'installment'].includes(paymentOptionKey) ? { paymentCreditCardNumber } : {  }),
                 ...(ip ? { ipAddress: ip } : {  }),
                 ...(googleId ? { googleID: googleId } : {  }),
                 shippingAddress: {
