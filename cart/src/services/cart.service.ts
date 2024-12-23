@@ -23,7 +23,7 @@ import { logger } from '../utils/logger.utils';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { createStandardizedError } from '../utils/error.utils';
 import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.interface';
-import { IOrderAdditional, IPaymentInfo } from '../interfaces/order-additional.interface';
+import { IOrderAdditional, IPaymentInfo, IClientInfo } from '../interfaces/order-additional.interface';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { PAYMENT_STATES } from '../constants/payment.constant';
 import { LOCALES } from '../constants/locale.constant';
@@ -164,7 +164,7 @@ export class CartService {
 
             await this.updateStockAllocation(ctCart);
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, ctCart, tsmSaveOrder);
-            await this.createOrderAdditional(ctCart, order);
+            await this.createOrderAdditional(order, client);
             return order;
         } catch (error: any) {
             if (error.status && error.message) {
@@ -719,8 +719,8 @@ export class CartService {
     }
 
     public createOrderAdditional = async (
-        cart: Cart,
         order: Order,
+        client: IClientInfo,
     ) => {
 
         const paymentInfo: IPaymentInfo = {
@@ -736,8 +736,8 @@ export class CartService {
             orderInfo: { journey: _.get(order, 'custom.fields.journey') },
             paymentInfo: [paymentInfo],
             customerInfo: {
-                ipAddress: _.get(cart, 'ipAddress', ''),
-                googleID: _.get(cart, 'googleID', '')
+                ipAddress: _.get(client, 'ip', ''),
+                googleID: _.get(client, 'googleId', '')
             },
         }
 

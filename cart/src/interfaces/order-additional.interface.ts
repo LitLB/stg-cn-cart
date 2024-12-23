@@ -17,6 +17,7 @@ export interface IPaymentInfo {
     creditCardNumber: string
     created: string
     paymentState: string
+    chargeId?: string
 }
 
 export interface ICustomerInfo {
@@ -24,3 +25,7 @@ export interface ICustomerInfo {
     googleID: string
 }
   
+export interface IClientInfo {
+    ip: string
+    googleId: string
+}
