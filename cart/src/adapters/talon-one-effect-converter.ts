@@ -1,3 +1,5 @@
+import { freeGiftcartItems } from '../mocks/free-gift/cartItems.mock';
+import { freeGiftEffects } from '../mocks/free-gift/effects.mock';
 import CommercetoolsProductClient from './ct-product-client';
 import { talonOneIntegrationAdapter } from './talon-one.adapter'
 enum AddOnType {
@@ -276,7 +278,78 @@ class TalonOneEffectConverter {
 		}
 
 		const campaignName = campaign?.campaign__name || ''
-		
+
+
+		const freeGiftPromotions =
+			productPromotionDetails?.filter((productPromotionDetail: any) => {
+				return [PromotionDetailType.FREE_GIFT].includes(
+					+productPromotionDetail?.detail?.tsm_promotion_detail__promotion_type
+				);
+			}) || [];
+		console.log('JSON.stringify(freeGiftPromotions)', JSON.stringify(freeGiftPromotions));
+
+		const freeGiftBenefits = freeGiftPromotions?.map((freeGiftPromotion: any) => {
+			const { detail, items, otherPayments } = freeGiftPromotion;
+
+			const {
+				tsm_promotion_detail__promotion_type: promotionType,
+				tsm_promotion_detail__max_items: maxItem,
+				tsm_promotion_detail__group_code: group,
+				tsm_promotion_detail__discount_baht: discountBaht,
+				tsm_promotion_detail__discount_percent: discountPercent,
+				tsm_promotion_detail__special_price: specialPrice,
+				tsm_promotion_detail__force_promotion: isForcePromotion,
+			} = detail;
+
+			const freeGiftProductSkus = items.map((item: any) => {
+				const {
+					tsm_promotion_detail_item__product_code: sku,
+					tsm_promotion_detail_item__type: type,
+				} = item;
+				return {
+					sku,
+					type,
+				};
+			});
+
+			const subsidies =
+				otherPayments?.map((otherPayment: any) => {
+					const {
+						tsm_promotion_detail_other_payment__other_payment_type_code:
+						otherPaymentCode,
+						tsm_promotion_detail_other_payment__other_payment_amt:
+						otherPaymentAmount,
+					} = otherPayment;
+					return {
+						otherPaymentCode,
+						otherPaymentAmount,
+					};
+				}) || [];
+
+			return {
+				sku,
+				productGroup,
+				productType,
+				cartItemPosition,
+				cartItemSubPosition,
+				benefitType: 'free_gift',
+				campaignCode,
+				promotionSetCode,
+				promotionSetProposition,
+				promotionType,
+				maxReceive,
+				maxItem,
+				group,
+				freeGiftProductSkus,
+				discountBaht: Number(discountBaht),
+				discountPercent: Number(discountPercent),
+				specialPrice: Number(specialPrice),
+				isForcePromotion,
+				subsidies,
+				totalSelectedItem: 0,
+			};
+		});
+		console.log('JSON.stringify(freeGiftBenefits)', JSON.stringify(freeGiftBenefits));
 
 		const addOnPromotions =
 			productPromotionDetails?.filter((productPromotionDetail: any) => {
@@ -290,6 +363,7 @@ class TalonOneEffectConverter {
 					+productPromotionDetail?.detail?.tsm_promotion_detail__promotion_type
 				);
 			}) || [];
+		console.log('JSON.stringify(addOnPromotions)', JSON.stringify(addOnPromotions));
 
 		const addOnBenefits = addOnPromotions?.map((addOnPromotion: any) => {
 			const { detail, items, otherPayments } = addOnPromotion;
@@ -353,6 +427,7 @@ class TalonOneEffectConverter {
 				totalSelectedItem: 0,
 			};
 		});
+		// console.log('JSON.stringify(addOnBenefits)', JSON.stringify(addOnBenefits));
 
 		const productGroupBenefits: any[] = (promotionProductGroups ?? []).map((promotionProductGroup: any) => {
 			const { groupCode, products, otherPayments } = promotionProductGroup
@@ -399,7 +474,7 @@ class TalonOneEffectConverter {
 					groupCode,
 					productCode,
 					otherPaymentCode,
-					otherPaymentAmt : this.bahtToStang(Number(otherPaymentAmt))
+					otherPaymentAmt: this.bahtToStang(Number(otherPaymentAmt))
 				}
 			})
 
@@ -463,7 +538,7 @@ class TalonOneEffectConverter {
 					productCode,
 					otherPaymentPromotionSetCode,
 					otherPaymentCode,
-					otherPaymentAmt : this.bahtToStang(Number(otherPaymentAmt))
+					otherPaymentAmt: this.bahtToStang(Number(otherPaymentAmt))
 				}
 			})
 
@@ -486,6 +561,7 @@ class TalonOneEffectConverter {
 		// ! For multi promotion set & campaign need to have wrapper this benefit on top level such as "campaignCode", "promotionSetCode", "discountCode"
 		// ! For multiple cart need to handle by using cartItemPosition, cartItemSubPosition
 		return {
+			freeGiftBenefits,
 			addOnBenefits,
 			productGroupBenefits,
 			productBenefits
@@ -498,7 +574,91 @@ class TalonOneEffectConverter {
 		return baht * Math.pow(10, fractionDigits)
 	}
 
-	async wrapCTContext(benefits: any[]) {
+	async wrapCTFreeGiftContext(benefits: any[]) {
+		console.log('benefits', benefits);
+		console.log('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
+
+		// get skus from benefits
+
+		const allSkus = benefits.flatMap((benefit) =>
+			benefit.freeGiftProductSkus.map((product: any) => product.sku)
+		);
+		console.log('allSkus', allSkus);
+
+		let products = [];
+		if (allSkus.length) {
+			const result = await this.ctProductClient.getProductsBySkus(allSkus);
+			products = result?.body?.results;
+		}
+
+		let skuMapProductId: any = {};
+		const productMap: any = {};
+
+		products.forEach((product: any) => {
+			const { id: productId, masterVariant, variants } = product;
+			const allVariants = [masterVariant, ...variants];
+
+			skuMapProductId = allVariants.reduce((acc: any, variant: any) => {
+				const sku = variant.sku;
+
+				acc[sku] = productId;
+
+				return acc;
+			}, skuMapProductId);
+
+			productMap[productId] = {
+				product,
+				allVariants,
+			};
+		});
+
+		const wrappedBenefits = benefits.map((benefit: any) => {
+			const { freeGiftProductSkus, ...benefitDetail } = benefit;
+			const freeGiftProductMap = freeGiftProductSkus
+				.map((product: any) => product.sku)
+				.reduce((acc: any, sku: any) => {
+					const productId = skuMapProductId[sku]
+					if (!productId) {
+						return acc;
+					}
+					if (!acc?.[productId]) {
+						acc[productId] = [];
+					}
+
+					acc[skuMapProductId[sku]].push(sku);
+
+					return acc;
+				}, {});
+
+			const freeGiftProducts = [];
+			for (const [productId, skus] of Object.entries(
+				freeGiftProductMap as Record<string, any[]>
+			)) {
+				const { product, allVariants } = productMap[productId];
+				const { masterVariant, variants, ...productDetail } = product;
+				const matchedVariants = allVariants.filter((variant: any) =>
+					skus.includes(variant.sku)
+				);
+				freeGiftProducts.push({
+					...productDetail,
+					variants: matchedVariants,
+				});
+			}
+
+			const { discountBaht, specialPrice } = benefitDetail
+
+			return {
+				...benefitDetail,
+				discountBaht: this.bahtToStang(discountBaht),
+				specialPrice: this.bahtToStang(specialPrice),
+				freeGiftProducts,
+			};
+		});
+
+		return wrappedBenefits;
+	}
+
+	async wrapCTAddonContext(benefits: any[]) {
 		// get skus from benefits
 
 		const allSkus = benefits.flatMap((benefit) =>
@@ -730,7 +890,7 @@ class TalonOneEffectConverter {
 					promotionSetProposition,
 					groupCode,
 					products,
-					otherPayments : otherPaymentsFromGroup
+					otherPayments: otherPaymentsFromGroup
 				} = productGroupBenefit
 
 				const product = products.find((product: any) => product.productCode === sku)
@@ -788,8 +948,8 @@ class TalonOneEffectConverter {
 
 			const productBenefit = productBenefits.find((productBenefit: any) => {
 				return productBenefit.sku === sku &&
-				productBenefit.productType === productType &&
-				productBenefit.productGroup === productGroup
+					productBenefit.productType === productType &&
+					productBenefit.productGroup === productGroup
 			})
 
 			if (productBenefit) {
@@ -801,7 +961,7 @@ class TalonOneEffectConverter {
 					promotionSetProposition,
 					// groupCode,
 					product,
-					otherPayments : otherPaymentsFromProduct
+					otherPayments: otherPaymentsFromProduct
 				} = productBenefit
 
 				const {
@@ -853,12 +1013,153 @@ class TalonOneEffectConverter {
 					})
 				}
 			}
-/// why
+			/// why
 			return {
 				...newLineItem,
 				privilege,
 				discounts,
 				otherPayments
+			}
+		})
+
+		return newLineItems
+	}
+
+	attachFreeGiftBenefits(lineItems: any[], freeGiftBenefits: any[]) {
+		// console.log('attachFreeGiftBenefits start');
+		// console.log('lineItems', lineItems);
+		// console.log('freeGiftBenefits', freeGiftBenefits);
+		// console.log('attachFreeGiftBenefits end');
+		const freeGiftItemsMapQuantity = lineItems
+			.filter(
+				(lineItem: any) => lineItem?.custom.fields?.productType === 'free_gift'
+			)
+			.reduce((acc: any, lineItem: any) => {
+				// TODO: addOnGroup
+				const { variant, quantity } = lineItem
+				const sku = variant.sku
+				const productGroup = lineItem?.custom.fields?.productGroup
+				acc[productGroup] = acc[productGroup] || {}
+				acc[productGroup][sku] = quantity
+
+				return acc;
+			}, {});
+
+		const lineItemsWithBenefits = lineItems.map((lineItem: any) => {
+			const { custom, variant } = lineItem;
+			const sku = variant.sku
+			const productType = custom?.fields?.productType
+			const productGroup = custom?.fields?.productGroup
+
+			const availableBenefits = freeGiftBenefits
+				.filter(
+					(wrappedBenefit: any) => {
+						return wrappedBenefit.sku === sku &&
+							wrappedBenefit.productType === productType &&
+							wrappedBenefit.productGroup === productGroup
+					})
+				.map(
+					({
+						freeGiftProducts,
+						...wrappedBenefit
+					}: any) => {
+						const allSkus = freeGiftProducts.flatMap((freeGiftProduct: any) =>
+							freeGiftProduct.variants.map((variant: any) => variant.sku)
+						);
+						const totalSelectedItem = allSkus.reduce(
+							(acc: any, currentSku: any) => {
+								if (freeGiftItemsMapQuantity?.[productGroup]?.[currentSku]) {
+									acc += freeGiftItemsMapQuantity?.[productGroup]?.[currentSku];
+								}
+
+								return acc;
+							},
+							0
+						);
+
+						const newFreeGiftProducts = freeGiftProducts.map((freeGiftProduct: any) => ({
+							...freeGiftProduct,
+							variants: freeGiftProduct.variants.map((variant: any) => ({
+								...variant,
+								totalSelectedItem: freeGiftItemsMapQuantity?.[productGroup]?.[variant.sku] || 0,
+							})),
+						}));
+
+						// TODO: Condition need to have product group as well
+						return {
+							...wrappedBenefit,
+							freeGiftProducts: newFreeGiftProducts,
+							totalSelectedItem,
+						};
+					}
+				);
+
+			return {
+				...lineItem,
+				availableBenefits,
+			};
+		});
+		// console.log('lineItemsWithBenefits', lineItemsWithBenefits);
+		console.log('JSON.stringify(lineItemsWithBenefits)', JSON.stringify(lineItemsWithBenefits))
+
+		return lineItemsWithBenefits;
+
+		// TODO: What responsible of the code below?
+		const newLineItems = [...lineItemsWithBenefits].map((newLineItem: any) => {
+			const { custom } = newLineItem
+			const productType = custom?.fields?.productType
+			if (productType !== 'free_gift') {
+				return newLineItem
+			}
+			const productGroup = custom?.fields?.productGroup
+			const addOnGroup = custom?.fields?.addOnGroup
+			// ! Add On
+
+			const mainProductLineItemWithBenefits = lineItemsWithBenefits.find((lineItemsWithBenefit: any) => {
+				const { custom } = lineItemsWithBenefit
+				return custom?.fields?.productType === 'main_product' &&
+					custom?.fields?.productGroup === productGroup
+			})
+
+			const { availableBenefits } = mainProductLineItemWithBenefits
+
+			const matchedBenefit = availableBenefits.find((availableBenefit: any) => {
+				return availableBenefit.group === addOnGroup
+			})
+
+			let privilege = {}
+
+			if (matchedBenefit) {
+				const {
+					campaignCode,
+					promotionSetCode,
+					promotionSetProposition,
+					benefitType,
+					type,
+					group,
+					discountBaht,
+					discountPercent,
+					specialPrice,
+					isForcePromotion
+				} = matchedBenefit
+				privilege = {
+					// TODO: add promotion set detail, max received. curren total selected item
+					benefitType,
+					type,
+					campaignCode,
+					promotionSetCode,
+					promotionSetProposition,
+					group,
+					discountBaht,
+					discountPercent,
+					specialPrice,
+					isForcePromotion
+				}
+			}
+
+			return {
+				...newLineItem,
+				privilege
 			}
 		})
 
@@ -1018,38 +1319,47 @@ class TalonOneEffectConverter {
 		// TODO: 1.2.1.1 Upsert T1 Custom Session with CT Cart
 		const customerSession = await talonOneIntegrationAdapter.getActiveCustomerSession(ctCart)
 		const { customerSession: { cartItems }, effects } = customerSession;
-		console.log('JSON.stringify(cartItems)', JSON.stringify(cartItems));
-		console.log('JSON.stringify(effects)', JSON.stringify(effects));
+		// const cartItems = freeGiftcartItems;
+		// const effects = freeGiftEffects;
+		// console.log('JSON.stringify(cartItems)', JSON.stringify(cartItems));
+		// console.log('JSON.stringify(effects)', JSON.stringify(effects));
 
 		// TODO: 1.2.1.2 Group multiple effect(s) to 1 effect.
 		const distintEffects = this.groupEffect(effects);
-		console.log('JSON.stringify(distintEffects)', JSON.stringify(distintEffects));
+		// console.log('JSON.stringify(distintEffects)', JSON.stringify(distintEffects));
 
 		// TODO: 1.2.1.3 Filtered and get only effect type = bundle_package_item_device_only_v2.
 		const filteredEffects = this.filter(distintEffects);
-		console.log('JSON.stringify(filteredEffects)', JSON.stringify(filteredEffects));
+		// console.log('JSON.stringify(filteredEffects)', JSON.stringify(filteredEffects));
 
 		// TODO: 1.2.1.4 Convert filteredEffects to convertedEffects
 		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
-		console.log('JSON.stringify(convertedEffects)', JSON.stringify(convertedEffects));
+		// console.log('JSON.stringify(convertedEffects)', JSON.stringify(convertedEffects));
 
 		// TODO: 1.2.1.5 Get Benefit(s) from convertedEffects.
 		const benefits = convertedEffects.map((convertedEffect: any) => this.getBenefit(convertedEffect))
-		console.log('JSON.stringify(benefits)', JSON.stringify(benefits));
+		// console.log('JSON.stringify(benefits)', JSON.stringify(benefits));
+
+		const freeGiftBenefits = benefits.map((item: any) => item.freeGiftBenefits).flat();
+		// console.log('JSON.stringify(freeGiftBenefits)', JSON.stringify(freeGiftBenefits));
+
+		const wrappedFreeGiftbenefits = await this.wrapCTFreeGiftContext(freeGiftBenefits);
+		// console.log('JSON.stringify(wrappedFreeGiftbenefits)', JSON.stringify(wrappedFreeGiftbenefits));
 
 		const addOnBenefits = benefits.map((item: any) => item.addOnBenefits).flat();
-		console.log('JSON.stringify(addOnBenefits)', JSON.stringify(addOnBenefits));
+		// console.log('JSON.stringify(addOnBenefits)', JSON.stringify(addOnBenefits));
 
-		const wrappedAddOnbenefits = await this.wrapCTContext(addOnBenefits);
-		console.log('JSON.stringify(wrappedAddOnbenefits)', JSON.stringify(wrappedAddOnbenefits));
+		const wrappedAddOnbenefits = await this.wrapCTAddonContext(addOnBenefits);
+		// console.log('JSON.stringify(wrappedAddOnbenefits)', JSON.stringify(wrappedAddOnbenefits));
 
 		const productGroupBenefits = benefits.map((item: any) => item.productGroupBenefits).flat()
-		console.log('JSON.stringify(productGroupBenefits)', JSON.stringify(productGroupBenefits));
+		// console.log('JSON.stringify(productGroupBenefits)', JSON.stringify(productGroupBenefits));
 
 		const productBenefits = benefits.map((item: any) => item.productBenefits).flat()
-		console.log('JSON.stringify(productBenefits)', JSON.stringify(productBenefits));
+		// console.log('JSON.stringify(productBenefits)', JSON.stringify(productBenefits));
 
 		return {
+			freeGiftBenefits: wrappedFreeGiftbenefits,
 			addOnbenefits: wrappedAddOnbenefits,
 			productGroupBenefits,
 			productBenefits
@@ -1064,7 +1374,7 @@ class TalonOneEffectConverter {
 
 		const benefits = convertedEffects.map((convertedEffect: any) => this.getBenefit(convertedEffect));
 		const addOnBenefits = benefits.map((item: any) => item.addOnBenefits).flat();
-		const wrappedAddOnbenefits = await this.wrapCTContext(addOnBenefits);
+		const wrappedAddOnbenefits = await this.wrapCTAddonContext(addOnBenefits);
 
 		const productGroupBenefits = benefits.map((item: any) => item.productGroupBenefits).flat()
 		const productBenefits = benefits.map((item: any) => item.productBenefits).flat()
@@ -1079,16 +1389,16 @@ class TalonOneEffectConverter {
 	// TODO: 1.2 Get Benefit(s)
 	async getCtLineItemWithCampaignBenefits(ctCart: any) {
 		// TODO: 1.2.1 Get Benefit(s) from CT Cart
-		const { addOnbenefits, productGroupBenefits, productBenefits } = await this.getBenefitByCtCart(ctCart)
+		const { freeGiftBenefits, addOnbenefits, productGroupBenefits, productBenefits } = await this.getBenefitByCtCart(ctCart)
+		// console.log('JSON.stringify(freeGiftBenefits)', JSON.stringify(freeGiftBenefits));
 
 		let { lineItems } = ctCart
 
-		// TODO: 1.2.2 Attach Main Product Benefits
 		lineItems = this.attachMainProductBenefits(lineItems, productGroupBenefits, productBenefits)
 
-		// TODO: 1.2.3 Attach Addon Benefits
-		lineItems = this.attachAddOnBenefits(lineItems, addOnbenefits)
+		lineItems = this.attachFreeGiftBenefits(lineItems, freeGiftBenefits)
 
+		lineItems = this.attachAddOnBenefits(lineItems, addOnbenefits)
 
 		return lineItems;
 	}
