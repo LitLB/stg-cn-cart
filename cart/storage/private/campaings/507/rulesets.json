@@ -1,0 +1,2815 @@
+{
+  "data": [
+    {
+      "id": 8907,
+      "created": "2024-12-23T03:45:21.26467Z",
+      "userId": 65,
+      "rules": [
+        {
+          "id": "a97f6652-714e-4936-bbe9-b7bda35ca76a",
+          "title": "campaignGroup__campaign#1",
+          "condition": [
+            "and",
+            [
+              "or",
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__1",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__2",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__3",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__4",
+                    "Count"
+                  ],
+                  1
+                ]
+              ]
+            ],
+            [
+              "catch",
+              false,
+              [
+                "containsOne",
+                [".", "Session", "Attributes", "cart_journeys"],
+                ["list"],
+                [
+                  ["itemA", "itemB"],
+                  ["=", [".", "itemA"], [".", "itemB"]]
+                ]
+              ]
+            ]
+          ],
+          "effects": [
+            ["catch", ["noop"], ["!", "customEffect16", "", "", "", "", ""]],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__1"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__2"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__3"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__4"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "id": "ee62e6c9-42d1-4990-86e4-0aea1944e467",
+          "parentId": "a97f6652-714e-4936-bbe9-b7bda35ca76a",
+          "title": "campaignGroup__campaign#2",
+          "condition": [
+            "and",
+            [
+              "or",
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__5",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__6",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__7",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__8",
+                    "Count"
+                  ],
+                  1
+                ]
+              ]
+            ],
+            [
+              "catch",
+              false,
+              [
+                "containsOne",
+                [".", "Session", "Attributes", "cart_journeys"],
+                ["list"],
+                [
+                  ["itemA", "itemB"],
+                  ["=", [".", "itemA"], [".", "itemB"]]
+                ]
+              ]
+            ]
+          ],
+          "effects": [
+            ["catch", ["noop"], ["!", "customEffect16", "", "", "", "", ""]],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__5"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__6"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__7"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__8"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "id": "57f43217-d1e1-40c5-8857-e78e6145d957",
+          "parentId": "a97f6652-714e-4936-bbe9-b7bda35ca76a",
+          "title": "campaignGroup__campaign#3",
+          "condition": [
+            "and",
+            [
+              "or",
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__9",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__10",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__11",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__12",
+                    "Count"
+                  ],
+                  1
+                ]
+              ]
+            ],
+            [
+              "catch",
+              false,
+              [
+                "containsOne",
+                [".", "Session", "Attributes", "cart_journeys"],
+                ["list"],
+                [
+                  ["itemA", "itemB"],
+                  ["=", [".", "itemA"], [".", "itemB"]]
+                ]
+              ]
+            ]
+          ],
+          "effects": [
+            ["catch", ["noop"], ["!", "customEffect16", "", "", "", "", ""]],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__9"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__10"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__11"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__12"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "id": "0c1ba590-6446-425e-b6c0-cacc2555c9b8",
+          "parentId": "a97f6652-714e-4936-bbe9-b7bda35ca76a",
+          "title": "campaignGroup__campaign#4",
+          "condition": [
+            "and",
+            [
+              "or",
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__13",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__14",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__15",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__16",
+                    "Count"
+                  ],
+                  1
+                ]
+              ]
+            ],
+            [
+              "catch",
+              false,
+              [
+                "containsOne",
+                [".", "Session", "Attributes", "cart_journeys"],
+                ["list"],
+                [
+                  ["itemA", "itemB"],
+                  ["=", [".", "itemA"], [".", "itemB"]]
+                ]
+              ]
+            ]
+          ],
+          "effects": [
+            ["catch", ["noop"], ["!", "customEffect16", "", "", "", "", ""]],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__13"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__14"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__15"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__16"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "id": "6ce2ee9c-e020-44ff-93c1-17b2ff6e8665",
+          "parentId": "a97f6652-714e-4936-bbe9-b7bda35ca76a",
+          "title": "campaignGroup__campaign#5",
+          "condition": [
+            "and",
+            [
+              "or",
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__17",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__18",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__19",
+                    "Count"
+                  ],
+                  1
+                ]
+              ],
+              [
+                "catch",
+                false,
+                [
+                  ">=",
+                  [
+                    ".",
+                    "Bindings",
+                    "campaign__promotion_set__SKUs__20",
+                    "Count"
+                  ],
+                  1
+                ]
+              ]
+            ],
+            [
+              "catch",
+              false,
+              [
+                "containsOne",
+                [".", "Session", "Attributes", "cart_journeys"],
+                ["list"],
+                [
+                  ["itemA", "itemB"],
+                  ["=", [".", "itemA"], [".", "itemB"]]
+                ]
+              ]
+            ]
+          ],
+          "effects": [
+            ["catch", ["noop"], ["!", "customEffect16", "", "", "", "", ""]],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__17"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__18"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__19"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "campaign__promotion_set__SKUs__20"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "id": "84812771-ebc9-484c-ad49-871aa0ef487a",
+          "parentId": "a97f6652-714e-4936-bbe9-b7bda35ca76a",
+          "title": "campaignGroup__promotion_set#1",
+          "condition": [
+            "and",
+            [
+              "or",
+              [
+                "catch",
+                false,
+                [">=", [".", "Bindings", "promotion_set__SKUs__1", "Count"], 1]
+              ],
+              [
+                "catch",
+                false,
+                [">=", [".", "Bindings", "promotion_set__SKUs__2", "Count"], 1]
+              ]
+            ],
+            [
+              "catch",
+              false,
+              [
+                "containsOne",
+                [".", "Session", "Attributes", "cart_journeys"],
+                ["list", "device_only"],
+                [
+                  ["itemA", "itemB"],
+                  ["=", [".", "itemA"], [".", "itemB"]]
+                ]
+              ]
+            ]
+          ],
+          "effects": [
+            [
+              "catch",
+              ["noop"],
+              ["!", "customEffect16", "true", "mass", "device_only", "bdbc", ""]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "promotion_set__SKUs__1"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "MOCK007",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "{\"env\":\"sit\",\"tsm_promotion_set__code\":\"MOCK007\",\"tsm_promotion_set__create_user\":\"Admin\",\"tsm_promotion_set__description\":\"Promotion Set for test E2E\",\"tsm_promotion_set__company_code\":\"1068\",\"tsm_promotion_set__end_date_time\":\"00:00:00\",\"tsm_promotion_set__start_date_time\":\"00:00:00\",\"tsm_promotion_set__create_date_time\":\"15:05:52\",\"tsm_promotion_set__proposition_code\":\"886\",\"sku\":\"6e6ebc62c47acd8ac98f0922881174704e46159921caff03d5e150a45773beee\",\"tsm_promotion_set__max_receive\":3,\"tsm_promotion_set__min_sale_item\":1,\"tsm_promotion_set__is_delete\":false,\"tsm_promotion_set__is_free_item\":false,\"tsm_promotion_set__flag_campaign\":true,\"tsm_promotion_set__end_date\":\"2025-05-02T00:00:00+00:00\",\"tsm_promotion_set__start_date\":\"2012-12-03T00:00:00+00:00\",\"tsm_promotion_set__create_date\":\"2013-09-17T00:00:00+00:00\"}",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "[ { \"env\": \"sit\", \"tsm_promotion_set__code\": \"MOCK007\", \"tsm_promotion_detail__group_code\": \"add_on_1\", \"tsm_promotion_detail__promotion_type\": \"2\", \"tsm_promotion_detail__promotion_set_code\": \"DB980\", \"sku\": \"3e148521c49f5fe3a387c041a14234c42bfb87d5add24d1d546a3c3a5243578d\", \"tsm_promotion_detail__max_items\": 2, \"tsm_promotion_detail__discount_baht\": \"0.0000\", \"tsm_promotion_detail__special_price\": \"790.0000\", \"tsm_promotion_detail__discount_percent\": \"0.0000\", \"tsm_promotion_detail__force_promotion\": false }, { \"env\": \"sit\", \"tsm_promotion_set__code\": \"MOCK007\", \"tsm_promotion_detail__group_code\": \"add_on_2\", \"tsm_promotion_detail__promotion_type\": \"2\", \"tsm_promotion_detail__promotion_set_code\": \"DB980\", \"sku\": \"3e148521c49f5fe3a387c041a14234c42bfb87d5add24d1d546a3c3a5243578d\", \"tsm_promotion_detail__max_items\": 2, \"tsm_promotion_detail__discount_baht\": \"0.0000\", \"tsm_promotion_detail__special_price\": \"500.0000\", \"tsm_promotion_detail__discount_percent\": \"0.0000\", \"tsm_promotion_detail__force_promotion\": false } ]",
+                  "",
+                  "[{\"env\":\"sit\",\"tsm_promotion_set__code\":\"MOCK007\",\"tsm_promotion_detail_item__type\":\"P\",\"tsm_promotion_detail_item__group_code\":\"add_on_1\",\"tsm_promotion_detail_item__product_code\":\"o-add-on-1-sku-1001\",\"tsm_promotion_detail_item__promotion_set_code\":\"MOCK007\",\"sku\":\"20272986940186a973b8b069030d29780b2ab2ea297757d8b71dc2d0f8cbdb2d\"},{\"env\":\"sit\",\"tsm_promotion_set__code\":\"MOCK007\",\"tsm_promotion_detail_item__type\":\"P\",\"tsm_promotion_detail_item__group_code\":\"add_on_1\",\"tsm_promotion_detail_item__product_code\":\"o-add-on-1-sku-1002\",\"tsm_promotion_detail_item__promotion_set_code\":\"MOCK007\",\"sku\":\"444e9af5b1b17e52b059e547ede44c117a0bf37e6b0d612e0ea292fae45d6750\"},{\"env\":\"sit\",\"tsm_promotion_set__code\":\"MOCK007\",\"tsm_promotion_detail_item__type\":\"P\",\"tsm_promotion_detail_item__group_code\":\"add_on_2\",\"tsm_promotion_detail_item__product_code\":\"o-add-on-2-sku-2001\",\"tsm_promotion_detail_item__promotion_set_code\":\"MOCK007\",\"sku\":\"8e6139a11d9484b76378df3c60ded95894ef5acf66e3f6511a444d6c2898e923\"},{\"env\":\"sit\",\"tsm_promotion_set__code\":\"MOCK007\",\"tsm_promotion_detail_item__type\":\"P\",\"tsm_promotion_detail_item__group_code\":\"add_on_2\",\"tsm_promotion_detail_item__product_code\":\"o-add-on-2-sku-2002\",\"tsm_promotion_detail_item__promotion_set_code\":\"MOCK007\",\"sku\":\"fbf91e1ee04b4474d15fd7c7ac6316a88b8baab2e20a0b97d5e0a30d29d239c8\"}]"
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "promotion_set__SKUs__2"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "id": "92bf3f10-84cd-4eac-8375-839597b1e253",
+          "parentId": "84812771-ebc9-484c-ad49-871aa0ef487a",
+          "title": "campaignGroup__promotion_set#2",
+          "condition": [
+            "and",
+            [
+              "or",
+              [
+                "catch",
+                false,
+                [">=", [".", "Bindings", "promotion_set__SKUs__3", "Count"], 1]
+              ],
+              [
+                "catch",
+                false,
+                [">=", [".", "Bindings", "promotion_set__SKUs__4", "Count"], 1]
+              ]
+            ],
+            [
+              "catch",
+              false,
+              [
+                "containsOne",
+                [".", "Session", "Attributes", "cart_journeys"],
+                ["list"],
+                [
+                  ["itemA", "itemB"],
+                  ["=", [".", "itemA"], [".", "itemB"]]
+                ]
+              ]
+            ]
+          ],
+          "effects": [
+            ["catch", ["noop"], ["!", "customEffect16", "", "", "", "", ""]],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "promotion_set__SKUs__3"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "promotion_set__SKUs__4"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "id": "6df9e9c0-51c9-46fa-a88f-8302d16c8e46",
+          "parentId": "84812771-ebc9-484c-ad49-871aa0ef487a",
+          "title": "campaignGroup__promotion_set#3",
+          "condition": [
+            "and",
+            [
+              "or",
+              [
+                "catch",
+                false,
+                [">=", [".", "Bindings", "promotion_set__SKUs__5", "Count"], 1]
+              ],
+              [
+                "catch",
+                false,
+                [">=", [".", "Bindings", "promotion_set__SKUs__6", "Count"], 1]
+              ]
+            ],
+            [
+              "catch",
+              false,
+              [
+                "containsOne",
+                [".", "Session", "Attributes", "cart_journeys"],
+                ["list"],
+                [
+                  ["itemA", "itemB"],
+                  ["=", [".", "itemA"], [".", "itemB"]]
+                ]
+              ]
+            ]
+          ],
+          "effects": [
+            ["catch", ["noop"], ["!", "customEffect16", "", "", "", "", ""]],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "promotion_set__SKUs__5"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "promotion_set__SKUs__6"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "id": "76b69487-24b3-4bce-bf00-49ed54ff8b0c",
+          "parentId": "84812771-ebc9-484c-ad49-871aa0ef487a",
+          "title": "campaignGroup__promotion_set#4",
+          "condition": [
+            "and",
+            [
+              "or",
+              [
+                "catch",
+                false,
+                [">=", [".", "Bindings", "promotion_set__SKUs__7", "Count"], 1]
+              ],
+              [
+                "catch",
+                false,
+                [">=", [".", "Bindings", "promotion_set__SKUs__8", "Count"], 1]
+              ]
+            ],
+            [
+              "catch",
+              false,
+              [
+                "containsOne",
+                [".", "Session", "Attributes", "cart_journeys"],
+                ["list"],
+                [
+                  ["itemA", "itemB"],
+                  ["=", [".", "itemA"], [".", "itemB"]]
+                ]
+              ]
+            ]
+          ],
+          "effects": [
+            ["catch", ["noop"], ["!", "customEffect16", "", "", "", "", ""]],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "promotion_set__SKUs__7"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "promotion_set__SKUs__8"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "id": "fb1d0d0c-a995-42d6-ae08-1a49f5333a7c",
+          "parentId": "84812771-ebc9-484c-ad49-871aa0ef487a",
+          "title": "campaignGroup__promotion_set#5",
+          "condition": [
+            "and",
+            [
+              "or",
+              [
+                "catch",
+                false,
+                [">=", [".", "Bindings", "promotion_set__SKUs__9", "Count"], 1]
+              ],
+              [
+                "catch",
+                false,
+                [">=", [".", "Bindings", "promotion_set__SKUs__10", "Count"], 1]
+              ]
+            ],
+            [
+              "catch",
+              false,
+              [
+                "containsOne",
+                [".", "Session", "Attributes", "cart_journeys"],
+                ["list"],
+                [
+                  ["itemA", "itemB"],
+                  ["=", [".", "itemA"], [".", "itemB"]]
+                ]
+              ]
+            ]
+          ],
+          "effects": [
+            ["catch", ["noop"], ["!", "customEffect16", "", "", "", "", ""]],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "promotion_set__SKUs__9"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "promotion_set__SKUs__10"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "id": "2ebc641c-b011-49f5-97ab-dfa1fe8081ba",
+          "title": "campaignGroup__no__discount#1",
+          "condition": [
+            "and",
+            [
+              "catch",
+              false,
+              [">=", [".", "Bindings", "no__discount__SKUs_1", "Count"], 1]
+            ],
+            [
+              "catch",
+              false,
+              [
+                "containsOne",
+                [".", "Session", "Attributes", "cart_journeys"],
+                ["list"],
+                [
+                  ["itemA", "itemB"],
+                  ["=", [".", "itemA"], [".", "itemB"]]
+                ]
+              ]
+            ]
+          ],
+          "effects": [
+            ["catch", ["noop"], ["!", "customEffect16", "", "", "", "", ""]],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "no__discount__SKUs_1"],
+                [
+                  "!",
+                  "customEffect29",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            ]
+          ]
+        }
+      ],
+      "strikethroughRules": [
+        {
+          "id": "2df95692-098c-4b52-af57-fc6da77fe490",
+          "title": "company__campaignGroup__journey__campaignByJourney__LoyaltyTier__#1",
+          "condition": ["always"],
+          "effects": [
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__1"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__2"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__3"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__4"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__5"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__6"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__7"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__8"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__9"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__10"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "id": "248e7c14-c4d8-4176-88df-7d6cb978b159",
+          "parentId": "2df95692-098c-4b52-af57-fc6da77fe490",
+          "title": "company__campaignGroup__journey__campaignByJourney__LoyaltyTier__#2",
+          "condition": ["always"],
+          "effects": [
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__1"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__2"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__3"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__4"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__5"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__6"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__7"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__8"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__9"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__10"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "id": "c4766ce9-04c6-4fff-a812-c446e11a5fde",
+          "parentId": "2df95692-098c-4b52-af57-fc6da77fe490",
+          "title": "company__campaignGroup__journey__campaignByJourney__LoyaltyTier__#3",
+          "condition": ["always"],
+          "effects": [
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__1"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__2"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__3"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__4"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__5"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__6"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__7"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__8"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__9"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ],
+            [
+              "catch",
+              ["noop"],
+              [
+                "customEffectPerItem",
+                [".", "SKU__10"],
+                [
+                  "!",
+                  "customEffect44",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  [".", "Item", "Sku"],
+                  [".", "Item", "Attributes", "commercetools_product_id"],
+                  0,
+                  0,
+                  0,
+                  false
+                ]
+              ]
+            ]
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "name": "mainProduct",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "Session", "CartItems"],
+            [
+              ["Item"],
+              [
+                "catch",
+                false,
+                [
+                  "and",
+                  [
+                    "=",
+                    [".", "Item", "Attributes", "product_type"],
+                    "main_product"
+                  ]
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__1",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__2",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__3",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__4",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__5",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__6",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__7",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__8",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__9",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__10",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__11",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__12",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__13",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__14",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__15",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__16",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__17",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__18",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__19",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "campaign__promotion_set__SKUs__20",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "promotion_set__SKUs__1",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              [
+                "catch",
+                false,
+                [
+                  "and",
+                  [
+                    "exists",
+                    [
+                      "list",
+                      "o-main-product-sku-1001",
+                      "o-main-product-sku-1002"
+                    ],
+                    ["elem", ["=", [".", "elem"], [".", "Item", "Sku"]]]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "promotion_set__SKUs__2",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "promotion_set__SKUs__3",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "promotion_set__SKUs__4",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "promotion_set__SKUs__5",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "promotion_set__SKUs__6",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "promotion_set__SKUs__7",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "promotion_set__SKUs__8",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "promotion_set__SKUs__9",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "promotion_set__SKUs__10",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "no__discount__SKUs_1",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "mainProduct"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "ProductParent",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "Session", "CartItems"],
+            [
+              ["Item"],
+              [
+                "catch",
+                false,
+                [
+                  "and",
+                  [
+                    "=",
+                    [".", "Item", "Attributes", "commercetools_product_id"],
+                    ""
+                  ]
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "SKU__1",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "Session", "CartItems"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "SKU__2",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "Session", "CartItems"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "SKU__3",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "Session", "CartItems"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "SKU__4",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "Session", "CartItems"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "SKU__5",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "Session", "CartItems"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "SKU__6",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "Session", "CartItems"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "SKU__7",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "Session", "CartItems"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "SKU__8",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "Session", "CartItems"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "SKU__9",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "Session", "CartItems"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        },
+        {
+          "name": "SKU__10",
+          "type": "cartItemFilter",
+          "expression": [
+            "filter",
+            [".", "Session", "CartItems"],
+            [
+              ["Item"],
+              ["catch", false, ["and", ["=", [".", "Item", "Sku"], ""]]]
+            ]
+          ]
+        }
+      ],
+      "rbVersion": "v2",
+      "campaignId": 507,
+      "activatedAt": "2024-12-23T03:45:21.287584Z"
+    }
+  ],
+  "totalResultSize": 1
+}
