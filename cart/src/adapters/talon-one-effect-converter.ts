@@ -11,7 +11,7 @@ enum AddOnType {
 
 enum PromotionDetailType {
 	FREE_GIFT = 1,
-	REDEEM = 2,
+	REDEEM = 2, // Addon จะมีแต่ REDEEM 
 	DISCOUNT_BAHT = 3,
 	DISCOUNT_PERCENTAGE = 4,
 	SUBSIDY = 5,
@@ -1311,10 +1311,10 @@ class TalonOneEffectConverter {
 	// TODO: 1.2.1 Get Benefit(s) from CT Cart
 	async getBenefitByCtCart(ctCart: any) {
 		// TODO: 1.2.1.1 Upsert T1 Custom Session with CT Cart
-		const customerSession = await talonOneIntegrationAdapter.getActiveCustomerSession(ctCart)
-		const { customerSession: { cartItems }, effects } = customerSession;
-		// const cartItems = freeGiftcartItems;
-		// const effects = freeGiftEffects;
+		// const customerSession = await talonOneIntegrationAdapter.getActiveCustomerSession(ctCart)
+		// const { customerSession: { cartItems }, effects } = customerSession;
+		const cartItems = freeGiftcartItems;
+		const effects = freeGiftEffects;
 		// console.log('JSON.stringify(cartItems)', JSON.stringify(cartItems));
 		// console.log('JSON.stringify(effects)', JSON.stringify(effects));
 
