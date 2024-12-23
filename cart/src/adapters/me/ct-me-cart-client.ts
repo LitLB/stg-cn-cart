@@ -836,6 +836,7 @@ export default class CommercetoolsMeCartClient {
 		const newDirectDiscounts: any[] = [];
 
 		lineItems.forEach((lineItem: any) => {
+			console.log('JSON.stringify(lineItem)', JSON.stringify(lineItem));
 			const lineItemId = lineItem.id
 			const lineItemProductType = lineItem.custom.fields.productType
 			const lineItemProductGroup = lineItem.custom.fields.productGroup
@@ -850,12 +851,13 @@ export default class CommercetoolsMeCartClient {
 			})
 
 			const newPrivilege = cartItem?.privilege
+			console.log('newPrivilege', newPrivilege);
 
 			myCartUpdateActions.push({
 				action: 'setLineItemCustomField',
 				lineItemId,
 				name: 'privilege',
-				value: newPrivilege ? JSON.stringify(newPrivilege) : null,
+				value: newPrivilege ? JSON.stringify(newPrivilege) : '{}',
 			});
 
 			const newLineItemDiscounts: any[] = (cartItem.discounts ?? [])
@@ -926,6 +928,8 @@ export default class CommercetoolsMeCartClient {
 				name: 'discounts',
 				value: discounts,
 			});
+
+			console.log(`Sku: ${lineItem.variant.sku}, myCartUpdateActions`, myCartUpdateActions);
 
 
 			const newLineItemOtherPayments: any[] = (cartItem.otherPayments ?? [])
@@ -1179,7 +1183,7 @@ export default class CommercetoolsMeCartClient {
 	async updateCartWithBenefit(ctCart: any) {
 		// TODO: 1.1 Make body and Request
 		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
-		
+
 		// TODO: 1.2 Get Benefit(s)
 		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
 		// const lineItemWithCampaignBenefits = lineItemWithCampaignBenefitsMock; // Bypass by using mock data named lineItemWithCampaignBenefitsMock.

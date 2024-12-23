@@ -575,15 +575,11 @@ class TalonOneEffectConverter {
 	}
 
 	async wrapCTFreeGiftContext(benefits: any[]) {
-		console.log('benefits', benefits);
-		console.log('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
-
 		// get skus from benefits
 
 		const allSkus = benefits.flatMap((benefit) =>
 			benefit.freeGiftProductSkus.map((product: any) => product.sku)
 		);
-		console.log('allSkus', allSkus);
 
 		let products = [];
 		if (allSkus.length) {
@@ -1026,10 +1022,8 @@ class TalonOneEffectConverter {
 	}
 
 	attachFreeGiftBenefits(lineItems: any[], freeGiftBenefits: any[]) {
-		// console.log('attachFreeGiftBenefits start');
 		// console.log('lineItems', lineItems);
 		// console.log('freeGiftBenefits', freeGiftBenefits);
-		// console.log('attachFreeGiftBenefits end');
 		const freeGiftItemsMapQuantity = lineItems
 			.filter(
 				(lineItem: any) => lineItem?.custom.fields?.productType === 'free_gift'

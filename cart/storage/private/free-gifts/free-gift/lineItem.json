@@ -1,0 +1,89 @@
+{
+  "id": "917335f3-7d6a-44bd-a71c-ef6a7e4feebe",
+  "productId": "2973331a-c3b1-4d5b-a042-7db5cb84ee09",
+  "productKey": "8d361adb-6dcd-4230-baa6-8b2c00371e76",
+  "name": { "th-TH": "o-add-on-1", "en-US": "o-add-on-1" },
+  "productType": {
+    "typeId": "product-type",
+    "id": "02584416-7fac-4a37-a511-be6b3e329664",
+    "version": 470
+  },
+  "productSlug": { "th-TH": "o-add-on-1", "en-US": "o-add-on-1" },
+  "variant": {
+    "id": 1,
+    "sku": "o-add-on-1-sku-1001",
+    "key": "o-add-on-1-sku-1001",
+    "prices": [
+      {
+        "id": "7c06468a-58fb-412d-ae3a-7061e60c2d96",
+        "value": {
+          "type": "centPrecision",
+          "currencyCode": "THB",
+          "centAmount": 89000,
+          "fractionDigits": 2
+        },
+        "customerGroup": {
+          "typeId": "customer-group",
+          "id": "94e4dca6-8b56-4861-ab92-4fbeefacb228"
+        }
+      }
+    ],
+    "images": [],
+    "attributes": [
+      { "name": "product_id", "value": "o-add-on-1" },
+      { "name": "akeneo_id", "value": "fbb52f3b-563e-4227-8a53-2c63b861bf65" },
+      { "name": "status", "value": { "key": "enabled", "label": "Enabled" } }
+    ],
+    "assets": [],
+    "availability": {
+      "channels": {
+        "b3ed9456-9890-4119-b981-5624ee4e6d6b": {
+          "isOnStock": true,
+          "availableQuantity": 100,
+          "version": 5,
+          "id": "edab2007-589a-4f40-af3b-8f724fe9723c"
+        }
+      }
+    }
+  },
+  "price": {
+    "id": "db0e0f1f-2e37-41e5-812e-3c3a84209632",
+    "value": {
+      "type": "centPrecision",
+      "currencyCode": "THB",
+      "centAmount": 89000,
+      "fractionDigits": 2
+    }
+  },
+  "quantity": 1,
+  "discountedPricePerQuantity": [],
+  "supplyChannel": {
+    "typeId": "channel",
+    "id": "b3ed9456-9890-4119-b981-5624ee4e6d6b"
+  },
+  "perMethodTaxRate": [],
+  "addedAt": "2024-12-23T09:13:32.851Z",
+  "lastModifiedAt": "2024-12-23T09:13:32.851Z",
+  "state": [
+    {
+      "quantity": 1,
+      "state": {
+        "typeId": "state",
+        "id": "4edd1d7a-f5ac-4ec8-b575-29dd9e87e020"
+      }
+    }
+  ],
+  "priceMode": "ExternalPrice",
+  "lineItemMode": "Standard",
+  "totalPrice": {
+    "type": "centPrecision",
+    "currencyCode": "THB",
+    "centAmount": 89000,
+    "fractionDigits": 2
+  },
+  "taxedPricePortions": [],
+  "custom": {
+    "type": { "typeId": "type", "id": "27d2c7ca-385b-4668-bbcf-526c1f2607ff" },
+    "fields": { "productType": "free_gift", "productGroup": 2 }
+  }
+}

@@ -88,7 +88,7 @@ export function validateAddItemCartBody(body: any) {
 			.required()
 			.messages({
 				'string.base': 'Product Type must be a string',
-				'any.only': 'Product Type must be "main_product", "add_on", or "insurance"',
+				'any.only': 'Product Type must be "main_product", "add_on", "insurance", or "free_gift"',
 				'any.required': 'Product Type is required',
 			}),
 		productGroup: Joi.number()
