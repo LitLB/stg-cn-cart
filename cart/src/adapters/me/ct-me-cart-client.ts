@@ -118,6 +118,8 @@ export default class CommercetoolsMeCartClient {
 			const lineItemAddOnGroup = lineItem.custom?.fields.addOnGroup
 			// const lineItemOtherPayments = lineItem?.custom?.otherPayments
 			const quantity = lineItem.quantity
+			const lineItemPrice = lineItem.price?.value?.centAmount || 0;
+
 			const cartItem = lineItemWithCampaignBenefits.find((item: any) => {
 				return lineItem.variant.sku === item.variant.sku &&
 					lineItemProductType === item.custom.fields.productType &&
@@ -134,6 +136,35 @@ export default class CommercetoolsMeCartClient {
 				name: 'privilege',
 				value: newPrivilege ? JSON.stringify(newPrivilege) : '{}',
 			});
+
+			console.log('newPrivilege', newPrivilege);
+			console.log('newPrivilege?.benefitType', newPrivilege?.benefitType);
+			if (newPrivilege?.benefitType === 'free_gift') {
+				// For a free gift: discount 100% of line item cost
+				const totalLineCost = lineItemPrice * quantity;
+
+				const predicate = [
+					`product.id = "${lineItem.productId}"`,
+					`custom.productType = "${lineItemProductType}"`,
+					`custom.productGroup = ${lineItemProductGroup}`,
+				].join(' AND ');
+
+				newDirectDiscounts.push({
+					target: {
+						type: 'lineItems',
+						predicate,
+					},
+					value: {
+						type: 'absolute',
+						money: [
+							{
+								currencyCode: 'THB',
+								centAmount: totalLineCost,
+							},
+						],
+					},
+				});
+			}
 
 			const newLineItemDiscounts: any[] = (cartItem.discounts ?? [])
 			const discounts = []
@@ -193,46 +224,46 @@ export default class CommercetoolsMeCartClient {
 						})
 					}
 
-					/**
-					 * ===========================
-					 * 3) FREE GIFT (100% OFF)
-					 * ===========================
-					 */
-					if (benefitType === 'free_gift') {
-						const lineItemPrice = lineItem.price?.value?.centAmount || 0;
+					// /**
+					//  * ===========================
+					//  * 3) FREE GIFT (100% OFF)
+					//  * ===========================
+					//  */
+					// if (benefitType === 'free_gift') {
+					// 	const lineItemPrice = lineItem.price?.value?.centAmount || 0;
 
-						// For a free gift, we want to discount the ENTIRE line item price: quantity * unit price.
-						// If lineItemPrice is the total for quantity, you can discount lineItemPrice directly.
-						// Or if lineItemPrice is "unit price", multiply by quantity.
-						// const totalLineCost = lineItemPrice; // If lineItemPrice is the total for all quantity
-						// If lineItemPrice is unit-based, do: const totalLineCost = lineItemPrice * quantity;
-						
-						const totalLineCost = lineItemPrice * quantity;
+					// 	// For a free gift, we want to discount the ENTIRE line item price: quantity * unit price.
+					// 	// If lineItemPrice is the total for quantity, you can discount lineItemPrice directly.
+					// 	// Or if lineItemPrice is "unit price", multiply by quantity.
+					// 	// const totalLineCost = lineItemPrice; // If lineItemPrice is the total for all quantity
+					// 	// If lineItemPrice is unit-based, do: const totalLineCost = lineItemPrice * quantity;
 
-						const predicate = [
-							`product.id = "${lineItem.productId}"`,
-							`custom.productType = "${lineItemProductType}"`,
-							`custom.productGroup = ${lineItemProductGroup}`,
-							// Optionally if you want a separate addOnGroup for free gift
-							// `custom.addOnGroup = "free_gift_1"`,
-						].join(' AND ');
+					// 	const totalLineCost = lineItemPrice * quantity;
 
-						newDirectDiscounts.push({
-							target: {
-								type: 'lineItems',
-								predicate,
-							},
-							value: {
-								type: 'absolute',
-								money: [
-									{
-										currencyCode: 'THB',
-										centAmount: totalLineCost,
-									},
-								],
-							},
-						});
-					}
+					// 	const predicate = [
+					// 		`product.id = "${lineItem.productId}"`,
+					// 		`custom.productType = "${lineItemProductType}"`,
+					// 		`custom.productGroup = ${lineItemProductGroup}`,
+					// 		// Optionally if you want a separate addOnGroup for free gift
+					// 		// `custom.addOnGroup = "free_gift_1"`,
+					// 	].join(' AND ');
+
+					// 	newDirectDiscounts.push({
+					// 		target: {
+					// 			type: 'lineItems',
+					// 			predicate,
+					// 		},
+					// 		value: {
+					// 			type: 'absolute',
+					// 			money: [
+					// 				{
+					// 					currencyCode: 'THB',
+					// 					centAmount: totalLineCost,
+					// 				},
+					// 			],
+					// 		},
+					// 	});
+					// }
 
 					discounts.push(JSON.stringify(newLineItemDiscount))
 				}
@@ -246,16 +277,12 @@ export default class CommercetoolsMeCartClient {
 			});
 		});
 
-		console.log(`myCartUpdateActions`, myCartUpdateActions);
-
 		let newCart = updatedCart
 		let currentVersion = version
 		if (myCartUpdateActions.length) {
 			newCart = await this.updateCart(cartId, currentVersion, myCartUpdateActions)
 			currentVersion = newCart.version
 		}
-
-		console.log('newDirectDiscounts', newDirectDiscounts);
 
 		newCart = await this.ctCartClient.updateCart(cartId, currentVersion, [{
 			action: 'setDirectDiscounts',

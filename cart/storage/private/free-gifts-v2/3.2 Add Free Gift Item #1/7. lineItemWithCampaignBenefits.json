@@ -1,6 +1,6 @@
 [
   {
-    "id": "a1dccaf4-cc25-4850-8008-68176fac63e1",
+    "id": "3bda0de4-d46a-49f7-959f-7519cad4d9c6",
     "productId": "08c91f85-f3ad-407c-9e7c-164661ea1f93",
     "productKey": "8a2b3703-edec-4dd7-815c-099c1d725b20",
     "name": { "th-TH": "o-main-product-1", "en-US": "o-main-product-1" },
@@ -64,14 +64,14 @@
           "354a59c3-412a-4ecd-8264-795e1611b7df": {
             "isOnStock": true,
             "availableQuantity": 100,
-            "version": 8,
+            "version": 11,
             "id": "5afc1fec-0af0-4115-ae05-9f8b4608fe80"
           }
         }
       }
     },
     "price": {
-      "id": "a5c96ccb-6fad-4560-82db-db8e115c0c6e",
+      "id": "d3b21a10-3c85-475b-923b-f9734d4a546d",
       "value": {
         "type": "centPrecision",
         "currencyCode": "THB",
@@ -86,8 +86,8 @@
       "id": "354a59c3-412a-4ecd-8264-795e1611b7df"
     },
     "perMethodTaxRate": [],
-    "addedAt": "2024-12-24T07:29:51.398Z",
-    "lastModifiedAt": "2024-12-24T07:29:51.398Z",
+    "addedAt": "2024-12-24T09:00:38.458Z",
+    "lastModifiedAt": "2024-12-24T09:00:38.458Z",
     "state": [
       {
         "quantity": 2,
@@ -141,11 +141,11 @@
         "specialPrice": 0,
         "isForcePromotion": false,
         "subsidies": [],
-        "totalSelectedItem": 0,
+        "totalSelectedItem": 4,
         "freeGiftProducts": [
           {
             "id": "2973331a-c3b1-4d5b-a042-7db5cb84ee09",
-            "version": 27,
+            "version": 35,
             "productType": {
               "typeId": "product-type",
               "id": "02584416-7fac-4a37-a511-be6b3e329664"
@@ -166,7 +166,7 @@
             },
             "priceMode": "Embedded",
             "createdAt": "2024-11-03T17:44:17.717Z",
-            "lastModifiedAt": "2024-12-24T02:58:06.160Z",
+            "lastModifiedAt": "2024-12-24T08:20:03.830Z",
             "variants": [
               {
                 "attributes": [
@@ -185,7 +185,7 @@
                     "354a59c3-412a-4ecd-8264-795e1611b7df": {
                       "isOnStock": true,
                       "availableQuantity": 100,
-                      "version": 7,
+                      "version": 10,
                       "id": "edab2007-589a-4f40-af3b-8f724fe9723c"
                     }
                   }
@@ -210,7 +210,7 @@
                 "key": "o-add-on-1-sku-1001",
                 "sku": "o-add-on-1-sku-1001",
                 "id": 1,
-                "totalSelectedItem": 0
+                "totalSelectedItem": 3
               },
               {
                 "attributes": [
@@ -229,7 +229,7 @@
                     "354a59c3-412a-4ecd-8264-795e1611b7df": {
                       "isOnStock": true,
                       "availableQuantity": 100,
-                      "version": 4,
+                      "version": 11,
                       "id": "14c0af41-c288-408a-9be7-6e8d23b870a4"
                     }
                   }
@@ -254,7 +254,7 @@
                 "key": "o-add-on-1-sku-1002",
                 "sku": "o-add-on-1-sku-1002",
                 "id": 2,
-                "totalSelectedItem": 0
+                "totalSelectedItem": 1
               }
             ]
           }
@@ -397,7 +397,7 @@
     ]
   },
   {
-    "id": "94de868b-e498-49f2-82a2-9aa56286e480",
+    "id": "e4503e1f-d084-4333-bdcf-dab8438f50ba",
     "productId": "2973331a-c3b1-4d5b-a042-7db5cb84ee09",
     "productKey": "8d361adb-6dcd-4230-baa6-8b2c00371e76",
     "name": { "th-TH": "o-add-on-1", "en-US": "o-add-on-1" },
@@ -441,18 +441,210 @@
           "354a59c3-412a-4ecd-8264-795e1611b7df": {
             "isOnStock": true,
             "availableQuantity": 100,
-            "version": 7,
+            "version": 10,
             "id": "edab2007-589a-4f40-af3b-8f724fe9723c"
           }
         }
       }
     },
     "price": {
-      "id": "c4cba395-79d5-45b7-9d8e-82d8e24ad4c7",
+      "id": "6cf63010-c96c-4442-8f53-4032634804e3",
       "value": {
         "type": "centPrecision",
         "currencyCode": "THB",
         "centAmount": 89000,
+        "fractionDigits": 2
+      }
+    },
+    "quantity": 3,
+    "discountedPrice": {
+      "value": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 22250,
+        "fractionDigits": 2
+      },
+      "includedDiscounts": [
+        {
+          "discount": {
+            "typeId": "direct-discount",
+            "id": "ed808dae-8f27-4eb6-ba65-cf4a8f03b6ad"
+          },
+          "discountedAmount": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 44500,
+            "fractionDigits": 2
+          }
+        },
+        {
+          "discount": {
+            "typeId": "direct-discount",
+            "id": "5e7b9359-939b-4bf2-ba1b-9c58057d50ba"
+          },
+          "discountedAmount": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 22250,
+            "fractionDigits": 2
+          }
+        }
+      ]
+    },
+    "discountedPricePerQuantity": [
+      {
+        "quantity": 3,
+        "discountedPrice": {
+          "value": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 22250,
+            "fractionDigits": 2
+          },
+          "includedDiscounts": [
+            {
+              "discount": {
+                "typeId": "direct-discount",
+                "id": "ed808dae-8f27-4eb6-ba65-cf4a8f03b6ad"
+              },
+              "discountedAmount": {
+                "type": "centPrecision",
+                "currencyCode": "THB",
+                "centAmount": 44500,
+                "fractionDigits": 2
+              }
+            },
+            {
+              "discount": {
+                "typeId": "direct-discount",
+                "id": "5e7b9359-939b-4bf2-ba1b-9c58057d50ba"
+              },
+              "discountedAmount": {
+                "type": "centPrecision",
+                "currencyCode": "THB",
+                "centAmount": 22250,
+                "fractionDigits": 2
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "supplyChannel": {
+      "typeId": "channel",
+      "id": "354a59c3-412a-4ecd-8264-795e1611b7df"
+    },
+    "perMethodTaxRate": [],
+    "addedAt": "2024-12-24T09:00:44.293Z",
+    "lastModifiedAt": "2024-12-24T09:01:15.865Z",
+    "state": [
+      {
+        "quantity": 3,
+        "state": {
+          "typeId": "state",
+          "id": "4edd1d7a-f5ac-4ec8-b575-29dd9e87e020"
+        }
+      }
+    ],
+    "priceMode": "ExternalPrice",
+    "lineItemMode": "Standard",
+    "totalPrice": {
+      "type": "centPrecision",
+      "currencyCode": "THB",
+      "centAmount": 66750,
+      "fractionDigits": 2
+    },
+    "taxedPricePortions": [],
+    "custom": {
+      "type": {
+        "typeId": "type",
+        "id": "27d2c7ca-385b-4668-bbcf-526c1f2607ff"
+      },
+      "fields": {
+        "productType": "free_gift",
+        "productGroup": 1,
+        "discounts": ["{\"benefitType\":\"free_gift\"}"],
+        "privilege": "{\"benefitType\":\"free_gift\",\"campaignCode\":\"\",\"promotionSetCode\":\"UI034\",\"promotionSetProposition\":\"999\",\"group\":\"free_gift_1\",\"discountBaht\":0,\"discountPercent\":0,\"specialPrice\":0,\"isForcePromotion\":false}"
+      }
+    },
+    "availableBenefits": [],
+    "privilege": {
+      "benefitType": "free_gift",
+      "campaignCode": "",
+      "promotionSetCode": "UI034",
+      "promotionSetProposition": "999",
+      "group": "free_gift_1",
+      "discountBaht": 0,
+      "discountPercent": 0,
+      "specialPrice": 0,
+      "isForcePromotion": false
+    },
+    "discounts": [{ "benefitType": "free_gift" }]
+  },
+  {
+    "id": "9f57403d-1b19-47fa-90ab-6567a79dfc42",
+    "productId": "30395a4a-3716-4efa-bf86-39d43f2087e4",
+    "productKey": "87fd7e34-9cbc-11ef-ba1e-325096b39f47",
+    "name": { "th-TH": "o-main-product-2", "en-US": "o-main-product-2" },
+    "productType": {
+      "typeId": "product-type",
+      "id": "02584416-7fac-4a37-a511-be6b3e329664",
+      "version": 500
+    },
+    "productSlug": { "th-TH": "o-main-product-2", "en-US": "o-main-product-2" },
+    "variant": {
+      "id": 1,
+      "sku": "o-main-product-sku-2001",
+      "key": "o-main-product-sku-2001",
+      "prices": [
+        {
+          "id": "de8f9a69-4507-41c1-9257-60b315805c69",
+          "value": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 899900,
+            "fractionDigits": 2
+          }
+        },
+        {
+          "id": "8d01d1b1-258a-4565-857d-ad9fb2e0c651",
+          "value": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 450000,
+            "fractionDigits": 2
+          },
+          "customerGroup": {
+            "typeId": "customer-group",
+            "id": "94e4dca6-8b56-4861-ab92-4fbeefacb228"
+          },
+          "validFrom": "2024-10-31T17:00:00.000Z"
+        }
+      ],
+      "images": [],
+      "attributes": [
+        { "name": "product_id", "value": "o-main-product-2" },
+        { "name": "status", "value": { "key": "enabled", "label": "Enabled" } },
+        { "name": "akeneo_id", "value": "61bcc599-72d8-42ed-b050-00a0ab039ca7" }
+      ],
+      "assets": [],
+      "availability": {
+        "channels": {
+          "354a59c3-412a-4ecd-8264-795e1611b7df": {
+            "isOnStock": true,
+            "availableQuantity": 100,
+            "version": 7,
+            "id": "2c6d06ff-ed52-4258-bd7b-e9ed374decc7"
+          }
+        }
+      }
+    },
+    "price": {
+      "id": "65323423-0f9f-4b62-9c6f-7ad1edfa5c1f",
+      "value": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 450000,
         "fractionDigits": 2
       }
     },
@@ -463,8 +655,8 @@
       "id": "354a59c3-412a-4ecd-8264-795e1611b7df"
     },
     "perMethodTaxRate": [],
-    "addedAt": "2024-12-24T07:30:00.291Z",
-    "lastModifiedAt": "2024-12-24T07:30:00.291Z",
+    "addedAt": "2024-12-24T09:00:53.368Z",
+    "lastModifiedAt": "2024-12-24T09:00:53.368Z",
     "state": [
       {
         "quantity": 1,
@@ -479,7 +671,7 @@
     "totalPrice": {
       "type": "centPrecision",
       "currencyCode": "THB",
-      "centAmount": 89000,
+      "centAmount": 450000,
       "fractionDigits": 2
     },
     "taxedPricePortions": [],
@@ -488,8 +680,201 @@
         "typeId": "type",
         "id": "27d2c7ca-385b-4668-bbcf-526c1f2607ff"
       },
-      "fields": { "productType": "free_gift", "productGroup": 2 }
+      "fields": {
+        "productType": "main_product",
+        "productGroup": 2,
+        "discounts": [],
+        "privilege": "{}"
+      }
     },
+    "privilege": {},
+    "discounts": [],
+    "otherPayments": [],
     "availableBenefits": []
+  },
+  {
+    "id": "19a4e05d-5865-4d7c-abac-1c148bcaf039",
+    "productId": "2973331a-c3b1-4d5b-a042-7db5cb84ee09",
+    "productKey": "8d361adb-6dcd-4230-baa6-8b2c00371e76",
+    "name": { "th-TH": "o-add-on-1", "en-US": "o-add-on-1" },
+    "productType": {
+      "typeId": "product-type",
+      "id": "02584416-7fac-4a37-a511-be6b3e329664",
+      "version": 500
+    },
+    "productSlug": { "th-TH": "o-add-on-1", "en-US": "o-add-on-1" },
+    "variant": {
+      "id": 2,
+      "sku": "o-add-on-1-sku-1002",
+      "key": "o-add-on-1-sku-1002",
+      "prices": [
+        {
+          "id": "d4e7c354-2950-40a9-8caa-17a26418ce7d",
+          "value": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 89000,
+            "fractionDigits": 2
+          },
+          "customerGroup": {
+            "typeId": "customer-group",
+            "id": "94e4dca6-8b56-4861-ab92-4fbeefacb228"
+          }
+        }
+      ],
+      "images": [],
+      "attributes": [
+        { "name": "product_id", "value": "o-add-on-1" },
+        {
+          "name": "akeneo_id",
+          "value": "1bdef5b5-d324-4e76-b204-f1e9124e3619"
+        },
+        { "name": "status", "value": { "key": "enabled", "label": "Enabled" } }
+      ],
+      "assets": [],
+      "availability": {
+        "channels": {
+          "354a59c3-412a-4ecd-8264-795e1611b7df": {
+            "isOnStock": true,
+            "availableQuantity": 100,
+            "version": 11,
+            "id": "14c0af41-c288-408a-9be7-6e8d23b870a4"
+          }
+        }
+      }
+    },
+    "price": {
+      "id": "d88594f9-62f6-40a5-9b7f-5e35867b853e",
+      "value": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 89000,
+        "fractionDigits": 2
+      }
+    },
+    "quantity": 1,
+    "discountedPrice": {
+      "value": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 22250,
+        "fractionDigits": 2
+      },
+      "includedDiscounts": [
+        {
+          "discount": {
+            "typeId": "direct-discount",
+            "id": "ed808dae-8f27-4eb6-ba65-cf4a8f03b6ad"
+          },
+          "discountedAmount": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 44500,
+            "fractionDigits": 2
+          }
+        },
+        {
+          "discount": {
+            "typeId": "direct-discount",
+            "id": "5e7b9359-939b-4bf2-ba1b-9c58057d50ba"
+          },
+          "discountedAmount": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 22250,
+            "fractionDigits": 2
+          }
+        }
+      ]
+    },
+    "discountedPricePerQuantity": [
+      {
+        "quantity": 1,
+        "discountedPrice": {
+          "value": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 22250,
+            "fractionDigits": 2
+          },
+          "includedDiscounts": [
+            {
+              "discount": {
+                "typeId": "direct-discount",
+                "id": "ed808dae-8f27-4eb6-ba65-cf4a8f03b6ad"
+              },
+              "discountedAmount": {
+                "type": "centPrecision",
+                "currencyCode": "THB",
+                "centAmount": 44500,
+                "fractionDigits": 2
+              }
+            },
+            {
+              "discount": {
+                "typeId": "direct-discount",
+                "id": "5e7b9359-939b-4bf2-ba1b-9c58057d50ba"
+              },
+              "discountedAmount": {
+                "type": "centPrecision",
+                "currencyCode": "THB",
+                "centAmount": 22250,
+                "fractionDigits": 2
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "supplyChannel": {
+      "typeId": "channel",
+      "id": "354a59c3-412a-4ecd-8264-795e1611b7df"
+    },
+    "perMethodTaxRate": [],
+    "addedAt": "2024-12-24T09:01:08.401Z",
+    "lastModifiedAt": "2024-12-24T09:01:08.401Z",
+    "state": [
+      {
+        "quantity": 1,
+        "state": {
+          "typeId": "state",
+          "id": "4edd1d7a-f5ac-4ec8-b575-29dd9e87e020"
+        }
+      }
+    ],
+    "priceMode": "ExternalPrice",
+    "lineItemMode": "Standard",
+    "totalPrice": {
+      "type": "centPrecision",
+      "currencyCode": "THB",
+      "centAmount": 22250,
+      "fractionDigits": 2
+    },
+    "taxedPricePortions": [],
+    "custom": {
+      "type": {
+        "typeId": "type",
+        "id": "27d2c7ca-385b-4668-bbcf-526c1f2607ff"
+      },
+      "fields": {
+        "productType": "free_gift",
+        "productGroup": 1,
+        "discounts": ["{\"benefitType\":\"free_gift\"}"],
+        "privilege": "{\"benefitType\":\"free_gift\",\"campaignCode\":\"\",\"promotionSetCode\":\"UI034\",\"promotionSetProposition\":\"999\",\"group\":\"free_gift_1\",\"discountBaht\":0,\"discountPercent\":0,\"specialPrice\":0,\"isForcePromotion\":false}"
+      }
+    },
+    "availableBenefits": [],
+    "privilege": {
+      "benefitType": "free_gift",
+      "campaignCode": "",
+      "promotionSetCode": "UI034",
+      "promotionSetProposition": "999",
+      "group": "free_gift_1",
+      "discountBaht": 0,
+      "discountPercent": 0,
+      "specialPrice": 0,
+      "isForcePromotion": false
+    },
+    "discounts": [{ "benefitType": "free_gift" }]
   }
 ]

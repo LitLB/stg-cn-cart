@@ -26,6 +26,7 @@ import { IOrderAdditional, IPaymentInfo, IClientInfo } from '../interfaces/order
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { PAYMENT_STATES } from '../constants/payment.constant';
 import { ctCartWithFreeGift } from '../mocks/ctCartWithFreeGift.mock';
+import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -168,7 +169,6 @@ export class CartService {
                 tsmOrderIsSaved: success,
                 tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
             }
-            // return tsmSaveOrder
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
@@ -176,7 +176,7 @@ export class CartService {
             await this.updateStockAllocation(cartWithUpdatedPrice);
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
-            return {...order,hasChanged: cartWithUpdatedPrice.compared};
+            return { ...order, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             logger.info(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -244,7 +244,7 @@ export class CartService {
                 if (error.errorCode && error.statusMessage) {
                     throw error;
                 }
-                
+
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
                     errorCode: "CART_FETCH_EFFECTS_COUPONS_CT_FAILED",
@@ -354,7 +354,7 @@ export class CartService {
         }
     };
 
-    
+
     public getCtCartById = async (accessToken: string, id: string): Promise<any> => {
         try {
             if (!id) {
@@ -510,10 +510,10 @@ export class CartService {
             const body: any =
             {
                 journey, /* Mandarory */
-                ...(['truemoney'].includes(paymentOptionKey) ? { paymentTMNAccountNumber } : {  }),
+                ...(['truemoney'].includes(paymentOptionKey) ? { paymentTMNAccountNumber } : {}),
                 // ...(['ccw', 'installment'].includes(paymentOptionKey) ? { paymentCreditCardNumber } : {  }),
-                ...(ip ? { ipAddress: ip } : {  }),
-                ...(googleId ? { googleID: googleId } : {  }),
+                ...(ip ? { ipAddress: ip } : {}),
+                ...(googleId ? { googleID: googleId } : {}),
                 shippingAddress: {
                     city: shippingAddress.state, /* Mandarory */
                     district: shippingAddress.city, /* Mandarory */

@@ -1021,9 +1021,6 @@ class TalonOneEffectConverter {
 		return newLineItems
 	}
 
-	/**
-	 * Example function for attaching free gift benefits to lineItems
-	 */
 	attachFreeGiftBenefits(lineItems: any[], freeGiftBenefits: any[]) {
 		// 1) Create a map of free_gift items in the cart -> their quantity
 		const freeGiftItemsMapQuantity = lineItems
@@ -1128,18 +1125,9 @@ class TalonOneEffectConverter {
 				isForcePromotion
 			};
 
-			// create discount object that your code in `upsertPrivilegeToCtCart` can read
-			const discount = {
-				benefitType: 'free_gift',
-			};
-
-			const oldDiscounts = li.discounts || [];
-			const newDiscounts = [...oldDiscounts, discount];
-
 			return {
 				...li,
 				privilege,
-				discounts: newDiscounts,  // <-- so `newLineItemDiscounts.length` won't be 0
 			};
 		});
 
