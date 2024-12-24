@@ -242,12 +242,7 @@ class CommercetoolsProductClient {
 		return sortedPrices[0];
 	}
 
-	findStockAvailable(supplyChannel: any, cartQuantity: number, stock: any){
-		const inventory = stock.channels?.[supplyChannel.id];
-		return {
-			isOutOfStock : !inventory.isOnStock && inventory.availableQuantity <= cartQuantity 
-		}
-	}
+	
 
 	findVariantByKey(variantKey: string, masterVariant: ProductVariant, variants: ProductVariant[]) {
 		const allVariant = variants.concat(masterVariant)
@@ -269,12 +264,15 @@ class CommercetoolsProductClient {
 		const skuItems = body.results;
 	
 		// Helper function to find valid price
-		const findValidPrice = (skuItem: any) =>
-			this.findValidPrice({
-				prices: skuItem.masterVariant.prices,
+		const findValidPrice = (variants: any) => {
+
+
+		return 	this.findValidPrice({
+				prices: variants.prices,
 				customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
 				date: new Date(),
 			});
+		}
 	
 		// Filter main products
 		const mainProducts = lineItems.filter(
@@ -286,11 +284,22 @@ class CommercetoolsProductClient {
 			const matchingSkuItem = skuItems.find(
 				(skuItem: any) => cartItem.productId === skuItem.id
 			);
+
+			
 	
 			if (!matchingSkuItem) return cartItem;
+
+
+
+			const allVariant = [...matchingSkuItem.variants, matchingSkuItem.masterVariant];
+
+			const matchCartItemVariant = allVariant.find(r => r.sku === cartItem.variant.sku)
+
 	
 			const { quantity, price } = cartItem;
-			const validPrice = findValidPrice(matchingSkuItem);
+			const validPrice = findValidPrice(matchCartItemVariant);
+
+
 			const supplyChannel = cartItem.supplyChannel;
 	
 			// Find matched variant
@@ -299,42 +308,16 @@ class CommercetoolsProductClient {
 				matchingSkuItem.masterVariant,
 				matchingSkuItem.variants
 			);
+
 	
-			// Stock and attributes check
-			const { isOutOfStock } = this.findStockAvailable(
-				supplyChannel,
-				quantity,
-				matchedVariant?.availability
-			);
-	
-			const cartAttributes = cartItem?.variant?.attributes ?? [];
+			// const cartAttributes = cartItem?.variant?.attributes ?? [];
 			const skuAttributes = matchedVariant?.attributes ?? [];
-	
-			// Extract attributes for comparison
-			const extractQtyAttributes = (attributes: any) => ({
-				parentMax: getAttributeValue(attributes, "quantity_max") || 0,
-				parentMin: getAttributeValue(attributes, "quantity_min") || 0,
-				skuMax: getAttributeValue(attributes, "sku_quantity_max") || 0,
-				skuMin: getAttributeValue(attributes, "sku_quantity_min") || 0,
-			});
-	
-			const cartQtyAttrs = extractQtyAttributes(cartAttributes);
-			const skuQtyAttrs = extractQtyAttributes(skuAttributes);
 	
 			// Determine if attributes or price have changed
 			const hasChanged = {
-				priceHasChanged: validPrice.value.centAmount !== price.value.centAmount,
-				parentMaxHasChanged: cartQtyAttrs.parentMax !== skuQtyAttrs.parentMax,
-				parentMinHasChanged: cartQtyAttrs.parentMin !== skuQtyAttrs.parentMin,
-				skuMaxHasChanged: cartQtyAttrs.skuMax !== skuQtyAttrs.skuMax,
-				skuMinHasChanged: cartQtyAttrs.skuMin !== skuQtyAttrs.skuMin,
-				isOutOfStock,
+				price: validPrice.value.centAmount !== price.value.centAmount,
 			};
-	
-			const itemHasChanged = Object.values(hasChanged).some((change) => change);
-	
-			if (!itemHasChanged) return { ...cartItem, hasChanged };
-	
+
 			const skuStatus = getAttributeValue(skuAttributes, "status");
 			if (skuStatus?.key === "disabled") return null;
 	

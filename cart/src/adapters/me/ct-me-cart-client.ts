@@ -949,25 +949,23 @@ export default class CommercetoolsMeCartClient {
 			}
 		});
 
-
 		let newCart = updatedCart
-
-		
-
-		console.log(`newCart before update =>`, newCart.lineItems[0].price);
 		let currentVersion = version
+
 
 		if (myCartUpdateActions.length) {
 			newCart = await this.updateCart(cartId, currentVersion, myCartUpdateActions)
 			currentVersion = newCart.version
 		}
 
+
+
 		newCart = await this.ctCartClient.updateCart(cartId, currentVersion, [{
 			action: 'setDirectDiscounts',
 			discounts: newDirectDiscounts
 		}])
 
-		console.log(`newCart after updated =>`, newCart.lineItems[0].price);
+
 
 		return newCart
 	}
@@ -1127,6 +1125,8 @@ export default class CommercetoolsMeCartClient {
 		const updatedCart = await this.upsertPrivilegeToCtCart(ctCart, lineItemWithCampaignBenefits)
 
 
+
+
 		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
 		const inventoryKey = skus.map((sku: any) => sku).join(',');
 		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
@@ -1137,7 +1137,6 @@ export default class CommercetoolsMeCartClient {
 			inventoryMap.set(sku, inventory);
 		});
 		let iCart: ICart = this.mapCartToICart(updatedCart);	
-		iCart = this.mapCartChangedToICart(iCart,updatedCart)	
 		iCart = await this.attachInsuranceToICart(iCart);
 
 		this.mapInventoryToItems(iCart.items, inventoryMap);
@@ -1147,29 +1146,11 @@ export default class CommercetoolsMeCartClient {
 		return iCartWithBenefit;
 	}
 
-	async updateCartPriceWithHasChange(ctCartWithUpdated: any) {
-
-		const { lineItems, version: cartVersion, id: cartId } = ctCartWithUpdated;
-
-		// TODO :: should update price in ct in this function
-
-		const itemUpdatedPrice = lineItems.map((item: any) => {
-			return {
-				action: 'changeLineItemQuantity',
-				lineItemId: item.id,
-				quantity: item.quantity,
-				externalPrice: item.price.value,
-			}
-		})
-
-		console.log(`itemUpdatedPrice :`,itemUpdatedPrice )
-	
-		const updatedCart = await this.updateCart(cartId, cartVersion, itemUpdatedPrice);
-
-		console.log(`updatedCart => `,updatedCart.lineItems[0].price)
-
-		return updatedCart
+	async updateCartChangeDataToCommerceTools(ctCartWithUpdated: any) {
+		return await this.ctCartClient.updateCartWithNewValue(ctCartWithUpdated)
 	}
+
+
 
 	public async updateCartPrice(
 		cartId: string,

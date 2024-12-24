@@ -4,7 +4,7 @@ import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
-import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateJourneyCompatibility, validateProductQuantity, validateSelectCartItemBody, validateUpdateCartItemBody } from '../validators/cart-item.validator';
+import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateJourneyCompatibility, validateProductQuantity, validateProductReleaseDate, validateSelectCartItemBody, validateUpdateCartItemBody } from '../validators/cart-item.validator';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { readConfiguration } from '../utils/config.utils';
 import { MyCartAddLineItemAction, MyCartUpdateAction } from '@commercetools/platform-sdk';
@@ -27,6 +27,7 @@ export class CartItemService {
 
 
     // TODO :: ADD FLAG ITEM HAS CHANGE 
+    // * PASS BUT NOT INCLUDE HAS CHANGE
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
         const { error, value } = validateAddItemCartBody(body);
         if (error) {
@@ -66,10 +67,24 @@ export class CartItemService {
                 statusMessage: 'SKU not found in the specified product',
             };
         }
+
+
+
+
         if (!variant.prices || variant.prices.length === 0) {
             throw {
                 statusCode: 404,
                 statusMessage: 'No prices found for this variant',
+            };
+        }
+
+        const isValidReleaseDate = validateProductReleaseDate(variant.attributes, now)
+
+
+        if(!isValidReleaseDate){
+            throw {
+                statusCode: 400,
+                statusMessage: 'Product release date is invalid',
             };
         }
 
@@ -154,6 +169,8 @@ export class CartItemService {
             }
         }
 
+
+
         const updatedCart = await CommercetoolsCartClient.addItemToCart({
             cart,
             productId,
@@ -165,15 +182,20 @@ export class CartItemService {
             externalPrice: validPrice.value,
         });
 
-        const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
-        const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithChanged);
 
-        return iCartWithBenefit;
+        const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+        const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(cartWithChanged)
+        const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
+
+        return { iCartWithBenefit, hasChanged : cartWithUpdatedPrice.compared };
     }
 
     // TODO :: ADD FLAG ITEM HAS CHANGE 
+    // * PASS BUT NOT INCLUDE HAS CHANGE
     public updateItemQuantityById = async (accessToken: string, id: string, itemId: string, body: any): Promise<any> => {
         const { error, value } = validateUpdateCartItemBody(body);
+
+        const now = new Date()
         if (error) {
             throw {
                 statusCode: 400,
@@ -208,6 +230,16 @@ export class CartItemService {
             throw {
                 statusCode: 404,
                 statusMessage: 'SKU not found in the specified product',
+            };
+        }
+
+        const isValidReleaseDate = validateProductReleaseDate(variant.attributes, now)
+
+
+        if(!isValidReleaseDate){
+            throw {
+                statusCode: 400,
+                statusMessage: 'Product release date is invalid',
             };
         }
 
@@ -271,12 +303,10 @@ export class CartItemService {
         });
 
         const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
-
-        const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartPriceWithHasChange(cartWithChanged)
-
+        const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(cartWithChanged)
         const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-        return iCartWithBenefit;
+        return {...iCartWithBenefit, hasChanged : cartWithUpdatedPrice.compared};
     }
 
     public deleteItemById = async (accessToken: string, id: string, itemId: string, body: any): Promise<any> => {
@@ -438,7 +468,7 @@ export class CartItemService {
                 };
             }
 
-            const action: MyCartAddLineItemAction = {
+            const action: MyCartUpdateAction = {
                 action: 'setLineItemCustomField',
                 lineItemId: lineItem.id,
                 name: 'selected',

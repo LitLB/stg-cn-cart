@@ -84,11 +84,15 @@ export class CartService {
         }
     };
 
+    // TODO :: ADD FLAG ITEM HAS CHANGE 
+    // * PASS BUT NOT INCLUDE HAS CHANGE
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
         const defaultValidateList = [
             'BLACKLIST',
             'CAMPAIGN',
         ]
+
+        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
         let validateList = defaultValidateList
         if (partailValidateList.length) {
@@ -125,14 +129,17 @@ export class CartService {
             tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
         }
         const newCtCart = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+        const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(newCtCart)
 
-        await this.updateStockAllocation(newCtCart);
+        await this.updateStockAllocation(cartWithUpdatedPrice);
 
-        const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, newCtCart, tsmSaveOrder);
+        const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
 
         return order;
     };
 
+    // TODO :: ADD FLAG ITEM HAS CHANGE 
+    // * PASS BUT NOT INCLUDE HAS CHANGE
     public checkout = async (accessToken: string, id: string, body: any): Promise<any> => {
         const { error, value } = validateCartCheckoutBody(body);
         if (error) {
@@ -199,9 +206,7 @@ export class CartService {
             await CommercetoolsCustomObjectClient.addPaymentTransaction(cart.id, paymentTransaction);
         }
 
-        // console.log('talonOneUpdateActions', talonOneUpdateActions)
 
-        // updateActions.push(...talonOneUpdateActions);
 
         const updatedCart = await CommercetoolsCartClient.updateCart(
             cart.id,
@@ -212,13 +217,12 @@ export class CartService {
         // TODO : CHECK LOGIC
         // * Implement done response include itemHasChanged
         const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+        const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(cartWithChanged)
+        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, cartWithUpdatedPrice.lineItems);
 
-        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, updatedCart.lineItems);
+        const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cartWithChanged);
 
-        let iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cartWithChanged);
-        iCart = commercetoolsMeCartClient.mapCartChangedToICart(iCart, cartWithChanged)
-
-        return { ...iCart, ...coupons };
+        return { ...iCart, ...coupons, hasChanged:cartWithUpdatedPrice.compared  };
     };
 
     public createAnonymousCart = async (accessToken: string, body: any) => {
@@ -242,6 +246,9 @@ export class CartService {
         return iCart;
     }
 
+
+     // TODO :: ADD FLAG ITEM HAS CHANGE 
+    // * PASS BUT NOT INCLUDE HAS CHANGE
     public getCartById = async (accessToken: string, id: string, selectedOnly: boolean): Promise<any> => {
         if (!id) {
             throw {
@@ -259,11 +266,16 @@ export class CartService {
             };
         }
         const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
-        const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCartWithChanged, selectedOnly);
-        const coupons  = await this.talonOneCouponAdapter.getEffectsCouponsById(id, ctCartWithChanged.lineItems);
-        return {  ...iCartWithBenefit, ...coupons };
+        const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+        const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(cartWithUpdatedPrice, selectedOnly);
+        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(id, cartWithUpdatedPrice.lineItems);
+
+
+        return { ...iCartWithBenefit, ...coupons, hasChanged: cartWithUpdatedPrice.compared };
     };
 
+
+    
     public getCtCartById = async (accessToken: string, id: string): Promise<any> => {
         if (!id) {
             throw {
