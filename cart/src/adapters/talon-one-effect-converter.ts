@@ -286,7 +286,7 @@ class TalonOneEffectConverter {
 					+productPromotionDetail?.detail?.tsm_promotion_detail__promotion_type
 				);
 			}) || [];
-		console.log('JSON.stringify(freeGiftPromotions)', JSON.stringify(freeGiftPromotions));
+		// console.log('JSON.stringify(freeGiftPromotions)', JSON.stringify(freeGiftPromotions));
 
 		const freeGiftBenefits = freeGiftPromotions?.map((freeGiftPromotion: any) => {
 			const { detail, items, otherPayments } = freeGiftPromotion;
@@ -349,7 +349,7 @@ class TalonOneEffectConverter {
 				totalSelectedItem: 0,
 			};
 		});
-		console.log('JSON.stringify(freeGiftBenefits)', JSON.stringify(freeGiftBenefits));
+		// console.log('JSON.stringify(freeGiftBenefits)', JSON.stringify(freeGiftBenefits));
 
 		const addOnPromotions =
 			productPromotionDetails?.filter((productPromotionDetail: any) => {
@@ -363,7 +363,7 @@ class TalonOneEffectConverter {
 					+productPromotionDetail?.detail?.tsm_promotion_detail__promotion_type
 				);
 			}) || [];
-		console.log('JSON.stringify(addOnPromotions)', JSON.stringify(addOnPromotions));
+		// console.log('JSON.stringify(addOnPromotions)', JSON.stringify(addOnPromotions));
 
 		const addOnBenefits = addOnPromotions?.map((addOnPromotion: any) => {
 			const { detail, items, otherPayments } = addOnPromotion;
@@ -1021,143 +1021,129 @@ class TalonOneEffectConverter {
 		return newLineItems
 	}
 
+	/**
+	 * Example function for attaching free gift benefits to lineItems
+	 */
 	attachFreeGiftBenefits(lineItems: any[], freeGiftBenefits: any[]) {
-		// console.log('lineItems', lineItems);
-		// console.log('freeGiftBenefits', freeGiftBenefits);
+		// 1) Create a map of free_gift items in the cart -> their quantity
 		const freeGiftItemsMapQuantity = lineItems
-			.filter(
-				(lineItem: any) => lineItem?.custom.fields?.productType === 'free_gift'
-			)
-			.reduce((acc: any, lineItem: any) => {
-				// TODO: addOnGroup
-				const { variant, quantity } = lineItem
-				const sku = variant.sku
-				const productGroup = lineItem?.custom.fields?.productGroup
-				acc[productGroup] = acc[productGroup] || {}
-				acc[productGroup][sku] = quantity
-
+			.filter((li: any) => li.custom.fields.productType === 'free_gift')
+			.reduce((acc: any, li: any) => {
+				const { variant, quantity } = li;
+				const sku = variant.sku;
+				const productGroup = li.custom.fields.productGroup;
+				acc[productGroup] = acc[productGroup] || {};
+				acc[productGroup][sku] = quantity;
 				return acc;
 			}, {});
 
-		const lineItemsWithBenefits = lineItems.map((lineItem: any) => {
-			const { custom, variant } = lineItem;
-			const sku = variant.sku
-			const productType = custom?.fields?.productType
-			const productGroup = custom?.fields?.productGroup
+		// 2) For each line item, build "availableBenefits" from freeGiftBenefits
+		const lineItemsWithBenefits = lineItems.map((li: any) => {
+			const { custom, variant } = li;
+			const sku = variant.sku;
+			const productType = custom.fields.productType;
+			const productGroup = custom.fields.productGroup;
 
+			// find all freeGiftBenefits that match this line item’s group/type
 			const availableBenefits = freeGiftBenefits
-				.filter(
-					(wrappedBenefit: any) => {
-						return wrappedBenefit.sku === sku &&
-							wrappedBenefit.productType === productType &&
-							wrappedBenefit.productGroup === productGroup
-					})
-				.map(
-					({
-						freeGiftProducts,
-						...wrappedBenefit
-					}: any) => {
-						const allSkus = freeGiftProducts.flatMap((freeGiftProduct: any) =>
-							freeGiftProduct.variants.map((variant: any) => variant.sku)
-						);
-						const totalSelectedItem = allSkus.reduce(
-							(acc: any, currentSku: any) => {
-								if (freeGiftItemsMapQuantity?.[productGroup]?.[currentSku]) {
-									acc += freeGiftItemsMapQuantity?.[productGroup]?.[currentSku];
-								}
+				.filter((benefit: any) => {
+					return (
+						benefit.sku === sku &&
+						benefit.productType === productType &&
+						benefit.productGroup === productGroup
+					);
+				})
+				.map(({ freeGiftProducts, ...restBenefit }: any) => {
+					// sum up how many free-gift SKUs the user has added in the cart
+					const allSkus = freeGiftProducts.flatMap((fgProd: any) =>
+						fgProd.variants.map((v: any) => v.sku)
+					);
+					const totalSelectedItem = allSkus.reduce((acc: number, currentSku: string) => {
+						if (freeGiftItemsMapQuantity[productGroup]?.[currentSku]) {
+							acc += freeGiftItemsMapQuantity[productGroup][currentSku];
+						}
+						return acc;
+					}, 0);
 
-								return acc;
-							},
-							0
-						);
+					// Mark each variant with how many are selected
+					const newFreeGiftProducts = freeGiftProducts.map((fgProd: any) => ({
+						...fgProd,
+						variants: fgProd.variants.map((v: any) => ({
+							...v,
+							totalSelectedItem: freeGiftItemsMapQuantity[productGroup]?.[v.sku] || 0,
+						})),
+					}));
 
-						const newFreeGiftProducts = freeGiftProducts.map((freeGiftProduct: any) => ({
-							...freeGiftProduct,
-							variants: freeGiftProduct.variants.map((variant: any) => ({
-								...variant,
-								totalSelectedItem: freeGiftItemsMapQuantity?.[productGroup]?.[variant.sku] || 0,
-							})),
-						}));
-
-						// TODO: Condition need to have product group as well
-						return {
-							...wrappedBenefit,
-							freeGiftProducts: newFreeGiftProducts,
-							totalSelectedItem,
-						};
-					}
-				);
+					return {
+						...restBenefit,
+						freeGiftProducts: newFreeGiftProducts,
+						totalSelectedItem,
+					};
+				});
 
 			return {
-				...lineItem,
+				...li,
 				availableBenefits,
 			};
 		});
-		// console.log('lineItemsWithBenefits', lineItemsWithBenefits);
-		console.log('JSON.stringify(lineItemsWithBenefits)', JSON.stringify(lineItemsWithBenefits))
 
-		return lineItemsWithBenefits;
+		// 3) For each line item that IS a free_gift, set its privilege based on matched benefit
+		const newLineItems = lineItemsWithBenefits.map((li: any) => {
+			const productType = li.custom.fields.productType;
+			if (productType !== 'free_gift') return li;
 
-		// TODO: What responsible of the code below?
-		const newLineItems = [...lineItemsWithBenefits].map((newLineItem: any) => {
-			const { custom } = newLineItem
-			const productType = custom?.fields?.productType
-			if (productType !== 'free_gift') {
-				return newLineItem
-			}
-			const productGroup = custom?.fields?.productGroup
-			const addOnGroup = custom?.fields?.addOnGroup
-			// ! Add On
+			const productGroup = li.custom.fields.productGroup;
+			const mainProductLineItem = lineItemsWithBenefits.find((x: any) => {
+				return x.custom.fields.productType === 'main_product' &&
+					x.custom.fields.productGroup === productGroup;
+			});
 
-			const mainProductLineItemWithBenefits = lineItemsWithBenefits.find((lineItemsWithBenefit: any) => {
-				const { custom } = lineItemsWithBenefit
-				return custom?.fields?.productType === 'main_product' &&
-					custom?.fields?.productGroup === productGroup
-			})
+			const matchedBenefit = mainProductLineItem?.availableBenefits?.find(
+				(ab: any) => ab.benefitType === 'free_gift'
+			);
 
-			const { availableBenefits } = mainProductLineItemWithBenefits
+			if (!matchedBenefit) return li; // no matching free gift benefit
 
-			const matchedBenefit = availableBenefits.find((availableBenefit: any) => {
-				return availableBenefit.group === addOnGroup
-			})
+			const {
+				campaignCode,
+				promotionSetCode,
+				promotionSetProposition,
+				discountBaht,
+				discountPercent,
+				specialPrice,
+				isForcePromotion,
+				group,
+			} = matchedBenefit;
 
-			let privilege = {}
+			// set privilege
+			const privilege = {
+				benefitType: 'free_gift',
+				campaignCode,
+				promotionSetCode,
+				promotionSetProposition,
+				group,
+				discountBaht,
+				discountPercent,
+				specialPrice,
+				isForcePromotion
+			};
 
-			if (matchedBenefit) {
-				const {
-					campaignCode,
-					promotionSetCode,
-					promotionSetProposition,
-					benefitType,
-					type,
-					group,
-					discountBaht,
-					discountPercent,
-					specialPrice,
-					isForcePromotion
-				} = matchedBenefit
-				privilege = {
-					// TODO: add promotion set detail, max received. curren total selected item
-					benefitType,
-					type,
-					campaignCode,
-					promotionSetCode,
-					promotionSetProposition,
-					group,
-					discountBaht,
-					discountPercent,
-					specialPrice,
-					isForcePromotion
-				}
-			}
+			// create discount object that your code in `upsertPrivilegeToCtCart` can read
+			const discount = {
+				benefitType: 'free_gift',
+			};
+
+			const oldDiscounts = li.discounts || [];
+			const newDiscounts = [...oldDiscounts, discount];
 
 			return {
-				...newLineItem,
-				privilege
-			}
-		})
+				...li,
+				privilege,
+				discounts: newDiscounts,  // <-- so `newLineItemDiscounts.length` won't be 0
+			};
+		});
 
-		return newLineItems
+		return newLineItems;
 	}
 
 	attachAddOnBenefits(lineItems: any[], addOnbenefits: any[]) {
@@ -1311,10 +1297,11 @@ class TalonOneEffectConverter {
 	// TODO: 1.2.1 Get Benefit(s) from CT Cart
 	async getBenefitByCtCart(ctCart: any) {
 		// TODO: 1.2.1.1 Upsert T1 Custom Session with CT Cart
-		// const customerSession = await talonOneIntegrationAdapter.getActiveCustomerSession(ctCart)
+		const customerSession = await talonOneIntegrationAdapter.getActiveCustomerSession(ctCart)
 		// const { customerSession: { cartItems }, effects } = customerSession;
-		const cartItems = freeGiftcartItems;
-		const effects = freeGiftEffects;
+		const { customerSession: { cartItems } } = customerSession;
+		// const cartItems = freeGiftcartItems;
+		const effects = freeGiftEffects; // Bypass effects
 		// console.log('JSON.stringify(cartItems)', JSON.stringify(cartItems));
 		// console.log('JSON.stringify(effects)', JSON.stringify(effects));
 
@@ -1392,7 +1379,7 @@ class TalonOneEffectConverter {
 
 		lineItems = this.attachFreeGiftBenefits(lineItems, freeGiftBenefits)
 
-		lineItems = this.attachAddOnBenefits(lineItems, addOnbenefits)
+		// lineItems = this.attachAddOnBenefits(lineItems, addOnbenefits)
 
 		return lineItems;
 	}

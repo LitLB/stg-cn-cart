@@ -167,6 +167,8 @@ export class CartItemService {
                 }
             }
 
+            console.log('newProductGroup', newProductGroup);
+
             const updatedCart = await CommercetoolsCartClient.addItemToCart({
                 cart,
                 productId,
@@ -530,7 +532,8 @@ export class CartItemService {
         productType: any;
         productGroup: number;
     }) => {
-        if (['add_on', 'insurance'].includes(productType)) {
+        // TODO: Free Gift changes
+        if (['add_on', 'insurance', 'free_gift'].includes(productType)) {
             return productGroup;
         }
 

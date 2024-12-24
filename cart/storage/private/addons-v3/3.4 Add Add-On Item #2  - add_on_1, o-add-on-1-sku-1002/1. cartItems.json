@@ -1,0 +1,60 @@
+[
+  {
+    "sku": "o-main-product-sku-1001",
+    "quantity": 3,
+    "returnedQuantity": 0,
+    "remainingQuantity": 3,
+    "price": 12500,
+    "product": { "name": "o-main-product-1" },
+    "position": 0,
+    "attributes": {
+      "commercetools_product_id": "08c91f85-f3ad-407c-9e7c-164661ea1f93",
+      "product_group": 1,
+      "product_type": "main_product"
+    }
+  },
+  {
+    "sku": "o-add-on-1-sku-1001",
+    "quantity": 1,
+    "returnedQuantity": 0,
+    "remainingQuantity": 1,
+    "price": 890,
+    "product": { "name": "o-add-on-1" },
+    "position": 1,
+    "attributes": {
+      "add_on_group": "add_on_1",
+      "commercetools_product_id": "2973331a-c3b1-4d5b-a042-7db5cb84ee09",
+      "product_group": 1,
+      "product_type": "add_on"
+    }
+  },
+  {
+    "sku": "o-main-product-sku-2001",
+    "quantity": 1,
+    "returnedQuantity": 0,
+    "remainingQuantity": 1,
+    "price": 4500,
+    "product": { "name": "o-main-product-2" },
+    "position": 2,
+    "attributes": {
+      "commercetools_product_id": "30395a4a-3716-4efa-bf86-39d43f2087e4",
+      "product_group": 2,
+      "product_type": "main_product"
+    }
+  },
+  {
+    "sku": "o-add-on-1-sku-1002",
+    "quantity": 1,
+    "returnedQuantity": 0,
+    "remainingQuantity": 1,
+    "price": 890,
+    "product": { "name": "o-add-on-1" },
+    "position": 3,
+    "attributes": {
+      "add_on_group": "add_on_1",
+      "commercetools_product_id": "2973331a-c3b1-4d5b-a042-7db5cb84ee09",
+      "product_group": 1,
+      "product_type": "add_on"
+    }
+  }
+]

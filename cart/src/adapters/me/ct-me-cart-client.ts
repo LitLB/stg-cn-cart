@@ -71,6 +71,201 @@ export default class CommercetoolsMeCartClient {
 	}
 
 	/**
+	 * Main entry for applying Talon.One benefit logic, etc.
+	 */
+	async updateCartWithBenefit(ctCart: any) {
+		// 1) Sync to Talon.One
+		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
+
+		// 2) Get line items w/ campaign benefits
+		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
+		console.log('JSON.stringify(lineItemWithCampaignBenefits)', JSON.stringify(lineItemWithCampaignBenefits));
+
+		// 3) Upsert privileges/discounts to CT cart
+		const updatedCart = await this.upsertPrivilegeToCtCart(ctCart, lineItemWithCampaignBenefits)
+
+		// 4) Merge inventory, finalize iCart for the final response
+		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
+		const inventoryKey = skus.map((sku: any) => sku).join(',');
+		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
+		const inventoryMap = new Map<string, any>();
+		inventories.forEach((inventory: any) => {
+			const key = inventory.key;
+			const sku = key.replace(`${this.onlineChannel}-`, '');
+			inventoryMap.set(sku, inventory);
+		});
+		let iCart: ICart = this.mapCartToICart(updatedCart);
+		iCart = await this.attachInsuranceToICart(iCart);
+
+		this.mapInventoryToItems(iCart.items, inventoryMap);
+
+		const iCartWithBenefit = this.attachBenefitToICart(iCart, lineItemWithCampaignBenefits)
+
+		return iCartWithBenefit;
+	}
+
+	async upsertPrivilegeToCtCart(updatedCart: any, lineItemWithCampaignBenefits: any) {
+		const { id: cartId, version, lineItems } = updatedCart;
+		const myCartUpdateActions: MyCartUpdateAction[] = [];
+		const newDirectDiscounts: any[] = [];
+
+		lineItems.forEach((lineItem: LineItem) => {
+			// console.log('JSON.stringify(lineItem)', JSON.stringify(lineItem));
+			const lineItemId = lineItem.id
+			// console.log('lineItemId', lineItemId)
+			const lineItemProductType = lineItem.custom?.fields.productType
+			const lineItemProductGroup = lineItem.custom?.fields.productGroup
+			const lineItemAddOnGroup = lineItem.custom?.fields.addOnGroup
+			// const lineItemOtherPayments = lineItem?.custom?.otherPayments
+			const quantity = lineItem.quantity
+			const cartItem = lineItemWithCampaignBenefits.find((item: any) => {
+				return lineItem.variant.sku === item.variant.sku &&
+					lineItemProductType === item.custom.fields.productType &&
+					lineItemProductGroup === item.custom.fields.productGroup &&
+					(!lineItemAddOnGroup || lineItemAddOnGroup === item.custom.fields.addOnGroup)
+			})
+
+			const newPrivilege = cartItem?.privilege
+			// console.log('newPrivilege', newPrivilege);
+
+			myCartUpdateActions.push({
+				action: 'setLineItemCustomField',
+				lineItemId,
+				name: 'privilege',
+				value: newPrivilege ? JSON.stringify(newPrivilege) : '{}',
+			});
+
+			const newLineItemDiscounts: any[] = (cartItem.discounts ?? [])
+			const discounts = []
+			if (newLineItemDiscounts.length) {
+				// ! Main product
+				// ! Add-on
+
+				for (const newLineItemDiscount of newLineItemDiscounts) {
+					const { benefitType, discountBaht } = newLineItemDiscount
+					if (benefitType === 'main_product') {
+						const predicate = [
+							`product.id ="${lineItem.productId}"`,
+							`custom.productType = "${lineItemProductType}"`,
+							`custom.productGroup = ${lineItemProductGroup}`
+						].join(' AND ');
+
+						newDirectDiscounts.push({
+							target: {
+								type: 'lineItems',
+								predicate,
+							},
+							value: {
+								type: 'absolute',
+								money: [
+									{
+										currencyCode: 'THB',
+										centAmount: quantity * discountBaht,
+									},
+								],
+							},
+						})
+					}
+
+					const { specialPrice } = newLineItemDiscount
+					if (benefitType === 'add_on') {
+						const predicate = [
+							`product.id ="${lineItem.productId}"`,
+							`custom.productType = "${lineItemProductType}"`,
+							`custom.productGroup = ${lineItemProductGroup}`,
+							`custom.addOnGroup = "${lineItemAddOnGroup}"`,
+						].join(' AND ');
+
+						newDirectDiscounts.push({
+							target: {
+								type: 'lineItems',
+								predicate,
+							},
+							value: {
+								type: 'fixed',
+								money: [
+									{
+										currencyCode: 'THB',
+										centAmount: specialPrice,
+									},
+								],
+							},
+						})
+					}
+
+					/**
+					 * ===========================
+					 * 3) FREE GIFT (100% OFF)
+					 * ===========================
+					 */
+					if (benefitType === 'free_gift') {
+						const lineItemPrice = lineItem.price?.value?.centAmount || 0;
+
+						// For a free gift, we want to discount the ENTIRE line item price: quantity * unit price.
+						// If lineItemPrice is the total for quantity, you can discount lineItemPrice directly.
+						// Or if lineItemPrice is "unit price", multiply by quantity.
+						// const totalLineCost = lineItemPrice; // If lineItemPrice is the total for all quantity
+						// If lineItemPrice is unit-based, do: const totalLineCost = lineItemPrice * quantity;
+						
+						const totalLineCost = lineItemPrice * quantity;
+
+						const predicate = [
+							`product.id = "${lineItem.productId}"`,
+							`custom.productType = "${lineItemProductType}"`,
+							`custom.productGroup = ${lineItemProductGroup}`,
+							// Optionally if you want a separate addOnGroup for free gift
+							// `custom.addOnGroup = "free_gift_1"`,
+						].join(' AND ');
+
+						newDirectDiscounts.push({
+							target: {
+								type: 'lineItems',
+								predicate,
+							},
+							value: {
+								type: 'absolute',
+								money: [
+									{
+										currencyCode: 'THB',
+										centAmount: totalLineCost,
+									},
+								],
+							},
+						});
+					}
+
+					discounts.push(JSON.stringify(newLineItemDiscount))
+				}
+			}
+
+			myCartUpdateActions.push({
+				action: 'setLineItemCustomField',
+				lineItemId,
+				name: 'discounts',
+				value: discounts,
+			});
+		});
+
+		console.log(`myCartUpdateActions`, myCartUpdateActions);
+
+		let newCart = updatedCart
+		let currentVersion = version
+		if (myCartUpdateActions.length) {
+			newCart = await this.updateCart(cartId, currentVersion, myCartUpdateActions)
+			currentVersion = newCart.version
+		}
+
+		console.log('newDirectDiscounts', newDirectDiscounts);
+
+		newCart = await this.ctCartClient.updateCart(cartId, currentVersion, [{
+			action: 'setDirectDiscounts',
+			discounts: newDirectDiscounts
+		}])
+
+		return newCart
+	}
+
+	/**
 	 * Creates a new cart for the current user with custom fields.
 	 * @param campaignGroup - The campaign group for the cart.
 	 * @param journey - The journey for the cart.
@@ -828,6 +1023,7 @@ export default class CommercetoolsMeCartClient {
 		return response.body;
 	}
 
+<<<<<<< HEAD
 	async upsertPrivilegeToCtCart(updatedCart: any, lineItemWithCampaignBenefits: any) {
 		const { id: cartId, version, lineItems, customLineItems, totalPrice } = updatedCart;
 		const currencyCode = totalPrice.currencyCode
@@ -1026,6 +1222,8 @@ export default class CommercetoolsMeCartClient {
 		return newCart
 	}
 
+=======
+>>>>>>> 12d4e88 (save progress)
 	attachBenefitToICart(iCart: any, lineItemWithCampaignBenefits: any[]) {
 		const { items } = iCart
 		const newItems = items.map((item: any) => {
@@ -1177,38 +1375,6 @@ export default class CommercetoolsMeCartClient {
 			...iCart,
 			items: withInsuranceItems
 		};
-	}
-
-	// TODO: 1. first step
-	async updateCartWithBenefit(ctCart: any) {
-		// TODO: 1.1 Make body and Request
-		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
-
-		// TODO: 1.2 Get Benefit(s)
-		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
-		// const lineItemWithCampaignBenefits = lineItemWithCampaignBenefitsMock; // Bypass by using mock data named lineItemWithCampaignBenefitsMock.
-		console.log('JSON.stringify(lineItemWithCampaignBenefits)', JSON.stringify(lineItemWithCampaignBenefits));
-
-		// TODO: 1.3 Update Effect to CT Cart
-		const updatedCart = await this.upsertPrivilegeToCtCart(ctCart, lineItemWithCampaignBenefits)
-
-		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
-		const inventoryKey = skus.map((sku: any) => sku).join(',');
-		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
-		const inventoryMap = new Map<string, any>();
-		inventories.forEach((inventory: any) => {
-			const key = inventory.key;
-			const sku = key.replace(`${this.onlineChannel}-`, '');
-			inventoryMap.set(sku, inventory);
-		});
-		let iCart: ICart = this.mapCartToICart(updatedCart);
-		iCart = await this.attachInsuranceToICart(iCart);
-
-		this.mapInventoryToItems(iCart.items, inventoryMap);
-
-		const iCartWithBenefit = this.attachBenefitToICart(iCart, lineItemWithCampaignBenefits)
-
-		return iCartWithBenefit;
 	}
 
 	filterLineItems(lineItems: LineItem[], selectedOnly: boolean): LineItem[] {
