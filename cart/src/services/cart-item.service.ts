@@ -29,7 +29,6 @@ export class CartItemService {
 
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
         try {
-            console.log('body', body);
             const { error, value } = validateAddItemCartBody(body);
             if (error) {
                 throw {
