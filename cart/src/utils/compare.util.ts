@@ -73,6 +73,9 @@ export function compareLineItemsArrays(lineItemsA: LineItem[], lineItemsB: LineI
             return { productId: itemA.productId, skuId: itemA.variant.sku,   hasChange: "Line item was remove by condition." };
         }
         const hasChange = compareLineItemAttributes(itemA, matchingItemB);
+
+        console.log(JSON.stringify(itemA))
+
         return { productId: itemA.productId,skuId: itemA.variant.sku, hasChange };
     });
 }

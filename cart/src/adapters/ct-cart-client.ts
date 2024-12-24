@@ -16,6 +16,7 @@ class CommercetoolsCartClient {
 	private constructor() {
 		this.apiRoot = CommercetoolsBaseClient.getApiRoot();
 		this.projectKey = readConfiguration().ctpProjectKey as string;
+		
 
 	}
 
@@ -177,6 +178,9 @@ class CommercetoolsCartClient {
 	public async updateCartWithNewValue(oldCart: Cart) {
 
 		const { id: cartId, version: cartVersion, lineItems } = oldCart
+
+
+		
 
 		const updateActions: CartUpdateAction[] = lineItems.map((lineItem: any) => {
 			const { id, price  } = lineItem

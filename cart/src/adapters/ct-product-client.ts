@@ -7,15 +7,21 @@ import { CT_PRODUCT_ACTIONS } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
 import { getAttributeValue } from '../utils/product-utils';
 import CommercetoolsMeCartClient from './me/ct-me-cart-client';
+import CommercetoolsInventoryClient from '../adapters/ct-inventory-client'
 
 class CommercetoolsProductClient {
 	private static instance: CommercetoolsProductClient;
 	private apiRoot: ApiRoot;
 	private projectKey: string;
+	private readonly ctInventoryClient;
+	private onlineChannel: string;
+
 
 	private constructor() {
+		this.onlineChannel = readConfiguration().onlineChannel as string;
 		this.apiRoot = CommercetoolsBaseClient.getApiRoot();
 		this.projectKey = readConfiguration().ctpProjectKey as string;
+		this.ctInventoryClient = CommercetoolsInventoryClient;
 	}
 
 	public static getInstance(): CommercetoolsProductClient {
@@ -242,8 +248,6 @@ class CommercetoolsProductClient {
 		return sortedPrices[0];
 	}
 
-	
-
 	findVariantByKey(variantKey: string, masterVariant: ProductVariant, variants: ProductVariant[]) {
 		const allVariant = variants.concat(masterVariant)
 		const variant = allVariant.find((v) => v.key === variantKey);
@@ -251,29 +255,44 @@ class CommercetoolsProductClient {
 		if (!variant) {
             throw new Error(`Could not find variant with key "${variantKey}"`);
         }
-	
 
 		return variant
 	}
 
 	async checkCartHasChanged(ctCart: any) {
-		const { lineItems } = ctCart;
+		const { lineItems,totalLineItemQuantity:oldCartQuantity } = ctCart;
 	
 		const skus = lineItems.map((item: any) => item.variant.sku);
+
+		const inventoryKey = skus.map((sku: any) => sku).join(',');
+
+		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
+		
+
+		console.log(`this.onlineChannel : ${this.onlineChannel}`)
+
+		// TODO :: CHECK AVAILABLE
+
+		const inventoryMap = new Map<string, any>();
+		inventories.forEach((inventory: any) => {
+			const key = inventory.key;
+			const sku = key.replace(`${this.onlineChannel}-`, '');
+			inventoryMap.set(sku, inventory);
+		});
+
+
 		const { body } = await this.getProductsBySkus(skus);
 		const skuItems = body.results;
 	
 		// Helper function to find valid price
 		const findValidPrice = (variants: any) => {
-
-
-		return 	this.findValidPrice({
+			return this.findValidPrice({
 				prices: variants.prices,
 				customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
 				date: new Date(),
 			});
 		}
-	
+
 		// Filter main products
 		const mainProducts = lineItems.filter(
 			(item: any) => item.custom?.fields?.productType === "main_product"
@@ -281,27 +300,14 @@ class CommercetoolsProductClient {
 	
 		// Process cart items to check for changes
 		const processedItems = mainProducts.map((cartItem: any) => {
+
 			const matchingSkuItem = skuItems.find(
 				(skuItem: any) => cartItem.productId === skuItem.id
 			);
 
-			
-	
 			if (!matchingSkuItem) return cartItem;
-
-
-
-			const allVariant = [...matchingSkuItem.variants, matchingSkuItem.masterVariant];
-
-			const matchCartItemVariant = allVariant.find(r => r.sku === cartItem.variant.sku)
-
-	
 			const { quantity, price } = cartItem;
-			const validPrice = findValidPrice(matchCartItemVariant);
 
-
-			const supplyChannel = cartItem.supplyChannel;
-	
 			// Find matched variant
 			const matchedVariant = this.findVariantByKey(
 				cartItem?.variant?.key,
@@ -309,17 +315,23 @@ class CommercetoolsProductClient {
 				matchingSkuItem.variants
 			);
 
-	
-			// const cartAttributes = cartItem?.variant?.attributes ?? [];
+
+			const validPrice = findValidPrice(matchedVariant);
 			const skuAttributes = matchedVariant?.attributes ?? [];
-	
 			// Determine if attributes or price have changed
+
+			const parentMax = getAttributeValue(skuAttributes, "quantity_max");
+			const parentMin = getAttributeValue(skuAttributes, "quantity_min");
+			const skuMax = getAttributeValue(skuAttributes, "sku_quantity_max");
+			const skuMin = getAttributeValue(skuAttributes, "sku_quantity_min");
+
 			const hasChanged = {
 				price: validPrice.value.centAmount !== price.value.centAmount,
+				quantityOverParentMax: parentMax !== null && oldCartQuantity.main_product > parentMax,
+				quantityLowerParentMin: parentMax !== null && oldCartQuantity.main_product < parentMin,
+				quantityOverSkuMax: skuMax !== null && quantity > skuMax,
+				quantityLowerSkuMin: skuMin !== null && quantity < skuMin
 			};
-
-			const skuStatus = getAttributeValue(skuAttributes, "status");
-			if (skuStatus?.key === "disabled") return null;
 	
 			// Update item data
 			const updatedItem = {
@@ -336,7 +348,7 @@ class CommercetoolsProductClient {
 			};
 	
 			return updatedItem;
-		}).filter(Boolean); // Remove null entries (disabled SKUs)
+		}).filter(Boolean); 
 	
 		// Recalculate total cart values
 		const totalPrice = processedItems.reduce(

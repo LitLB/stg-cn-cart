@@ -135,7 +135,7 @@ export class CartService {
 
         const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
 
-        return order;
+        return {...order, hasChanged: cartWithUpdatedPrice.compared};
     };
 
     // TODO :: ADD FLAG ITEM HAS CHANGE 

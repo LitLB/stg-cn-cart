@@ -7,7 +7,7 @@ import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
 import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateJourneyCompatibility, validateProductQuantity, validateProductReleaseDate, validateSelectCartItemBody, validateUpdateCartItemBody } from '../validators/cart-item.validator';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { readConfiguration } from '../utils/config.utils';
-import { MyCartAddLineItemAction, MyCartUpdateAction } from '@commercetools/platform-sdk';
+import {  MyCartUpdateAction } from '@commercetools/platform-sdk';
 
 export class CartItemService {
     // private getJourneyDeviceOnly = (variant: any): string | undefined => {
@@ -121,6 +121,7 @@ export class CartItemService {
             };
         }
         const inventory = inventories[0];
+
         if (inventory.isOutOfStock) {
             throw {
                 statusCode: 400,
