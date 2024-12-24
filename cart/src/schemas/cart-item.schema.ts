@@ -21,7 +21,7 @@ export function validateSelectCartItemBody(body: any) {
 						'any.required': 'SKU is required',
 					}),
 					productType: Joi.string()
-						.valid('main_product', 'add_on', 'insurance')
+						.valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
 						.required()
 						.messages({
 							'string.base': 'Product Type must be a string',
@@ -84,7 +84,7 @@ export function validateAddItemCartBody(body: any) {
 		campaignByJourney: Joi.string().optional().allow(null, ''),
 		propositionGroup: Joi.string().optional().allow(null, ''),
 		productType: Joi.string()
-			.valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: free_gift added.
+			.valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
 			.required()
 			.messages({
 				'string.base': 'Product Type must be a string',
@@ -135,7 +135,7 @@ export function validateUpdateCartItemBody(body: any) {
 			'any.required': 'Quantity is required',
 		}),
 		productType: Joi.string()
-			.valid('main_product', 'add_on', 'insurance')
+			.valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
 			.required()
 			.messages({
 				'string.base': 'Product Type must be a string',
@@ -176,7 +176,7 @@ export function validateDeleteCartItemBody(body: any) {
 			'any.required': 'SKU is required',
 		}),
 		productType: Joi.string()
-			.valid('main_product', 'add_on', 'insurance')
+			.valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
 			.required()
 			.messages({
 				'string.base': 'Product Type must be a string',
@@ -219,7 +219,7 @@ export function validateBulkDeleteCartItemBody(body: any) {
 						'any.required': 'SKU is required',
 					}),
 					productType: Joi.string()
-						.valid('main_product', 'add_on', 'insurance')
+						.valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
 						.required()
 						.messages({
 							'string.base': 'Product Type must be a string',

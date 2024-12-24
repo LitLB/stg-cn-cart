@@ -79,7 +79,7 @@ export default class CommercetoolsMeCartClient {
 
 		// 2) Get line items w/ campaign benefits
 		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
-		console.log('JSON.stringify(lineItemWithCampaignBenefits)', JSON.stringify(lineItemWithCampaignBenefits));
+		// console.log('JSON.stringify(lineItemWithCampaignBenefits)', JSON.stringify(lineItemWithCampaignBenefits));
 
 		// 3) Upsert privileges/discounts to CT cart
 		const updatedCart = await this.upsertPrivilegeToCtCart(ctCart, lineItemWithCampaignBenefits)

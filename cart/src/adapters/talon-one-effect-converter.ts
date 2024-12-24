@@ -1022,8 +1022,14 @@ class TalonOneEffectConverter {
 	}
 
 	attachFreeGiftBenefits(lineItems: any[], freeGiftBenefits: any[]) {
+		console.log('lineItems.length', lineItems.length);
+		console.log('[...lineItems].length', [...lineItems].length);
+		// console.log('lineItems', lineItems);
+		// console.log('[...lineItems]', [...lineItems]);
+
 		// 1) Create a map of free_gift items in the cart -> their quantity
 		const freeGiftItemsMapQuantity = lineItems
+		// const freeGiftItemsMapQuantity = [...lineItems]
 			.filter((li: any) => li.custom.fields.productType === 'free_gift')
 			.reduce((acc: any, li: any) => {
 				const { variant, quantity } = li;

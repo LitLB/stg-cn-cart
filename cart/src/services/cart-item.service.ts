@@ -29,6 +29,7 @@ export class CartItemService {
 
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
         try {
+            console.log('body', body);
             const { error, value } = validateAddItemCartBody(body);
             if (error) {
                 throw {
@@ -167,8 +168,6 @@ export class CartItemService {
                 }
             }
 
-            console.log('newProductGroup', newProductGroup);
-
             const updatedCart = await CommercetoolsCartClient.addItemToCart({
                 cart,
                 productId,
@@ -180,17 +179,24 @@ export class CartItemService {
                 externalPrice: validPrice.value,
             });
 
+            // console.log('updatedCart', updatedCart);
+            console.log('updatedCart.lineItems.length', updatedCart.lineItems.length);
+
+            for (const lineItem of updatedCart.lineItems) {
+                console.log('lineItem.variant.sku', lineItem.variant.sku);
+            }
+
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return {...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
+            return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'addItem');
         }
     }
@@ -312,12 +318,12 @@ export class CartItemService {
 
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return {...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared};
+            return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'updateItemQuantityById');
         }
     }
@@ -509,12 +515,12 @@ export class CartItemService {
 
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return {...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared};
+            return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'select');
         }
     }
