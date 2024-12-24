@@ -168,6 +168,7 @@ export class CartService {
             await this.createOrderAdditional(order, client);
             return order;
         } catch (error: any) {
+            logger.info(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
                 throw error;
             }
@@ -291,6 +292,7 @@ export class CartService {
 
             return { ...iCart, ...coupons };
         } catch (error: any) {
+            logger.info(`CartService.checkout.error`, error);
             if (error.status && error.message) {
                 throw error;
             }
