@@ -64,6 +64,9 @@ deployAs:
         - key: APIGW_BASE_URL
           description: Apigee base url
           required: true
+        - key: CTP_ADD_CUSTOM_OTHER_PAYMENT_LINE_ITEM_PREFIX
+          description: Commercetools Other Payment Line Item Prefix
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: Commercetools project key identifying your specific project
