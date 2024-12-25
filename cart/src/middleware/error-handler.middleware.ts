@@ -21,7 +21,7 @@ export const errorHandler = (
     next: NextFunction,
 ): void => {
     // Log the error details for debugging
-    logger.error('Unhandled Error:', {
+    logger.error('Global Error Handler:', {
         message: err.message || 'Unknown error',
         stack: err.stack || 'No stack trace available',
         status: err.status,
