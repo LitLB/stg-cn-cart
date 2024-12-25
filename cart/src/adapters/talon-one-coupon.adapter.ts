@@ -10,6 +10,8 @@ import {
 import { readConfiguration } from '../utils/config.utils';
 import { COUPON_CUSTOM_EFFECT } from '../constants/cart.constant';
 import { talonOneIntegrationAdapter } from './talon-one.adapter';
+import { logger } from '../utils/logger.utils';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class TalonOneCouponAdapter {
     private ctpAddCustomCouponLineItemPrefix: string;
@@ -261,12 +263,69 @@ export class TalonOneCouponAdapter {
       
           // Return structured coupon data
           return { coupons: { acceptedCoupons, rejectedCoupons } };
-        } catch (error) {
-          console.error("Error retrieving or processing coupon effects:", error);
-      
+        } catch (error: any) {
+            logger.error("cartService.checkout.talonOneCouponAdapter.getEffectsCouponsById.error: ", error);
           // Return default response in case of an error
           return { coupons: defaultCoupons };
         }
-      }
-    
+    }
+
+    async fetchEffectsCouponsById(profileId: string, cart: any, couponsEffects: any) {
+        try {
+
+            if (couponsEffects.acceptedCoupons.length <= 0) {
+                return { couponsEffects };
+            }
+
+            // Step 1: Extract coupon codes
+            let couponCodes: string[] = couponsEffects.acceptedCoupons.map((coupon: { code: string }) => coupon.code);
+
+            // Merge and deduplicate coupon codes from couponsEffects rejectedCoupons
+            if (couponsEffects?.rejectedCoupons?.length > 0) {
+                const rejectedCouponCodes: string[] = couponsEffects.rejectedCoupons.map((coupon: { code: string }) => coupon.code);
+                couponCodes = Array.from(new Set([...couponCodes, ...rejectedCouponCodes]));
+            }
+           
+            // Step 2: Build the customer session payload
+            const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
+                profileId,
+                ctCartData: cart,
+                couponCodes
+            });
+        
+            let updatedCustomerSession;
+            
+            try {
+                // Step 3: Update the customer session with TalonOne
+                updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, customerSessionPayload);
+            } catch (error: any) {
+                logger.info('TalonOne updateCustomerSession error', error);
+                throw {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    errorCode: "CHECKOUT_CT_FAILED",
+                    statusMessage: `An error occurred while updating the customer session in TalonOne.`
+                };
+            }
+        
+            // Step 4: Process coupon effects
+            const talonEffects = updatedCustomerSession.effects;
+            const processedCouponEffects = this.processCouponEffects(talonEffects);
+        
+            // Step 5: Build coupon actions
+            const talonOneUpdateActions = this.buildCouponActions(cart, processedCouponEffects);
+        
+            // Step 6: Update acceptedCoupons and rejectedCoupons
+            couponsEffects.acceptedCoupons = processedCouponEffects.applyCoupons;
+            couponsEffects.rejectedCoupons = processedCouponEffects.rejectedCoupons;
+        
+            return { couponsEffects, talonOneUpdateActions };
+        } catch (error) {
+            logger.error("cartService.checkout.talonOneCouponAdapter.fetchEffectsCouponsById.error: ", error);
+            throw {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                errorCode: "CART_FETCH_EFFECTS_COUPONS_CT_FAILED",
+                statusMessage: "An unexpected error occurred while processing the coupon effects."
+            };
+        }
+    }
 }

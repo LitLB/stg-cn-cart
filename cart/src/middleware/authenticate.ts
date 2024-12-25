@@ -1,52 +1,41 @@
-// src/middleware/authenticate.ts
+// cart/src/middleware/authenticate.ts
 
 import { Request, Response, NextFunction } from 'express';
 import CommercetoolsAuthClient from '../adapters/ct-auth-client';
+import { createStandardizedError } from '../utils/error.utils';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export async function authenticate(req: Request, res: Response, next: NextFunction) {
     try {
         const authHeader = req.headers['authorization'];
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({
-                statusCode: 401,
+            throw createStandardizedError({
+                statusCode: HTTP_STATUSES.UNAUTHORIZED,
                 statusMessage: 'Authorization token is missing or not valid.',
-            });
+            }, 'authenticate');
         }
 
         const accessToken = authHeader.split(' ')[1];
-
         if (!accessToken) {
-            return res.status(401).json({
-                statusCode: 401,
+            throw createStandardizedError({
+                statusCode: HTTP_STATUSES.UNAUTHORIZED,
                 statusMessage: 'Access token is missing.',
-            });
+            }, 'authenticate');
         }
 
         const authClient = new CommercetoolsAuthClient();
-
-        try {
-            const introspectResult = await authClient.introspectToken(accessToken);
-            if (!introspectResult.active) {
-                return res.status(401).json({
-                    statusCode: 401,
-                    statusMessage: 'Invalid or expired token.',
-                });
-            }
-
-            req.accessToken = accessToken;
-
-            next();
-        } catch (error: any) {
-            return res.status(500).json({
-                statusCode: 500,
-                statusMessage: 'Failed to authenticate request.',
-            });
+        const introspectResult = await authClient.introspectToken(accessToken);
+        if (!introspectResult.active) {
+            throw createStandardizedError({
+                statusCode: HTTP_STATUSES.UNAUTHORIZED,
+                statusMessage: 'Invalid or expired token.',
+            }, 'authenticate');
         }
+
+        req.accessToken = accessToken;
+        return next();
     } catch (error: any) {
-        return res.status(500).json({
-            statusCode: 500,
-            statusMessage: 'Internal Server Error.',
-        });
+        next(error);
     }
 }

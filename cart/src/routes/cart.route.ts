@@ -6,6 +6,8 @@ import { CartController } from '../controllers/cart.controller';
 import { authenticate } from '../middleware/authenticate';
 import { CartItemController } from '../controllers/cart-item.controller';
 import { BlacklistController } from '../controllers/blacklist.controller';
+import { validateRequest } from '../middleware/validate.middleware';
+import { cartParamsSchema, createAnonymousCartSchema, getCartQuerySchema } from '../schemas/cart.schema';
 
 const cartRouter = Router();
 const authController = new AuthController();
@@ -16,8 +18,8 @@ const blacklistController = new BlacklistController();
 cartRouter.post('/v1/oauth/anonymous', authController.createAnonymousSession);
 cartRouter.patch('/v1/oauth/anonymous', authController.renewAnonymousSession);
 
-cartRouter.post('/v1/carts', authenticate, cartController.createAnonymousCart);
-cartRouter.get('/v1/carts/:id', authenticate, cartController.getCartById);
+cartRouter.post('/v1/carts', authenticate, validateRequest({ body: createAnonymousCartSchema }), cartController.createAnonymousCart);
+cartRouter.get('/v1/carts/:id', authenticate, validateRequest({ params: cartParamsSchema, query: getCartQuerySchema }), cartController.getCartById);
 cartRouter.post('/v1/checkout/:id', authenticate, cartController.checkout);
 
 cartRouter.post('/v1/carts/:id/items', authenticate, cartItemController.addItem);
@@ -28,6 +30,5 @@ cartRouter.delete('/v1/carts/:id/items/:itemId', authenticate, cartItemControlle
 
 cartRouter.post('/v1/order/check-blacklist', blacklistController.checkBlacklist);
 cartRouter.post('/v1/orders', authenticate, cartController.createOrder);
-
 
 export default cartRouter;

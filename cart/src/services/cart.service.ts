@@ -1,7 +1,7 @@
 // cart/src/services/cart.service.ts
 
 import _ from 'lodash'
-import { Cart, CartUpdateAction } from '@commercetools/platform-sdk';
+import { Cart, CartUpdateAction, Order } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
@@ -9,18 +9,24 @@ import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter'
 import { ICart } from '../interfaces/cart';
-import { validateCartCheckoutBody, validateCreateAnonymousCartBody } from '../validators/cart.validator';
+import { validateCartCheckoutBody } from '../schemas/cart.schema';
 import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
-import { validateProductQuantity } from '../validators/cart-item.validator';
+import { validateProductQuantity } from '../schemas/cart-item.schema';
 import ApigeeClientAdapter from '../adapters/apigee-client.adapter';
 import TsmOrderModel from '../models/tsm-order.model';
 import { readConfiguration } from '../utils/config.utils';
-import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
+import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
 import { BlacklistService } from './blacklist.service'
 import { safelyParse } from '../utils/response.utils';
 import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 import { logger } from '../utils/logger.utils';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
+import { createStandardizedError } from '../utils/error.utils';
+import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.interface';
+import { IOrderAdditional, IPaymentInfo, IClientInfo } from '../interfaces/order-additional.interface';
+import { HTTP_STATUSES } from '../constants/http.constant';
+import { PAYMENT_STATES } from '../constants/payment.constant';
+import { LOCALES } from '../constants/locale.constant';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -33,22 +39,49 @@ export class CartService {
         this.blacklistService = new BlacklistService()
     }
 
+    /**
+      * Creates an anonymous cart.
+      *
+      * @param accessToken - The access token for authentication.
+      * @param body - The validated request body containing campaignGroup and journey.
+      * @returns A Promise resolving to an ICart object.
+      */
+    public createAnonymousCart = async (
+        accessToken: string,
+        createAnonymousCartInput: CreateAnonymousCartInput,
+    ): Promise<ICart> => {
+        try {
+            const { campaignGroup, journey, locale } = createAnonymousCartInput;
+
+            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+
+            const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey, locale);
+
+            const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cart);
+
+            return iCart;
+        } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+
+            throw createStandardizedError(error, 'createAnonymousCart');
+        }
+    };
+
     public updateStockAllocation = async (ctCart: Cart): Promise<void> => {
         try {
-            console.log(`create Order `)
             const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
             const journeyConfig = journeyConfigMap[journey];
 
-            console.log(`journey : ${journey}`)
-            console.log(`journeyConfig : ${journeyConfig}`)
-
             for (const lineItem of ctCart.lineItems) {
+
+                console.log(`lineItem : `,lineItem.supplyChannel)
                 const supplyChannel = lineItem.supplyChannel;
 
-                console.log(`supplyChannel :${supplyChannel}`)
                 if (!supplyChannel || !supplyChannel.id) {
                     throw {
-                        statusCode: 400,
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: 'Supply channel is missing on line item.',
                         errorCode: "SUPPLY_CHANNEL_MISSING",
                     };
@@ -56,18 +89,20 @@ export class CartService {
 
                 const inventoryId =
                     lineItem.variant.availability?.channels?.[supplyChannel.id]?.id;
+
                 if (!inventoryId) {
                     throw {
-                        statusCode: 400,
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: 'InventoryId not found.',
                         errorCode: "INVENTORY_ID_NOT_FOUND",
                     };
                 }
 
+
                 const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
                 if (!inventoryEntry) {
                     throw {
-                        statusCode: 400,
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: `Inventory entry not found for ID: ${inventoryId}`,
                         errorCode: "INVENTORY_ENTRY_NOT_FOUND",
                     };
@@ -81,9 +116,10 @@ export class CartService {
                     journeyConfig
                 );
             }
-        } catch (error) {
+        } catch (error: any) {
+            console.log('error', error)
             throw {
-                statusCode: 400,
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: `Update stock allocation failed.`,
                 errorCode: "CREATE_ORDER_ON_CT_FAILED",
             };
@@ -92,223 +128,262 @@ export class CartService {
 
     // TODO :: CART HAS CHANGED
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
-        const defaultValidateList = [
-            'BLACKLIST',
-            'CAMPAIGN',
-        ]
+        try {
 
-        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+            const defaultValidateList = [
+                'BLACKLIST',
+                'CAMPAIGN',
+            ]
 
-        let validateList = defaultValidateList
-        if (partailValidateList.length) {
-            validateList = partailValidateList
+            let validateList = defaultValidateList
+            if (partailValidateList.length) {
+                validateList = partailValidateList
+            }
+
+            const { cartId, client } = payload
+            const ctCart = await this.getCtCartById(accessToken, cartId)
+
+            // * STEP #2 - Validate Blacklist
+            if (validateList.includes('BLACKLIST')) {
+                await this.validateBlacklist(ctCart, client)
+            }
+
+            // * STEP #3 - Validate Campaign & Promotion Set
+            if (validateList.includes('CAMPAIGN')) {
+                await this.validateCampaign(ctCart)
+            }
+
+            // * STEP #4 - Validate Available Quantity (Commercetools)
+            await this.validateAvailableQuantity(ctCart)
+
+            const orderNumber = this.generateOrderNumber()
+
+            // * STEP #5 - Create Order On TSM Sale
+            const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+            // //! IF available > x
+            // //! THEN continue
+            // //! ELSE 
+            // //! THEN throw error
+
+            const tsmSaveOrder = {
+                tsmOrderIsSaved: success,
+                tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+            }
+            // return tsmSaveOrder
+
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+
+            await this.updateStockAllocation(cartWithUpdatedPrice);
+            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            await this.createOrderAdditional(order, client);
+            return order;
+        } catch (error: any) {
+            logger.info(`CartService.createOrder.error`, error);
+            if (error.status && error.message) {
+                throw error;
+            }
+
+            throw createStandardizedError(error, 'createOrder');
         }
-
-        const { cartId } = payload
-        const ctCart = await this.getCtCartById(accessToken, cartId)
-
-        // * STEP #2 - Validate Blacklist
-        // * STEP #2 - Validate Blacklist
-        console.log(`STEP #2 - Validate Blacklist`)
-        if (validateList.includes('BLACKLIST')) {
-            await this.validateBlacklist(ctCart)
-        }
-
-        // * STEP #3 - Validate Campaign & Promotion Set
-        console.log(`STEP #3 - Validate Campaign & Promotion Set`)
-        if (validateList.includes('CAMPAIGN')) {
-            await this.validateCampaign(ctCart)
-        }
-        
-        // * STEP #4 - Validate Available Quantity (Commercetools)
-        console.log(`STEP #4 - Validate Available Quantity (Commercetools)`)
-        await this.validateAvailableQuantity(ctCart)
-
-        const orderNumber = this.generateOrderNumber()
-        console.log(`orderNumber : ${orderNumber}`)
-
-        // * STEP #5 - Create Order On TSM Sale
-        const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
-        
-        // //! IF available > x
-        // //! THEN continue
-        // //! ELSE
-        // //! THEN throw error
-
-        const tsmSaveOrder = {
-            tsmOrderIsSaved: success,
-            tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
-        }
-
-        console.log(` STEP #5 - Create Order On TSM Sale`,tsmSaveOrder)
-        const newCtCart = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
-        const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(newCtCart)
-        console.log(`before create order`)
-        await this.updateStockAllocation(cartWithUpdatedPrice);
-
-        const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
-
-        return {...order, hasChanged: cartWithUpdatedPrice.compared};
     };
 
     // TODO :: CART HAS CHANGED
     public checkout = async (accessToken: string, id: string, body: any): Promise<any> => {
-        const { error, value } = validateCartCheckoutBody(body);
-        if (error) {
-            throw {
-                statusCode: 400,
-                statusMessage: 'Validation failed',
-                data: error.details.map((err) => err.message),
-            };
+        try {
+            const { error, value } = validateCartCheckoutBody(body);
+            if (error) {
+                throw {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Validation failed',
+                    data: error.details.map((err) => err.message),
+                };
+            }
+
+            const { shippingAddress, billingAddress, shippingMethodId, payment } = value;
+
+            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+
+            const cart = await commercetoolsMeCartClient.getCartById(id);
+            if (!cart) {
+                throw {
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    statusMessage: 'Cart not found or has expired',
+                };
+            }
+
+            const profileId = cart?.id
+            let coupons;
+            try {
+                coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, cart.lineItems);
+            } catch (error: any) {
+                logger.info(`CartService.checkout.getEffectsCouponsById.error`, error);
+                throw {
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
+                    statusMessage: 'No discount coupon effect found.',
+                };
+            }
+
+            const updateActions: CartUpdateAction[] = [];
+            try {
+                const dataRetchCoupon = await this.talonOneCouponAdapter.fetchEffectsCouponsById(profileId, cart, coupons.coupons);
+                coupons.coupons = dataRetchCoupon.couponsEffects;
+                if (coupons.coupons.rejectedCoupons && coupons.coupons.rejectedCoupons.length > 0) {
+                    throw {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        errorCode: "COUPON_VALIDATION_FAILED",
+                        statusMessage: 'Some coupons were rejected during processing.',
+                        data: coupons.coupons.rejectedCoupons,
+                    };
+                }
+                if (dataRetchCoupon.talonOneUpdateActions) {
+                    updateActions.push(...dataRetchCoupon.talonOneUpdateActions);
+                }
+            } catch (error: any) {
+                logger.info(`CartService.checkout.fetchEffectsCouponsById.error`, error);
+                if (error.errorCode && error.statusMessage) {
+                    throw error;
+                }
+                
+                throw {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    errorCode: "CART_FETCH_EFFECTS_COUPONS_CT_FAILED",
+                    statusMessage: 'An unexpected error occurred while processing the coupon effects.',
+                };
+            }
+
+            if (shippingAddress) {
+                updateActions.push({
+                    action: 'setShippingAddress',
+                    address: shippingAddress,
+                });
+            }
+
+            if (billingAddress) {
+                updateActions.push({
+                    action: 'setBillingAddress',
+                    address: billingAddress,
+                });
+            }
+
+            if (shippingMethodId) {
+                updateActions.push({
+                    action: 'setShippingMethod',
+                    shippingMethod: {
+                        typeId: 'shipping-method',
+                        id: shippingMethodId,
+                    },
+                });
+            }
+
+            if (payment && payment?.key) {
+                const paymentTransaction = {
+                    paymentOptionContainer: 'paymentOptions',
+                    paymentOptionKey: payment.key, // e.g., 'installment', 'ccw', etc.
+                    source: payment?.source || null,
+                    token: payment?.token || null,
+                    additionalData: payment?.additionalData || null,
+                    createdAt: new Date().toISOString(),
+                };
+
+                await CommercetoolsCustomObjectClient.addPaymentTransaction(cart.id, paymentTransaction);
+            }
+
+            // console.log('talonOneUpdateActions', talonOneUpdateActions)
+
+            // updateActions.push(...talonOneUpdateActions);
+
+            const updatedCart = await CommercetoolsCartClient.updateCart(
+                cart.id,
+                cart.version,
+                updateActions,
+            );
+
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+
+            const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cartWithUpdatedPrice);
+
+            return { ...iCart, ...coupons, hasChanged: cartWithUpdatedPrice.compared };
+        } catch (error: any) {
+            logger.info(`CartService.checkout.error`, error);
+            if (error.status && error.message) {
+                throw error;
+            }
+
+            throw createStandardizedError(error, 'checkout');
         }
-
-        const { shippingAddress, billingAddress, shippingMethodId, payment } = value;
-
-        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-
-        const cart = await commercetoolsMeCartClient.getCartById(id);
-        if (!cart) {
-            throw {
-                statusCode: 404,
-                statusMessage: 'Cart not found or has expired',
-            };
-        }
-
-        
-
-        const profileId = cart?.id
-
-     
-
-        const updateActions: CartUpdateAction[] = [];
-
-        if (shippingAddress) {
-            updateActions.push({
-                action: 'setShippingAddress',
-                address: shippingAddress,
-            });
-        }
-
-        if (billingAddress) {
-            updateActions.push({
-                action: 'setBillingAddress',
-                address: billingAddress,
-            });
-        }
-
-        if (shippingMethodId) {
-            updateActions.push({
-                action: 'setShippingMethod',
-                shippingMethod: {
-                    typeId: 'shipping-method',
-                    id: shippingMethodId,
-                },
-            });
-        }
-
-        if (payment && (payment.source || payment.token)) {
-            const paymentTransaction = {
-                paymentOptionContainer: 'paymentOptions',
-                paymentOptionKey: payment.key, // e.g., 'installment', 'ccw', etc.
-                source: payment.source || null,
-                token: payment.token || null,
-                createdAt: new Date().toISOString(),
-            };
-
-            await CommercetoolsCustomObjectClient.addPaymentTransaction(cart.id, paymentTransaction);
-        }
-
-
-
-        const updatedCart = await CommercetoolsCartClient.updateCart(
-            cart.id,
-            cart.version,
-            updateActions,
-        );
-
-        // TODO : CHECK LOGIC
-        // * Implement done response include itemHasChanged
-        const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
-        const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(cartWithChanged)
-        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, cartWithUpdatedPrice.lineItems);
-
-        const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cartWithChanged);
-
-        return { ...iCart, ...coupons, hasChanged:cartWithUpdatedPrice.compared  };
     };
-
-    public createAnonymousCart = async (accessToken: string, body: any) => {
-        const { campaignGroup, journey } = body;
-
-        const { error } = validateCreateAnonymousCartBody({ campaignGroup, journey });
-        if (error) {
-            throw {
-                statusCode: 400,
-                statusMessage: 'Validation failed',
-                data: error.details.map((err: any) => err.message),
-            };
-        }
-
-        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-
-        const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey);
-
-        const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cart);
-
-        return iCart;
-    }
 
 
     // TODO :: CART HAS CHANGED
-    public getCartById = async (accessToken: string, id: string, selectedOnly: boolean): Promise<any> => {
-        if (!id) {
-            throw {
-                statusCode: 400,
-                statusMessage: 'Cart ID is required',
-            };
+    public getCartById = async (accessToken: string, id: string, selectedOnly: boolean): Promise<ICart> => {
+        try {
+            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+
+            const ctCart = await commercetoolsMeCartClient.getCartById(id);
+            if (!ctCart) {
+                throw createStandardizedError({ statusCode: HTTP_STATUSES.BAD_REQUEST, statusMessage: 'Cart not found or has expired' });
+            }
+
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+
+            const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(cartWithUpdatedPrice, selectedOnly);
+
+            let coupons;
+            try {
+                coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(id, cartWithUpdatedPrice.lineItems);
+            } catch (error: any) {
+                throw {
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
+                    statusMessage: 'No discount coupon effect found.',
+                };
+            }
+
+
+
+            return { ...iCartWithBenefit, ...coupons, hasChanged: cartWithUpdatedPrice.compared };
+        } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+
+            throw createStandardizedError(error, 'getCartById');
         }
-
-        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-        const ctCart = await commercetoolsMeCartClient.getCartById(id);
-        if (!ctCart) {
-            throw {
-                statusCode: 404,
-                statusMessage: 'Cart not found or has expired',
-            };
-        }
-
-        const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
-
-        const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
-        const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(cartWithUpdatedPrice, selectedOnly);
-        const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(id, cartWithUpdatedPrice.lineItems);
-
-
-        return { ...iCartWithBenefit, ...coupons, hasChanged: cartWithUpdatedPrice.compared };
     };
-
 
     
     public getCtCartById = async (accessToken: string, id: string): Promise<any> => {
-        if (!id) {
-            throw {
-                statusCode: 400,
-                statusMessage: 'Cart ID is required',
-            };
+        try {
+            if (!id) {
+                throw {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Cart ID is required',
+                };
+            }
+
+            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+
+            const ctCart = await commercetoolsMeCartClient.getCartById(id);
+            if (!ctCart) {
+                throw {
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    statusMessage: 'Cart not found or has expired',
+                };
+            }
+
+            return ctCart
+        } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+
+            throw createStandardizedError(error, 'getCtCartById');
         }
-
-        const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-
-        const ctCart = await commercetoolsMeCartClient.getCartById(id);
-        
-        if (!ctCart) {
-            throw {
-                statusCode: 404,
-                statusMessage: 'Cart not found or has expired',
-            };
-        }
-
-        return ctCart
     };
 
     private createTSMSaleOrder = async (orderNumber: string, cart: any) => {
@@ -320,12 +395,12 @@ export class CartService {
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
             const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
-
+            // const response = { code: '0'}
             const { code } = response || {}
 
             // if (code !== '0') {
             //     throw {
-            //         statusCode: 400,
+            //         statusCode: HTTP_STATUSES.BAD_REQUEST,
             //         statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
             //         errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
             //     };
@@ -343,7 +418,7 @@ export class CartService {
                 data = safelyParse(data)
             }
             // throw {
-            //     statusCode: 400,
+            //     statusCode: HTTP_STATUSES.BAD_REQUEST,
             //     statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
             //     errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
             //     ...(data ? { data } : {})
@@ -355,21 +430,50 @@ export class CartService {
         }
     }
 
-    private async validateBlacklist(ctCart: any) {
+    private async validateBlacklist(ctCart: any, client: any) {
         try {
-            // return true
             const { custom: cartCustomField, shippingAddress } = ctCart
             const journey = cartCustomField?.fields?.journey
+            const { googleId, ip } = client || {}
+
+            const paymentTransaction = await CommercetoolsCustomObjectClient.getPaymentTransaction(ctCart.id);
+            const paymentTransactions = paymentTransaction?.value || []
+            const latestPaymentTransaction = paymentTransactions.at(-1)
+            const {
+                paymentOptionKey,
+                additionalData
+            } = latestPaymentTransaction || {}
+
+            const {
+                firstDigits,
+                lastDigits,
+                phoneNumber,
+            } = additionalData || {}
+
+            let paymentTMNAccountNumber = null
+            let paymentCreditCardNumber = {
+                firstDigits: null,
+                lastDigits: null
+            }
+
+            if (['truemoney'].includes(paymentOptionKey)) {
+                paymentTMNAccountNumber = phoneNumber
+            }
+
+            if (['ccw', 'installment'].includes(paymentOptionKey)) {
+                paymentCreditCardNumber = {
+                    firstDigits,
+                    lastDigits
+                }
+            }
+
             const body: any =
             {
                 journey, /* Mandarory */
-                // paymentTMNAccountNumber: '0830053853',
-                // paymentCreditCardNumber: {
-                //     'firstDigits': null,
-                //     'lastDigits': '1234'
-                // },
-                // ipAddress: '127.0.0.1',
-                // googleID: 'thiamkhae.pap@ascendcorp.com', //! ASK PO
+                ...(['truemoney'].includes(paymentOptionKey) ? { paymentTMNAccountNumber } : {  }),
+                // ...(['ccw', 'installment'].includes(paymentOptionKey) ? { paymentCreditCardNumber } : {  }),
+                ...(ip ? { ipAddress: ip } : {  }),
+                ...(googleId ? { googleID: googleId } : {  }),
                 shippingAddress: {
                     city: shippingAddress.state, /* Mandarory */
                     district: shippingAddress.city, /* Mandarory */
@@ -380,13 +484,16 @@ export class CartService {
                 deliveryContactNumber: shippingAddress.phone, /* Mandarory */
                 deliveryContactName: `${shippingAddress.firstName} ${shippingAddress.lastName}` /* Mandarory */
             }
+
+            logger.info(`CartService-validateBlacklist-body: ${JSON.stringify(body)}`)
             const response = await this.blacklistService.checkBlacklist(body);
             if (!response?.status) {
                 throw new Error('Blacklist validation failed');
             }
         } catch (e) {
+            logger.info(`CartService-validateBlacklist-error: ${JSON.stringify(e)}`)
             throw {
-                statusCode: 400,
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
                 errorCode: 'BLACKLIST_VALIDATE_FAILED'
             };
@@ -566,7 +673,7 @@ export class CartService {
         } catch (error: any) {
             console.error('error-cartService-validateCampaign', error)
             throw {
-                statusCode: 400,
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
                 errorCode: 'CAMPAIGN_VALIDATE_FAILED'
             };
@@ -584,7 +691,7 @@ export class CartService {
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
                     throw {
-                        statusCode: 404,
+                        statusCode: HTTP_STATUSES.NOT_FOUND,
                         statusMessage: 'Product not found',
                     };
                 }
@@ -592,7 +699,7 @@ export class CartService {
                 const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
                 if (!variant) {
                     throw {
-                        statusCode: 404,
+                        statusCode: HTTP_STATUSES.NOT_FOUND,
                         statusMessage: 'SKU not found in the specified product',
                     };
                 }
@@ -600,14 +707,14 @@ export class CartService {
                 const inventories = await CommercetoolsInventoryClient.getInventory(sku);
                 if (inventories.length === 0) {
                     throw {
-                        statusCode: 404,
+                        statusCode: HTTP_STATUSES.NOT_FOUND,
                         statusMessage: 'Inventory not found',
                     };
                 }
                 const inventory = inventories[0];
                 if (inventory.isOutOfStock) {
                     throw {
-                        statusCode: 400,
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: 'Insufficient stock for the requested quantity',
                     };
                 }
@@ -624,7 +731,7 @@ export class CartService {
         } catch (error: any) {
             console.error(error)
             throw {
-                statusCode: 400,
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
                 errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
             };
@@ -637,4 +744,32 @@ export class CartService {
         const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // Random 4-digit number
         return `ORD-${timestamp}-${random}`; // Combine parts into an order number
     }
+
+    public createOrderAdditional = async (
+        order: Order,
+        client: IClientInfo,
+    ) => {
+
+        const paymentInfo: IPaymentInfo = {
+            tmhAccountNumber: '',
+            bankAccount: '',
+            bankAccountName: '',
+            creditCardNumber: '',
+            created: new Date().toISOString(),
+            paymentState: PAYMENT_STATES.PENDING,
+        }
+
+        const orderAdditionalData: IOrderAdditional = {
+            orderInfo: { journey: _.get(order, 'custom.fields.journey') },
+            paymentInfo: [paymentInfo],
+            customerInfo: {
+                ipAddress: _.get(client, 'ip', ''),
+                googleID: _.get(client, 'googleId', '')
+            },
+        }
+
+        await CommercetoolsCustomObjectClient.addOrderAdditional(order.id, orderAdditionalData);
+
+        return true;
+    };
 }

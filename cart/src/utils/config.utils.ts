@@ -10,6 +10,10 @@ import { getValidateMessages } from '../validators/helpers.validators';
  */
 export const readConfiguration = () => {
   const envVars = {
+    appPort: process.env.APP_PORT as string,
+    
+    shutdownOnFatalError: process.env.SHUTDOWN_ON_FATAL_ERROR as string,
+
     clientId: process.env.CTP_CLIENT_ID as string,
     clientSecret: process.env.CTP_CLIENT_SECRET as string,
     projectKey: process.env.CTP_PROJECT_KEY as string,
@@ -22,6 +26,7 @@ export const readConfiguration = () => {
     ctpClientId: process.env.CTP_CLIENT_ID as string,
     ctpClientSecret: process.env.CTP_CLIENT_SECRET as string,
     ctpAddCustomCouponLineItemPrefix: process.env.CTP_ADD_CUSTOM_COUPON_LINE_ITEM_PREFIX as string,
+    ctpAddCustomOtherPaymentLineItemPrefix: process.env.CTP_ADD_CUSTOM_OTHER_PAYMENT_LINE_ITEM_PREFIX as string,
     ctpTaxCategoryId: process.env.CTP_TAX_CATEGORY_ID as string,
 
     bffCtpClientId: process.env.BFF_CTP_CLIENT_ID as string,
@@ -68,10 +73,4 @@ export const readConfiguration = () => {
   }
 
   return envVars;
-};
-
-export const ETLConfig = () => {
-  return {
-    clientUrl: process.env.ETL_CLIENT_URL as string,
-  };
 };

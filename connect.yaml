@@ -7,6 +7,12 @@ deployAs:
       preUndeploy: npm install && npm run build
     configuration:
       standardConfiguration:
+        - key: APP_PORT
+          description: App port
+          required: true
+        - key: SHUTDOWN_ON_FATAL_ERROR
+          description: Shutdown on fatal error
+          required: true
         - key: CTP_REGION
           description: Commercetools API region (e.g., 'us-east-1')
           required: true
@@ -58,6 +64,9 @@ deployAs:
         - key: APIGW_BASE_URL
           description: Apigee base url
           required: true
+        - key: CTP_ADD_CUSTOM_OTHER_PAYMENT_LINE_ITEM_PREFIX
+          description: Commercetools Other Payment Line Item Prefix
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: Commercetools project key identifying your specific project
@@ -100,6 +109,12 @@ deployAs:
       preUndeploy: npm install && npm run build
     configuration:
       standardConfiguration:
+        - key: APP_PORT
+          description: App port
+          required: true
+        - key: SHUTDOWN_ON_FATAL_ERROR
+          description: Shutdown on fatal error
+          required: true
         - key: CTP_REGION
           description: Commercetools API region (e.g., 'us-east-1')
           required: true

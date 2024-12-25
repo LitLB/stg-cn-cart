@@ -1,9 +1,11 @@
 // cart/src/controllers/cart-item.controller.ts
 
-import { Request, Response } from 'express';
-import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../utils/messages.utils';
-import { ResponseType } from '../types/response.type';
+import { NextFunction, Request, Response } from 'express';
+import { RESPONSE_MESSAGES } from '../constants/messages.constant';
+import { ApiResponse } from '../interfaces/response.interface';
 import { CartItemService } from '../services/cart-item.service';
+import { logger } from '../utils/logger.utils';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class CartItemController {
     private cartItemService: CartItemService;
@@ -12,137 +14,106 @@ export class CartItemController {
         this.cartItemService = new CartItemService();
     }
 
-    public addItem = async (req: Request, res: Response): Promise<ResponseType> => {
+    public addItem = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
             const updatedCart = await this.cartItemService.addItem(accessToken, id, req.body);
-            const response: ResponseType = {
-                statusCode: 200,
+            const response: ApiResponse = {
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            console.log(error)
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
+            logger.error(`CartItemController.addItem.error`, error);
 
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                data,
-            });
+            next(error);
         }
     };
 
-    public updateItemQuantityById = async (req: Request, res: Response): Promise<ResponseType> => {
+    public updateItemQuantityById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { id, itemId } = req.params;
             const accessToken = req.accessToken as string;
 
             const updatedCart = await this.cartItemService.updateItemQuantityById(accessToken, id, itemId, req.body);
 
-            const response: ResponseType = {
-                statusCode: 200,
+            const response: ApiResponse = {
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
+            logger.error(`CartItemController.updateItemQuantityById.error`, error);
 
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                data,
-            });
+            next(error);
         }
     }
 
-    public deleteItemById = async (req: Request, res: Response): Promise<ResponseType> => {
+    public deleteItemById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { id, itemId } = req.params;
             const accessToken = req.accessToken as string;
 
             const updatedCart = await this.cartItemService.deleteItemById(accessToken, id, itemId, req.body);
 
-            const response: ResponseType = {
-                statusCode: 200,
+            const response: ApiResponse = {
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
+            logger.error(`CartItemController.deleteItemById.error`, error);
 
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                data,
-            });
+            next(error);
         }
     }
 
-    public bulkDelete = async (req: Request, res: Response): Promise<ResponseType> => {
+    public bulkDelete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
 
             const updatedCart = await this.cartItemService.bulkDelete(accessToken, id, req.body);
 
-            const response: ResponseType = {
-                statusCode: 200,
+            const response: ApiResponse = {
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
+            logger.error(`CartItemController.bulkDelete.error`, error);
 
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                data,
-            });
+            next(error);
         }
     };
 
-    public select = async (req: Request, res: Response): Promise<ResponseType> => {
+    public select = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
 
             const updatedCart = await this.cartItemService.select(accessToken, id, req.body);
 
-            const response: ResponseType = {
-                statusCode: 200,
+            const response: ApiResponse = {
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: updatedCart,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
+            logger.error(`CartItemController.select.error`, error);
 
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                data,
-            });
+            next(error);
         }
     };
 }

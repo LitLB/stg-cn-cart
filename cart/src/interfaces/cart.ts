@@ -5,6 +5,7 @@ import { ProductType } from '../types/share.types';
 
 export interface ICart {
 	cartId: string;
+	locale?: string | null,
 	// isPrivilege: boolean;
 	campaignGroup: string;
 	journey: string;
@@ -33,6 +34,7 @@ export interface ICart {
 	updatedAt: Date;
 	expiredAt: Date;
 	deleteDaysAfterLastModification?: number;
+	hasChanged?: any // TODO
 }
 
 export interface IItem {

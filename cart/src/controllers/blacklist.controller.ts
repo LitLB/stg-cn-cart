@@ -1,9 +1,11 @@
 // cart/src/controllers/blacklist.controller.ts
 
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { BlacklistService } from '../services/blacklist.service';
-import { EXCEPTION_MESSAGES, RESPONSE_MESSAGES } from '../utils/messages.utils';
-import { ResponseType } from '../types/response.type';
+import { RESPONSE_MESSAGES } from '../constants/messages.constant';
+import { ApiResponse } from '../interfaces/response.interface';
+import { logger } from '../utils/logger.utils';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class BlacklistController {
     private blacklistService: BlacklistService;
@@ -12,28 +14,21 @@ export class BlacklistController {
         this.blacklistService = new BlacklistService();
     }
 
-    public checkBlacklist = async (req: Request, res: Response): Promise<Response> => {
+    public checkBlacklist = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-
             const checkBlacklist = await this.blacklistService.checkBlacklist(req.body);
 
-            const response: ResponseType = {
-                statusCode: 200,
+            const response: ApiResponse = {
+                statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.SUCCESS,
                 data: checkBlacklist,
             };
 
-            return res.status(200).json(response);
+            res.status(200).json(response);
         } catch (error: any) {
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
+            logger.error(`BlacklistController.checkBlacklist.error`, error);
 
-            return res.status(statusCode).json({
-                statusCode,
-                statusMessage,
-                data,
-            });
+            next(error);
         }
     };
 }

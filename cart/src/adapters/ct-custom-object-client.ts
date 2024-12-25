@@ -2,8 +2,9 @@
 
 import type { ApiRoot, CustomObject, CustomObjectDraft } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
-import { PAYMENT_OMISE_CONTAINER, PAYMENT_OMISE_KEY_PREFIX } from '../constants/ct.constant';
+import { PAYMENT_OMISE_CONTAINER, PAYMENT_OMISE_KEY_PREFIX, ORDER_ADDITIONAL_INFO } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
+import { IOrderAdditional } from '../interfaces/order-additional.interface';
 
 class CommercetoolsCustomObjectClient {
 	private static instance: CommercetoolsCustomObjectClient;
@@ -141,6 +142,65 @@ class CommercetoolsCustomObjectClient {
 			} else {
 				// Log and rethrow other errors
 				console.error('Error adding payment transaction:', err);
+				throw err;
+			}
+		}
+	}
+
+	async getPaymentTransaction(cartId: string): Promise<CustomObject> {
+		const container = PAYMENT_OMISE_CONTAINER;
+		const key = `${PAYMENT_OMISE_KEY_PREFIX}${cartId}`;
+
+		try {
+			const existingObject = await this.getCustomObjectByContainerAndKey(container, key);
+
+			return existingObject;
+		} catch (err: any) {
+			console.error('Error getting payment transaction:', err);
+			throw err;
+		}
+	}
+
+	/**
+  * Add a new payment transaction to the Custom Object.
+  * Reuses existing get and createOrUpdate methods for efficiency.
+  * @param orderId The ID of the order.
+  * @param orderAdditional The order Additional to add.
+  * @returns The updated or created Custom Object.
+  */
+	async addOrderAdditional(orderId: string, orderAdditional: IOrderAdditional): Promise<CustomObject> {
+		const container = ORDER_ADDITIONAL_INFO;
+		const key = orderId;
+
+		try {
+			const updatedValue = orderAdditional;
+
+			// Create a new Custom Object Draft with the updated array
+			const customObjectDraft: CustomObjectDraft = {
+				container,
+				key,
+				value: updatedValue,
+			};
+
+			// Use createOrUpdateCustomObject to overwrite the existing Custom Object
+			const updatedObject = await this.createOrUpdateCustomObject(customObjectDraft);
+
+			return updatedObject;
+		} catch (err: any) {
+			if (err.statusCode === 404) {
+				// Custom Object does not exist, create it with the new transaction in an array
+				const customObjectDraft: CustomObjectDraft = {
+					container,
+					key,
+					value: orderAdditional,
+				};
+
+				const createdObject = await this.createOrUpdateCustomObject(customObjectDraft);
+
+				return createdObject;
+			} else {
+				// Log and rethrow other errors
+				console.error('Error adding order additional:', err);
 				throw err;
 			}
 		}

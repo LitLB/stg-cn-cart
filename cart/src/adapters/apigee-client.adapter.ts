@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from 'axios'
 import { readConfiguration } from "../utils/config.utils";
-import { EXCEPTION_MESSAGES } from '../utils/messages.utils';
+import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
 
 class ApigeeClientAdapter {
     private readonly client: any
@@ -28,7 +28,7 @@ class ApigeeClientAdapter {
             }, { headers });
 
             return response.data
-        } catch (error) {
+        } catch (error: any) {
             if (axios.isAxiosError(error)) {
                 // Handle known Axios errors
                 return { code: error.response?.status || 500, message: error.message };
