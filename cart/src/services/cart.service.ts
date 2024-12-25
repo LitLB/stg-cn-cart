@@ -76,7 +76,6 @@ export class CartService {
 
             for (const lineItem of ctCart.lineItems) {
 
-                console.log(`lineItem : `,lineItem.supplyChannel)
                 const supplyChannel = lineItem.supplyChannel;
 
                 if (!supplyChannel || !supplyChannel.id) {
@@ -178,7 +177,7 @@ export class CartService {
             await this.updateStockAllocation(cartWithUpdatedPrice);
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
-            return order;
+            return {...order,hasChanged: cartWithUpdatedPrice.compared};
         } catch (error: any) {
             logger.info(`CartService.createOrder.error`, error);
             if (error.status && error.message) {

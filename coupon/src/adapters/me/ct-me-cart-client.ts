@@ -818,7 +818,6 @@ export default class CommercetoolsMeCartClient {
 
 		lineItems.forEach((lineItem: any) => {
 			const lineItemId = lineItem.id
-			// console.log('lineItemId', lineItemId)
 			const lineItemProductType = lineItem.custom.fields.productType
 			const lineItemProductGroup = lineItem.custom.fields.productGroup
 			const lineItemAddOnGroup = lineItem.custom.fields.addOnGroup
