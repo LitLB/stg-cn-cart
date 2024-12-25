@@ -43,6 +43,7 @@ export default class TsmOrderModel {
 
             const {
                 campaignCode = '',
+                campaignName = '',
                 promotionSetCode = '',
                 promotionSetProposition = 999, //999,
             } = privilege || {};
@@ -84,7 +85,7 @@ export default class TsmOrderModel {
                     sequence: sequence,
                     campaign: {
                         code: campaignCode,
-                        name: '',
+                        name: campaignName,
                     },
                     proposition: '' + promotionSetProposition,
                     promotionSet: promotionSetCode,
