@@ -761,21 +761,23 @@ class TalonOneEffectConverter {
 					promotionSetProposition
 				}
 
-				discounts.push({
-					benefitType,
-					campaignCode,
-					promotionSetCode,
-					promotionSetProposition,
-					source,
-					productType,
-					groupCode,
-					productCode,
-					minBuy,
-					discountBaht,
-					discountPercent,
-					haveOtp,
-					forcePromotion
-				})
+				if (discountBaht > 0) {
+					discounts.push({
+						benefitType,
+						campaignCode,
+						promotionSetCode,
+						promotionSetProposition,
+						source,
+						productType,
+						groupCode,
+						productCode,
+						minBuy,
+						discountBaht,
+						discountPercent,
+						haveOtp,
+						forcePromotion
+					})
+				}
 			}
 
 			const productBenefit = productBenefits.find((productBenefit: any) => {
@@ -828,22 +830,23 @@ class TalonOneEffectConverter {
 					})
 				}
 
-				discounts.push({
-					benefitType,
-					campaignCode,
-					promotionSetCode,
-					promotionSetProposition,
-					source,
-					productType,
-					// groupCode,
-					productCode,
-					minBuy,
-					discountBaht,
-					discountPercent,
-					haveOtp,
-					forcePromotion
-				})
-
+				if (discountBaht > 0) {
+					discounts.push({
+						benefitType,
+						campaignCode,
+						promotionSetCode,
+						promotionSetProposition,
+						source,
+						productType,
+						// groupCode,
+						productCode,
+						minBuy,
+						discountBaht,
+						discountPercent,
+						haveOtp,
+						forcePromotion
+					})
+				}
 			}
 /// why
 			return {
