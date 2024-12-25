@@ -802,6 +802,7 @@ class TalonOneEffectConverter {
 		}, {})
 
 		console.log('validateObject', validateObject);
+		console.log('mainProductCartItems', mainProductCartItems);
 		// validateObject {}
 		console.log('addOnCartItems', addOnCartItems);
 		// addOnCartItems [
