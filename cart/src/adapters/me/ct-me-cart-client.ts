@@ -738,37 +738,6 @@ export default class CommercetoolsMeCartClient {
 	}
 
 
-	/**
-	 * 
-	 * @param ctCart 
-	 * @returns 
-	 */
-	mapCartChangedToICart(iCart: ICart,ctCartWithChanged: any) {
-		
-		const itemInCart = iCart.items
-		const itemHasChanged = ctCartWithChanged.lineItems
-
-
-		const itemsWithChanged = itemInCart.map((item: any) => {
-			const matchedItem =  itemHasChanged.find(
-				(ctItem: any) => ctItem.productId === item.productId
-			);
-
-
-			if(!matchedItem) return
-
-			return {
-				...item,
-                itemHasChange: matchedItem.hasChanged
-			}
-		})
-
-		
-		return {
-			...iCart,
-			items: itemsWithChanged
-		}
-	}
 
 	mapInventoryToItems(items: IItem[], inventoryMap: Map<string, any>): void {
 		items.forEach((item) => {
@@ -1187,10 +1156,7 @@ export default class CommercetoolsMeCartClient {
 
 	async getCartWithBenefit(ctCart: any, selectedOnly = false) {
 		const filteredLineItems = this.filterLineItems(ctCart.lineItems, selectedOnly);
-
 		const cartToProcess = { ...ctCart, lineItems: filteredLineItems };
-
-
 		const skus = cartToProcess.lineItems.map((lineItem: any) => lineItem.variant.sku);
 		const inventoryKey = skus.map((sku: any) => sku).join(',');
 		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
@@ -1203,12 +1169,9 @@ export default class CommercetoolsMeCartClient {
 
 
 		let iCart: ICart = this.mapCartToICart(cartToProcess);
-		iCart = this.mapCartChangedToICart(iCart, cartToProcess)
 		iCart = await this.attachInsuranceToICart(iCart);
 
 		this.mapInventoryToItems(iCart.items, inventoryMap);
-
-		
 
 		let iCartWithBenefit = iCart;
 		if (cartToProcess?.lineItems?.length) {

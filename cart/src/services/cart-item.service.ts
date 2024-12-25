@@ -26,8 +26,7 @@ export class CartItemService {
     // }
 
 
-    // TODO :: ADD FLAG ITEM HAS CHANGE 
-    // * PASS BUT NOT INCLUDE HAS CHANGE
+    // TODO :: CART HAS CHANGED
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
         const { error, value } = validateAddItemCartBody(body);
         if (error) {
@@ -191,8 +190,7 @@ export class CartItemService {
         return { iCartWithBenefit, hasChanged : cartWithUpdatedPrice.compared };
     }
 
-    // TODO :: ADD FLAG ITEM HAS CHANGE 
-    // * PASS BUT NOT INCLUDE HAS CHANGE
+    // TODO :: CART HAS CHANGED
     public updateItemQuantityById = async (accessToken: string, id: string, itemId: string, body: any): Promise<any> => {
         const { error, value } = validateUpdateCartItemBody(body);
 
@@ -426,6 +424,7 @@ export class CartItemService {
         return iCartWithBenefit;
     }
 
+    // TODO :: CART HAS CHANGED
     public select = async (accessToken: string, id: string, body: any): Promise<any> => {
         const { value, error } = validateSelectCartItemBody(body);
         if (error) {
@@ -447,9 +446,6 @@ export class CartItemService {
                 statusMessage: 'Cart not found or has expired',
             };
         }
-
-        // TODO : CHECK LOGIC
-        // const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cart)
 
         const updateActions: MyCartUpdateAction[] = [];
 
@@ -485,9 +481,11 @@ export class CartItemService {
             updateActions,
         );
 
-        const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+        const cartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+        const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(cartWithChanged)
+        const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-        return iCartWithBenefit;
+        return {...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared};
     }
 
     calculateProductGroup = ({

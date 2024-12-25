@@ -5,9 +5,6 @@ interface ILineItem extends LineItem {
 }
 
 function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: LineItem) {
-    if (!lineItemA ||!lineItemB) {
-        return false;
-    }
 
     // If either line item doesn't have a variant, it has no attributes
     if (!lineItemA.variant || !lineItemB.variant) {
@@ -37,7 +34,7 @@ function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: LineItem) {
 
     const hasChange: any = {};
 
-    const ignoredAttributes = ['akeneo_id', 'product_id', 'status', 'company_code'];
+    const ignoredAttributes = ['akeneo_id', 'product_id', 'status', 'company_code', 'journey'];
 
   
 
@@ -53,7 +50,7 @@ function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: LineItem) {
         const valB = mapB.get(name);
 
         // 3) If missing on one side => changed
-        if (valA === undefined || valB === undefined) {
+        if (valA === undefined || valB === undefined)  {
             hasChange[name] = true;
             continue;
         }
@@ -73,8 +70,6 @@ export function compareLineItemsArrays(lineItemsA: LineItem[], lineItemsB: LineI
             return { productId: itemA.productId, skuId: itemA.variant.sku,   hasChange: "Line item was remove by condition." };
         }
         const hasChange = compareLineItemAttributes(itemA, matchingItemB);
-
-        console.log(JSON.stringify(itemA))
 
         return { productId: itemA.productId,skuId: itemA.variant.sku, hasChange };
     });

@@ -269,16 +269,6 @@ class CommercetoolsProductClient {
 		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
 		
 
-		console.log(`this.onlineChannel : ${this.onlineChannel}`)
-
-		// TODO :: CHECK AVAILABLE
-
-		const inventoryMap = new Map<string, any>();
-		inventories.forEach((inventory: any) => {
-			const key = inventory.key;
-			const sku = key.replace(`${this.onlineChannel}-`, '');
-			inventoryMap.set(sku, inventory);
-		});
 
 
 		const { body } = await this.getProductsBySkus(skus);
@@ -305,6 +295,8 @@ class CommercetoolsProductClient {
 				(skuItem: any) => cartItem.productId === skuItem.id
 			);
 
+			const matchedInventory = inventories.find((invItem: any) => invItem.sku === cartItem.variant.sku)			
+
 			if (!matchingSkuItem) return cartItem;
 			const { quantity, price } = cartItem;
 
@@ -330,7 +322,8 @@ class CommercetoolsProductClient {
 				quantityOverParentMax: parentMax !== null && oldCartQuantity.main_product > parentMax,
 				quantityLowerParentMin: parentMax !== null && oldCartQuantity.main_product < parentMin,
 				quantityOverSkuMax: skuMax !== null && quantity > skuMax,
-				quantityLowerSkuMin: skuMin !== null && quantity < skuMin
+				quantityLowerSkuMin: skuMin !== null && quantity < skuMin,
+				quantityOverStock: quantity > matchedInventory.stock.available,
 			};
 	
 			// Update item data

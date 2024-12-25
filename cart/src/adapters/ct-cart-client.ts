@@ -6,7 +6,6 @@ import { readConfiguration } from '../utils/config.utils';
 import { compareLineItemsArrays } from '../utils/compare.util';
 import { getAttributeValue } from '../utils/product-utils';
 import { UpdateAction } from '@commercetools/sdk-client-v2';
-import { versions } from 'process';
 
 class CommercetoolsCartClient {
 	private static instance: CommercetoolsCartClient;
@@ -179,9 +178,6 @@ class CommercetoolsCartClient {
 
 		const { id: cartId, version: cartVersion, lineItems } = oldCart
 
-
-		
-
 		const updateActions: CartUpdateAction[] = lineItems.map((lineItem: any) => {
 			const { id, price  } = lineItem
 
@@ -203,12 +199,13 @@ class CommercetoolsCartClient {
 		};
 
 		const updatedPrice =  await this.updatePrice(cartId, cartUpdate)
-		const updatedCart =  await this.recalculateCart(updatedPrice.id, updatedPrice.version)
-		const validateProduct = await this.validateDateItems(updatedCart)
+		const recalculatedCart =  await this.recalculateCart(updatedPrice.id, updatedPrice.version)
+
+		const validateProduct = await this.validateDateItems(recalculatedCart)
 		const compared = compareLineItemsArrays(oldCart.lineItems, validateProduct.lineItems)
 
 
-		return {...updatedCart , compared}
+		return {...validateProduct , compared}
 		
 	}
 
@@ -249,9 +246,11 @@ class CommercetoolsCartClient {
 	public async validateDateItems(ctCart: Cart) {
 
 
+		let validatedCart: Cart = ctCart
+
 		const today = new Date();
-		const { lineItems, totalLineItemQuantity, version, id } = ctCart
-		if(!totalLineItemQuantity) return {...ctCart, lineItems: []}
+		const { lineItems, totalLineItemQuantity, version, id } = validatedCart
+		if(!totalLineItemQuantity) return {...validatedCart, lineItems: []}
 
 		const itemForRemove: LineItem[] = []
 
@@ -309,11 +308,13 @@ class CommercetoolsCartClient {
 			})
 			
 			
-			return await this.removeItem(version, id,removeActions)
+			validatedCart =  await this.removeItem(version, id,removeActions)
 		}
 
+		console.log(`validatedCart.version : ${validatedCart.version}`)
 
-		return {...ctCart, lineItems: itemsWithCheckedCondition}
+
+		return {...validatedCart, lineItems: itemsWithCheckedCondition}
 	}
 
 	public async removeItem(cartVersion: number, cartId: string, actions: any) {

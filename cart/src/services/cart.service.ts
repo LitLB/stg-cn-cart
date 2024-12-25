@@ -138,8 +138,7 @@ export class CartService {
         return {...order, hasChanged: cartWithUpdatedPrice.compared};
     };
 
-    // TODO :: ADD FLAG ITEM HAS CHANGE 
-    // * PASS BUT NOT INCLUDE HAS CHANGE
+    // TODO :: CART HAS CHANGED
     public checkout = async (accessToken: string, id: string, body: any): Promise<any> => {
         const { error, value } = validateCartCheckoutBody(body);
         if (error) {
@@ -247,8 +246,7 @@ export class CartService {
     }
 
 
-     // TODO :: ADD FLAG ITEM HAS CHANGE 
-    // * PASS BUT NOT INCLUDE HAS CHANGE
+    // TODO :: CART HAS CHANGED
     public getCartById = async (accessToken: string, id: string, selectedOnly: boolean): Promise<any> => {
         if (!id) {
             throw {
