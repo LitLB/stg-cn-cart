@@ -12,21 +12,6 @@ import { createStandardizedError } from '../utils/error.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class CartItemService {
-    // private getJourneyDeviceOnly = (variant: any): string | undefined => {
-    //     const journeyAttribute = variant.attributes?.find((attr: any) => attr.name === 'journey');
-    //     if (journeyAttribute) {
-    //         if (Array.isArray(journeyAttribute.value)) {
-    //             const journeyDeviceOnly = journeyAttribute.value.find((v: any) => v.key === 'device_only');
-    //             if (journeyDeviceOnly && journeyDeviceOnly.key) {
-    //                 return journeyDeviceOnly.key;
-    //             }
-    //         } else {
-    //             console.warn('Unexpected structure for journey attribute:', journeyAttribute.value);
-    //         }
-    //     }
-    //     return undefined;
-    // }
-
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
         try {
             const { error, value } = validateAddItemCartBody(body);
@@ -156,10 +141,8 @@ export class CartItemService {
                 }
             }
 
-            // ! ยังไม่ได้เช็ค
             const action = 'add_product'
             const validateResult = await talonOneEffectConverter.validate(cart, changes, action)
-
             if (!validateResult?.isValid) {
                 return {
                     status: 'error',

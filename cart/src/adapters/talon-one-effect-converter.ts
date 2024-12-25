@@ -779,7 +779,6 @@ class TalonOneEffectConverter {
 
 		const addOnCartItems = newCartItems.filter((cartItem: any) => cartItem?.attributes.product_type === 'add_on')
 
-
 		let validateObject = mainProductCartItems.reduce((acc: any, item: any) => {
 			const { addOnBenefits, attributes } = item
 			const productGroup = attributes.product_group
@@ -802,6 +801,29 @@ class TalonOneEffectConverter {
 			return acc
 		}, {})
 
+		console.log('validateObject', validateObject);
+		// validateObject {}
+		console.log('addOnCartItems', addOnCartItems);
+		// addOnCartItems [
+		//   {
+		//     sku: 'o-add-on-1-sku-1001',
+		//     quantity: 1,
+		//     returnedQuantity: 0,
+		//     remainingQuantity: 1,
+		//     price: 0,
+		//     product: Product { name: 'o-add-on-1' },
+		//     position: 0,
+		//     attributes: {
+		//       add_on_group: 'add_on_1',
+		//       commercetools_product_id: '2973331a-c3b1-4d5b-a042-7db5cb84ee09',
+		//       product_group: 1,
+		//       product_type: 'add_on'
+		//     },
+		//     addOnBenefits: []
+		//   }
+		// ]
+
+		// There are error(s) within addOnCartItems.reduce()
 		validateObject = addOnCartItems.reduce((acc: any, item: any) => {
 			const { attributes, quantity } = item
 			const productGroup = attributes.product_group
@@ -822,6 +844,7 @@ class TalonOneEffectConverter {
 			isValid: true,
 			errorMessage: ''
 		}
+		// End
 
 		Object.entries(validateObject as Record<string, any>).forEach(([productGroup, limit]) => {
 			const { remainingMaxReceive, remainingMaxItem } = limit
