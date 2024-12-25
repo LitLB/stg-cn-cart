@@ -1,6 +1,6 @@
 import * as talonOne from "talon_one";
 import { readConfiguration } from "../utils/config.utils";
-import { validateCouponLimit } from "../validators/coupon.valicator";
+import { validateCouponLimit } from "../validators/coupon.validator";
 import { ApiResponse } from '../types/response.type';
 import { logger } from "../utils/logger.utils";
 import { HTTP_STATUSES } from "../constants/http.constant";

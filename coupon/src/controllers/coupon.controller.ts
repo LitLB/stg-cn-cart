@@ -14,6 +14,7 @@ export class CouponController {
     constructor() {
         this.couponService = new CouponService();
     }
+
     public getQueryCoupons = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
 
@@ -41,7 +42,7 @@ export class CouponController {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
 
-            const cart = await this.couponService.applyCoupons(accessToken, id, req.body);
+            const cart = await this.couponService.applyCouponsV2(accessToken, id, req.body);
 
             const response: ApiResponse = {
                 statusCode: HTTP_STATUSES.OK,
