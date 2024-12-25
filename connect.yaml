@@ -31,6 +31,9 @@ deployAs:
         - key: CTP_WHOLE_CART_LIMIT
           description: Commercetools whole cart item limit
           required: true
+        - key: CTP_DEFAULT_COUPON_LIMIT
+          description: Config limit coupon
+          required: true
         - key: CT_PRICE_CUSTOMER_GROUP_ID_RRP
           description: Commercetools Price Customer Group ID for Recommended Retail Price (RRP)
           required: true
@@ -130,6 +133,9 @@ deployAs:
         - key: CTP_WHOLE_CART_LIMIT
           description: Commercetools whole cart item limit
           required: true
+        - key: CTP_DEFAULT_COUPON_LIMIT
+          description: Config limit coupon
+          required: true
         - key: CT_PRICE_CUSTOMER_GROUP_ID_RRP
           description: Commercetools Price Customer Group ID for Recommended Retail Price (RRP)
           required: true
@@ -162,9 +168,6 @@ deployAs:
           required: true
         - key: APIGW_BASE_URL
           description: Apigee base url
-          required: true
-        - key: CTP_DEFAULT_COUPON_LIMIT
-          description: Config limit coupon
           required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
