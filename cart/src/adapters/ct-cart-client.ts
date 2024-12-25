@@ -202,7 +202,9 @@ class CommercetoolsCartClient {
 		const recalculatedCart =  await this.recalculateCart(updatedPrice.id, updatedPrice.version)
 
 		const validateProduct = await this.validateDateItems(recalculatedCart)
+
 		const compared = compareLineItemsArrays(oldCart.lineItems, validateProduct.lineItems)
+
 
 
 		return {...validateProduct , compared}
@@ -246,11 +248,10 @@ class CommercetoolsCartClient {
 	public async validateDateItems(ctCart: Cart) {
 
 
-		let validatedCart: Cart = ctCart
 
 		const today = new Date();
-		const { lineItems, totalLineItemQuantity, version, id } = validatedCart
-		if(!totalLineItemQuantity) return {...validatedCart, lineItems: []}
+		const { lineItems, totalLineItemQuantity, version, id } = ctCart
+		if(!totalLineItemQuantity) return ctCart
 
 		const itemForRemove: LineItem[] = []
 
@@ -282,18 +283,9 @@ class CommercetoolsCartClient {
 			if(!isValidPeriod){
 				itemForRemove.push(lineItem)
 			}
-
-			const parentMax = getAttributeValue(itemAttr, 'quantity_max')
-			const parentMin = getAttributeValue(itemAttr, 'quantity_min')
-			const skuMax = getAttributeValue(itemAttr, 'quantity_sku_min')
-			const skuMin = getAttributeValue(itemAttr, 'quantity_sku_min')
 		
 			return {...lineItem, hasChanged: {
 				lineItemId: lineItem.id,
-                qtyOverParentMax : totalLineItemQuantity > parentMax,
-                qtyLowerParentMin : totalLineItemQuantity < parentMin,
-                qtyOverSkuMax : totalLineItemQuantity > skuMax,
-                qtyLowerSkuMin : totalLineItemQuantity < skuMin,
                 itemRemoved: itemForRemove,
 			}}
 		})
@@ -308,13 +300,10 @@ class CommercetoolsCartClient {
 			})
 			
 			
-			validatedCart =  await this.removeItem(version, id,removeActions)
+			return  await this.removeItem(version, id,removeActions)
 		}
 
-		console.log(`validatedCart.version : ${validatedCart.version}`)
-
-
-		return {...validatedCart, lineItems: itemsWithCheckedCondition}
+		return {...ctCart, lineItems: itemsWithCheckedCondition}
 	}
 
 	public async removeItem(cartVersion: number, cartId: string, actions: any) {

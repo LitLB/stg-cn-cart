@@ -35,11 +35,17 @@ export class CartService {
 
     public updateStockAllocation = async (ctCart: Cart): Promise<void> => {
         try {
+            console.log(`create Order `)
             const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
             const journeyConfig = journeyConfigMap[journey];
 
+            console.log(`journey : ${journey}`)
+            console.log(`journeyConfig : ${journeyConfig}`)
+
             for (const lineItem of ctCart.lineItems) {
                 const supplyChannel = lineItem.supplyChannel;
+
+                console.log(`supplyChannel :${supplyChannel}`)
                 if (!supplyChannel || !supplyChannel.id) {
                     throw {
                         statusCode: 400,
@@ -84,8 +90,7 @@ export class CartService {
         }
     };
 
-    // TODO :: ADD FLAG ITEM HAS CHANGE 
-    // * PASS BUT NOT INCLUDE HAS CHANGE
+    // TODO :: CART HAS CHANGED
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
         const defaultValidateList = [
             'BLACKLIST',
@@ -103,22 +108,28 @@ export class CartService {
         const ctCart = await this.getCtCartById(accessToken, cartId)
 
         // * STEP #2 - Validate Blacklist
+        // * STEP #2 - Validate Blacklist
+        console.log(`STEP #2 - Validate Blacklist`)
         if (validateList.includes('BLACKLIST')) {
             await this.validateBlacklist(ctCart)
         }
 
         // * STEP #3 - Validate Campaign & Promotion Set
+        console.log(`STEP #3 - Validate Campaign & Promotion Set`)
         if (validateList.includes('CAMPAIGN')) {
             await this.validateCampaign(ctCart)
         }
-
+        
         // * STEP #4 - Validate Available Quantity (Commercetools)
+        console.log(`STEP #4 - Validate Available Quantity (Commercetools)`)
         await this.validateAvailableQuantity(ctCart)
 
         const orderNumber = this.generateOrderNumber()
+        console.log(`orderNumber : ${orderNumber}`)
 
         // * STEP #5 - Create Order On TSM Sale
         const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+        
         // //! IF available > x
         // //! THEN continue
         // //! ELSE
@@ -128,9 +139,11 @@ export class CartService {
             tsmOrderIsSaved: success,
             tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
         }
+
+        console.log(` STEP #5 - Create Order On TSM Sale`,tsmSaveOrder)
         const newCtCart = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
         const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(newCtCart)
-
+        console.log(`before create order`)
         await this.updateStockAllocation(cartWithUpdatedPrice);
 
         const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
@@ -263,7 +276,9 @@ export class CartService {
                 statusMessage: 'Cart not found or has expired',
             };
         }
+
         const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+
         const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
         const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(cartWithUpdatedPrice, selectedOnly);
         const coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(id, cartWithUpdatedPrice.lineItems);

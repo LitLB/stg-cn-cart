@@ -14,11 +14,9 @@ class CommercetoolsProductClient {
 	private apiRoot: ApiRoot;
 	private projectKey: string;
 	private readonly ctInventoryClient;
-	private onlineChannel: string;
 
 
 	private constructor() {
-		this.onlineChannel = readConfiguration().onlineChannel as string;
 		this.apiRoot = CommercetoolsBaseClient.getApiRoot();
 		this.projectKey = readConfiguration().ctpProjectKey as string;
 		this.ctInventoryClient = CommercetoolsInventoryClient;
@@ -260,20 +258,18 @@ class CommercetoolsProductClient {
 	}
 
 	async checkCartHasChanged(ctCart: any) {
-		const { lineItems,totalLineItemQuantity:oldCartQuantity } = ctCart;
-	
+
+		const { lineItems, totalLineItemQuantity: oldCartQuantity } = ctCart;
+
+		if (lineItems.length === 0) return {...ctCart, lineItems: []}
+
 		const skus = lineItems.map((item: any) => item.variant.sku);
-
 		const inventoryKey = skus.map((sku: any) => sku).join(',');
-
 		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
-		
-
-
 
 		const { body } = await this.getProductsBySkus(skus);
 		const skuItems = body.results;
-	
+
 		// Helper function to find valid price
 		const findValidPrice = (variants: any) => {
 			return this.findValidPrice({
@@ -283,19 +279,14 @@ class CommercetoolsProductClient {
 			});
 		}
 
-		// Filter main products
-		const mainProducts = lineItems.filter(
-			(item: any) => item.custom?.fields?.productType === "main_product"
-		);
-	
 		// Process cart items to check for changes
-		const processedItems = mainProducts.map((cartItem: any) => {
+		const processedItems = lineItems.map((cartItem: any) => {
 
 			const matchingSkuItem = skuItems.find(
 				(skuItem: any) => cartItem.productId === skuItem.id
 			);
 
-			const matchedInventory = inventories.find((invItem: any) => invItem.sku === cartItem.variant.sku)			
+			const matchedInventory = inventories.find((invItem: any) => invItem.sku === cartItem.variant.sku)
 
 			if (!matchingSkuItem) return cartItem;
 			const { quantity, price } = cartItem;
@@ -325,7 +316,7 @@ class CommercetoolsProductClient {
 				quantityLowerSkuMin: skuMin !== null && quantity < skuMin,
 				quantityOverStock: quantity > matchedInventory.stock.available,
 			};
-	
+
 			// Update item data
 			const updatedItem = {
 				...cartItem,
@@ -339,10 +330,10 @@ class CommercetoolsProductClient {
 				availability: matchedVariant?.availability,
 				hasChanged,
 			};
-	
+
 			return updatedItem;
-		}).filter(Boolean); 
-	
+		}).filter(Boolean);
+
 		// Recalculate total cart values
 		const totalPrice = processedItems.reduce(
 			(acc: number, product: any) => acc + product.totalPrice.centAmount,
@@ -352,10 +343,10 @@ class CommercetoolsProductClient {
 			(total: number, item: any) => total + item.quantity,
 			0
 		);
-	
+
 		return {
 			...ctCart,
-			lineItems: processedItems,
+			lineItems: processedItems ?? [],
 			totalPrice: {
 				...ctCart.totalPrice,
 				centAmount: totalPrice,

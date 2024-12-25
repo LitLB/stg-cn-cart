@@ -64,7 +64,7 @@ function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: LineItem) {
 
 export function compareLineItemsArrays(lineItemsA: LineItem[], lineItemsB: LineItem[]) {
 
-    return lineItemsA.map(itemA => {
+    return lineItemsA.map((itemA) => {
         const matchingItemB = lineItemsB.find(itemB => itemB.id === itemA.id);
         if (!matchingItemB) {
             return { productId: itemA.productId, skuId: itemA.variant.sku,   hasChange: "Line item was remove by condition." };
