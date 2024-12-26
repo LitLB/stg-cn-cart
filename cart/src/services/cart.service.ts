@@ -169,8 +169,13 @@ export class CartService {
 
             // D) Run processCoupons => fill updateActions for discount lines, etc.
             await this.processCoupons(ctCart, coupons, updateActions);
-
-            return { ...cartAfterAutoRemove, ...permanentlyInvalidRejectedCoupons };
+            if (permanentlyInvalidRejectedCoupons.length > 0) {
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Some coupons were rejected during processing.',
+                    data: coupons.coupons.rejectedCoupons,
+                }, 'createOrder');
+            }
 
             // If we have any updates from processCoupons, do them
             if (updateActions.length > 0) {
