@@ -1,0 +1,184 @@
+{
+  "type": "Cart",
+  "id": "da09b25e-2fa2-487a-a84e-26dcd9ef282d",
+  "version": 4,
+  "versionModifiedAt": "2024-12-20T09:13:52.688Z",
+  "lastMessageSequenceNumber": 1,
+  "createdAt": "2024-12-20T09:03:31.485Z",
+  "lastModifiedAt": "2024-12-20T09:13:52.688Z",
+  "lastModifiedBy": {
+    "clientId": "Ea4Qtl5uCinAa8Hx-6zUeXvT",
+    "isPlatformClient": false
+  },
+  "createdBy": {
+    "clientId": "Hfl3Z7_NrxC_Z2rd5LJRAK2W",
+    "isPlatformClient": false,
+    "anonymousId": "70d35384-dca4-42b5-beea-9269d0786f20"
+  },
+  "anonymousId": "70d35384-dca4-42b5-beea-9269d0786f20",
+  "lineItems": [
+    {
+      "id": "bc4fe7e7-f6c3-4bba-ad6d-e748d6a6db88",
+      "productId": "734cab01-47b6-4dc5-b27c-19c2a883875c",
+      "productKey": "9079c286-76de-40a5-f9eb-f4bc3ec3c247",
+      "name": {
+        "th-TH": "ไอโฟน 22 โปรแม็กซ์ (แม็ก)",
+        "en-US": "iphone 22 Pro Max (Max)"
+      },
+      "productType": {
+        "typeId": "product-type",
+        "id": "02584416-7fac-4a37-a511-be6b3e329664",
+        "version": 415
+      },
+      "productSlug": { "th-TH": "22" },
+      "variant": {
+        "id": 1,
+        "sku": "iphone-22-pro-max-blue",
+        "key": "iphone-22-pro-max-blue",
+        "prices": [
+          {
+            "id": "2492ee3b-0bee-4a88-8224-bc11151f8e57",
+            "value": {
+              "type": "centPrecision",
+              "currencyCode": "THB",
+              "centAmount": 1000000,
+              "fractionDigits": 2
+            },
+            "key": "PRC-1",
+            "customerGroup": {
+              "typeId": "customer-group",
+              "id": "94e4dca6-8b56-4861-ab92-4fbeefacb228"
+            },
+            "channel": {
+              "typeId": "channel",
+              "id": "b3ed9456-9890-4119-b981-5624ee4e6d6b"
+            }
+          }
+        ],
+        "images": [
+          {
+            "url": "https://images.cdn.australia-southeast1.gcp.commercetools.com/11c6ea39-ac1a-4868-87d8-5bd23bc70f03/glass-globe-ball-wit-51rCazMd.jpg",
+            "dimensions": { "w": 786, "h": 400 }
+          }
+        ],
+        "attributes": [
+          {
+            "name": "product_id",
+            "value": "9079c286-76de-40a5-f9eb-f4bc3ec3c247"
+          },
+          {
+            "name": "journey",
+            "value": [{ "key": "device_only", "label": "Device Only" }]
+          },
+          {
+            "name": "image",
+            "value": "https://images.contentstack.io/v3/assets/blt8ba403bee4433fd8/blta971c43b460c7f42/6723354eb3d37517e0930d80/iphone-16.jpg?branch=develop"
+          },
+          { "name": "color", "value": { "key": "blue", "label": "Blue" } },
+          { "name": "color_code", "value": "BLUE" },
+          { "name": "screen_size", "value": "1024" },
+          { "name": "capacity", "value": { "key": "128GB", "label": "128GB" } },
+          { "name": "company", "value": { "key": "true", "label": "True" } },
+          {
+            "name": "payment_options_specification",
+            "value": [{ "key": "truemoney", "label": "True Money Wallet" }]
+          },
+          { "name": "akeneo_id", "value": "iphone-22-pro-max-blue" },
+          {
+            "name": "status",
+            "value": { "key": "enabled", "label": "Enabled" }
+          },
+          { "name": "company_code", "value": "1064" }
+        ],
+        "assets": [],
+        "availability": {
+          "channels": {
+            "b3ed9456-9890-4119-b981-5624ee4e6d6b": {
+              "isOnStock": true,
+              "availableQuantity": 96,
+              "version": 32,
+              "id": "ea59231f-4ffa-412a-a7f1-1fb240806b14"
+            }
+          }
+        }
+      },
+      "price": {
+        "id": "c634d4ee-274f-470b-b771-8a32bdbb9edb",
+        "value": {
+          "type": "centPrecision",
+          "currencyCode": "THB",
+          "centAmount": 1000000,
+          "fractionDigits": 2
+        }
+      },
+      "quantity": 2,
+      "discountedPricePerQuantity": [],
+      "supplyChannel": {
+        "typeId": "channel",
+        "id": "b3ed9456-9890-4119-b981-5624ee4e6d6b"
+      },
+      "perMethodTaxRate": [],
+      "addedAt": "2024-12-20T09:13:52.677Z",
+      "lastModifiedAt": "2024-12-20T09:13:52.677Z",
+      "state": [
+        {
+          "quantity": 2,
+          "state": {
+            "typeId": "state",
+            "id": "4edd1d7a-f5ac-4ec8-b575-29dd9e87e020"
+          }
+        }
+      ],
+      "priceMode": "ExternalPrice",
+      "lineItemMode": "Standard",
+      "totalPrice": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 2000000,
+        "fractionDigits": 2
+      },
+      "taxedPricePortions": [],
+      "custom": {
+        "type": {
+          "typeId": "type",
+          "id": "27d2c7ca-385b-4668-bbcf-526c1f2607ff"
+        },
+        "fields": { "productType": "main_product", "productGroup": 1 }
+      },
+      "hasChanged": {
+        "priceHasChanged": false,
+        "parentMaxHasChanged": false,
+        "parentMinHasChanged": false,
+        "skuMaxHasChanged": false,
+        "skuMinHasChanged": false,
+        "isOutOfStock": false
+      }
+    }
+  ],
+  "cartState": "Active",
+  "totalPrice": {
+    "type": "centPrecision",
+    "currencyCode": "THB",
+    "centAmount": 2000000,
+    "fractionDigits": 2
+  },
+  "country": "TH",
+  "shippingMode": "Single",
+  "shipping": [],
+  "customLineItems": [],
+  "discountCodes": [],
+  "directDiscounts": [],
+  "custom": {
+    "type": { "typeId": "type", "id": "6f5ebb53-b59e-4cb1-bd94-8469a4e8629e" },
+    "fields": { "campaignGroup": "mass", "journey": "device_only" }
+  },
+  "inventoryMode": "ReserveOnOrder",
+  "taxMode": "Platform",
+  "taxRoundingMode": "HalfEven",
+  "taxCalculationMode": "LineItemLevel",
+  "deleteDaysAfterLastModification": 1,
+  "refusedGifts": [],
+  "origin": "Customer",
+  "itemShippingAddresses": [],
+  "totalLineItemQuantity": 2
+}

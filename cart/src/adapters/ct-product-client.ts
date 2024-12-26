@@ -1,18 +1,25 @@
+import { LineItem } from '@commercetools/platform-sdk';
 // src/server/adapters/ct-product-client.ts
 
 import type { ApiRoot, Product, ProductDraft, ProductVariant } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
 import { CT_PRODUCT_ACTIONS } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
+import { getAttributeValue } from '../utils/product-utils';
+import CommercetoolsMeCartClient from './me/ct-me-cart-client';
+import CommercetoolsInventoryClient from '../adapters/ct-inventory-client'
 
 class CommercetoolsProductClient {
 	private static instance: CommercetoolsProductClient;
 	private apiRoot: ApiRoot;
 	private projectKey: string;
+	private readonly ctInventoryClient;
+
 
 	private constructor() {
 		this.apiRoot = CommercetoolsBaseClient.getApiRoot();
 		this.projectKey = readConfiguration().ctpProjectKey as string;
+		this.ctInventoryClient = CommercetoolsInventoryClient;
 	}
 
 	public static getInstance(): CommercetoolsProductClient {
@@ -238,6 +245,117 @@ class CommercetoolsProductClient {
 		// Return the price with the highest priority
 		return sortedPrices[0];
 	}
+
+	findVariantByKey(variantKey: string, masterVariant: ProductVariant, variants: ProductVariant[]) {
+		const allVariant = variants.concat(masterVariant)
+		const variant = allVariant.find((v) => v.key === variantKey);
+
+		if (!variant) {
+            throw new Error(`Could not find variant with key "${variantKey}"`);
+        }
+
+		return variant
+	}
+
+	async checkCartHasChanged(ctCart: any) {
+
+		const { lineItems, totalLineItemQuantity: oldCartQuantity } = ctCart;
+
+		if (lineItems.length === 0) return {...ctCart, lineItems: []}
+
+		const skus = lineItems.map((item: any) => item.variant.sku);
+		const inventoryKey = skus.map((sku: any) => sku).join(',');
+		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
+
+		const { body } = await this.getProductsBySkus(skus);
+		const skuItems = body.results;
+
+		// Helper function to find valid price
+		const findValidPrice = (variants: any) => {
+			return this.findValidPrice({
+				prices: variants.prices,
+				customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
+				date: new Date(),
+			});
+		}
+
+		// Process cart items to check for changes
+		const processedItems = lineItems.map((cartItem: any) => {
+
+			const matchingSkuItem = skuItems.find(
+				(skuItem: any) => cartItem.productId === skuItem.id
+			);
+
+			const matchedInventory = inventories.find((invItem: any) => invItem.sku === cartItem.variant.sku)
+
+			if (!matchingSkuItem) return cartItem;
+			const { quantity, price } = cartItem;
+
+			// Find matched variant
+			const matchedVariant = this.findVariantByKey(
+				cartItem?.variant?.key,
+				matchingSkuItem.masterVariant,
+				matchingSkuItem.variants
+			);
+
+
+			const validPrice = findValidPrice(matchedVariant);
+			const skuAttributes = matchedVariant?.attributes ?? [];
+			// Determine if attributes or price have changed
+
+			const parentMax = getAttributeValue(skuAttributes, "quantity_max");
+			const parentMin = getAttributeValue(skuAttributes, "quantity_min");
+			const skuMax = getAttributeValue(skuAttributes, "sku_quantity_max");
+			const skuMin = getAttributeValue(skuAttributes, "sku_quantity_min");
+
+			const hasChanged = {
+				price: validPrice.value.centAmount !== price.value.centAmount,
+				quantityOverParentMax: parentMax !== null && oldCartQuantity.main_product > parentMax,
+				quantityLowerParentMin: parentMax !== null && oldCartQuantity.main_product < parentMin,
+				quantityOverSkuMax: skuMax !== null && quantity > skuMax,
+				quantityLowerSkuMin: skuMin !== null && quantity < skuMin,
+				quantityOverStock: quantity > matchedInventory.stock.available,
+			};
+
+			// Update item data
+			const updatedItem = {
+				...cartItem,
+				name: matchingSkuItem.name,
+				variant: matchedVariant,
+				price: validPrice,
+				totalPrice: {
+					...validPrice.value,
+					centAmount: validPrice.value.centAmount * quantity,
+				},
+				availability: matchedVariant?.availability,
+				hasChanged,
+			};
+
+			return updatedItem;
+		}).filter(Boolean);
+
+		// Recalculate total cart values
+		const totalPrice = processedItems.reduce(
+			(acc: number, product: any) => acc + product.totalPrice.centAmount,
+			0
+		);
+		const totalLineItemQuantity = processedItems.reduce(
+			(total: number, item: any) => total + item.quantity,
+			0
+		);
+
+		return {
+			...ctCart,
+			lineItems: processedItems ?? [],
+			totalPrice: {
+				...ctCart.totalPrice,
+				centAmount: totalPrice,
+			},
+			totalLineItemQuantity,
+		};
+	}
+	
+	
 }
 
 export default CommercetoolsProductClient.getInstance();

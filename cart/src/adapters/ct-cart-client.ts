@@ -1,8 +1,11 @@
 // server/adapters/ct-cart-client.ts
 
-import type { ApiRoot, Cart, CartUpdate, CartUpdateAction, MyCartUpdate, MyCartUpdateAction, LineItemDraft } from '@commercetools/platform-sdk';
+import type { ApiRoot, Cart, CartUpdate, CartUpdateAction, MyCartUpdate, MyCartUpdateAction, LineItemDraft, LineItem } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from './ct-base-client';
 import { readConfiguration } from '../utils/config.utils';
+import { compareLineItemsArrays } from '../utils/compare.util';
+import { getAttributeValue } from '../utils/product-utils';
+import { UpdateAction } from '@commercetools/sdk-client-v2';
 
 class CommercetoolsCartClient {
 	private static instance: CommercetoolsCartClient;
@@ -12,6 +15,8 @@ class CommercetoolsCartClient {
 	private constructor() {
 		this.apiRoot = CommercetoolsBaseClient.getApiRoot();
 		this.projectKey = readConfiguration().ctpProjectKey as string;
+		
+
 	}
 
 	public static getInstance(): CommercetoolsCartClient {
@@ -32,6 +37,7 @@ class CommercetoolsCartClient {
 				actions,
 			};
 
+
 			const response = await this.apiRoot
 				.withProjectKey({ projectKey: this.projectKey })
 				.carts()
@@ -40,6 +46,7 @@ class CommercetoolsCartClient {
 					body: cartUpdate,
 				})
 				.execute();
+
 
 			return response.body;
 		} catch (error: any) {
@@ -170,6 +177,157 @@ class CommercetoolsCartClient {
 
 		return response.body;
 	}
+
+	public async updateCartWithNewValue(oldCart: Cart) {
+
+		const { id: cartId, version: cartVersion, lineItems } = oldCart
+
+		const updateActions: CartUpdateAction[] = lineItems.map((lineItem: any) => {
+			const { id, price  } = lineItem
+
+
+			return {
+				action: 'setLineItemPrice',
+				lineItemId: id,
+				externalPrice: {
+					currencyCode: "THB",
+					centAmount: price.value.centAmount
+				}
+			}
+		})
+
+
+		const cartUpdate: CartUpdate = {
+			version: cartVersion,
+			actions: updateActions
+		};
+
+		const updatedPrice =  await this.updatePrice(cartId, cartUpdate)
+		const recalculatedCart =  await this.recalculateCart(updatedPrice.id, updatedPrice.version)
+
+		const validateProduct = await this.validateDateItems(recalculatedCart)
+
+		const compared = compareLineItemsArrays(oldCart.lineItems, validateProduct.lineItems)
+
+
+
+		return {...validateProduct , compared}
+		
+	}
+
+	public async updatePrice(cartId: string,cartUpdate: any){
+		const response = await this.apiRoot
+		.withProjectKey({ projectKey: this.projectKey })
+		.carts()
+		.withId({ ID: cartId })
+		.post({ body: cartUpdate })
+		.execute();
+
+		return response.body
+	}
+
+	public async recalculateCart(cartId: string, cartVersion: number) {
+
+
+		const response = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.carts()
+			.withId({ ID: cartId })
+			.post({
+				body: {
+					version: cartVersion,
+					actions: [
+						{
+							action: "recalculate",
+							updateProductData: true
+						}
+					]
+				}
+			})
+			.execute();
+
+		return response.body;
+	}
+
+	public async validateDateItems(ctCart: Cart) {
+
+
+
+		const today = new Date();
+		const { lineItems, totalLineItemQuantity, version, id } = ctCart
+		if(!totalLineItemQuantity) return ctCart
+
+		const itemForRemove: LineItem[] = []
+
+		const itemsWithCheckedCondition = lineItems.map(lineItem => {
+			const { variant } = lineItem
+			const { attributes } = variant
+
+			const itemAttr = attributes ?? []
+
+			const releaseDate = getAttributeValue(itemAttr, 'release_start_date')
+			const endDate = getAttributeValue(itemAttr, 'release_end_date')
+
+			
+
+			const validForm = new Date(releaseDate) <= today
+			const validTo = new Date(endDate) >= today
+
+			let isValidPeriod = true
+
+
+			if(releaseDate && endDate){
+				isValidPeriod = validForm && validTo
+			}else if(releaseDate && !endDate) {
+				isValidPeriod = validForm
+			}else if(!releaseDate && endDate) {
+				isValidPeriod = validTo
+			}
+
+			if(!isValidPeriod){
+				itemForRemove.push(lineItem)
+			}
+		
+			return {...lineItem, hasChanged: {
+				lineItemId: lineItem.id,
+                itemRemoved: itemForRemove,
+			}}
+		})
+
+		if(itemForRemove.length > 0) {
+
+			const removeActions: UpdateAction[] = itemForRemove.map(item => {
+				return {
+					action:'removeLineItem',
+					lineItemId: item.id,
+				};
+			})
+			
+			
+			return  await this.removeItem(version, id,removeActions)
+		}
+
+		return {...ctCart, lineItems: itemsWithCheckedCondition}
+	}
+
+	public async removeItem(cartVersion: number, cartId: string, actions: any) {
+
+		const cartUpdate: CartUpdate = {
+			version: cartVersion,
+			actions
+		};
+
+		const response = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.carts()
+			.withId({ ID: cartId })
+			.post({ body: cartUpdate })
+			.execute();
+
+		return response.body
+
+	}
+
 }
 
 export default CommercetoolsCartClient.getInstance();

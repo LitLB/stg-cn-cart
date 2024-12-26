@@ -4,7 +4,7 @@ import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
-import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateProductQuantity, validateSelectCartItemBody, validateUpdateCartItemBody } from '../schemas/cart-item.schema';
+import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateProductQuantity, validateProductReleaseDate, validateSelectCartItemBody, validateUpdateCartItemBody } from '../schemas/cart-item.schema';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { readConfiguration } from '../utils/config.utils';
 import { MyCartUpdateAction } from '@commercetools/platform-sdk';
@@ -73,6 +73,17 @@ export class CartItemService {
                     statusMessage: 'No prices found for this variant',
                 };
             }
+
+            const isValidReleaseDate = validateProductReleaseDate(variant.attributes, now)
+
+
+            if (!isValidReleaseDate) {
+                throw {
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    statusMessage: 'Product release date is not in period',
+                };
+            }
+
 
             // const variantJourneyDeviceOnly = this.getJourneyDeviceOnly(variant);
             // validateJourneyCompatibility(cartJourney, variantJourneyDeviceOnly);
@@ -166,9 +177,12 @@ export class CartItemService {
                 externalPrice: validPrice.value,
             });
 
-            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
-            return iCartWithBenefit;
+            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
+
+            return {...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
@@ -181,6 +195,9 @@ export class CartItemService {
     public updateItemQuantityById = async (accessToken: string, id: string, itemId: string, body: any): Promise<any> => {
         try {
             const { error, value } = validateUpdateCartItemBody(body);
+
+            const now = new Date()
+
             if (error) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -214,6 +231,17 @@ export class CartItemService {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'SKU not found in the specified product',
+                };
+            }
+
+
+            const isValidReleaseDate = validateProductReleaseDate(variant.attributes, now)
+
+
+            if (!isValidReleaseDate) {
+                throw {
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    statusMessage: 'Product release date is not in period',
                 };
             }
 
@@ -276,9 +304,12 @@ export class CartItemService {
                 quantity
             });
 
-            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
-            return iCartWithBenefit;
+            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
+
+            return {...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared};
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
@@ -470,9 +501,12 @@ export class CartItemService {
                 updateActions,
             );
 
-            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
-            return iCartWithBenefit;
+            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
+
+            return {...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared};
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;

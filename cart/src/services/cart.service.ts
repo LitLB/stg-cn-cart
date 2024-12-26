@@ -75,7 +75,9 @@ export class CartService {
             const journeyConfig = journeyConfigMap[journey];
 
             for (const lineItem of ctCart.lineItems) {
+
                 const supplyChannel = lineItem.supplyChannel;
+
                 if (!supplyChannel || !supplyChannel.id) {
                     throw {
                         statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -86,6 +88,7 @@ export class CartService {
 
                 const inventoryId =
                     lineItem.variant.availability?.channels?.[supplyChannel.id]?.id;
+
                 if (!inventoryId) {
                     throw {
                         statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -93,6 +96,7 @@ export class CartService {
                         errorCode: "INVENTORY_ID_NOT_FOUND",
                     };
                 }
+
 
                 const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
                 if (!inventoryEntry) {
@@ -121,8 +125,11 @@ export class CartService {
         }
     };
 
+    // TODO :: CART HAS CHANGED
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
         try {
+
+            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
             const defaultValidateList = [
                 'BLACKLIST',
                 'CAMPAIGN',
@@ -155,7 +162,7 @@ export class CartService {
             const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
             // //! IF available > x
             // //! THEN continue
-            // //! ELSE
+            // //! ELSE 
             // //! THEN throw error
 
             const tsmSaveOrder = {
@@ -163,10 +170,14 @@ export class CartService {
                 tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
             }
             // return tsmSaveOrder
-            await this.updateStockAllocation(ctCart);
-            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, ctCart, tsmSaveOrder);
+
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+
+            await this.updateStockAllocation(cartWithUpdatedPrice);
+            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
-            return order;
+            return {...order,hasChanged: cartWithUpdatedPrice.compared};
         } catch (error: any) {
             logger.info(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -177,6 +188,7 @@ export class CartService {
         }
     };
 
+    // TODO :: CART HAS CHANGED
     public checkout = async (accessToken: string, id: string, body: any): Promise<any> => {
         try {
             const { error, value } = validateCartCheckoutBody(body);
@@ -288,9 +300,12 @@ export class CartService {
                 updateActions,
             );
 
-            const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
-            return { ...iCart, ...coupons };
+            const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cartWithUpdatedPrice);
+
+            return { ...iCart, ...coupons, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             logger.info(`CartService.checkout.error`, error);
             if (error.status && error.message) {
@@ -301,6 +316,8 @@ export class CartService {
         }
     };
 
+
+    // TODO :: CART HAS CHANGED
     public getCartById = async (accessToken: string, id: string, selectedOnly: boolean): Promise<ICart> => {
         try {
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
@@ -310,11 +327,14 @@ export class CartService {
                 throw createStandardizedError({ statusCode: HTTP_STATUSES.BAD_REQUEST, statusMessage: 'Cart not found or has expired' });
             }
 
-            const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+
+            const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(cartWithUpdatedPrice, selectedOnly);
 
             let coupons;
             try {
-                coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(id, ctCart.lineItems);
+                coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(id, cartWithUpdatedPrice.lineItems);
             } catch (error: any) {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
@@ -323,7 +343,9 @@ export class CartService {
                 };
             }
 
-            return { ...iCartWithBenefit, ...coupons };
+
+
+            return { ...iCartWithBenefit, ...coupons, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
@@ -333,6 +355,7 @@ export class CartService {
         }
     };
 
+    
     public getCtCartById = async (accessToken: string, id: string): Promise<any> => {
         try {
             if (!id) {

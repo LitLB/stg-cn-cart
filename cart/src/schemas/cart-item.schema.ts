@@ -164,6 +164,7 @@ export function validateUpdateCartItemBody(body: any) {
 	}).validate(body, { abortEarly: false });
 }
 
+
 export function validateDeleteCartItemBody(body: any) {
 	return Joi.object({
 		productId: Joi.string().required().messages({
@@ -375,3 +376,30 @@ export const validateJourneyCompatibility = (
 		}
 	}
 };
+
+export const validateProductReleaseDate = (variant: any, today: Date):boolean => {
+
+	
+	const releaseDate = getAttributeValue(variant, 'release_start_date')
+	const endDate = getAttributeValue(variant, 'release_end_date')
+
+	if (!releaseDate && !endDate) {
+        return true;
+    }
+
+	const validForm = new Date(releaseDate) <= today
+	const validTo = new Date(endDate) >= today
+
+	let isValidPeriod = true
+
+
+	if(releaseDate && endDate){
+		isValidPeriod = validForm && validTo
+	}else if(releaseDate && !endDate) {
+		isValidPeriod = validForm
+	}else if(!releaseDate && endDate) {
+		isValidPeriod = validTo
+	}
+
+	return isValidPeriod
+}
