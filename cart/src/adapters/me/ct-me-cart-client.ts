@@ -104,194 +104,6 @@ export default class CommercetoolsMeCartClient {
 		return iCartWithBenefit;
 	}
 
-	async upsertPrivilegeToCtCart(updatedCart: any, lineItemWithCampaignBenefits: any) {
-		const { id: cartId, version, lineItems } = updatedCart;
-		const myCartUpdateActions: MyCartUpdateAction[] = [];
-		const newDirectDiscounts: any[] = [];
-
-		lineItems.forEach((lineItem: LineItem) => {
-			// console.log('JSON.stringify(lineItem)', JSON.stringify(lineItem));
-			const lineItemId = lineItem.id
-			// console.log('lineItemId', lineItemId)
-			const lineItemProductType = lineItem.custom?.fields.productType
-			const lineItemProductGroup = lineItem.custom?.fields.productGroup
-			const lineItemAddOnGroup = lineItem.custom?.fields.addOnGroup
-			// const lineItemOtherPayments = lineItem?.custom?.otherPayments
-			const quantity = lineItem.quantity
-			const lineItemPrice = lineItem.price?.value?.centAmount || 0;
-
-			const cartItem = lineItemWithCampaignBenefits.find((item: any) => {
-				return lineItem.variant.sku === item.variant.sku &&
-					lineItemProductType === item.custom.fields.productType &&
-					lineItemProductGroup === item.custom.fields.productGroup &&
-					(!lineItemAddOnGroup || lineItemAddOnGroup === item.custom.fields.addOnGroup)
-			})
-
-			const newPrivilege = cartItem?.privilege
-			// console.log('newPrivilege', newPrivilege);
-
-			myCartUpdateActions.push({
-				action: 'setLineItemCustomField',
-				lineItemId,
-				name: 'privilege',
-				value: newPrivilege ? JSON.stringify(newPrivilege) : '{}',
-			});
-
-			console.log('newPrivilege', newPrivilege);
-			console.log('newPrivilege?.benefitType', newPrivilege?.benefitType);
-			if (newPrivilege?.benefitType === 'free_gift') {
-				// For a free gift: discount 100% of line item cost
-				const totalLineCost = lineItemPrice * quantity;
-
-				const predicate = [
-					`product.id = "${lineItem.productId}"`,
-					`custom.productType = "${lineItemProductType}"`,
-					`custom.productGroup = ${lineItemProductGroup}`,
-				].join(' AND ');
-
-				newDirectDiscounts.push({
-					target: {
-						type: 'lineItems',
-						predicate,
-					},
-					value: {
-						type: 'absolute',
-						money: [
-							{
-								currencyCode: 'THB',
-								centAmount: totalLineCost,
-							},
-						],
-					},
-				});
-			}
-
-			const newLineItemDiscounts: any[] = (cartItem.discounts ?? [])
-			const discounts = []
-			if (newLineItemDiscounts.length) {
-				// ! Main product
-				// ! Add-on
-
-				for (const newLineItemDiscount of newLineItemDiscounts) {
-					const { benefitType, discountBaht } = newLineItemDiscount
-					if (benefitType === 'main_product') {
-						const predicate = [
-							`product.id ="${lineItem.productId}"`,
-							`custom.productType = "${lineItemProductType}"`,
-							`custom.productGroup = ${lineItemProductGroup}`
-						].join(' AND ');
-
-						newDirectDiscounts.push({
-							target: {
-								type: 'lineItems',
-								predicate,
-							},
-							value: {
-								type: 'absolute',
-								money: [
-									{
-										currencyCode: 'THB',
-										centAmount: quantity * discountBaht,
-									},
-								],
-							},
-						})
-					}
-
-					const { specialPrice } = newLineItemDiscount
-					if (benefitType === 'add_on') {
-						const predicate = [
-							`product.id ="${lineItem.productId}"`,
-							`custom.productType = "${lineItemProductType}"`,
-							`custom.productGroup = ${lineItemProductGroup}`,
-							`custom.addOnGroup = "${lineItemAddOnGroup}"`,
-						].join(' AND ');
-
-						newDirectDiscounts.push({
-							target: {
-								type: 'lineItems',
-								predicate,
-							},
-							value: {
-								type: 'fixed',
-								money: [
-									{
-										currencyCode: 'THB',
-										centAmount: specialPrice,
-									},
-								],
-							},
-						})
-					}
-
-					// /**
-					//  * ===========================
-					//  * 3) FREE GIFT (100% OFF)
-					//  * ===========================
-					//  */
-					// if (benefitType === 'free_gift') {
-					// 	const lineItemPrice = lineItem.price?.value?.centAmount || 0;
-
-					// 	// For a free gift, we want to discount the ENTIRE line item price: quantity * unit price.
-					// 	// If lineItemPrice is the total for quantity, you can discount lineItemPrice directly.
-					// 	// Or if lineItemPrice is "unit price", multiply by quantity.
-					// 	// const totalLineCost = lineItemPrice; // If lineItemPrice is the total for all quantity
-					// 	// If lineItemPrice is unit-based, do: const totalLineCost = lineItemPrice * quantity;
-
-					// 	const totalLineCost = lineItemPrice * quantity;
-
-					// 	const predicate = [
-					// 		`product.id = "${lineItem.productId}"`,
-					// 		`custom.productType = "${lineItemProductType}"`,
-					// 		`custom.productGroup = ${lineItemProductGroup}`,
-					// 		// Optionally if you want a separate addOnGroup for free gift
-					// 		// `custom.addOnGroup = "free_gift_1"`,
-					// 	].join(' AND ');
-
-					// 	newDirectDiscounts.push({
-					// 		target: {
-					// 			type: 'lineItems',
-					// 			predicate,
-					// 		},
-					// 		value: {
-					// 			type: 'absolute',
-					// 			money: [
-					// 				{
-					// 					currencyCode: 'THB',
-					// 					centAmount: totalLineCost,
-					// 				},
-					// 			],
-					// 		},
-					// 	});
-					// }
-
-					discounts.push(JSON.stringify(newLineItemDiscount))
-				}
-			}
-
-			myCartUpdateActions.push({
-				action: 'setLineItemCustomField',
-				lineItemId,
-				name: 'discounts',
-				value: discounts,
-			});
-		});
-
-		let newCart = updatedCart
-		let currentVersion = version
-		if (myCartUpdateActions.length) {
-			newCart = await this.updateCart(cartId, currentVersion, myCartUpdateActions)
-			currentVersion = newCart.version
-		}
-
-		newCart = await this.ctCartClient.updateCart(cartId, currentVersion, [{
-			action: 'setDirectDiscounts',
-			discounts: newDirectDiscounts
-		}])
-
-		return newCart
-	}
-
 	/**
 	 * Creates a new cart for the current user with custom fields.
 	 * @param campaignGroup - The campaign group for the cart.
@@ -1050,45 +862,74 @@ export default class CommercetoolsMeCartClient {
 		return response.body;
 	}
 
-<<<<<<< HEAD
 	async upsertPrivilegeToCtCart(updatedCart: any, lineItemWithCampaignBenefits: any) {
 		const { id: cartId, version, lineItems, customLineItems, totalPrice } = updatedCart;
 		const currencyCode = totalPrice.currencyCode
 		const myCartUpdateActions: MyCartUpdateAction[] = [];
 		const cartUpdateActions: CartUpdateAction[] = []
 		const newDirectDiscounts: any[] = [];
-
+	
 		lineItems.forEach((lineItem: any) => {
 			console.log('JSON.stringify(lineItem)', JSON.stringify(lineItem));
 			const lineItemId = lineItem.id
 			const lineItemProductType = lineItem.custom.fields.productType
 			const lineItemProductGroup = lineItem.custom.fields.productGroup
 			const lineItemAddOnGroup = lineItem.custom.fields.addOnGroup
-
+	
 			const quantity = lineItem.quantity
+			const lineItemPrice = lineItem.price?.value?.centAmount || 0;
 			const cartItem = lineItemWithCampaignBenefits.find((item: any) => {
 				return lineItem.variant.sku === item.variant.sku &&
 					lineItemProductType === item.custom.fields.productType &&
 					lineItemProductGroup === item.custom.fields.productGroup &&
 					(!lineItemAddOnGroup || lineItemAddOnGroup === item.custom.fields.addOnGroup)
 			})
-
+	
 			const newPrivilege = cartItem?.privilege
 			console.log('newPrivilege', newPrivilege);
-
+	
 			myCartUpdateActions.push({
 				action: 'setLineItemCustomField',
 				lineItemId,
 				name: 'privilege',
 				value: newPrivilege ? JSON.stringify(newPrivilege) : '{}',
 			});
-
+	
+			console.log('newPrivilege', newPrivilege);
+			console.log('newPrivilege?.benefitType', newPrivilege?.benefitType);
+			if (newPrivilege?.benefitType === 'free_gift') {
+				// For a free gift: discount 100% of line item cost
+				const totalLineCost = lineItemPrice * quantity;
+	
+				const predicate = [
+					`product.id = "${lineItem.productId}"`,
+					`custom.productType = "${lineItemProductType}"`,
+					`custom.productGroup = ${lineItemProductGroup}`,
+				].join(' AND ');
+	
+				newDirectDiscounts.push({
+					target: {
+						type: 'lineItems',
+						predicate,
+					},
+					value: {
+						type: 'absolute',
+						money: [
+							{
+								currencyCode: 'THB',
+								centAmount: totalLineCost,
+							},
+						],
+					},
+				});
+			}
+	
 			const newLineItemDiscounts: any[] = (cartItem.discounts ?? [])
 			const discounts = []
 			if (newLineItemDiscounts.length) {
 				// ! Main product
 				// ! Add-on
-
+	
 				for (const newLineItemDiscount of newLineItemDiscounts) {
 					const { benefitType, discountBaht } = newLineItemDiscount
 					if (benefitType === 'main_product') {
@@ -1097,7 +938,7 @@ export default class CommercetoolsMeCartClient {
 							`custom.productType = "${lineItemProductType}"`,
 							`custom.productGroup = ${lineItemProductGroup}`
 						].join(' AND ');
-
+	
 						newDirectDiscounts.push({
 							target: {
 								type: 'lineItems',
@@ -1114,7 +955,7 @@ export default class CommercetoolsMeCartClient {
 							},
 						})
 					}
-
+	
 					const { specialPrice } = newLineItemDiscount
 					if (benefitType === 'add_on') {
 						const predicate = [
@@ -1123,7 +964,7 @@ export default class CommercetoolsMeCartClient {
 							`custom.productGroup = ${lineItemProductGroup}`,
 							`custom.addOnGroup = "${lineItemAddOnGroup}"`,
 						].join(' AND ');
-
+	
 						newDirectDiscounts.push({
 							target: {
 								type: 'lineItems',
@@ -1140,29 +981,70 @@ export default class CommercetoolsMeCartClient {
 							},
 						})
 					}
-
+	
+					// /**
+					//  * ===========================
+					//  * 3) FREE GIFT (100% OFF)
+					//  * ===========================
+					//  */
+					// if (benefitType === 'free_gift') {
+					// 	const lineItemPrice = lineItem.price?.value?.centAmount || 0;
+	
+					// 	// For a free gift, we want to discount the ENTIRE line item price: quantity * unit price.
+					// 	// If lineItemPrice is the total for quantity, you can discount lineItemPrice directly.
+					// 	// Or if lineItemPrice is "unit price", multiply by quantity.
+					// 	// const totalLineCost = lineItemPrice; // If lineItemPrice is the total for all quantity
+					// 	// If lineItemPrice is unit-based, do: const totalLineCost = lineItemPrice * quantity;
+	
+					// 	const totalLineCost = lineItemPrice * quantity;
+	
+					// 	const predicate = [
+					// 		`product.id = "${lineItem.productId}"`,
+					// 		`custom.productType = "${lineItemProductType}"`,
+					// 		`custom.productGroup = ${lineItemProductGroup}`,
+					// 		// Optionally if you want a separate addOnGroup for free gift
+					// 		// `custom.addOnGroup = "free_gift_1"`,
+					// 	].join(' AND ');
+	
+					// 	newDirectDiscounts.push({
+					// 		target: {
+					// 			type: 'lineItems',
+					// 			predicate,
+					// 		},
+					// 		value: {
+					// 			type: 'absolute',
+					// 			money: [
+					// 				{
+					// 					currencyCode: 'THB',
+					// 					centAmount: totalLineCost,
+					// 				},
+					// 			],
+					// 		},
+					// 	});
+					// }
+	
 					discounts.push(JSON.stringify(newLineItemDiscount))
 				}
 			}
-
+	
 			myCartUpdateActions.push({
 				action: 'setLineItemCustomField',
 				lineItemId,
 				name: 'discounts',
 				value: discounts,
 			});
-
+	
 			console.log(`Sku: ${lineItem.variant.sku}, myCartUpdateActions`, myCartUpdateActions);
-
-
+	
+	
 			const newLineItemOtherPayments: any[] = (cartItem.otherPayments ?? [])
 			const otherPayments = []
-
-
+	
+	
 			const otherPaymentCustomLineItems = customLineItems.filter(
 				(item: any) => item.slug.startsWith(`${lineItemId}-${this.ctpAddCustomOtherPaymentLineItemPrefix}`)
 			)
-
+	
 			let deleteOtherPaymentCustomLineItems = otherPaymentCustomLineItems
 			if (newLineItemOtherPayments.length) {
 				for (const newLineItemOtherPayment of newLineItemOtherPayments) {
@@ -1170,10 +1052,10 @@ export default class CommercetoolsMeCartClient {
 					const { otherPaymentCode, otherPaymentAmt } = newLineItemOtherPayment
 					const slug = `${lineItemId}-${this.ctpAddCustomOtherPaymentLineItemPrefix}-${otherPaymentCode}`
 					const existingOtherPaymentCustomLineItem = otherPaymentCustomLineItems.find((item: any) => item.slug.startsWith(slug))
-
+	
 					if (existingOtherPaymentCustomLineItem) {
 						const existingOtherPaymentAmount = existingOtherPaymentCustomLineItem.money.centAmount;
-
+	
 						if (existingOtherPaymentAmount !== otherPaymentAmt) {
 							const changeCustomLineItemMoney: CartChangeCustomLineItemMoneyAction = {
 								action: 'changeCustomLineItemMoney',
@@ -1183,7 +1065,7 @@ export default class CommercetoolsMeCartClient {
 									currencyCode,
 								},
 							};
-
+	
 							const changeCustomLineItemQuantity: CartChangeCustomLineItemQuantityAction = {
 								action: 'changeCustomLineItemQuantity',
 								customLineItemId: existingOtherPaymentCustomLineItem.id,
@@ -1211,20 +1093,20 @@ export default class CommercetoolsMeCartClient {
 						};
 						cartUpdateActions.push(customLineItem);
 					}
-
+	
 					deleteOtherPaymentCustomLineItems = deleteOtherPaymentCustomLineItems.filter((item: any) => !item.slug.startsWith(slug))
 				}
 			}
-
+	
 			if (deleteOtherPaymentCustomLineItems.length) {
 				const removeCustomLineItemActions: CartRemoveCustomLineItemAction[] = deleteOtherPaymentCustomLineItems.map((item: any) => ({
 					action: 'removeCustomLineItem',
 					customLineItemId: item.id
 				}))
-
+	
 				cartUpdateActions.push(...removeCustomLineItemActions)
 			}
-
+	
 			myCartUpdateActions.push({
 				action: 'setLineItemCustomField',
 				lineItemId,
@@ -1232,25 +1114,23 @@ export default class CommercetoolsMeCartClient {
 				value: otherPayments,
 			});
 		});
-
+	
 		let newCart = updatedCart
 		let currentVersion = version
 		if (myCartUpdateActions.length) {
 			newCart = await this.updateCart(cartId, currentVersion, myCartUpdateActions)
 			currentVersion = newCart.version
 		}
-
+	
 		cartUpdateActions.push({
 			action: 'setDirectDiscounts',
 			discounts: newDirectDiscounts
 		})
 		newCart = await this.ctCartClient.updateCart(cartId, currentVersion, cartUpdateActions)
-
+	
 		return newCart
 	}
 
-=======
->>>>>>> 12d4e88 (save progress)
 	attachBenefitToICart(iCart: any, lineItemWithCampaignBenefits: any[]) {
 		const { items } = iCart
 		const newItems = items.map((item: any) => {
