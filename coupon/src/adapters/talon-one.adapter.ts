@@ -153,11 +153,13 @@ class TalonOneIntegrationAdapter {
 			customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
 		} catch (error: any) {
 			logger.info('TalonOne getCustomerSession error', error);
-			return { applyCoupons: [], error: {
-				statusCode: HTTP_STATUSES.BAD_REQUEST,
-                errorCode: "APPLIYED_COUPON_CT_FAILED",
-                statusMessage: `No products found.`,
-			} };
+			return {
+				applyCoupons: [], error: {
+					statusCode: HTTP_STATUSES.BAD_REQUEST,
+					errorCode: "APPLIYED_COUPON_CT_FAILED",
+					statusMessage: `No products found.`,
+				}
+			};
 		}
 
 		// Initialize applyCoupons with the current coupon codes
@@ -176,7 +178,7 @@ class TalonOneIntegrationAdapter {
 			)
 			.map((effect: { props: { value: string } }) => effect.props.value);
 
-		removeCouponCodes = [...removeCouponCodes ,...removeCodeEff]
+		removeCouponCodes = [...removeCouponCodes, ...removeCodeEff]
 		// Validate coupon limit
 		const validationError = validateCouponLimit(applyCoupons.length);
 		if (validationError) {

@@ -133,7 +133,7 @@ export class CartService {
             }
 
             const { cartId } = payload
-            const ctCart = await this.getCtCartById(accessToken, cartId)
+            let ctCart = await this.getCtCartById(accessToken, cartId);
 
             // * STEP #2 - Validate Blacklist
             if (validateList.includes('BLACKLIST')) {
@@ -147,6 +147,41 @@ export class CartService {
 
             // * STEP #4 - Validate Available Quantity (Commercetools)
             await this.validateAvailableQuantity(ctCart)
+
+
+            // [NEW / UPDATED] ------------------------------------------
+            // A) Auto-remove invalid coupons
+            //    e.g. "CouponExpired", "CouponNotFound"
+            const {
+                updatedCart: cartAfterAutoRemove,
+                permanentlyInvalidRejectedCoupons
+            } = await this.autoRemoveInvalidCouponsAndReturnOnce(ctCart);
+            ctCart = cartAfterAutoRemove;
+
+            console.log('permanentlyInvalidRejectedCoupons.length', permanentlyInvalidRejectedCoupons.length);
+            console.log('permanentlyInvalidRejectedCoupons', permanentlyInvalidRejectedCoupons);
+
+            // B) Grab "coupons" data from cart
+            const coupons = await this.getCoupons(ctCart.id, ctCart.lineItems);
+
+            // C) Prepare updateActions array
+            const updateActions: CartUpdateAction[] = [];
+
+            // D) Run processCoupons => fill updateActions for discount lines, etc.
+            await this.processCoupons(ctCart, coupons, updateActions);
+
+            return { ...cartAfterAutoRemove, ...permanentlyInvalidRejectedCoupons };
+
+            // If we have any updates from processCoupons, do them
+            if (updateActions.length > 0) {
+                const updatedCartFinal = await CommercetoolsCartClient.updateCart(
+                    ctCart.id,
+                    ctCart.version,
+                    updateActions
+                );
+                ctCart = updatedCartFinal;
+            }
+            // [END NEW / UPDATED] --------------------------------------
 
             const orderNumber = this.generateOrderNumber()
 
@@ -190,7 +225,7 @@ export class CartService {
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
-            let ctCart = await commercetoolsMeCartClient.getCartById(id);
+            const ctCart = await commercetoolsMeCartClient.getCartById(id);
             if (!ctCart) {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
@@ -198,19 +233,7 @@ export class CartService {
                 };
             }
 
-            // ===========================================
-            // 1) auto-remove + get any permanently invalid
-            // ===========================================
-            const {
-                updatedCart,
-                permanentlyInvalidRejectedCoupons
-            } = await this.autoRemoveInvalidCouponsAndReturnOnce(ctCart);
-            ctCart = updatedCart;
-
-            const coupons = await this.getCoupons(ctCart?.id, ctCart.lineItems);
-
             const updateActions: CartUpdateAction[] = [];
-            await this.processCoupons(ctCart, coupons, updateActions);
 
             if (shippingAddress) {
                 updateActions.push({
@@ -249,26 +272,10 @@ export class CartService {
                 await CommercetoolsCustomObjectClient.addPaymentTransaction(ctCart.id, paymentTransaction);
             }
 
-            // 4) Update cart with all changes
-            const updatedCartFinal = await CommercetoolsCartClient.updateCart(
-                ctCart.id,
-                ctCart.version,
-                updateActions
-            );
+            const updatedCart = await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, updateActions);
+            const iCart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
 
-            // 5) Return final cart + normal coupons + any "once" invalid coupons
-            const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCartFinal);
-
-            // Merge “permanentlyInvalidRejectedCoupons” into the response
-            if (permanentlyInvalidRejectedCoupons.length > 0) {
-                // e.g. place them on "coupons.rejectedCoupons"
-                coupons.coupons.rejectedCoupons = [
-                    ...(coupons.coupons.rejectedCoupons ?? []),
-                    ...permanentlyInvalidRejectedCoupons
-                ];
-            }
-
-            return { ...iCart, ...coupons };
+            return iCart;
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
@@ -740,14 +747,6 @@ export class CartService {
         try {
             const { couponsEffects, talonOneUpdateActions } = await this.talonOneCouponAdapter.fetchCouponsAndUpdateActionsById(cart.id, cart, coupons.coupons);
             coupons.coupons = couponsEffects;
-            if (coupons.coupons.rejectedCoupons?.length > 0) {
-                throw {
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    errorCode: "COUPON_VALIDATION_FAILED",
-                    statusMessage: 'Some coupons were rejected during processing.',
-                    data: coupons.coupons.rejectedCoupons,
-                };
-            }
 
             // If TalonOne returns any "updateActions", apply them to the cart
             if (talonOneUpdateActions?.updateActions) {

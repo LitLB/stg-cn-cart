@@ -17,74 +17,7 @@ export class CouponService {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
     }
 
-    public getQueryCoupons = async (profileId: any, options: any) => {
-        try {
-            let data;
-            try {
-                data = await talonOneIntegrationAdapter.getCustomerInventoryByOptions(profileId, options);
-            } catch (error: any) {
-                logger.info('TalonOne getCustomerInventory error', error);
-                throw {
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: `Error retrieving coupons from TalonOne`,
-                    errorCode: 'QUERY_COUPONS_ON_CT_FAIL',
-                }
-            }
-
-            // filter active coupons coupon_status === true and state === 'active'
-            const filterActiveCoupons = (coupons: any[]): any[] => {
-                if (!Array.isArray(coupons)) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: `Error Invalid datatype for coupons`,
-                        errorCode: 'QUERY_COUPONS_ON_CT_INVALID_DATATYPE',
-                    }
-                }
-                return coupons.filter((coupon: any) => {
-                    return coupon.attributes?.coupon_status === true && coupon.state === 'active';
-                });
-            }
-
-            // map coupon data
-            const mapCouponData = (coupon: any): any => {
-                return {
-                    value: coupon.value || '',
-                    discountPrice: coupon.attributes?.discount_price || 0,
-                    discountCode: coupon.attributes?.discount_code || '',
-                    couponName: {
-                        th: coupon.attributes?.coupon_name_th || '',
-                        en: coupon.attributes?.coupon_name_en || ''
-                    },
-                    marketingName: {
-                        th: coupon.attributes?.marketing_name_th || '',
-                        en: coupon.attributes?.marketing_name_en || ''
-                    },
-                    couponShortDetail: {
-                        th: coupon.attributes?.coupon_short_detail_th || '',
-                        en: coupon.attributes?.coupon_short_detail_en || ''
-                    },
-                    couponImage: coupon.attributes?.coupon_image || '',
-                    termCondition: {
-                        th: coupon.attributes?.term_condition_th || '',
-                        en: coupon.attributes?.term_condition_en || ''
-                    },
-                    startDate: coupon.startDate || '',
-                    expiryDate: coupon.expiryDate || ''
-                };
-            }
-
-            const activeCoupons = filterActiveCoupons(data.coupons);
-            return activeCoupons.map(mapCouponData);
-        } catch (error: any) {
-            if (error.status && error.message) {
-                throw error;
-            }
-
-            throw createStandardizedError(error, 'getQueryCoupons');
-        }
-    }
-
-    public applyCouponsV2 = async (accessToken: string, id: string, body: any): Promise<any> => {
+    public applyCoupons = async (accessToken: string, id: string, body: any): Promise<any> => {
         try {
             // 1) Grab new codes from the request body
             const couponCodes = body.couponCodes || [];
@@ -177,13 +110,13 @@ export class CouponService {
                 // Optionally, you could call "updateCustomerSession" again to get a
                 // "clean" session with no references to the invalid coupon codes,
                 // but that’s optional. If you'd like, do something like:
-                //
-                // const newSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
-                //     profileId,
-                //     ctCartData: cart,
-                //     couponCodes,
-                // });
-                // updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, newSessionPayload);
+                
+                const newSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
+                    profileId,
+                    ctCartData: cart,
+                    couponCodes,
+                });
+                updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, newSessionPayload);
                 //
                 // Then re-process the effects, etc. (Usually not strictly required.)
             }
@@ -217,6 +150,73 @@ export class CouponService {
             }
 
             throw createStandardizedError(error, 'applyCoupons');
+        }
+    }
+
+    public getQueryCoupons = async (profileId: any, options: any) => {
+        try {
+            let data;
+            try {
+                data = await talonOneIntegrationAdapter.getCustomerInventoryByOptions(profileId, options);
+            } catch (error: any) {
+                logger.info('TalonOne getCustomerInventory error', error);
+                throw {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: `Error retrieving coupons from TalonOne`,
+                    errorCode: 'QUERY_COUPONS_ON_CT_FAIL',
+                }
+            }
+
+            // filter active coupons coupon_status === true and state === 'active'
+            const filterActiveCoupons = (coupons: any[]): any[] => {
+                if (!Array.isArray(coupons)) {
+                    throw {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: `Error Invalid datatype for coupons`,
+                        errorCode: 'QUERY_COUPONS_ON_CT_INVALID_DATATYPE',
+                    }
+                }
+                return coupons.filter((coupon: any) => {
+                    return coupon.attributes?.coupon_status === true && coupon.state === 'active';
+                });
+            }
+
+            // map coupon data
+            const mapCouponData = (coupon: any): any => {
+                return {
+                    value: coupon.value || '',
+                    discountPrice: coupon.attributes?.discount_price || 0,
+                    discountCode: coupon.attributes?.discount_code || '',
+                    couponName: {
+                        th: coupon.attributes?.coupon_name_th || '',
+                        en: coupon.attributes?.coupon_name_en || ''
+                    },
+                    marketingName: {
+                        th: coupon.attributes?.marketing_name_th || '',
+                        en: coupon.attributes?.marketing_name_en || ''
+                    },
+                    couponShortDetail: {
+                        th: coupon.attributes?.coupon_short_detail_th || '',
+                        en: coupon.attributes?.coupon_short_detail_en || ''
+                    },
+                    couponImage: coupon.attributes?.coupon_image || '',
+                    termCondition: {
+                        th: coupon.attributes?.term_condition_th || '',
+                        en: coupon.attributes?.term_condition_en || ''
+                    },
+                    startDate: coupon.startDate || '',
+                    expiryDate: coupon.expiryDate || ''
+                };
+            }
+
+            const activeCoupons = filterActiveCoupons(data.coupons);
+            return activeCoupons.map(mapCouponData);
+        } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+
+            throw createStandardizedError(error, 'getQueryCoupons');
         }
     }
 }
