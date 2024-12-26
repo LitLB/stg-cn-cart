@@ -201,11 +201,10 @@ export class CartService {
             // =================================================
             // ADDED / UPDATED: auto-remove invalid coupons
             // =================================================
-            ctCart = await this.autoRemoveInvalidCoupons(accessToken, ctCart);
+            ctCart = await this.autoRemoveInvalidCoupons(ctCart);
             // =================================================
             // end ADDED / UPDATED
             // =================================================
-
 
             const coupons = await this.getCoupons(ctCart?.id, ctCart.lineItems);
 
@@ -276,7 +275,7 @@ export class CartService {
                 throw createStandardizedError({ statusCode: HTTP_STATUSES.BAD_REQUEST, statusMessage: 'Cart not found or has expired' });
             }
 
-            ctCart = await this.autoRemoveInvalidCoupons(accessToken, ctCart);
+            ctCart = await this.autoRemoveInvalidCoupons(ctCart);
 
             const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
 
@@ -691,8 +690,8 @@ export class CartService {
 
     private async processCoupons(cart: any, coupons: any, updateActions: CartUpdateAction[]) {
         try {
-            const dataRetchCoupon = await this.talonOneCouponAdapter.fetchEffectsCouponsById(cart.id, cart, coupons.coupons);
-            coupons.coupons = dataRetchCoupon.couponsEffects;
+            const { couponsEffects, talonOneUpdateActions } = await this.talonOneCouponAdapter.fetchCouponsAndUpdateActionsById(cart.id, cart, coupons.coupons);
+            coupons.coupons = couponsEffects;
             if (coupons.coupons.rejectedCoupons?.length > 0) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -702,18 +701,22 @@ export class CartService {
                 };
             }
 
-            if (dataRetchCoupon.talonOneUpdateActions?.updateActions) {
-                updateActions.push(...dataRetchCoupon.talonOneUpdateActions.updateActions);
+            // If TalonOne returns any "updateActions", apply them to the cart
+            if (talonOneUpdateActions?.updateActions) {
+                updateActions.push(...talonOneUpdateActions.updateActions);
             }
 
             try {
+                // Attempt to add "couponInformation" custom object
                 const couponsInformation = await CommercetoolsCustomObjectClient.addCouponInformation(
                     cart.id,
-                    dataRetchCoupon.talonOneUpdateActions?.couponsInformation
+                    talonOneUpdateActions?.couponsInformation
                 );
-                let updateCustom: CartSetCustomFieldAction;
+
+                // Only set or unset if we either have new info or had info before
                 if (couponsInformation) {
-                    updateCustom = {
+                    // We do have new info => set it
+                    const updateCustom: CartSetCustomFieldAction = {
                         action: 'setCustomField',
                         name: 'couponInfomation',
                         value: [
@@ -723,15 +726,19 @@ export class CartService {
                             },
                         ],
                     };
+                    updateActions.push(updateCustom);
                 } else {
-                    updateCustom = {
-                        action: 'setCustomField',
-                        name: 'couponInfomation',
-                        value: null,
-                    };
+                    // If the cart currently has couponInfomation defined, remove it
+                    if (cart?.custom?.fields?.couponInfomation) {
+                        const removeCustom: CartSetCustomFieldAction = {
+                            action: 'setCustomField',
+                            name: 'couponInfomation',
+                            value: null,
+                        };
+                        updateActions.push(removeCustom);
+                    }
                 }
 
-                updateActions.push(updateCustom);
             } catch (error: any) {
                 logger.error('Failed to process coupons information', error);
                 throw {
@@ -741,7 +748,7 @@ export class CartService {
                 };
             }
         } catch (error: any) {
-            logger.info(`CartService.checkout.fetchEffectsCouponsById.error`, error);
+            logger.info(`CartService.checkout.fetchCouponsAndUpdateActionsById.error`, error);
             if (error.errorCode && error.statusMessage) {
                 throw error;
             }
@@ -753,8 +760,6 @@ export class CartService {
         }
     }
 
-
-
     /**
      * autoRemoveInvalidCoupons
      *
@@ -762,7 +767,7 @@ export class CartService {
      * - Removes any permanently invalid coupons (e.g., expired, not found, etc.)
      * - Returns the updated CT cart object (if changed), or the same if no change.
      */
-    private async autoRemoveInvalidCoupons(accessToken: string, ctCart: any): Promise<Cart> {
+    private async autoRemoveInvalidCoupons(ctCart: any): Promise<Cart> {
         try {
             // 1) If no lineItems, skip
             if (!ctCart.lineItems || ctCart.lineItems.length === 0) {

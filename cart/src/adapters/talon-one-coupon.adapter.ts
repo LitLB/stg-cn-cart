@@ -274,9 +274,8 @@ export class TalonOneCouponAdapter {
         }
     }
 
-    async fetchEffectsCouponsById(profileId: string, cart: any, couponsEffects: any) {
+    async fetchCouponsAndUpdateActionsById(profileId: string, cart: any, couponsEffects: any) {
         try {
-
             if (couponsEffects.acceptedCoupons.length <= 0) {
                 return { couponsEffects };
             }
@@ -324,7 +323,7 @@ export class TalonOneCouponAdapter {
         
             return { couponsEffects, talonOneUpdateActions };
         } catch (error) {
-            logger.error("cartService.checkout.talonOneCouponAdapter.fetchEffectsCouponsById.error: ", error);
+            logger.error("cartService.checkout.talonOneCouponAdapter.fetchCouponsAndUpdateActionsById.error: ", error);
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 errorCode: "CART_FETCH_EFFECTS_COUPONS_CT_FAILED",
