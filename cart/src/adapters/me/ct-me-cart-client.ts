@@ -71,40 +71,6 @@ export default class CommercetoolsMeCartClient {
 	}
 
 	/**
-	 * Main entry for applying Talon.One benefit logic, etc.
-	 */
-	async updateCartWithBenefit(ctCart: any) {
-		// 1) Sync to Talon.One
-		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
-
-		// 2) Get line items w/ campaign benefits
-		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
-		// console.log('JSON.stringify(lineItemWithCampaignBenefits)', JSON.stringify(lineItemWithCampaignBenefits));
-
-		// 3) Upsert privileges/discounts to CT cart
-		const updatedCart = await this.upsertPrivilegeToCtCart(ctCart, lineItemWithCampaignBenefits)
-
-		// 4) Merge inventory, finalize iCart for the final response
-		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
-		const inventoryKey = skus.map((sku: any) => sku).join(',');
-		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
-		const inventoryMap = new Map<string, any>();
-		inventories.forEach((inventory: any) => {
-			const key = inventory.key;
-			const sku = key.replace(`${this.onlineChannel}-`, '');
-			inventoryMap.set(sku, inventory);
-		});
-		let iCart: ICart = this.mapCartToICart(updatedCart);
-		iCart = await this.attachInsuranceToICart(iCart);
-
-		this.mapInventoryToItems(iCart.items, inventoryMap);
-
-		const iCartWithBenefit = this.attachBenefitToICart(iCart, lineItemWithCampaignBenefits)
-
-		return iCartWithBenefit;
-	}
-
-	/**
 	 * Creates a new cart for the current user with custom fields.
 	 * @param campaignGroup - The campaign group for the cart.
 	 * @param journey - The journey for the cart.
@@ -1282,6 +1248,40 @@ export default class CommercetoolsMeCartClient {
 			...iCart,
 			items: withInsuranceItems
 		};
+	}
+
+	/**
+	 * Main entry for applying Talon.One benefit logic, etc.
+	 */
+	async updateCartWithBenefit(ctCart: any) {
+		// 1) Sync to Talon.One
+		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
+
+		// 2) Get line items w/ campaign benefits
+		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
+		// console.log('JSON.stringify(lineItemWithCampaignBenefits)', JSON.stringify(lineItemWithCampaignBenefits));
+
+		// 3) Upsert privileges/discounts to CT cart
+		const updatedCart = await this.upsertPrivilegeToCtCart(ctCart, lineItemWithCampaignBenefits)
+
+		// 4) Merge inventory, finalize iCart for the final response
+		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
+		const inventoryKey = skus.map((sku: any) => sku).join(',');
+		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
+		const inventoryMap = new Map<string, any>();
+		inventories.forEach((inventory: any) => {
+			const key = inventory.key;
+			const sku = key.replace(`${this.onlineChannel}-`, '');
+			inventoryMap.set(sku, inventory);
+		});
+		let iCart: ICart = this.mapCartToICart(updatedCart);
+		iCart = await this.attachInsuranceToICart(iCart);
+
+		this.mapInventoryToItems(iCart.items, inventoryMap);
+
+		const iCartWithBenefit = this.attachBenefitToICart(iCart, lineItemWithCampaignBenefits)
+
+		return iCartWithBenefit;
 	}
 
 	filterLineItems(lineItems: LineItem[], selectedOnly: boolean): LineItem[] {
