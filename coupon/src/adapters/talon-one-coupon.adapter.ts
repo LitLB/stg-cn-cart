@@ -9,9 +9,7 @@ import {
 } from '@commercetools/platform-sdk';
 import { readConfiguration } from '../utils/config.utils';
 import { COUPON_CUSTOM_EFFECT } from '../constants/cart.constant';
-import { talonOneIntegrationAdapter } from './talon-one.adapter';
-import { HTTP_STATUSES } from '../constants/http.constant';
-import { logger } from '../utils/logger.utils';
+import { COUPON_REJECTION_REASONS } from '../constants/talon-one.interface';
 
 export class TalonOneCouponAdapter {
     private ctpAddCustomCouponLineItemPrefix: string;
@@ -25,7 +23,7 @@ export class TalonOneCouponAdapter {
     public processCouponEffects(effects: any[]): {
         updateActions: CartUpdateAction[];
         acceptedCoupons: string[];
-        rejectedCoupons: { code: string; reason: string }[];
+        rejectedCoupons: { code: string; reason: COUPON_REJECTION_REASONS }[];
         customEffects: any[];
         couponIdToCode: { [key: number]: string };
         couponIdToEffects: { [key: number]: any[] };
@@ -33,7 +31,7 @@ export class TalonOneCouponAdapter {
     } {
         const updateActions: CartUpdateAction[] = [];
         const acceptedCoupons: string[] = [];
-        const rejectedCoupons: { code: string; reason: string }[] = [];
+        const rejectedCoupons: { code: string; reason: COUPON_REJECTION_REASONS }[] = [];
         const customEffects: any[] = [];
         const couponIdToCode: { [key: number]: string } = {};
         const couponIdToEffects: { [key: number]: any[] } = {};
@@ -98,7 +96,7 @@ export class TalonOneCouponAdapter {
         cart: any,
         processedEffects: {
             acceptedCoupons: string[];
-            rejectedCoupons: { code: string; reason: string }[];
+            rejectedCoupons: { code: string; reason: COUPON_REJECTION_REASONS }[];
             couponIdToCode: { [key: number]: string };
             couponIdToEffects: { [key: number]: any[] };
         }
