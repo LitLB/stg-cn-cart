@@ -55,33 +55,24 @@ export class OrderController {
             const expand = ["custom.fields.termAndCondition"];
             const order = await this.orderService.getOrderByIdWithExpand(orderId, expand);
 
-            let customObjId = '';
-            const customObject = await commercetoolsOrderClient.getCustomObject('termAndCondition', orderId);
-      
-            if (customObject?.id) {
-                customObjId = customObject.id
+            const payload = {
+                "container": "termAndCondition",
+                "key": orderId,
+                "value": body
             }
+            const resultCustomObj = await commercetoolsOrderClient.createOrUpdateCustomObject(payload);
 
-            if (!customObjId) {
-                const payload = {
-                    "container": "termAndCondition",
-                    "key": orderId,
-                    "value": body
-                }
-                const resultCustomObj = await commercetoolsOrderClient.createOrUpdateCustomObject(payload);
-
-                if (!resultCustomObj) {
-                    throw createStandardizedError({
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: `Update CustomObject`,
-                        errorCode: "UPDATE_OR_CREATE_CUSTOM_OBJECT_ON_CT_FAILED",
-                        data: payload
-                    });
-                }
-                customObjId = resultCustomObj?.id; 
+            if (!resultCustomObj) {
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: `Update CustomObject`,
+                    errorCode: "UPDATE_OR_CREATE_CUSTOM_OBJECT_ON_CT_FAILED",
+                    data: payload
+                });
             }
-
-            if (customObjId) {
+ 
+            if (!order?.custom?.fields?.termAndCondition?.id) {
+                const customObjId = resultCustomObj?.id;
                 const payload = this.orderService.wrapCustomFieldTnc(order.version, customObjId);
                 const orderResult = await commercetoolsOrderClient.updateOrder(orderId, payload);
                 if (!orderResult) {
