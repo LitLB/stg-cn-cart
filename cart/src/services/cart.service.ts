@@ -198,13 +198,14 @@ export class CartService {
                 };
             }
 
-            // =================================================
-            // ADDED / UPDATED: auto-remove invalid coupons
-            // =================================================
-            ctCart = await this.autoRemoveInvalidCoupons(ctCart);
-            // =================================================
-            // end ADDED / UPDATED
-            // =================================================
+            // ===========================================
+            // 1) auto-remove + get any permanently invalid
+            // ===========================================
+            const {
+                updatedCart,
+                permanentlyInvalidRejectedCoupons
+            } = await this.autoRemoveInvalidCouponsAndReturnOnce(ctCart);
+            ctCart = updatedCart;
 
             const coupons = await this.getCoupons(ctCart?.id, ctCart.lineItems);
 
@@ -248,13 +249,24 @@ export class CartService {
                 await CommercetoolsCustomObjectClient.addPaymentTransaction(ctCart.id, paymentTransaction);
             }
 
-            const updatedCart = await CommercetoolsCartClient.updateCart(
+            // 4) Update cart with all changes
+            const updatedCartFinal = await CommercetoolsCartClient.updateCart(
                 ctCart.id,
                 ctCart.version,
-                updateActions,
+                updateActions
             );
 
-            const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
+            // 5) Return final cart + normal coupons + any "once" invalid coupons
+            const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCartFinal);
+
+            // Merge “permanentlyInvalidRejectedCoupons” into the response
+            if (permanentlyInvalidRejectedCoupons.length > 0) {
+                // e.g. place them on "coupons.rejectedCoupons"
+                coupons.coupons.rejectedCoupons = [
+                    ...(coupons.coupons.rejectedCoupons ?? []),
+                    ...permanentlyInvalidRejectedCoupons
+                ];
+            }
 
             return { ...iCart, ...coupons };
         } catch (error: any) {
@@ -266,30 +278,66 @@ export class CartService {
         }
     };
 
-    public getCartById = async (accessToken: string, id: string, selectedOnly: boolean): Promise<ICart> => {
+    public getCartById = async (
+        accessToken: string,
+        id: string,
+        selectedOnly: boolean
+    ): Promise<ICart> => {
         try {
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
             let ctCart = await commercetoolsMeCartClient.getCartById(id);
             if (!ctCart) {
-                throw createStandardizedError({ statusCode: HTTP_STATUSES.BAD_REQUEST, statusMessage: 'Cart not found or has expired' });
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Cart not found or has expired'
+                });
             }
 
-            ctCart = await this.autoRemoveInvalidCoupons(ctCart);
+            // =============================================================
+            // Instead of calling autoRemoveInvalidCoupons, we call the new
+            // helper which also returns the "once" rejected coupons.
+            // =============================================================
+            const {
+                updatedCart,
+                permanentlyInvalidRejectedCoupons
+            } = await this.autoRemoveInvalidCouponsAndReturnOnce(ctCart);
 
+            ctCart = updatedCart;
+
+            // Then do your normal getCartWithBenefit
             const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
 
-            const coupons = await this.getCoupons(ctCart?.id, ctCart.lineItems);
+            // Retrieve normal "coupons" object (which has acceptedCoupons, etc.)
+            const coupons = await this.getCoupons(ctCart.id, ctCart.lineItems);
 
-            return { ...iCartWithBenefit, ...coupons };
+            // Combine everything into your response. We add a special "rejectedCoupons"
+            // for the user to see them once.
+            const response = {
+                ...iCartWithBenefit,
+                ...coupons
+            };
+
+            // If we found any permanently invalid coupons, show them in the final response:
+            // e.g.  "coupons.rejectedCoupons = [ { code, reason }, ... ]"
+            // or you can store them at the top level.
+            if (permanentlyInvalidRejectedCoupons.length > 0) {
+                // If you want them merged into the existing coupons object:
+                response.coupons.rejectedCoupons = [
+                    ...(response.coupons.rejectedCoupons ?? []),
+                    ...permanentlyInvalidRejectedCoupons
+                ];
+            }
+
+            return response;
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
             }
-
             throw createStandardizedError(error, 'getCartById');
         }
     };
+
 
     public getCtCartById = async (accessToken: string, id: string): Promise<any> => {
         try {
@@ -761,107 +809,122 @@ export class CartService {
     }
 
     /**
-     * autoRemoveInvalidCoupons
+     * autoRemoveInvalidCouponsAndReturnOnce
      *
      * - Re-checks the cart's current coupons with Talon.One
-     * - Removes any permanently invalid coupons (e.g., expired, not found, etc.)
-     * - Returns the updated CT cart object (if changed), or the same if no change.
+     * - Identifies any permanently invalid coupons (e.g., expired, not found)
+     * - Removes them from the cart, returning an updated cart
+     * - **Also** returns the list of those invalid coupons so we can show them once in the response.
      */
-    private async autoRemoveInvalidCoupons(ctCart: any): Promise<Cart> {
+    private async autoRemoveInvalidCouponsAndReturnOnce(ctCart: Cart): Promise<{
+        updatedCart: Cart;
+        permanentlyInvalidRejectedCoupons: Array<{ code: string; reason: string }>;
+    }> {
         try {
             // 1) If no lineItems, skip
             if (!ctCart.lineItems || ctCart.lineItems.length === 0) {
-                return ctCart;
+                return {
+                    updatedCart: ctCart,
+                    permanentlyInvalidRejectedCoupons: []
+                };
             }
 
-            // 2) Grab current coupon codes from the Talon.One session
-            //    Usually, you'll do something like getActiveCustomerSession or build a session payload
-            const profileId = ctCart?.id;
-            // Build a payload with the existing coupon codes from the CT cart
-            // (Typically you'd parse them out of the ctCart or your custom fields,
-            // or you can rely on "getEffectsCouponsById" if your code does that.)
+            // 2) Gather current coupon codes
+            const profileId = ctCart.id;
             const couponsInfo = await this.getCoupons(ctCart.id, ctCart.lineItems);
-            const currentCouponCodes: string[] = couponsInfo?.coupons?.acceptedCoupons?.map((c: any) => c.code) ?? [];
-            // If there are no codes to re-check, we can skip
+            const currentCouponCodes: string[] =
+                couponsInfo?.coupons?.acceptedCoupons?.map((c: any) => c.code) ?? [];
+
             if (currentCouponCodes.length === 0) {
-                return ctCart;
+                // No coupons to re-check
+                return {
+                    updatedCart: ctCart,
+                    permanentlyInvalidRejectedCoupons: []
+                };
             }
 
+            // 3) Re-check with Talon.One to see if any have become invalid
             const customerSessionPayload = {
                 customerSession: {
                     profileId,
-                    cartItems: [],          // Minimally needed (you can pass real lineItems if needed)
-                    couponCodes: currentCouponCodes,
+                    cartItems: [], // minimal usage
+                    couponCodes: currentCouponCodes
                 },
                 responseContent: ["customerSession", "customerProfile", "triggeredCampaigns", "coupons"]
             };
 
-            // 3) Update Talon.One session to get final effects
-            const updatedSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, customerSessionPayload);
-            const talonEffects = updatedSession.effects;
+            const updatedSession = await talonOneIntegrationAdapter.updateCustomerSession(
+                profileId,
+                customerSessionPayload
+            );
 
-            // 4) Process the effects: find any "permanently invalid" coupons
+            // Process any effects
+            const talonEffects = updatedSession.effects;
             const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(talonEffects);
 
-            const permanentlyInvalidCoupons = processedCouponEffects.rejectedCoupons?.filter((rc) =>
+            // 4) Identify permanently invalid coupons
+            const permanentlyInvalid = processedCouponEffects.rejectedCoupons?.filter((rc) =>
                 ["CouponNotFound", "CouponExpired"].includes(rc.reason)
             ) || [];
 
-            if (permanentlyInvalidCoupons.length === 0) {
-                // Nothing to remove, so just return the same cart
-                return ctCart;
+            if (permanentlyInvalid.length === 0) {
+                // Nothing to remove
+                return {
+                    updatedCart: ctCart,
+                    permanentlyInvalidRejectedCoupons: []
+                };
             }
 
-            // 5) We have some invalid coupons => remove them
-            const codesToRemove = permanentlyInvalidCoupons.map(rc => rc.code);
-
-            // If you have an existing "applyCoupons" flow that references 
-            // talonOneIntegrationAdapter.manageCouponsById, you can re-use it:
+            // 5) Remove them from the Talon.One session
+            const codesToRemove = permanentlyInvalid.map(rc => rc.code);
             const removeResult = await talonOneIntegrationAdapter.manageCouponsById(
-                ctCart.id,              // session ID
-                currentCouponCodes,     // keep the rest
-                codesToRemove           // remove these
+                ctCart.id,
+                currentCouponCodes,  // keep the rest
+                codesToRemove        // remove these
             );
-
             if (removeResult.error) {
-                // Log or throw as needed
                 throw removeResult.error;
             }
 
-            // 6) Rebuild the CT cart with updated discount line items (if any)
-            //    We'll do a similar approach as in applyCoupons, but minimal.
+            // 6) Re-update the session with the final set of coupons
             const reUpdatedSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, {
                 customerSession: {
                     profileId,
                     cartItems: [],
-                    couponCodes: removeResult.applyCoupons,
+                    couponCodes: removeResult.applyCoupons
                 },
                 responseContent: ["customerSession", "customerProfile", "triggeredCampaigns", "coupons"]
             });
 
-            // 7) Build updateActions from the new effects 
+            // 7) Build updateActions from new effects to remove discount line items, etc.
             const newEffects = reUpdatedSession.effects;
             const newProcessedEffects = this.talonOneCouponAdapter.processCouponEffects(newEffects);
             const { updateActions } = this.talonOneCouponAdapter.buildCouponActions(ctCart, newProcessedEffects);
 
-            if (updateActions.length > 0) {
-                // Actually update the cart in CT to remove custom line items, etc.
-                const updatedCart = await CommercetoolsCartClient.updateCart(
-                    ctCart.id,
-                    ctCart.version,
-                    updateActions,
-                );
-                return updatedCart;
-            } else {
-                return ctCart;
+            if (updateActions.length === 0) {
+                // No cart changes needed
+                return {
+                    updatedCart: ctCart,
+                    permanentlyInvalidRejectedCoupons: permanentlyInvalid
+                };
             }
+
+            // 8) Update the cart in CT
+            const finalUpdatedCart = await CommercetoolsCartClient.updateCart(
+                ctCart.id,
+                ctCart.version,
+                updateActions
+            );
+
+            // Return the final cart and the list of invalid coupons
+            return {
+                updatedCart: finalUpdatedCart,
+                permanentlyInvalidRejectedCoupons: permanentlyInvalid
+            };
 
         } catch (error: any) {
-            if (error.errorCode && error.statusMessage) {
-                throw error;
-            }
-
-            throw createStandardizedError(error, 'autoRemoveInvalidCoupons');
+            throw createStandardizedError(error, 'autoRemoveInvalidCouponsAndReturnOnce');
         }
     }
+
 }
