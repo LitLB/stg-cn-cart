@@ -308,10 +308,6 @@ export class CartService {
                 });
             }
 
-            // =============================================================
-            // Instead of calling autoRemoveInvalidCoupons, we call the new
-            // helper which also returns the "once" rejected coupons.
-            // =============================================================
             const {
                 updatedCart,
                 permanentlyInvalidRejectedCoupons
@@ -319,24 +315,16 @@ export class CartService {
 
             ctCart = updatedCart;
 
-            // Then do your normal getCartWithBenefit
             const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
 
-            // Retrieve normal "coupons" object (which has acceptedCoupons, etc.)
             const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(ctCart.id, ctCart.lineItems);
 
-            // Combine everything into your response. We add a special "rejectedCoupons"
-            // for the user to see them once.
             const response = {
                 ...iCartWithBenefit,
                 ...couponEffects
             };
 
-            // If we found any permanently invalid coupons, show them in the final response:
-            // e.g.  "coupons.rejectedCoupons = [ { code, reason }, ... ]"
-            // or you can store them at the top level.
             if (permanentlyInvalidRejectedCoupons.length > 0) {
-                // If you want them merged into the existing coupons object:
                 response.coupons.rejectedCoupons = [
                     ...(response.coupons.rejectedCoupons ?? []),
                     ...permanentlyInvalidRejectedCoupons
@@ -351,7 +339,6 @@ export class CartService {
             throw createStandardizedError(error, 'getCartById');
         }
     };
-
 
     public getCtCartById = async (accessToken: string, id: string): Promise<any> => {
         try {

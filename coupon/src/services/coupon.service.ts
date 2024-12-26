@@ -49,8 +49,8 @@ export class CouponService {
 
             // 3) Get the Commercetools cart
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-            const cart = await commercetoolsMeCartClient.getCartById(id);
-            if (!cart) {
+            const ctCart = await commercetoolsMeCartClient.getCartById(id);
+            if (!ctCart) {
                 logger.info('Commercetools getCartById error');
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
@@ -60,10 +60,14 @@ export class CouponService {
             }
 
             // 4) Update Talon.One session to reflect final coupon codes
-            let updatedCustomerSession = await this.updateTalonOneSession(
-                cart.id,
+            const payload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
+                profileId: ctCart.id,
+                ctCartData: ctCart,
                 couponCodes,
-                cart.lineItems
+            });
+            let updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(
+                ctCart.id,
+                payload
             );
 
             // 5) Process returned effects
@@ -76,12 +80,16 @@ export class CouponService {
                 processedCouponEffects
             );
 
+            const initiallyRejectedCoupons = [
+                ...(processedCouponEffects.rejectedCoupons || []),
+            ];
+
             if (permanentlyInvalid.length > 0) {
                 // Remove them from the session
                 removeCouponCodes.push(...permanentlyInvalid.map((rc: any) => rc.code));
 
                 const removeResult = await this.removeInvalidCouponsFromSession(
-                    cart.id,
+                    ctCart.id,
                     couponCodes,
                     permanentlyInvalid
                 );
@@ -93,10 +101,14 @@ export class CouponService {
                 couponCodes.splice(0, couponCodes.length, ...removeResult.applyCoupons);
 
                 // Optionally re-update the session to get a “clean” effect list
-                updatedCustomerSession = await this.updateTalonOneSession(
-                    cart.id,
+                const cleanedPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
+                    profileId: ctCart.id,
+                    ctCartData: ctCart,
                     couponCodes,
-                    cart.lineItems
+                });
+                updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(
+                    ctCart.id,
+                    cleanedPayload
                 );
             }
 
@@ -106,26 +118,35 @@ export class CouponService {
 
             // 6) Build final cart update actions from the coupon effects
             const updateActions = this.talonOneCouponAdapter.buildCouponActions(
-                cart,
+                ctCart,
                 finalProcessedCouponEffects
             );
 
             // 7) Update the cart in Commercetools
             const updatedCart = await CommercetoolsCartClient.updateCart(
-                cart.id,
-                cart.version,
+                ctCart.id,
+                ctCart.version,
                 updateActions
             );
 
             // 8) Convert to ICart for the response
             const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
 
+            const finalRejected = [
+                ...initiallyRejectedCoupons,
+                ...(finalProcessedCouponEffects.rejectedCoupons || []),
+            ];
+
+            const uniqueRejectedByCode = Array.from(
+                new Map(finalRejected.map(rc => [rc.code, rc])).values()
+            );
+
             // 9) Return final cart + coupon arrays
             return {
                 ...iCart,
                 coupons: {
                     acceptedCoupons: finalProcessedCouponEffects.applyCoupons,
-                    rejectedCoupons: finalProcessedCouponEffects.rejectedCoupons,
+                    rejectedCoupons: uniqueRejectedByCode,
                 },
             };
         } catch (error: any) {
@@ -208,35 +229,6 @@ export class CouponService {
             throw createStandardizedError(error, 'getQueryCoupons');
         }
     };
-
-    private async updateTalonOneSession(
-        profileId: string,
-        couponCodes: string[],
-        lineItems: any[] = []
-    ): Promise<any> {
-        try {
-            const payload = {
-                customerSession: {
-                    profileId,
-                    cartItems: lineItems,
-                    couponCodes,
-                },
-                responseContent: [
-                    'customerSession',
-                    'customerProfile',
-                    'triggeredCampaigns',
-                    'coupons',
-                ],
-            };
-            return await talonOneIntegrationAdapter.updateCustomerSession(
-                profileId,
-                payload
-            );
-        } catch (error: any) {
-            logger.error('Failed to update Talon.One session:', error);
-            throw createStandardizedError(error, 'updateTalonOneSession');
-        }
-    }
 
     private async removeInvalidCouponsFromSession(
         cartId: string,

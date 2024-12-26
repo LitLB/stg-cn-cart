@@ -1,6 +1,10 @@
 // cart/src/services/coupon.service.ts
 
-import { Cart, CartSetCustomFieldAction, CartUpdateAction } from '@commercetools/platform-sdk';
+import {
+    Cart,
+    CartSetCustomFieldAction,
+    CartUpdateAction
+} from '@commercetools/platform-sdk';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { logger } from '../utils/logger.utils';
@@ -31,8 +35,10 @@ export class CouponService {
             }
 
             // 2) Gather current coupon codes
-            const profileId = ctCart.id;
-            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(ctCart.id, ctCart.lineItems);
+            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
+                ctCart.id,
+                ctCart.lineItems
+            );
             const currentCouponCodes: string[] =
                 couponEffects?.coupons?.acceptedCoupons?.map((c: any) => c.code) ?? [];
 
@@ -45,37 +51,26 @@ export class CouponService {
             }
 
             // 3) Re-check with Talon.One to see if any have become invalid
-            const customerSessionPayload = {
-                customerSession: {
-                    profileId,
-                    cartItems: [],
-                    couponCodes: currentCouponCodes
-                },
-                responseContent: ["customerSession", "customerProfile", "triggeredCampaigns", "coupons"]
-            };
-
+            const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
+                profileId: ctCart.id,
+                ctCartData: ctCart,
+                couponCodes: currentCouponCodes,
+            });
             const updatedSession = await talonOneIntegrationAdapter.updateCustomerSession(
-                profileId,
+                ctCart.id,
                 customerSessionPayload
             );
 
-            // Process any effects
-            const talonEffects = updatedSession.effects;
-            const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(talonEffects);
+            // 4) Process any effects
+            const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(
+                updatedSession.effects
+            );
 
-            // 4) Identify permanently invalid coupons
-            const permanentlyInvalid =
-                processedCouponEffects.rejectedCoupons?.filter((rc: any) =>
-                    [
-                        COUPON_REJECTION_REASONS.COUPON_EXPIRED,
-                        COUPON_REJECTION_REASONS.COUPON_LIMIT_REACHED,
-                        COUPON_REJECTION_REASONS.COUPON_NOT_FOUND,
-                        COUPON_REJECTION_REASONS.COUPON_REJECTED_BY_CONDITION,
-                        COUPON_REJECTION_REASONS.PROFILE_LIMIT_REACHED,
-                    ].includes(rc.reason)
-                ) || [];
+            // 4.1) Identify permanently invalid coupons
+            const permanentlyInvalid = this.findPermanentlyInvalidCoupons(
+                processedCouponEffects
+            );
             if (permanentlyInvalid.length === 0) {
-                // Nothing to remove
                 return {
                     updatedCart: ctCart,
                     permanentlyInvalidRejectedCoupons: []
@@ -90,19 +85,20 @@ export class CouponService {
             );
 
             // 6) Re-update the session with the final set of coupons
-            const reUpdatedSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, {
-                customerSession: {
-                    profileId,
-                    cartItems: [],
-                    couponCodes: removeResult.applyCoupons
-                },
-                responseContent: ["customerSession", "customerProfile", "triggeredCampaigns", "coupons"]
+            const reUpdatedPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
+                profileId: ctCart.id,
+                ctCartData: ctCart,
+                couponCodes: removeResult.applyCoupons,
             });
+            const reUpdatedSession = await talonOneIntegrationAdapter.updateCustomerSession(
+                ctCart.id,
+                reUpdatedPayload
+            );
 
             // 7) Build updateActions from new effects to remove discount line items, etc.
-            const newEffects = reUpdatedSession.effects;
-            const newProcessedEffects = this.talonOneCouponAdapter.processCouponEffects(newEffects);
-            const { updateActions } = this.talonOneCouponAdapter.buildCouponActions(ctCart, newProcessedEffects);
+            const newProcessedEffects = this.talonOneCouponAdapter.processCouponEffects(reUpdatedSession.effects);
+            const { updateActions } =
+                this.talonOneCouponAdapter.buildCouponActions(ctCart, newProcessedEffects);
 
             if (updateActions.length === 0) {
                 // No cart changes needed
@@ -132,27 +128,39 @@ export class CouponService {
 
     /**
      * Remove invalid coupons from the Talon.One session.
+     * (Duplicating logic so we don't rely on a shared helper.)
      */
     private async removeInvalidCouponsFromSession(
         cartId: string,
         currentCouponCodes: string[],
         permanentlyInvalid: Array<{ code: string; reason: string }>
     ) {
-        const codesToRemove = permanentlyInvalid.map((rc) => rc.code);
-        const removeResult = await talonOneIntegrationAdapter.manageCouponsById(
-            cartId,
-            currentCouponCodes,
-            codesToRemove
-        );
+        try {
+            const codesToRemove = permanentlyInvalid.map((rc) => rc.code);
+            const removeResult = await talonOneIntegrationAdapter.manageCouponsById(
+                cartId,
+                currentCouponCodes,
+                codesToRemove
+            );
 
-        if (removeResult.error) {
-            throw removeResult.error;
+            if (removeResult.error) {
+                throw removeResult.error;
+            }
+            return removeResult;
+        } catch (error: any) {
+            logger.error('Failed to remove invalid coupons from session:', error);
+            throw createStandardizedError(error, 'removeInvalidCouponsFromSession');
         }
-
-        return removeResult;
     }
 
-    public addCouponInformation = async (updateActions: CartUpdateAction[], cartId: string, couponsInformation?: any[]) => {
+    /**
+     * Add "couponInformation" to cart or remove it if no info is provided.
+     */
+    public addCouponInformation = async (
+        updateActions: CartUpdateAction[],
+        cartId: string,
+        couponsInformation?: any[]
+    ) => {
         try {
             // Attempt to add "couponInformation" custom object
             const addedCouponsInformation = await CommercetoolsCustomObjectClient.addCouponInformation(
@@ -162,37 +170,49 @@ export class CouponService {
 
             // Only set or unset if we either have new info or had info before
             if (addedCouponsInformation) {
-                // We do have new info => set it
                 const updateCustom: CartSetCustomFieldAction = {
                     action: 'setCustomField',
                     name: 'couponInfomation',
                     value: [
                         {
-                            typeId: "key-value-document",
-                            id: addedCouponsInformation.id,
-                        },
-                    ],
+                            typeId: 'key-value-document',
+                            id: addedCouponsInformation.id
+                        }
+                    ]
                 };
                 updateActions.push(updateCustom);
             } else {
-                // If the cart currently has couponInfomation defined, remove it
                 if (couponsInformation) {
                     const removeCustom: CartSetCustomFieldAction = {
                         action: 'setCustomField',
                         name: 'couponInfomation',
-                        value: null,
+                        value: null
                     };
                     updateActions.push(removeCustom);
                 }
             }
-
         } catch (error: any) {
             logger.error('Failed to process coupons information', error);
             throw {
                 statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
-                errorCode: "COUPONS_INFORMATION_PROCESSING_FAILED",
-                statusMessage: 'An error occurred while processing coupon information.',
+                errorCode: 'COUPONS_INFORMATION_PROCESSING_FAILED',
+                statusMessage: 'An error occurred while processing coupon information.'
             };
         }
+    };
+
+    private findPermanentlyInvalidCoupons(processedCouponEffects: any) {
+        const permanentlyInvalidReasons = [
+            COUPON_REJECTION_REASONS.COUPON_EXPIRED,
+            COUPON_REJECTION_REASONS.COUPON_LIMIT_REACHED,
+            COUPON_REJECTION_REASONS.COUPON_NOT_FOUND,
+            COUPON_REJECTION_REASONS.COUPON_REJECTED_BY_CONDITION,
+            COUPON_REJECTION_REASONS.PROFILE_LIMIT_REACHED,
+        ];
+        return (
+            processedCouponEffects.rejectedCoupons?.filter((rc: any) =>
+                permanentlyInvalidReasons.includes(rc.reason)
+            ) || []
+        );
     }
 }
