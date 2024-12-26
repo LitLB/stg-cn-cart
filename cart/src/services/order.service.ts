@@ -27,4 +27,43 @@ export class OrderService {
             }, 'getOrderById');
         }
     }
+
+
+    public getOrderByIdWithExpand = async (id: string, expand: any): Promise<any> => {
+        try {
+            const ctOrder = await commercetoolsOrderClient.getOrderWithExpand(id, expand);
+            if (!ctOrder) {
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    statusMessage: 'Order not found.',
+                }, 'getOrderById');
+            }
+
+            return ctOrder;
+        } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+
+            throw createStandardizedError({
+                statusCode: 500,
+            }, 'getOrderById');
+        }
+    }
+
+    public wrapCustomFieldTnc = (version: number, customObjId: string) => {
+        return {
+            version,
+            actions: [
+                {
+                    "action": "setCustomField",
+                    "name": "termAndCondition",
+                    "value": {
+                        "typeId": "key-value-document",
+                        "id": customObjId
+                    }
+                }
+            ]
+        }
+    }
 }
