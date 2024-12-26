@@ -1,4 +1,5 @@
 // coupon/src/services/coupon.service.ts
+
 import { ICart } from '../interfaces/cart';
 import { CartUpdateAction } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
@@ -107,10 +108,8 @@ export class CouponService {
                 // Overwrite the local couponCodes array so it no longer includes the removed ones
                 couponCodes.splice(0, couponCodes.length, ...resultCouponsAfterRemoval.applyCoupons);
 
-                // Optionally, you could call "updateCustomerSession" again to get a
-                // "clean" session with no references to the invalid coupon codes,
+                // Call "updateCustomerSession" again to get a "clean" session with no references to the invalid coupon codes,
                 // but that’s optional. If you'd like, do something like:
-                
                 const newSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
                     profileId,
                     ctCartData: cart,

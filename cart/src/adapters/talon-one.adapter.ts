@@ -141,8 +141,6 @@ class TalonOneIntegrationAdapter {
 		}
 	}
 
-
-
 	async manageCouponsById(
 		id: any,
 		couponCodes: string[],
