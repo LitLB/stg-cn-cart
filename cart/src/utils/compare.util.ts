@@ -2,34 +2,16 @@ import { LineItem } from "@commercetools/platform-sdk";
 import _ from 'lodash'
 
 interface ILineItem extends LineItem {
-    hasChanged?: any
+    hasChanged?: any,
+    parentQuantity? : number
 }
 
-function deepEqual(obj1: any, obj2: any) {
-    if (obj1 === obj2) return false;
-    if (obj1 == null || typeof obj1 !== 'object' ||
-        obj2 == null || typeof obj2 !== 'object') {
-        return false;
-    }
-    const keys1 = Object.keys(obj1);
-    const keys2 = Object.keys(obj2);
-    if (keys1.length !== keys2.length) return false;
-    for (const key of keys1) {
-
-        if (!keys2.includes(key)) return false;
-        if (!deepEqual(obj1[key], obj2[key])) return false;
-    }
-    return true;
-}
-
-function areArraysNotEqual(arr1: any[], arr2: any[]) {
-    for (let i = 0; i < arr1.length; i++) {
-        if (deepEqual(arr1[i], arr2[i])) return true;
-    }
-    return false;
-}
 
 function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: LineItem) {
+
+
+    const parentQuantity = lineItemA.parentQuantity ?? 0
+
     const hasChange: any = {};
     // If either line item doesn't have a variant, it has no attributes
     if (!lineItemA.variant || !lineItemB.variant) {
@@ -54,8 +36,6 @@ function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: LineItem) {
 
     const lineItemPricesA = lineItemA.variant.prices ?? []
     const lineItemPricesB = lineItemB.variant.prices ?? []
-
-    const pricesChanged = areArraysNotEqual(lineItemPricesA, lineItemPricesB)
 
     const isPriceChanged = _.isEqual(lineItemPricesA, lineItemPricesB)
 
@@ -91,15 +71,35 @@ function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: LineItem) {
             continue;
         }
         // 4) Compare via JSON (simple deep compare)
-        // hasChange[name] = JSON.stringify(valA) !== JSON.stringify(valB);
+
+        hasChange['quantityOverParentMax'] = name === 'quantity_max' ? parentQuantity > valB : false
+        hasChange['quantityLowerParentMin'] = name === 'quantity_min' ? parentQuantity < valB : false
+        hasChange['quantityOverSkuMax'] = name === 'sku_quantity_min' ? lineItemA.quantity > valB : false
+        hasChange['quantityLowerSkuMin'] = name === 'sku_quantity_min' ? lineItemA.quantity < valB : false
         hasChange[name] = !_.isEqual(valA, valB);
+
     }
 
+    const result = {
+        ...hasChange,
+        prices: !isPriceChanged,
+        ...lineItemA.hasChanged
+    };
+    
+    // Sort the keys and recreate the object
+    const sortedResult = Object.keys(result)
+        .sort() // Sort keys alphabetically (or use a custom comparator function)
+        .reduce((sortedObj:any, key) => {
+            sortedObj[key] = result[key];
+            return sortedObj;
+        }, {});
 
-    return { ...hasChange, ...lineItemA.hasChanged, prices: !isPriceChanged };
+    return sortedResult;
 }
 
 export function compareLineItemsArrays(lineItemsA: LineItem[], lineItemsB: LineItem[]) {
+
+
     return lineItemsA.map((itemA) => {
         const matchingItemB = lineItemsB.find(itemB => itemB.id === itemA.id);
         if (!matchingItemB) {
