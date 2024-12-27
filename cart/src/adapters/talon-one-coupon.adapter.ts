@@ -1,6 +1,7 @@
 // cart/src/adapters/ct-t1.adapter.ts
 
 import {
+    Cart,
     CartAddCustomLineItemAction,
     CartAddLineItemAction,
     CartChangeCustomLineItemMoneyAction,
@@ -77,8 +78,9 @@ export class TalonOneCouponAdapter {
                     }
                     break;
 
-                // Handle other effect types if needed
                 default:
+                    // do nothing
+
                     break;
             }
         });
@@ -95,20 +97,20 @@ export class TalonOneCouponAdapter {
     }
 
     public buildCouponActions(
-        cart: any,
+        ctCart: Cart,
         processedEffects: {
             acceptedCoupons: string[];
             rejectedCoupons: { code: string; reason: string }[];
             couponIdToCode: { [key: number]: string };
             couponIdToEffects: { [key: number]: any[] };
         }
-    ): CartUpdateAction[] {
+    ): { updateActions: CartUpdateAction[]; couponsInformation: any[] } {
         const updateActions: CartUpdateAction[] = [];
-
-        const { acceptedCoupons, rejectedCoupons, couponIdToCode, couponIdToEffects } = processedEffects;
+        const { acceptedCoupons, couponIdToCode, couponIdToEffects } = processedEffects;
 
         // Keep track of coupons that have custom line items
         const couponsWithCustomLineItems = new Set<string>();
+        const couponsInformation: any[] = [];
 
         // Process accepted coupons and their associated effects
         for (const triggeredByCoupon in couponIdToCode) {
@@ -120,7 +122,7 @@ export class TalonOneCouponAdapter {
 
                 switch (effectType) {
                     case 'setDiscount':
-                        this.handleSetDiscountEffect(cart, updateActions, couponCode, props);
+                        this.handleSetDiscountEffect(ctCart, updateActions, couponCode, props);
                         couponsWithCustomLineItems.add(couponCode);
                         break;
 
@@ -128,27 +130,32 @@ export class TalonOneCouponAdapter {
                         this.handleAddFreeItemEffect(updateActions, props);
                         break;
 
-                    // Handle other effect types if needed
+                    case 'customEffect':
+                        couponsInformation.push(this.prepareCouponInformation(couponCode, props));
+                        break;
+
                     default:
+                        // do nothing
+
                         break;
                 }
             });
         }
 
         // Remove custom line items for rejected or missing coupons
-        this.removeInvalidCustomLineItems(cart, updateActions, couponsWithCustomLineItems, acceptedCoupons);
+        this.removeInvalidCustomLineItems(ctCart, updateActions, couponsWithCustomLineItems, acceptedCoupons);
 
-        return updateActions;
+        return { updateActions, couponsInformation };
     }
 
     private handleSetDiscountEffect(
-        cart: any,
+        ctCart: Cart,
         updateActions: CartUpdateAction[],
         couponCode: string,
         props: any
     ): void {
         const slug = `${this.ctpAddCustomCouponLineItemPrefix}${couponCode}`;
-        const existingCustomLineItem = cart.customLineItems.find(
+        const existingCustomLineItem = ctCart.customLineItems.find(
             (item: any) => item.slug === slug
         );
 
@@ -161,7 +168,7 @@ export class TalonOneCouponAdapter {
                 name: { en: `${this.ctpAddCustomCouponLineItemPrefix}${couponCode}` },
                 money: {
                     centAmount: discountAmount,
-                    currencyCode: cart.totalPrice.currencyCode,
+                    currencyCode: ctCart.totalPrice.currencyCode,
                 },
                 quantity: 1,
                 slug,
@@ -181,12 +188,12 @@ export class TalonOneCouponAdapter {
                     customLineItemId: existingCustomLineItem.id,
                     money: {
                         centAmount: discountAmount,
-                        currencyCode: cart.totalPrice.currencyCode,
+                        currencyCode: ctCart.totalPrice.currencyCode,
                     },
                 };
                 updateActions.push(updateCustomLineItem);
             } else {
-                console.info(`Custom line item with slug "${slug}" already has the correct discount amount.`);
+                logger.info(`Custom line item with slug "${slug}" already has the correct discount amount.`);
             }
         }
     }
@@ -218,13 +225,13 @@ export class TalonOneCouponAdapter {
     }
 
     private removeInvalidCustomLineItems(
-        cart: any,
+        ctCart: Cart,
         updateActions: CartUpdateAction[],
         couponsWithCustomLineItems: Set<string>,
         acceptedCoupons: string[]
     ): void {
         // Get all custom line items that are coupon discounts
-        const couponCustomLineItems = cart.customLineItems.filter((item: any) =>
+        const couponCustomLineItems = ctCart.customLineItems.filter((item: any) =>
             item.slug.startsWith(this.ctpAddCustomCouponLineItemPrefix)
         );
 
@@ -245,34 +252,29 @@ export class TalonOneCouponAdapter {
         });
     }
 
-    async getEffectsCouponsById(id: any, lineItems: any): Promise<{ coupons: { acceptedCoupons: any; rejectedCoupons: any } }> {
-        // Initialize default response
+    async getCouponEffectsByCtCartId(id: any, lineItems: any): Promise<{ coupons: { acceptedCoupons: any; rejectedCoupons: any } }> {
         const defaultCoupons = { acceptedCoupons: [], rejectedCoupons: [] };
-      
+
         // Early return if no line items are provided
         if (lineItems.length <= 0) {
-          return { coupons: defaultCoupons };
+            return { coupons: defaultCoupons };
         }
-      
+
         try {
-          // Retrieve customer session and extract effects
-          const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(id);
-      
-          // Process coupon effects
-          const { applyCoupons: acceptedCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects);
-      
-          // Return structured coupon data
-          return { coupons: { acceptedCoupons, rejectedCoupons } };
+            const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(id);
+
+            const { applyCoupons: acceptedCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects);
+
+            return { coupons: { acceptedCoupons, rejectedCoupons } };
         } catch (error: any) {
-            logger.error("cartService.checkout.talonOneCouponAdapter.getEffectsCouponsById.error: ", error);
-          // Return default response in case of an error
-          return { coupons: defaultCoupons };
+            logger.error("cartService.checkout.talonOneCouponAdapter.getCouponEffectsByCtCartId.error: ", error);
+
+            return { coupons: defaultCoupons };
         }
     }
 
-    async fetchEffectsCouponsById(profileId: string, cart: any, couponsEffects: any) {
+    async fetchCouponEffectsAndUpdateActionsById(profileId: string, ctCart: Cart, couponsEffects: any) {
         try {
-
             if (couponsEffects.acceptedCoupons.length <= 0) {
                 return { couponsEffects };
             }
@@ -285,16 +287,16 @@ export class TalonOneCouponAdapter {
                 const rejectedCouponCodes: string[] = couponsEffects.rejectedCoupons.map((coupon: { code: string }) => coupon.code);
                 couponCodes = Array.from(new Set([...couponCodes, ...rejectedCouponCodes]));
             }
-           
+
             // Step 2: Build the customer session payload
             const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
                 profileId,
-                ctCartData: cart,
+                ctCartData: ctCart,
                 couponCodes
             });
-        
+
             let updatedCustomerSession;
-            
+
             try {
                 // Step 3: Update the customer session with TalonOne
                 updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(profileId, customerSessionPayload);
@@ -306,26 +308,41 @@ export class TalonOneCouponAdapter {
                     statusMessage: `An error occurred while updating the customer session in TalonOne.`
                 };
             }
-        
+
             // Step 4: Process coupon effects
             const talonEffects = updatedCustomerSession.effects;
             const processedCouponEffects = this.processCouponEffects(talonEffects);
-        
+
             // Step 5: Build coupon actions
-            const talonOneUpdateActions = this.buildCouponActions(cart, processedCouponEffects);
-        
+            const talonOneUpdateActions = this.buildCouponActions(ctCart, processedCouponEffects);
+
             // Step 6: Update acceptedCoupons and rejectedCoupons
             couponsEffects.acceptedCoupons = processedCouponEffects.applyCoupons;
             couponsEffects.rejectedCoupons = processedCouponEffects.rejectedCoupons;
-        
+
             return { couponsEffects, talonOneUpdateActions };
         } catch (error) {
-            logger.error("cartService.checkout.talonOneCouponAdapter.fetchEffectsCouponsById.error: ", error);
+            logger.error("cartService.checkout.talonOneCouponAdapter.fetchCouponEffectsAndUpdateActionsById.error: ", error);
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 errorCode: "CART_FETCH_EFFECTS_COUPONS_CT_FAILED",
                 statusMessage: "An unexpected error occurred while processing the coupon effects."
             };
         }
+    }
+
+    private prepareCouponInformation(couponCode: string, props: any): any {
+        return {
+            marketingName: {
+                en: props.payload.marketing_name_en,
+                th: props.payload.marketing_name_th,
+            },
+            couponName: props.payload.name_en,
+            couponCode: couponCode,
+            discountCode: props.payload.discount_code,
+            otherPaymentCode: props.payload.other_payment_code,
+            discountPrice: Number(props.payload.discount_price) || 0,
+            discountPercentage: Number(props.payload.discount_percentage) || 0,
+        };
     }
 }

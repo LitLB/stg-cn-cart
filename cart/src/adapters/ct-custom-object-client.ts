@@ -2,9 +2,10 @@
 
 import type { ApiRoot, CustomObject, CustomObjectDraft } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
-import { PAYMENT_OMISE_CONTAINER, PAYMENT_OMISE_KEY_PREFIX, ORDER_ADDITIONAL_INFO } from '../constants/ct.constant';
+import { PAYMENT_OMISE_CONTAINER, PAYMENT_OMISE_KEY_PREFIX, ORDER_ADDITIONAL_INFO, COUPON_INFO_CONTAINER } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
 import { IOrderAdditional } from '../interfaces/order-additional.interface';
+import { logger } from '../utils/logger.utils';
 
 class CommercetoolsCustomObjectClient {
 	private static instance: CommercetoolsCustomObjectClient;
@@ -204,6 +205,57 @@ class CommercetoolsCustomObjectClient {
 				throw err;
 			}
 		}
+	}
+
+	async addCouponInformation(cartId: string, couponInformation: any): Promise<CustomObject | void> {
+		const container = COUPON_INFO_CONTAINER;
+		const key = cartId;
+	
+		try {
+			// หาก couponInformation เป็น undefined ให้ลบ CustomObject
+			if (couponInformation === undefined) {
+				const existingObject = await this.getCustomObjectByContainerAndKey(container, key);
+				if (existingObject) {
+					await this.deleteCustomObject(container, key);
+					logger.info(`Deleted custom object with key: ${key}`);
+				}
+				return;
+			}
+	
+			// หาก couponInformation มีค่า ให้ดำเนินการ merge และอัปเดต
+			const existingObject = await this.getCustomObjectByContainerAndKey(container, key);
+			const updatedValue = this.mergeCouponInformation(existingObject?.value, couponInformation);
+			return await this.createOrUpdateCustomObject({ container, key, value: updatedValue });
+	
+		} catch (error: any) {
+			if (error.statusCode === 404) {
+				if (couponInformation === undefined) {
+					logger.info(`No existing object found, nothing to delete for key: ${key}`);
+					return;
+				}
+				return await this.createOrUpdateCustomObject({
+					container,
+					key,
+					value: couponInformation,
+				});
+			}
+			logger.error('Error adding coupon information:', error);
+			throw error;
+		}
+	}
+
+	private mergeCouponInformation(existingValue: any, newCouponInformation: any[]): any[] {
+		// if (Array.isArray(existingValue)) {
+		// 	const existingCodes = new Map(existingValue.map((item: any) => [item.code, item]));
+		// 	newCouponInformation.forEach((newCoupon: any) => {
+		// 		existingCodes.set(newCoupon.code, newCoupon);
+		// 	});
+		// 	return Array.from(existingCodes.values());
+		// }
+		if (Array.isArray(existingValue)) {
+			return [...newCouponInformation];
+		}
+		return [...newCouponInformation];
 	}
 }
 
