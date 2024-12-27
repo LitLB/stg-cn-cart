@@ -316,7 +316,7 @@ export class CartService {
     ): Promise<ICart> => {
         try {
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-            let iCartWithBenefit;
+            let finalCart;
 
             // 1) Fetch the cart
             const ctCart = await commercetoolsMeCartClient.getCartById(id);
@@ -329,27 +329,29 @@ export class CartService {
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            finalCart = cartWithUpdatedPrice;
 
             // 2) Possibly auto-remove invalid coupons
             let permanentlyInvalidRejectedCoupons: Array<{ code: string; reason: string }> = [];
             if (includeCoupons) {
                 const {
-                    updatedCart,
+                    updatedCart: cartAfterAutoRemove,
                     permanentlyInvalidRejectedCoupons: invalidCoupons
                 } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithUpdatedPrice);
-                iCartWithBenefit = updatedCart;
+                finalCart = cartAfterAutoRemove;
                 permanentlyInvalidRejectedCoupons = invalidCoupons;
             }
 
             // 3) Map to ICart
-            const filteredLineItems = commercetoolsMeCartClient.filterLineItems(ctCart.lineItems, selectedOnly);
-            const cartToProcess = { ...ctCart, lineItems: filteredLineItems };
-            iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(cartToProcess);
+            const filteredLineItems = commercetoolsMeCartClient.filterLineItems(finalCart.lineItems, selectedOnly);
+            const cartToProcess = { ...finalCart, lineItems: filteredLineItems };
+            const iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartToProcess);
+            finalCart = iCartWithBenefit
 
             const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartToProcess.id, cartToProcess.lineItems);
 
             const response = {
-                ...iCartWithBenefit,
+                ...finalCart,
                 ...couponEffects
             };
 
