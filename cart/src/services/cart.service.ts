@@ -299,9 +299,6 @@ export class CartService {
         includeCoupons = false,
     ): Promise<ICart> => {
         try {
-            console.log('selectedOnly', selectedOnly);
-            console.log('includeCoupons', includeCoupons);
-
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
             // 1) Fetch the cart
@@ -324,10 +321,12 @@ export class CartService {
                 permanentlyInvalidRejectedCoupons = invalidCoupons;
             }
 
-            // 3) Map to ICart and optionally do lineItem trimming
-            const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
+            // 3) Map to ICart
+            const filteredLineItems = commercetoolsMeCartClient.filterLineItems(ctCart.lineItems, selectedOnly);
+            const cartToProcess = { ...ctCart, lineItems: filteredLineItems };
+            const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(cartToProcess);
 
-            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(ctCart.id, ctCart.lineItems);
+            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartToProcess.id, cartToProcess.lineItems);
 
             const response = {
                 ...iCartWithBenefit,
