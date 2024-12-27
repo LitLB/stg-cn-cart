@@ -1,7 +1,7 @@
 // cart/src/services/cart.service.ts
 
 import _ from 'lodash'
-import { Cart, CartUpdateAction, Order } from '@commercetools/platform-sdk';
+import { Cart, CartSetCustomFieldAction, CartUpdateAction, Order } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
@@ -26,16 +26,19 @@ import { IOrderAdditional, IPaymentInfo, IClientInfo } from '../interfaces/order
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { PAYMENT_STATES } from '../constants/payment.constant';
 import { commercetoolsOrderClient } from '../adapters/ct-order-client';
+import { CouponService } from './coupon.service';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
-    private blacklistService: BlacklistService
+    private blacklistService: BlacklistService;
+    private couponService: CouponService;
     private talonOneEffectConverter: typeof talonOneEffectConverter
 
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
         this.talonOneEffectConverter = talonOneEffectConverter
         this.blacklistService = new BlacklistService()
+        this.couponService = new CouponService()
     }
 
     /**
@@ -140,7 +143,7 @@ export class CartService {
             }
 
             const { cartId, client } = payload
-            const ctCart = await this.getCtCartById(accessToken, cartId)
+            let ctCart = await this.getCtCartById(accessToken, cartId)
 
             // * STEP #2 - Validate Blacklist
             if (validateList.includes('BLACKLIST')) {
@@ -154,6 +157,46 @@ export class CartService {
 
             // * STEP #4 - Validate Available Quantity (Commercetools)
             await this.validateAvailableQuantity(ctCart)
+
+            // A) Auto-remove invalid coupons
+            const {
+                updatedCart: cartAfterAutoRemove,
+                permanentlyInvalidRejectedCoupons
+            } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(ctCart);
+            ctCart = cartAfterAutoRemove;
+            // console.log('permanentlyInvalidRejectedCoupons', permanentlyInvalidRejectedCoupons);
+
+            // B) Grab "coupons" data from cart
+            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(ctCart.id, ctCart.lineItems);
+
+            // C) Prepare updateActions array
+            const updateActions: CartUpdateAction[] = [];
+
+            // D) Run processCoupons => fill updateActions for discount lines, etc.
+            const { couponsEffects, talonOneUpdateActions } = await this.talonOneCouponAdapter.fetchCouponEffectsAndUpdateActionsById(ctCart.id, ctCart, couponEffects.coupons);
+            if (talonOneUpdateActions?.updateActions) {
+                updateActions.push(...talonOneUpdateActions.updateActions);
+            }
+
+            await this.couponService.addCouponInformation(updateActions, cartId, talonOneUpdateActions?.couponsInformation);
+
+            // If we have any updates from processCoupons, do them
+            if (updateActions.length > 0) {
+                const updatedCartFinal = await CommercetoolsCartClient.updateCart(
+                    ctCart.id,
+                    ctCart.version,
+                    updateActions
+                );
+                ctCart = updatedCartFinal;
+            }
+
+            if (permanentlyInvalidRejectedCoupons.length > 0) {
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Some coupons were rejected during processing.',
+                    data: permanentlyInvalidRejectedCoupons,
+                }, 'createOrder');
+            }
 
             const orderNumber = this.generateOrderNumber()
 
@@ -186,7 +229,6 @@ export class CartService {
         }
     };
 
-    // TODO :: CART HAS CHANGED
     public checkout = async (accessToken: string, id: string, body: any): Promise<any> => {
         try {
             const { error, value } = validateCartCheckoutBody(body);
@@ -202,54 +244,15 @@ export class CartService {
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
-            const cart = await commercetoolsMeCartClient.getCartById(id);
-            if (!cart) {
+            const ctCart = await commercetoolsMeCartClient.getCartById(id);
+            if (!ctCart) {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Cart not found or has expired',
                 };
             }
 
-            const profileId = cart?.id
-            let coupons;
-            try {
-                coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(profileId, cart.lineItems);
-            } catch (error: any) {
-                logger.info(`CartService.checkout.getEffectsCouponsById.error`, error);
-                throw {
-                    statusCode: HTTP_STATUSES.NOT_FOUND,
-                    errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
-                    statusMessage: 'No discount coupon effect found.',
-                };
-            }
-
             const updateActions: CartUpdateAction[] = [];
-            try {
-                const dataRetchCoupon = await this.talonOneCouponAdapter.fetchEffectsCouponsById(profileId, cart, coupons.coupons);
-                coupons.coupons = dataRetchCoupon.couponsEffects;
-                if (coupons.coupons.rejectedCoupons && coupons.coupons.rejectedCoupons.length > 0) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        errorCode: "COUPON_VALIDATION_FAILED",
-                        statusMessage: 'Some coupons were rejected during processing.',
-                        data: coupons.coupons.rejectedCoupons,
-                    };
-                }
-                if (dataRetchCoupon.talonOneUpdateActions) {
-                    updateActions.push(...dataRetchCoupon.talonOneUpdateActions);
-                }
-            } catch (error: any) {
-                logger.info(`CartService.checkout.fetchEffectsCouponsById.error`, error);
-                if (error.errorCode && error.statusMessage) {
-                    throw error;
-                }
-
-                throw {
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    errorCode: "CART_FETCH_EFFECTS_COUPONS_CT_FAILED",
-                    statusMessage: 'An unexpected error occurred while processing the coupon effects.',
-                };
-            }
 
             if (shippingAddress) {
                 updateActions.push({
@@ -285,25 +288,15 @@ export class CartService {
                     createdAt: new Date().toISOString(),
                 };
 
-                await CommercetoolsCustomObjectClient.addPaymentTransaction(cart.id, paymentTransaction);
+                await CommercetoolsCustomObjectClient.addPaymentTransaction(ctCart.id, paymentTransaction);
             }
 
-            // console.log('talonOneUpdateActions', talonOneUpdateActions)
-
-            // updateActions.push(...talonOneUpdateActions);
-
-            const updatedCart = await CommercetoolsCartClient.updateCart(
-                cart.id,
-                cart.version,
-                updateActions,
-            );
-
+            const updatedCart = await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, updateActions);
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            const iCart = commercetoolsMeCartClient.mapCartToICart(cartWithUpdatedPrice);
 
-            const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cartWithUpdatedPrice);
-
-            return { ...iCart, ...coupons, hasChanged: cartWithUpdatedPrice.compared };
+            return { ...iCart, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             logger.info(`CartService.checkout.error`, error);
             if (error.status && error.message) {
@@ -314,41 +307,65 @@ export class CartService {
         }
     };
 
-
-    // TODO :: CART HAS CHANGED
-    public getCartById = async (accessToken: string, id: string, selectedOnly: boolean): Promise<ICart> => {
+    public getCartById = async (
+        accessToken: string,
+        id: string,
+        selectedOnly = false,
+        includeCoupons = false,
+    ): Promise<ICart> => {
         try {
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+            let finalCart;
 
+            // 1) Fetch the cart
             const ctCart = await commercetoolsMeCartClient.getCartById(id);
             if (!ctCart) {
-                throw createStandardizedError({ statusCode: HTTP_STATUSES.BAD_REQUEST, statusMessage: 'Cart not found or has expired' });
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Cart not found or has expired'
+                });
             }
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            finalCart = cartWithUpdatedPrice;
 
-            const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(cartWithUpdatedPrice, selectedOnly);
-
-            let coupons;
-            try {
-                coupons = await this.talonOneCouponAdapter.getEffectsCouponsById(id, cartWithUpdatedPrice.lineItems);
-            } catch (error: any) {
-                throw {
-                    statusCode: HTTP_STATUSES.NOT_FOUND,
-                    errorCode: "CART_GET_EFFECTS_COUPONS_CT_FAILED",
-                    statusMessage: 'No discount coupon effect found.',
-                };
+            // 2) Possibly auto-remove invalid coupons
+            let permanentlyInvalidRejectedCoupons: Array<{ code: string; reason: string }> = [];
+            if (includeCoupons) {
+                const {
+                    updatedCart: cartAfterAutoRemove,
+                    permanentlyInvalidRejectedCoupons: invalidCoupons
+                } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithUpdatedPrice);
+                finalCart = cartAfterAutoRemove;
+                permanentlyInvalidRejectedCoupons = invalidCoupons;
             }
 
+            // 3) Map to ICart
+            const filteredLineItems = commercetoolsMeCartClient.filterLineItems(finalCart.lineItems, selectedOnly);
+            const cartToProcess = { ...finalCart, lineItems: filteredLineItems };
+            const iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartToProcess);
+            finalCart = iCartWithBenefit
 
+            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartToProcess.id, cartToProcess.lineItems);
 
-            return { ...iCartWithBenefit, ...coupons, hasChanged: cartWithUpdatedPrice.compared };
+            const response = {
+                ...finalCart,
+                ...couponEffects
+            };
+
+            if (includeCoupons && permanentlyInvalidRejectedCoupons.length > 0) {
+                response.coupons.rejectedCoupons = [
+                    ...(response.coupons.rejectedCoupons ?? []),
+                    ...permanentlyInvalidRejectedCoupons
+                ];
+            }
+
+            return response;
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
             }
-
             throw createStandardizedError(error, 'getCartById');
         }
     };

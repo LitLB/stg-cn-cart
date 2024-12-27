@@ -270,7 +270,6 @@ class CommercetoolsProductClient {
 		const { body } = await this.getProductsBySkus(skus);
 		const skuItems = body.results;
 
-		// Helper function to find valid price
 		const findValidPrice = (variants: any) => {
 			return this.findValidPrice({
 				prices: variants.prices,
@@ -279,7 +278,6 @@ class CommercetoolsProductClient {
 			});
 		}
 
-		// Process cart items to check for changes
 		const processedItems = lineItems.map((cartItem: any) => {
 
 			const matchingSkuItem = skuItems.find(
@@ -289,9 +287,8 @@ class CommercetoolsProductClient {
 			const matchedInventory = inventories.find((invItem: any) => invItem.sku === cartItem.variant.sku)
 
 			if (!matchingSkuItem) return cartItem;
-			const { quantity, price } = cartItem;
+			const { quantity } = cartItem;
 
-			// Find matched variant
 			const matchedVariant = this.findVariantByKey(
 				cartItem?.variant?.key,
 				matchingSkuItem.masterVariant,
@@ -309,7 +306,6 @@ class CommercetoolsProductClient {
 			const skuMin = getAttributeValue(skuAttributes, "sku_quantity_min");
 
 			const hasChanged = {
-				price: validPrice.value.centAmount !== price.value.centAmount,
 				quantityOverParentMax: parentMax !== null && oldCartQuantity.main_product > parentMax,
 				quantityLowerParentMin: parentMax !== null && oldCartQuantity.main_product < parentMin,
 				quantityOverSkuMax: skuMax !== null && quantity > skuMax,
@@ -320,16 +316,13 @@ class CommercetoolsProductClient {
 			// Update item data
 			const updatedItem = {
 				...cartItem,
-				name: matchingSkuItem.name,
-				variant: matchedVariant,
 				price: validPrice,
 				totalPrice: {
 					...validPrice.value,
 					centAmount: validPrice.value.centAmount * quantity,
 				},
-				availability: matchedVariant?.availability,
 				hasChanged,
-			};
+			}
 
 			return updatedItem;
 		}).filter(Boolean);

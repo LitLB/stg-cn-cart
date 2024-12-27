@@ -1,0 +1,155 @@
+[
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "acceptCoupon",
+    "props": { "value": "DEVICEONLY001" },
+    "triggeredByCoupon": 10337,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "acceptCoupon",
+    "props": { "value": "DEVICEONLY002" },
+    "triggeredByCoupon": 10338,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "acceptCoupon",
+    "props": { "value": "DEVICEONLY003" },
+    "triggeredByCoupon": 910466,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "setDiscount",
+    "props": { "name": "Cart Discount", "value": 100 },
+    "triggeredByCoupon": 10337,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "customEffect",
+    "props": {
+      "effectId": 48,
+      "name": "coupon_custom_effect",
+      "payload": {
+        "status": "true",
+        "name_en": "test",
+        "name_th": "test",
+        "discount_code": "test",
+        "discount_price": "100",
+        "marketing_name_en": "test",
+        "marketing_name_th": "test",
+        "term_condition_en": "test",
+        "term_condition_th": "test",
+        "other_payment_code": "test",
+        "discount_percentage": "0",
+        "coupon_short_detail_en": "test",
+        "coupon_short_detail_th": "test"
+      }
+    },
+    "triggeredByCoupon": 10337,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "setDiscount",
+    "props": { "name": "Cart Discount", "value": 100 },
+    "triggeredByCoupon": 10338,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "customEffect",
+    "props": {
+      "effectId": 48,
+      "name": "coupon_custom_effect",
+      "payload": {
+        "status": "true",
+        "name_en": "DEVICEONLY002",
+        "name_th": "DEVICEONLY002",
+        "discount_code": "DEVICEONLY002",
+        "discount_price": "100",
+        "marketing_name_en": "DEVICEONLY002",
+        "marketing_name_th": "DEVICEONLY002",
+        "term_condition_en": "DEVICEONLY002",
+        "term_condition_th": "DEVICEONLY002",
+        "other_payment_code": "DEVICEONLY002",
+        "discount_percentage": "0",
+        "coupon_short_detail_en": "DEVICEONLY002",
+        "coupon_short_detail_th": "DEVICEONLY002"
+      }
+    },
+    "triggeredByCoupon": 10338,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "setDiscount",
+    "props": { "name": "Cart Discount", "value": 100 },
+    "triggeredByCoupon": 910466,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "customEffect",
+    "props": {
+      "effectId": 48,
+      "name": "coupon_custom_effect",
+      "payload": {
+        "status": "true",
+        "name_en": "A",
+        "name_th": "A",
+        "discount_code": ".",
+        "discount_price": "100",
+        "marketing_name_en": "A",
+        "marketing_name_th": "A",
+        "term_condition_en": "A",
+        "term_condition_th": "A",
+        "other_payment_code": ".",
+        "discount_percentage": "0",
+        "coupon_short_detail_en": "A",
+        "coupon_short_detail_th": "A"
+      }
+    },
+    "triggeredByCoupon": 910466,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  }
+]

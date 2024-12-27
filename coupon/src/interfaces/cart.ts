@@ -5,6 +5,7 @@ import { ProductType } from '../types/share.types';
 
 export interface ICart {
 	cartId: string;
+	locale?: string | null,
 	// isPrivilege: boolean;
 	campaignGroup: string;
 	journey: string;

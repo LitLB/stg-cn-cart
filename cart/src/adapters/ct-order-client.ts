@@ -8,6 +8,7 @@ import { PAYMENT_STATES } from '../constants/payment.constant';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { IOrder, IOrderImage, IOrderItem } from '../interfaces/order.interface';
 import { logger } from '../utils/logger.utils';
+import type { CustomObjectDraft, CustomObject } from '@commercetools/platform-sdk';
 
 class CommercetoolsOrderClient {
 	private apiRoot: ApiRoot;
@@ -31,6 +32,76 @@ class CommercetoolsOrderClient {
 		} catch (error: any) {
 			console.error('Error fetching order:', error);
 			return null;
+		}
+	}
+
+	public async getOrderWithExpand(orderId: string, expand: any): Promise<Order | null> {
+		try {
+			const response = await this.apiRoot
+				.withProjectKey({ projectKey: this.projectKey })
+				.orders()
+				.withId({ ID: orderId })
+				.get({
+					queryArgs: {expand},
+				})
+				.execute();
+
+			return response.body;
+		} catch (error: any) {
+			console.error('Error fetching order:', error);
+			return null;
+		}
+	}
+	
+	public async updateOrder(orderId: string, data: any): Promise<Order | null> {
+		try {
+			const { body } = await this.apiRoot
+				.withProjectKey({ projectKey: this.projectKey })
+				.orders()
+				.withId({ ID: orderId })
+				.post({ body: data })
+				.execute()
+	
+			return body
+		} catch (error: any) {
+			logger.error(`Update order ID ${orderId} ${error}`)
+			return null
+		}
+	}
+
+	public async createOrUpdateCustomObject(customObjectDraft: CustomObjectDraft) {
+		let result!: CustomObject;
+		try {
+			const { body } = await this.apiRoot
+				.withProjectKey({ projectKey: this.projectKey })
+				.customObjects()
+				.post({ body: customObjectDraft })
+				.execute()
+	
+			return body;
+		} catch (error: any) {
+			logger.error(`Update CustomObject ${JSON.stringify(customObjectDraft)} ${error}`)
+			return result;
+		}
+	}
+
+	public async getCustomObject(container: string, key: string) {
+		let result!: CustomObject;
+		try {
+			const { body } = await this.apiRoot
+				.withProjectKey({ projectKey: this.projectKey })
+				.customObjects()
+				.withContainerAndKey({
+					container,
+					key
+				})
+				.get()
+				.execute()
+	
+			return body;
+		} catch (error: any) {
+			logger.warn(`Get custom object by container ${container} and key ${key} ${error}`)
+			return result;
 		}
 	}
 

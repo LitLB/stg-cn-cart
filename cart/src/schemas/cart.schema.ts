@@ -24,6 +24,9 @@ export const getCartQuerySchema = Joi.object({
 	selectedOnly: Joi.boolean().optional().messages({
 		'boolean.base': 'selectedOnly must be a boolean',
 	}),
+	includeCoupons: Joi.boolean().optional().messages({
+		'boolean.base': 'includeCoupons must be a boolean',
+	}),
 });
 
 /**

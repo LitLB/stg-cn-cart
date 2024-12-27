@@ -31,7 +31,6 @@ import { readConfiguration } from '../../utils/config.utils';
 import { CURRENCY_CODES } from '../../constants/currency.constant';
 import { COUNTRIES } from '../../constants/country.constant';
 import { HTTP_STATUSES } from '../../constants/http.constant';
-import { logger } from '../../utils/logger.utils';
 import { LOCALES } from '../../constants/locale.constant';
 import { updatedCartWithFreeGiftAdded } from '../../mocks/free-gift/updatedCart.mock';
 import { lineItemWithCampaignBenefitsMock } from '../../mocks/lineItemWithCampaignBenefits.mock';
@@ -493,11 +492,11 @@ export default class CommercetoolsMeCartClient {
 	}
 
 	/**
- * Removes multiple line items from the current user's cart.
- * @param cartId - The ID of the cart.
- * @param version - The current version of the cart.
- * @param lineItemIds - An array of line item IDs to remove.
- */
+	 * Removes multiple line items from the current user's cart.
+	 * @param cartId - The ID of the cart.
+	 * @param version - The current version of the cart.
+	 * @param lineItemIds - An array of line item IDs to remove.
+	 */
 	public async removeMultipleItemsFromCart(
 		cartId: string,
 		version: number,
@@ -541,28 +540,6 @@ export default class CommercetoolsMeCartClient {
 		);
 
 		return updatedCart;
-	}
-
-	/**
-	 * Calculates the total discount from selected items.
-	 * @param selectedItems - Array of selected IItem objects.
-	 * @returns The total discount amount.
-	 */
-	private calculateTotalDiscount(selectedItems: IItem[]): number {
-		return selectedItems.reduce((total, item) => total + item.discountAmount, 0);
-	}
-
-	private getProductImage(lineItem: LineItem): IImage | null {
-		const imageAttribute = lineItem.variant.attributes?.find(attr => attr.name === 'image');
-		if (imageAttribute && imageAttribute.value) {
-			const imageUrl = imageAttribute.value;
-			const image: IImage = {
-				url: imageUrl,
-			};
-			return image;
-		}
-
-		return null;
 	}
 
 	private getVariantImage(lineItem: LineItem): IImage | null {
@@ -688,8 +665,6 @@ export default class CommercetoolsMeCartClient {
 					totalUnitPrice,
 					discountAmount,
 					priceAfterDiscount,
-					// Since there are no shipping costs or VAT/tax at the item level,
-					// finalPrice is equal to priceAfterDiscount for now.
 					finalPrice: priceAfterDiscount,
 					appliedEffects: [],
 					attributes: lineItem.variant.attributes || [],
@@ -726,12 +701,7 @@ export default class CommercetoolsMeCartClient {
 		const shippingCost = ctCart.shippingInfo?.price?.centAmount || 0;
 
 		// Grand total: totalPriceAfterDiscount plus shipping cost
-		const grandTotal = ctCart.totalPrice.centAmount;
-
-		// Check is that the calculated grandTotal matches the value from the cart.
-		if (grandTotal !== totalPriceAfterDiscount + shippingCost) {
-			logger.warn('Calculated grandTotal does not match ctCart.totalPrice.centAmount');
-		}
+		const grandTotal = totalPriceAfterDiscount + shippingCost;
 
 		// Calculate total discount: subtotalPrice minus totalPriceAfterDiscount
 		const totalDiscount = subtotalPrice - totalPriceAfterDiscount;
@@ -1260,18 +1230,18 @@ export default class CommercetoolsMeCartClient {
 	}
 
 	filterLineItems(lineItems: LineItem[], selectedOnly: boolean): LineItem[] {
+		if (!selectedOnly) {
+			return lineItems;
+		}
+
+		// Otherwise, only return those marked “selected”
 		return lineItems.filter((lineItem: LineItem) => {
-			const isSelected = lineItem.custom?.fields?.selected ?? false;
-			return !selectedOnly || isSelected;
+			return lineItem.custom?.fields?.selected === true;
 		});
 	}
 
-	async getCartWithBenefit(ctCart: any, selectedOnly = false) {
-		const filteredLineItems = this.filterLineItems(ctCart.lineItems, selectedOnly);
-
-		const cartToProcess = { ...ctCart, lineItems: filteredLineItems };
-
-		const skus = cartToProcess.lineItems.map((lineItem: any) => lineItem.variant.sku);
+	async getCartWithBenefit(ctCart: any) {
+		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
 		const inventoryKey = skus.map((sku: any) => sku).join(',');
 		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
 		const inventoryMap = new Map<string, any>();
@@ -1281,13 +1251,13 @@ export default class CommercetoolsMeCartClient {
 			inventoryMap.set(sku, inventory);
 		});
 
-		let iCart: ICart = this.mapCartToICart(cartToProcess);
+		let iCart: ICart = this.mapCartToICart(ctCart);
 		iCart = await this.attachInsuranceToICart(iCart);
 
 		this.mapInventoryToItems(iCart.items, inventoryMap);
 
 		let iCartWithBenefit = iCart;
-		if (cartToProcess?.lineItems?.length) {
+		if (ctCart?.lineItems?.length) {
 			const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart);
 			iCartWithBenefit = this.attachBenefitToICart(iCart, lineItemWithCampaignBenefits);
 		}
