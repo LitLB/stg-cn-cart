@@ -69,6 +69,7 @@ class CommercetoolsCartClient {
 		productType,
 		productGroup,
 		addOnGroup,
+		freeGiftGroup,
 		externalPrice,
 	}: {
 		cart: Cart;
@@ -78,6 +79,7 @@ class CommercetoolsCartClient {
 		productType: string;
 		productGroup: number;
 		addOnGroup: string;
+		freeGiftGroup: string;
 		externalPrice: {
 			currencyCode: string;
 			centAmount: number;
@@ -86,10 +88,12 @@ class CommercetoolsCartClient {
 		const { lineItems } = cart;
 		const existingLineItem = lineItems.find((item: any) => {
 			return (
-				item.variant.id === variantId
+				item.productId === productId // TODO: Free Gift Changes
+				&& item.variant.id === variantId
 				&& item.custom?.fields?.productGroup === productGroup
 				&& item.custom?.fields?.productType === productType
 				&& (!addOnGroup || item.custom?.fields?.addOnGroup === addOnGroup)
+				&& (!freeGiftGroup || item.custom?.fields?.freeGiftGroup === freeGiftGroup)
 			);
 		});
 		const privilege = existingLineItem?.custom?.fields?.privilege;
@@ -126,6 +130,7 @@ class CommercetoolsCartClient {
 					productType,
 					productGroup,
 					addOnGroup,
+					freeGiftGroup,
 					...(privilege ? { privilege } : {}),
 					...(selected != null ? { selected } : {}),
 					...(discounts?.length ? { discounts } : {}),

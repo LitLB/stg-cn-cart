@@ -12,21 +12,6 @@ import { createStandardizedError } from '../utils/error.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class CartItemService {
-    // private getJourneyDeviceOnly = (variant: any): string | undefined => {
-    //     const journeyAttribute = variant.attributes?.find((attr: any) => attr.name === 'journey');
-    //     if (journeyAttribute) {
-    //         if (Array.isArray(journeyAttribute.value)) {
-    //             const journeyDeviceOnly = journeyAttribute.value.find((v: any) => v.key === 'device_only');
-    //             if (journeyDeviceOnly && journeyDeviceOnly.key) {
-    //                 return journeyDeviceOnly.key;
-    //             }
-    //         } else {
-    //             console.warn('Unexpected structure for journey attribute:', journeyAttribute.value);
-    //         }
-    //     }
-    //     return undefined;
-    // }
-
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
         try {
             const { error, value } = validateAddItemCartBody(body);
@@ -39,7 +24,7 @@ export class CartItemService {
             }
 
             const now = new Date();
-            const { productId, sku, quantity, productType, productGroup, addOnGroup } = value;
+            const { productId, sku, quantity, productType, productGroup, addOnGroup, freeGiftGroup } = value;
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
@@ -134,7 +119,8 @@ export class CartItemService {
                 quantity,
                 productType,
                 productGroup: newProductGroup,
-                addOnGroup
+                addOnGroup,
+                freeGiftGroup
             }]
 
             if (productType === 'insurance') {
@@ -154,7 +140,6 @@ export class CartItemService {
 
             const action = 'add_product'
             const validateResult = await talonOneEffectConverter.validate(cart, changes, action)
-
             if (!validateResult?.isValid) {
                 return {
                     status: 'error',
@@ -170,6 +155,7 @@ export class CartItemService {
                 productType,
                 productGroup: newProductGroup,
                 addOnGroup,
+                freeGiftGroup,
                 externalPrice: validPrice.value,
             });
 
@@ -178,12 +164,12 @@ export class CartItemService {
 
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return {...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
+            return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'addItem');
         }
     }
@@ -202,7 +188,7 @@ export class CartItemService {
                 };
             }
 
-            const { productId, sku, quantity, productGroup, productType, addOnGroup } = value;
+            const { productId, sku, quantity, productGroup, productType, addOnGroup, freeGiftGroup } = value;
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
@@ -256,7 +242,7 @@ export class CartItemService {
                 };
             }
 
-            const existingLineItem = commercetoolsMeCartClient.findLineItem({ cart, variantId: variant.id, productGroup, productType, addOnGroup });
+            const existingLineItem = commercetoolsMeCartClient.findLineItem({ cart, variantId: variant.id, productGroup, productType, addOnGroup, freeGiftGroup });
             if (!existingLineItem) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -297,6 +283,7 @@ export class CartItemService {
                 productGroup,
                 productType,
                 addOnGroup,
+                freeGiftGroup,
                 quantity
             });
 
@@ -305,12 +292,12 @@ export class CartItemService {
 
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return {...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared};
+            return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'updateItemQuantityById');
         }
     }
@@ -326,7 +313,7 @@ export class CartItemService {
                 };
             }
 
-            const { productId, sku, productGroup, productType, addOnGroup } = value;
+            const { productId, sku, productGroup, productType, addOnGroup, freeGiftGroup } = value;
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
@@ -359,7 +346,8 @@ export class CartItemService {
                 variantId: variant.id,
                 productType,
                 productGroup,
-                addOnGroup
+                addOnGroup,
+                freeGiftGroup
             });
 
             updatedCart = await commercetoolsMeCartClient.resetCartItemProductGroup(updatedCart)
@@ -401,7 +389,7 @@ export class CartItemService {
 
             const lineItemKeys: any[] = [];
             for (const item of items) {
-                const { productId, sku, productGroup, productType, addOnGroup } = item;
+                const { productId, sku, productGroup, productType, addOnGroup, freeGiftGroup } = item;
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
                     throw {
@@ -422,7 +410,8 @@ export class CartItemService {
                     variantId: variant.id,
                     productGroup,
                     productType,
-                    addOnGroup
+                    addOnGroup,
+                    freeGiftGroup
                 });
             }
 
@@ -502,12 +491,12 @@ export class CartItemService {
 
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return {...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared};
+            return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
             }
-            
+
             throw createStandardizedError(error, 'select');
         }
     }
@@ -525,7 +514,8 @@ export class CartItemService {
         productType: any;
         productGroup: number;
     }) => {
-        if (['add_on', 'insurance'].includes(productType)) {
+        // TODO: Free Gift changes
+        if (['add_on', 'insurance', 'free_gift'].includes(productType)) {
             return productGroup;
         }
 

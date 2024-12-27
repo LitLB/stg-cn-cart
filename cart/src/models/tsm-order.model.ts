@@ -62,6 +62,40 @@ export default class TsmOrderModel {
             return Array.from({ length: noOfItem }, (_, quantityIndex) => {
                 const sequence = `${(lineItemIndex + 1) + quantityIndex}`.toString()
 
+
+                if (productType === 'free_gift') {
+                    return {
+                        id: orderId,
+                        sequence: sequence,
+                        campaign: {
+                            code: campaignCode,
+                            name: campaignName,
+                        },
+                        proposition: '' + promotionSetProposition,
+                        promotionSet: promotionSetCode,
+                        promotionType: this.getPromotionType(productType),
+                        group: '' + productGroup,
+                        product: {
+                            productType: this.getProductType(productType),
+                            productCode,
+                        },
+                        mobile: '',
+                        price: '0',
+                        quantity: '' + quantity,
+                        totalAmount: '0',
+                        installmentAmount: '0',
+                        depositAmount: '0',
+                        netAmount: '0',
+                        discountAmount: '0',
+                        otherPaymentAmount: '0',
+                        privilegeRequiredValue: '',
+                        discounts: [],
+                        otherPayments: [],
+                        serials: [],
+                        range: [],
+                    }
+                }
+
                 //! items.discountAmount = ค่า amount ใน discounts ทั้งหมดรวมกัน
                 const { discountAmount: discountAmountBaht, discounts } = this.getItemDiscount({
                     orderId,
@@ -159,6 +193,8 @@ export default class TsmOrderModel {
         switch (lineItemType) {
             case 'main_product':
                 return '0'
+            case 'free_gift':
+                return '1'
             case 'service':
                 return '0'
             case 'add_on':
@@ -202,7 +238,7 @@ export default class TsmOrderModel {
         privilege = privilege && JSON.parse(privilege);
         let lineItemDiscounts = lineItem?.custom?.fields?.discounts
         lineItemDiscounts = (lineItemDiscounts ?? []).map((v: any) => JSON.parse(v))
-        const { promotionSetCode } = privilege
+        const { promotionSetCode } = privilege || {};
         for (const lineItemDiscount of lineItemDiscounts) {
             const { benefitType, specialPrice, discountBaht } = lineItemDiscount
             if (benefitType === 'add_on') {

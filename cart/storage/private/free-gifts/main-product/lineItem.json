@@ -1,0 +1,110 @@
+{
+  "id": "117e1869-d7f0-4501-9375-180dd70bd11b",
+  "productId": "08c91f85-f3ad-407c-9e7c-164661ea1f93",
+  "productKey": "8a2b3703-edec-4dd7-815c-099c1d725b20",
+  "name": { "th-TH": "o-main-product-1", "en-US": "o-main-product-1" },
+  "productType": {
+    "typeId": "product-type",
+    "id": "02584416-7fac-4a37-a511-be6b3e329664",
+    "version": 470
+  },
+  "productSlug": { "th-TH": "o-main-product-1", "en-US": "o-main-product-1" },
+  "variant": {
+    "id": 1,
+    "sku": "o-main-product-sku-1001",
+    "key": "o-main-product-sku-1001",
+    "prices": [
+      {
+        "id": "51e92823-9837-42de-8f98-8c873663afff",
+        "value": {
+          "type": "centPrecision",
+          "currencyCode": "THB",
+          "centAmount": 1250000,
+          "fractionDigits": 2
+        }
+      },
+      {
+        "id": "281d66b4-d9c6-47de-954b-d35667b8fbcb",
+        "value": {
+          "type": "centPrecision",
+          "currencyCode": "THB",
+          "centAmount": 1250000,
+          "fractionDigits": 2
+        },
+        "customerGroup": {
+          "typeId": "customer-group",
+          "id": "94e4dca6-8b56-4861-ab92-4fbeefacb228"
+        },
+        "validFrom": "2024-10-31T17:00:00.000Z"
+      }
+    ],
+    "images": [],
+    "attributes": [
+      { "name": "product_id", "value": "o-main-product-1" },
+      { "name": "status", "value": { "key": "enabled", "label": "Enabled" } },
+      { "name": "akeneo_id", "value": "56cff072-ca2f-4a96-b5ea-3933643e20a2" },
+      {
+        "name": "insurance_reference",
+        "value": [
+          { "typeId": "product", "id": "72ae2669-c545-4b5f-90fa-8a93ebd7c14f" }
+        ]
+      }
+    ],
+    "assets": [],
+    "availability": {
+      "channels": {
+        "b3ed9456-9890-4119-b981-5624ee4e6d6b": {
+          "isOnStock": true,
+          "availableQuantity": 100,
+          "version": 6,
+          "id": "5afc1fec-0af0-4115-ae05-9f8b4608fe80"
+        }
+      }
+    }
+  },
+  "price": {
+    "id": "0e7d1120-477c-4189-8998-7a905e637b9b",
+    "value": {
+      "type": "centPrecision",
+      "currencyCode": "THB",
+      "centAmount": 1250000,
+      "fractionDigits": 2
+    }
+  },
+  "quantity": 2,
+  "discountedPricePerQuantity": [],
+  "supplyChannel": {
+    "typeId": "channel",
+    "id": "b3ed9456-9890-4119-b981-5624ee4e6d6b"
+  },
+  "perMethodTaxRate": [],
+  "addedAt": "2024-12-23T09:13:28.903Z",
+  "lastModifiedAt": "2024-12-23T09:13:28.903Z",
+  "state": [
+    {
+      "quantity": 2,
+      "state": {
+        "typeId": "state",
+        "id": "4edd1d7a-f5ac-4ec8-b575-29dd9e87e020"
+      }
+    }
+  ],
+  "priceMode": "ExternalPrice",
+  "lineItemMode": "Standard",
+  "totalPrice": {
+    "type": "centPrecision",
+    "currencyCode": "THB",
+    "centAmount": 2500000,
+    "fractionDigits": 2
+  },
+  "taxedPricePortions": [],
+  "custom": {
+    "type": { "typeId": "type", "id": "27d2c7ca-385b-4668-bbcf-526c1f2607ff" },
+    "fields": {
+      "productType": "main_product",
+      "productGroup": 1,
+      "discounts": [],
+      "privilege": "{}"
+    }
+  }
+}

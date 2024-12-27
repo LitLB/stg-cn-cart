@@ -73,7 +73,8 @@ class TalonOneIntegrationAdapter {
 					attributes: {
 						product_type: change.productType,
 						product_group: change.productGroup,
-						...(change.addOnGroup ? { add_on_group: change.addOnGroup } : {})
+						...(change.addOnGroup ? { add_on_group: change.addOnGroup } : {}),
+						...(change.freeGiftGroup ? { free_gift_group: change.freeGiftGroup } : {}),
 					}
 				});
 			}
@@ -99,13 +100,13 @@ class TalonOneIntegrationAdapter {
 	}) {
 		const { lineItems } = ctCartData
 
-		const campaignGroup = 'mass'
-		const journey = 'device_only'
 		const cartItems = lineItems.map((item: any) => {
 			const { quantity, price, variant, custom } = item
 			const productType = custom.fields.productType
 			const productGroup = custom.fields.productGroup
 			const addOnGroup = custom.fields.addOnGroup
+			const freeGiftGroup = custom.fields.freeGiftGroup
+
 			return {
 				sku: variant.sku,
 				quantity,
@@ -113,7 +114,8 @@ class TalonOneIntegrationAdapter {
 				attributes: {
 					product_type: productType,
 					product_group: productGroup,
-					...(addOnGroup ? { add_on_group: addOnGroup } : {})
+					...(addOnGroup ? { add_on_group: addOnGroup } : {}),
+					...(freeGiftGroup ? { free_gift_group: freeGiftGroup } : {}),
 				}
 			}
 		})

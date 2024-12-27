@@ -45,6 +45,7 @@ export interface IOrderItem {
     productType: ProductType;
     productGroup?: number;
     addOnGroup?: string;
+    freeGiftGroup?: string;
     quantity: number;
     unitPrice: number;
     totalUnitPrice: number;

@@ -1,0 +1,115 @@
+[
+  {
+    "sku": "o-main-product-sku-1001",
+    "productGroup": 1,
+    "productType": "main_product",
+    "cartItemPosition": 0,
+    "cartItemSubPosition": [0, 1, 2],
+    "campaignCode": "",
+    "discountCode": "",
+    "otherPaymentCode": "",
+    "promotionSetCode": "MOCK007",
+    "campaign": null,
+    "campaignVerifyKey": null,
+    "discount": null,
+    "otherPayment": null,
+    "promotionSet": {
+      "env": "sit",
+      "tsm_promotion_set__code": "MOCK007",
+      "tsm_promotion_set__create_user": "Admin",
+      "tsm_promotion_set__description": "Promotion Set for test E2E",
+      "tsm_promotion_set__company_code": "1068",
+      "tsm_promotion_set__end_date_time": "00:00:00",
+      "tsm_promotion_set__start_date_time": "00:00:00",
+      "tsm_promotion_set__create_date_time": "15:05:52",
+      "tsm_promotion_set__proposition_code": "886",
+      "sku": "6e6ebc62c47acd8ac98f0922881174704e46159921caff03d5e150a45773beee",
+      "tsm_promotion_set__max_receive": 3,
+      "tsm_promotion_set__min_sale_item": 1,
+      "tsm_promotion_set__is_delete": false,
+      "tsm_promotion_set__is_free_item": false,
+      "tsm_promotion_set__flag_campaign": true,
+      "tsm_promotion_set__end_date": "2025-05-02T00:00:00+00:00",
+      "tsm_promotion_set__start_date": "2012-12-03T00:00:00+00:00",
+      "tsm_promotion_set__create_date": "2013-09-17T00:00:00+00:00"
+    },
+    "promotionProductParams": null,
+    "promotionProductGroups": [],
+    "productPromotionDetails": [
+      {
+        "groupCode": "add_on_1",
+        "detail": {
+          "env": "sit",
+          "tsm_promotion_set__code": "MOCK007",
+          "tsm_promotion_detail__group_code": "add_on_1",
+          "tsm_promotion_detail__promotion_type": "2",
+          "tsm_promotion_detail__promotion_set_code": "DB980",
+          "sku": "3e148521c49f5fe3a387c041a14234c42bfb87d5add24d1d546a3c3a5243578d",
+          "tsm_promotion_detail__max_items": 2,
+          "tsm_promotion_detail__discount_baht": "0.0000",
+          "tsm_promotion_detail__special_price": "790.0000",
+          "tsm_promotion_detail__discount_percent": "0.0000",
+          "tsm_promotion_detail__force_promotion": false
+        },
+        "items": [
+          {
+            "env": "sit",
+            "tsm_promotion_set__code": "MOCK007",
+            "tsm_promotion_detail_item__type": "P",
+            "tsm_promotion_detail_item__group_code": "add_on_1",
+            "tsm_promotion_detail_item__product_code": "o-add-on-1-sku-1001",
+            "tsm_promotion_detail_item__promotion_set_code": "MOCK007",
+            "sku": "20272986940186a973b8b069030d29780b2ab2ea297757d8b71dc2d0f8cbdb2d"
+          },
+          {
+            "env": "sit",
+            "tsm_promotion_set__code": "MOCK007",
+            "tsm_promotion_detail_item__type": "P",
+            "tsm_promotion_detail_item__group_code": "add_on_1",
+            "tsm_promotion_detail_item__product_code": "o-add-on-1-sku-1002",
+            "tsm_promotion_detail_item__promotion_set_code": "MOCK007",
+            "sku": "444e9af5b1b17e52b059e547ede44c117a0bf37e6b0d612e0ea292fae45d6750"
+          }
+        ],
+        "otherPayments": []
+      },
+      {
+        "groupCode": "add_on_2",
+        "detail": {
+          "env": "sit",
+          "tsm_promotion_set__code": "MOCK007",
+          "tsm_promotion_detail__group_code": "add_on_2",
+          "tsm_promotion_detail__promotion_type": "2",
+          "tsm_promotion_detail__promotion_set_code": "DB980",
+          "sku": "3e148521c49f5fe3a387c041a14234c42bfb87d5add24d1d546a3c3a5243578d",
+          "tsm_promotion_detail__max_items": 2,
+          "tsm_promotion_detail__discount_baht": "0.0000",
+          "tsm_promotion_detail__special_price": "500.0000",
+          "tsm_promotion_detail__discount_percent": "0.0000",
+          "tsm_promotion_detail__force_promotion": false
+        },
+        "items": [
+          {
+            "env": "sit",
+            "tsm_promotion_set__code": "MOCK007",
+            "tsm_promotion_detail_item__type": "P",
+            "tsm_promotion_detail_item__group_code": "add_on_2",
+            "tsm_promotion_detail_item__product_code": "o-add-on-2-sku-2001",
+            "tsm_promotion_detail_item__promotion_set_code": "MOCK007",
+            "sku": "8e6139a11d9484b76378df3c60ded95894ef5acf66e3f6511a444d6c2898e923"
+          },
+          {
+            "env": "sit",
+            "tsm_promotion_set__code": "MOCK007",
+            "tsm_promotion_detail_item__type": "P",
+            "tsm_promotion_detail_item__group_code": "add_on_2",
+            "tsm_promotion_detail_item__product_code": "o-add-on-2-sku-2002",
+            "tsm_promotion_detail_item__promotion_set_code": "MOCK007",
+            "sku": "fbf91e1ee04b4474d15fd7c7ac6316a88b8baab2e20a0b97d5e0a30d29d239c8"
+          }
+        ],
+        "otherPayments": []
+      }
+    ]
+  }
+]

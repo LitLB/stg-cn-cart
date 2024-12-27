@@ -905,26 +905,6 @@ class TalonOneEffectConverter {
 		}
 	}
 
-	async getBenefitByCustomerSession(customerSession: any) {
-		const { customerSession: { cartItems }, effects } = customerSession;
-		const distintEffects = this.groupEffect(effects);
-		const filteredEffects = this.filter(distintEffects);
-		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
-
-		const benefits = convertedEffects.map(this.getBenefit);
-		const addOnBenefits = benefits.map((item: any) => item.addOnBenefits).flat();
-		const wrappedAddOnbenefits = await this.wrapCTContext(addOnBenefits);
-
-		const productGroupBenefits = benefits.map((item: any) => item.productGroupBenefits).flat()
-		const productBenefits = benefits.map((item: any) => item.productBenefits).flat()
-
-		return {
-			addOnbenefits: wrappedAddOnbenefits,
-			productGroupBenefits,
-			productBenefits
-		}
-	}
-
 	async getCtLineItemWithCampaignBenefits(ctCart: any) {
 		const { addOnbenefits, productGroupBenefits, productBenefits } = await this.getBenefitByCtCart(ctCart)
 
@@ -934,21 +914,6 @@ class TalonOneEffectConverter {
 
 
 		return lineItems;
-	}
-
-	async getCustomerSessionWithConvertedEffectsById(ctCart: any) {
-		const customerSession = await talonOneIntegrationAdapter.getActiveCustomerSession(ctCart)
-		const { customerSession: customerSessionInfo, effects } = customerSession;
-		const { cartItems } = customerSessionInfo
-		const distintEffects = this.groupEffect(effects);
-		const filteredEffects = this.filter(distintEffects);
-		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
-		return {
-			customerSession: {
-				...customerSessionInfo,
-				effects: convertedEffects,
-			},
-		};
 	}
 }
 

@@ -1,0 +1,111 @@
+{
+  "order": {
+    "orderId": "202411261101001-v2",
+    "customer": {
+      "id": "",
+      "name": "สมฤทัย ใจดีอยู่",
+      "address": "28/7 ซอย 8 เกาะแก้ว เมืองภูเก็ต ภูเก็ต 83000"
+    },
+    "shop": { "code": "80001999" },
+    "sale": { "code": "900CV003", "name": "Cvecom03" },
+    "totalAmount": "22400",
+    "discountAmount": "0",
+    "totalAfterDiscount": "22400",
+    "otherPaymentAmount": "0",
+    "grandTotal": "22400",
+    "discounts": [],
+    "otherPayments": [],
+    "items": [
+      {
+        "id": "202411261101001-v2",
+        "sequence": "1",
+        "campaign": { "code": "", "name": "" },
+        "proposition": "999",
+        "promotionSet": "UI034",
+        "promotionType": "0",
+        "group": "1",
+        "product": { "productType": "P", "productCode": "3000024139" },
+        "mobile": "",
+        "price": "20700",
+        "quantity": "1",
+        "totalAmount": "20700",
+        "discountAmount": "300",
+        "installmentAmount": "0",
+        "depositAmount": "0",
+        "netAmount": "20400",
+        "otherPaymentAmount": "0",
+        "privilegeRequiredValue": "",
+        "discounts": [
+          {
+            "id": "202411261101001-v2",
+            "sequence": "1",
+            "no": "1",
+            "code": "UI034",
+            "amount": "300",
+            "serial": ""
+          }
+        ],
+        "otherPayments": [],
+        "serials": [],
+        "range": []
+      },
+      {
+        "id": "202411261101001-v2",
+        "sequence": "2",
+        "campaign": { "code": "", "name": "" },
+        "proposition": "999",
+        "promotionSet": "UI034",
+        "promotionType": "2",
+        "group": "1",
+        "product": { "productType": "P", "productCode": "3000027820" },
+        "mobile": "",
+        "price": "2700",
+        "quantity": "1",
+        "totalAmount": "2700",
+        "discountAmount": "700",
+        "installmentAmount": "0",
+        "depositAmount": "0",
+        "netAmount": "2000",
+        "otherPaymentAmount": "0",
+        "privilegeRequiredValue": "",
+        "discounts": [
+          {
+            "id": "202411261101001-v2",
+            "sequence": "2",
+            "no": "1",
+            "code": "UI034",
+            "amount": "700",
+            "serial": ""
+          }
+        ],
+        "otherPayments": [],
+        "serials": [],
+        "range": []
+      },
+      {
+        "id": "202411261101001-v2",
+        "sequence": "3",
+        "campaign": { "code": "", "name": "" },
+        "proposition": "999",
+        "promotionSet": "UI034",
+        "promotionType": "1",
+        "group": "1",
+        "product": { "productType": "P", "productCode": "3000014549" },
+        "mobile": "",
+        "price": "0",
+        "quantity": "1",
+        "totalAmount": "0",
+        "discountAmount": "0",
+        "installmentAmount": "0",
+        "depositAmount": "0",
+        "netAmount": "0",
+        "otherPaymentAmount": "0",
+        "privilegeRequiredValue": "",
+        "discounts": [],
+        "otherPayments": [],
+        "serials": [],
+        "range": []
+      }
+    ]
+  }
+}
