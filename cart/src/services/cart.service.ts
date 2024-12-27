@@ -316,9 +316,10 @@ export class CartService {
     ): Promise<ICart> => {
         try {
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+            let iCartWithBenefit;
 
             // 1) Fetch the cart
-            let ctCart = await commercetoolsMeCartClient.getCartById(id);
+            const ctCart = await commercetoolsMeCartClient.getCartById(id);
             if (!ctCart) {
                 throw createStandardizedError({
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -335,15 +336,15 @@ export class CartService {
                 const {
                     updatedCart,
                     permanentlyInvalidRejectedCoupons: invalidCoupons
-                } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(ctCart);
-                ctCart = updatedCart;
+                } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithUpdatedPrice);
+                iCartWithBenefit = updatedCart;
                 permanentlyInvalidRejectedCoupons = invalidCoupons;
             }
 
             // 3) Map to ICart
             const filteredLineItems = commercetoolsMeCartClient.filterLineItems(ctCart.lineItems, selectedOnly);
             const cartToProcess = { ...ctCart, lineItems: filteredLineItems };
-            const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(cartToProcess);
+            iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(cartToProcess);
 
             const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartToProcess.id, cartToProcess.lineItems);
 
