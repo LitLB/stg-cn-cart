@@ -26,15 +26,7 @@ export class CouponService {
         permanentlyInvalidRejectedCoupons: Array<{ code: string; reason: string }>;
     }> {
         try {
-            // 1) If no lineItems, skip
-            if (!ctCart.lineItems || ctCart.lineItems.length === 0) {
-                return {
-                    updatedCart: ctCart,
-                    permanentlyInvalidRejectedCoupons: []
-                };
-            }
-
-            // 2) Gather current coupon codes
+            // 1) Gather current coupon codes
             const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
                 ctCart.id,
                 ctCart.lineItems
@@ -50,7 +42,7 @@ export class CouponService {
                 };
             }
 
-            // 3) Re-check with Talon.One to see if any have become invalid
+            // 2) Re-check with Talon.One to see if any have become invalid
             const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
                 profileId: ctCart.id,
                 ctCartData: ctCart,
@@ -61,12 +53,12 @@ export class CouponService {
                 customerSessionPayload
             );
 
-            // 4) Process any effects
+            // 3) Process any effects
             const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(
                 updatedSession.effects
             );
 
-            // 4.1) Identify permanently invalid coupons
+            // 3.1) Identify permanently invalid coupons
             const permanentlyInvalid = this.findPermanentlyInvalidCoupons(
                 processedCouponEffects
             );
@@ -77,14 +69,14 @@ export class CouponService {
                 };
             }
 
-            // 5) Remove them from the Talon.One session
+            // 4) Remove them from the Talon.One session
             const removeResult = await this.removeInvalidCouponsFromSession(
                 ctCart.id,
                 currentCouponCodes,
                 permanentlyInvalid
             );
 
-            // 6) Re-update the session with the final set of coupons
+            // 5) Re-update the session with the final set of coupons
             const reUpdatedPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
                 profileId: ctCart.id,
                 ctCartData: ctCart,
@@ -95,7 +87,7 @@ export class CouponService {
                 reUpdatedPayload
             );
 
-            // 7) Build updateActions from new effects to remove discount line items, etc.
+            // 6) Build updateActions from new effects to remove discount line items, etc.
             const newProcessedEffects = this.talonOneCouponAdapter.processCouponEffects(reUpdatedSession.effects);
             const { updateActions } =
                 this.talonOneCouponAdapter.buildCouponActions(ctCart, newProcessedEffects);
@@ -108,7 +100,7 @@ export class CouponService {
                 };
             }
 
-            // 8) Update the cart in CT
+            // 7) Update the cart in CT
             const cartAfterAutoRemove = await CommercetoolsCartClient.updateCart(
                 ctCart.id,
                 ctCart.version,

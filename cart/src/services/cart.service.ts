@@ -1,7 +1,7 @@
 // cart/src/services/cart.service.ts
 
 import _ from 'lodash'
-import { Cart, CartSetCustomFieldAction, CartUpdateAction, Order } from '@commercetools/platform-sdk';
+import { Cart, CartUpdateAction, Order } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
@@ -219,7 +219,7 @@ export class CartService {
             await this.updateStockAllocation(cartWithUpdatedPrice);
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
-            return {...order,hasChanged: cartWithUpdatedPrice.compared};
+            return { ...order, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             logger.info(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -316,7 +316,6 @@ export class CartService {
     ): Promise<ICart> => {
         try {
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-            let finalCart;
 
             // 1) Fetch the cart
             const ctCart = await commercetoolsMeCartClient.getCartById(id);
@@ -327,31 +326,33 @@ export class CartService {
                 });
             }
 
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+            const filteredLineItems = commercetoolsMeCartClient.filterLineItems(ctCart.lineItems, selectedOnly);
+            const cartToProcess = { ...ctCart, lineItems: filteredLineItems };
+
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cartToProcess)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
-            finalCart = cartWithUpdatedPrice;
+            // console.log('cartWithUpdatedPrice.compared', cartWithUpdatedPrice.compared);
 
             // 2) Possibly auto-remove invalid coupons
+            let cartAfterAutoRemove: Cart = cartWithUpdatedPrice;
             let permanentlyInvalidRejectedCoupons: Array<{ code: string; reason: string }> = [];
             if (includeCoupons) {
                 const {
-                    updatedCart: cartAfterAutoRemove,
+                    updatedCart,
                     permanentlyInvalidRejectedCoupons: invalidCoupons
                 } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithUpdatedPrice);
-                finalCart = cartAfterAutoRemove;
+                cartAfterAutoRemove = updatedCart;
                 permanentlyInvalidRejectedCoupons = invalidCoupons;
             }
 
             // 3) Map to ICart
-            const filteredLineItems = commercetoolsMeCartClient.filterLineItems(finalCart.lineItems, selectedOnly);
-            const cartToProcess = { ...finalCart, lineItems: filteredLineItems };
-            const iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartToProcess);
-            finalCart = iCartWithBenefit
+            const iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartAfterAutoRemove);
 
             const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartToProcess.id, cartToProcess.lineItems);
 
             const response = {
-                ...finalCart,
+                ...iCartWithBenefit,
+                hasChanged: cartWithUpdatedPrice.compared,
                 ...couponEffects
             };
 
@@ -371,7 +372,6 @@ export class CartService {
         }
     };
 
-    
     public getCtCartById = async (accessToken: string, id: string): Promise<any> => {
         try {
             if (!id) {
@@ -485,10 +485,10 @@ export class CartService {
             const body: any =
             {
                 journey, /* Mandarory */
-                ...(['truemoney'].includes(paymentOptionKey) ? { paymentTMNAccountNumber } : {  }),
+                ...(['truemoney'].includes(paymentOptionKey) ? { paymentTMNAccountNumber } : {}),
                 // ...(['ccw', 'installment'].includes(paymentOptionKey) ? { paymentCreditCardNumber } : {  }),
-                ...(ip ? { ipAddress: ip } : {  }),
-                ...(googleId ? { googleID: googleId } : {  }),
+                ...(ip ? { ipAddress: ip } : {}),
+                ...(googleId ? { googleID: googleId } : {}),
                 shippingAddress: {
                     city: shippingAddress.state, /* Mandarory */
                     district: shippingAddress.city, /* Mandarory */

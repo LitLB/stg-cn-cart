@@ -565,6 +565,7 @@
   "origin": "Customer",
   "itemShippingAddresses": [],
   "totalLineItemQuantity": 2,
+  // "hasChange": [ 
   "compared": [
     {
       "productId": "bb223b57-bf6b-454f-a1de-e0b6c4ebfe7b",
