@@ -84,10 +84,6 @@ export class CartItemService {
                 };
             }
 
-
-            // const variantJourneyDeviceOnly = this.getJourneyDeviceOnly(variant);
-            // validateJourneyCompatibility(cartJourney, variantJourneyDeviceOnly);
-
             const validPrice = CommercetoolsProductClient.findValidPrice({
                 prices: variant.prices,
                 customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
