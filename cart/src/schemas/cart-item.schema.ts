@@ -21,7 +21,7 @@ export function validateSelectCartItemBody(body: any) {
 						'any.required': 'SKU is required',
 					}),
 					productType: Joi.string()
-						.valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
+						.valid('main_product', 'add_on', 'insurance', 'free_gift')
 						.required()
 						.messages({
 							'string.base': 'Product Type must be a string',
@@ -46,6 +46,17 @@ export function validateSelectCartItemBody(body: any) {
 						})
 						.messages({
 							'string.base': 'Add On Group must be a string',
+						}),
+					freeGiftGroup: Joi.string()
+						.allow(null, '')
+						.when('productType', {
+							is: 'free_gift',
+							then: Joi.required().messages({
+								'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
+							})
+						})
+						.messages({
+							'string.base': 'Free Gift Group must be a string',
 						}),
 					selected: Joi.boolean().required().messages({
 						'any.required': 'Selected field is required.',
@@ -115,6 +126,17 @@ export function validateAddItemCartBody(body: any) {
 			.messages({
 				'string.base': 'Add On Group must be a string',
 			}),
+		freeGiftGroup: Joi.string()
+			.allow(null, '')
+			.when('productType', {
+				is: 'free_gift',
+				then: Joi.required().messages({
+					'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
+				})
+			})
+			.messages({
+				'string.base': 'Free Gift Group must be a string',
+			}),
 	}).validate(body, { abortEarly: false });
 }
 
@@ -161,6 +183,17 @@ export function validateUpdateCartItemBody(body: any) {
 			.messages({
 				'string.base': 'Add On Group must be a string',
 			}),
+		freeGiftGroup: Joi.string()
+			.allow(null, '')
+			.when('productType', {
+				is: 'free_gift',
+				then: Joi.required().messages({
+					'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
+				})
+			})
+			.messages({
+				'string.base': 'Free Gift Group must be a string',
+			}),
 	}).validate(body, { abortEarly: false });
 }
 
@@ -201,6 +234,17 @@ export function validateDeleteCartItemBody(body: any) {
 			})
 			.messages({
 				'string.base': 'Add On Group must be a string',
+			}),
+		freeGiftGroup: Joi.string()
+			.allow(null, '')
+			.when('productType', {
+				is: 'free_gift',
+				then: Joi.required().messages({
+					'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
+				})
+			})
+			.messages({
+				'string.base': 'Free Gift Group must be a string',
 			}),
 	}).validate(body, { abortEarly: false });
 }
@@ -244,6 +288,17 @@ export function validateBulkDeleteCartItemBody(body: any) {
 						})
 						.messages({
 							'string.base': 'Add On Group must be a string',
+						}),
+					freeGiftGroup: Joi.string()
+						.allow(null, '')
+						.when('productType', {
+							is: 'free_gift',
+							then: Joi.required().messages({
+								'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
+							})
+						})
+						.messages({
+							'string.base': 'Free Gift Group must be a string',
 						}),
 				}),
 			)
