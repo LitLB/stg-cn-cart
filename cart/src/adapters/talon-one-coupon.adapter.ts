@@ -13,6 +13,7 @@ import { COUPON_CUSTOM_EFFECT } from '../constants/cart.constant';
 import { talonOneIntegrationAdapter } from './talon-one.adapter';
 import { logger } from '../utils/logger.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
+import { ICoupon } from '../interfaces/coupon.interface';
 
 export class TalonOneCouponAdapter {
     private ctpAddCustomCouponLineItemPrefix: string;
@@ -252,12 +253,12 @@ export class TalonOneCouponAdapter {
         });
     }
 
-    async getCouponEffectsByCtCartId(id: any, lineItems: any): Promise<{ coupons: { acceptedCoupons: any; rejectedCoupons: any } }> {
-        const defaultCoupons = { acceptedCoupons: [], rejectedCoupons: [] };
+    async getCouponEffectsByCtCartId(id: any, lineItems: any): Promise<ICoupon> {
+        const defaultCoupons: ICoupon = { coupons: { acceptedCoupons: [], rejectedCoupons: [] } };
 
         // Early return if no line items are provided
         if (lineItems.length <= 0) {
-            return { coupons: defaultCoupons };
+            return defaultCoupons;
         }
 
         try {
@@ -269,7 +270,7 @@ export class TalonOneCouponAdapter {
         } catch (error: any) {
             logger.error("cartService.checkout.talonOneCouponAdapter.getCouponEffectsByCtCartId.error: ", error);
 
-            return { coupons: defaultCoupons };
+            return defaultCoupons;
         }
     }
 

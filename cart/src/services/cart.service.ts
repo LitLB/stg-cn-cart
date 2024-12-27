@@ -27,6 +27,7 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { PAYMENT_STATES } from '../constants/payment.constant';
 import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 import { CouponService } from './coupon.service';
+import { ICoupon } from '../interfaces/coupon.interface';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -330,7 +331,6 @@ export class CartService {
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cartToProcess)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
-            // console.log('cartWithUpdatedPrice.compared', cartWithUpdatedPrice.compared);
 
             // 2) Possibly auto-remove invalid coupons
             let cartAfterAutoRemove: Cart = cartWithUpdatedPrice;
@@ -346,8 +346,15 @@ export class CartService {
 
             // 3) Map to ICart
             const iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartAfterAutoRemove);
-
-            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartToProcess.id, cartToProcess.lineItems);
+            let couponEffects: ICoupon = {
+                coupons: {
+                    acceptedCoupons: [],
+                    rejectedCoupons: [],
+                },
+            };
+            if (includeCoupons) {
+                couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartAfterAutoRemove.id, cartAfterAutoRemove.lineItems);
+            }
 
             const response = {
                 ...iCartWithBenefit,
@@ -485,7 +492,7 @@ export class CartService {
             {
                 journey, /* Mandarory */
                 ...(['truemoney'].includes(paymentOptionKey) ? { paymentTMNAccountNumber } : {}),
-                ...(['ccw', 'installment'].includes(paymentOptionKey) ? { paymentCreditCardNumber } : {  }),
+                ...(['ccw', 'installment'].includes(paymentOptionKey) ? { paymentCreditCardNumber } : {}),
                 ...(ip ? { ipAddress: ip } : {}),
                 ...(googleId ? { googleID: googleId } : {}),
                 shippingAddress: {
@@ -670,17 +677,17 @@ export class CartService {
                 Object.entries(remainingMaxItem as Record<string, any>).forEach(([benefitType, groupMaxItem]) => {
 
                     const productTypeText = benefitType === 'add_on' ? 'add-on' : 'free gift';
-                    
+
                     Object.entries(groupMaxItem as Record<string, number>).forEach(
-						([group, maxItem]) => {
-							if (maxItem < 0) {
-								throw new Error(
+                        ([group, maxItem]) => {
+                            if (maxItem < 0) {
+                                throw new Error(
                                     `Total ${productTypeText} group "${group}" reach limit for product group "${productGroup}"`
                                 );
-								return
-							}
-						}
-					)
+                                return
+                            }
+                        }
+                    )
                 });
             });
         });
