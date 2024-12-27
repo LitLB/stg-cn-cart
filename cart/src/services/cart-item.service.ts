@@ -24,7 +24,7 @@ export class CartItemService {
             }
 
             const now = new Date();
-            const { productId, sku, quantity, productType, productGroup, addOnGroup } = value;
+            const { productId, sku, quantity, productType, productGroup, addOnGroup, freeGiftGroup } = value;
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
@@ -123,7 +123,8 @@ export class CartItemService {
                 quantity,
                 productType,
                 productGroup: newProductGroup,
-                addOnGroup
+                addOnGroup,
+                freeGiftGroup
             }]
 
             if (productType === 'insurance') {
@@ -158,15 +159,9 @@ export class CartItemService {
                 productType,
                 productGroup: newProductGroup,
                 addOnGroup,
+                freeGiftGroup,
                 externalPrice: validPrice.value,
             });
-
-            // console.log('updatedCart', updatedCart);
-            console.log('updatedCart.lineItems.length', updatedCart.lineItems.length);
-
-            for (const lineItem of updatedCart.lineItems) {
-                console.log('lineItem.variant.sku', lineItem.variant.sku);
-            }
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
@@ -197,7 +192,7 @@ export class CartItemService {
                 };
             }
 
-            const { productId, sku, quantity, productGroup, productType, addOnGroup } = value;
+            const { productId, sku, quantity, productGroup, productType, addOnGroup, freeGiftGroup } = value;
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
@@ -251,7 +246,7 @@ export class CartItemService {
                 };
             }
 
-            const existingLineItem = commercetoolsMeCartClient.findLineItem({ cart, variantId: variant.id, productGroup, productType, addOnGroup });
+            const existingLineItem = commercetoolsMeCartClient.findLineItem({ cart, variantId: variant.id, productGroup, productType, addOnGroup, freeGiftGroup });
             if (!existingLineItem) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -292,6 +287,7 @@ export class CartItemService {
                 productGroup,
                 productType,
                 addOnGroup,
+                freeGiftGroup,
                 quantity
             });
 
@@ -321,7 +317,7 @@ export class CartItemService {
                 };
             }
 
-            const { productId, sku, productGroup, productType, addOnGroup } = value;
+            const { productId, sku, productGroup, productType, addOnGroup, freeGiftGroup } = value;
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
@@ -354,7 +350,8 @@ export class CartItemService {
                 variantId: variant.id,
                 productType,
                 productGroup,
-                addOnGroup
+                addOnGroup,
+                freeGiftGroup
             });
 
             updatedCart = await commercetoolsMeCartClient.resetCartItemProductGroup(updatedCart)
@@ -396,7 +393,7 @@ export class CartItemService {
 
             const lineItemKeys: any[] = [];
             for (const item of items) {
-                const { productId, sku, productGroup, productType, addOnGroup } = item;
+                const { productId, sku, productGroup, productType, addOnGroup, freeGiftGroup } = item;
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
                     throw {
@@ -417,7 +414,8 @@ export class CartItemService {
                     variantId: variant.id,
                     productGroup,
                     productType,
-                    addOnGroup
+                    addOnGroup,
+                    freeGiftGroup
                 });
             }
 
