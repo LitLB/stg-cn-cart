@@ -7,10 +7,11 @@ interface ILineItem extends LineItem {
 }
 
 
-function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: LineItem) {
+function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: ILineItem) {
 
 
-    const parentQuantity = lineItemA.parentQuantity ?? 0
+    const parentQuantityA = lineItemA.parentQuantity ?? 0
+    const parentQuantityB = lineItemB.parentQuantity ?? 0
 
     const hasChange: any = {};
     // If either line item doesn't have a variant, it has no attributes
@@ -68,15 +69,24 @@ function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: LineItem) {
         // 3) If missing on one side => changed
         if (valA === undefined || valB === undefined) {
             hasChange[name] = true;
-            continue;
         }
         // 4) Compare via JSON (simple deep compare)
+        const comparisons: any = {
+            quantity_max: () => (hasChange['quantity_over_parent_max'] = parentQuantityA > valB),
+            quantity_min: () => (hasChange['quantity_lower_parent_min'] = parentQuantityA < valB),
+            sku_quantity_max: () => (hasChange['quantity_over_sku_max'] = lineItemA.quantity > valB),
+            sku_quantity_min: () => (hasChange['quantity_lower_sku_min'] = lineItemA.quantity < valB),
+        };
 
-        hasChange['quantityOverParentMax'] = name === 'quantity_max' ? parentQuantity > valB : false
-        hasChange['quantityLowerParentMin'] = name === 'quantity_min' ? parentQuantity < valB : false
-        hasChange['quantityOverSkuMax'] = name === 'sku_quantity_min' ? lineItemA.quantity > valB : false
-        hasChange['quantityLowerSkuMin'] = name === 'sku_quantity_min' ? lineItemA.quantity < valB : false
+        // Perform specific checks for defined attributes
+        if (comparisons[name]) comparisons[name]();
+
         hasChange[name] = !_.isEqual(valA, valB);
+
+        hasChange['quantity_over_parent_max'] ??= false;
+        hasChange['quantity_lower_parent_min'] ??= false;
+        hasChange['quantity_over_sku_max'] ??= false;
+        hasChange['quantity_lower_sku_min'] ??= false;
 
     }
 

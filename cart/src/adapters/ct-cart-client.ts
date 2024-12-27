@@ -241,9 +241,18 @@ class CommercetoolsCartClient {
 		const { lineItems, totalLineItemQuantity, version, id } = ctCart
 		if (!totalLineItemQuantity) return ctCart
 
+		const mainProductLineItems = lineItems.filter(
+			(item: LineItem) => item.custom?.fields?.productType === 'main_product',
+		);
+
 		const itemForRemove: LineItem[] = []
 
 		const itemsWithCheckedCondition = lineItems.map(lineItem => {
+
+			const parentQuantity = mainProductLineItems
+			.filter((item: LineItem) => item.productId === lineItem.productId)
+			.reduce((sum:any, item:any) => sum + item.quantity, 0);
+
 			const { variant } = lineItem
 			const { attributes } = variant
 
@@ -270,7 +279,7 @@ class CommercetoolsCartClient {
 			}
 
 			return {
-				...lineItem, hasChanged: {
+				...lineItem,parentQuantity, hasChanged: {
 					lineItemId: lineItem.id,
 				}
 			}

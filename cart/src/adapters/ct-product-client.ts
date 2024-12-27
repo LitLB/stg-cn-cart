@@ -312,7 +312,7 @@ class CommercetoolsProductClient {
 			const validPrice = findValidPrice(matchedVariant);
 
 			const hasChanged = {
-				quantityOverStock: quantity > matchedInventory.stock.available,
+				quantity_over_stock: quantity > matchedInventory.stock.available,
 			};
 
 			// Update item data
