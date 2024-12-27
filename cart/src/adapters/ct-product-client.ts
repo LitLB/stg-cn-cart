@@ -262,11 +262,11 @@ class CommercetoolsProductClient {
 
 		const { lineItems} = ctCart;
 
+		if (lineItems.length === 0) return {...ctCart, lineItems: []}
+
 		const mainProductLineItems = lineItems.filter(
 			(item: LineItem) => item.custom?.fields?.productType === 'main_product',
 		);
-
-		if (lineItems.length === 0) return {...ctCart, lineItems: []}
 
 		const skus = lineItems.map((item: any) => item.variant.sku);
 		const inventoryKey = skus.map((sku: any) => sku).join(',');
