@@ -8,6 +8,7 @@ import { logger } from '../utils/logger.utils';
 import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.interface';
 import { ICart } from '../interfaces/cart';
 import { HTTP_STATUSES } from '../constants/http.constant';
+import { GetCartByIdInPut } from '../interfaces/get-cart-by-id.interface';
 
 export class CartController {
     private cartService: CartService;
@@ -44,13 +45,24 @@ export class CartController {
         }
     };
 
-    public getCartById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    /**
+     * Handles retrieving a cart by ID.
+     *
+     * @param req - Express Request object with typed query parameters.
+     * @param res - Express Response object.
+     * @param next - Express NextFunction for error handling.
+     */
+    public getCartById = async (
+        req: Request<{ id: string }, unknown, unknown, GetCartByIdInPut>,
+        res: Response,
+        next: NextFunction
+      ): Promise<void> => {
         try {
             const { id } = req.params;
-            const selectedOnly = req.query.selectedOnly === 'true';
+            const { selectedOnly = false, includeCoupons = false } = req.query;
             const accessToken = req.accessToken as string;
 
-            const cart = await this.cartService.getCartById(accessToken, id, selectedOnly);
+            const cart = await this.cartService.getCartById(accessToken, id, selectedOnly, includeCoupons);
 
             const response: ApiResponse<ICart> = {
                 statusCode: HTTP_STATUSES.OK,

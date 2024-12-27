@@ -295,11 +295,16 @@ export class CartService {
     public getCartById = async (
         accessToken: string,
         id: string,
-        selectedOnly: boolean
+        selectedOnly = false,
+        includeCoupons = false,
     ): Promise<ICart> => {
         try {
+            console.log('selectedOnly', selectedOnly);
+            console.log('includeCoupons', includeCoupons);
+
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
+            // 1) Fetch the cart
             let ctCart = await commercetoolsMeCartClient.getCartById(id);
             if (!ctCart) {
                 throw createStandardizedError({
@@ -308,13 +313,18 @@ export class CartService {
                 });
             }
 
-            const {
-                updatedCart,
-                permanentlyInvalidRejectedCoupons
-            } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(ctCart);
+            // 2) Possibly auto-remove invalid coupons
+            let permanentlyInvalidRejectedCoupons: Array<{ code: string; reason: string }> = [];
+            if (includeCoupons) {
+                const {
+                    updatedCart,
+                    permanentlyInvalidRejectedCoupons: invalidCoupons
+                } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(ctCart);
+                ctCart = updatedCart;
+                permanentlyInvalidRejectedCoupons = invalidCoupons;
+            }
 
-            ctCart = updatedCart;
-
+            // 3) Map to ICart and optionally do lineItem trimming
             const iCartWithBenefit = await commercetoolsMeCartClient.getCartWithBenefit(ctCart, selectedOnly);
 
             const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(ctCart.id, ctCart.lineItems);
@@ -324,7 +334,7 @@ export class CartService {
                 ...couponEffects
             };
 
-            if (permanentlyInvalidRejectedCoupons.length > 0) {
+            if (includeCoupons && permanentlyInvalidRejectedCoupons.length > 0) {
                 response.coupons.rejectedCoupons = [
                     ...(response.coupons.rejectedCoupons ?? []),
                     ...permanentlyInvalidRejectedCoupons
