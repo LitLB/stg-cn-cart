@@ -283,17 +283,22 @@ export default class CommercetoolsMeCartClient {
 		productGroup,
 		productType,
 		addOnGroup,
+		freeGiftGroup,
 	}: {
 		cart: Cart;
 		variantId: number;
 		productGroup: number;
 		productType: string;
 		addOnGroup: string;
+		freeGiftGroup: string;
 	}) {
-		const lineItem = cart.lineItems.find((item) => item.variant.id === variantId &&
-			item.custom?.fields?.productType === productType &&
-			item.custom?.fields?.productGroup === productGroup &&
-			(!addOnGroup || item.custom?.fields?.addOnGroup === addOnGroup));
+		const lineItem = cart.lineItems.find((item) => {
+			return item.variant.id === variantId &&
+				item.custom?.fields?.productType === productType &&
+				item.custom?.fields?.productGroup === productGroup &&
+				(!addOnGroup || item.custom?.fields?.addOnGroup === addOnGroup) &&
+				(!freeGiftGroup || item.custom?.fields?.freeGiftGroup === freeGiftGroup);
+		});
 
 		return lineItem;
 	}
@@ -308,13 +313,15 @@ export default class CommercetoolsMeCartClient {
 		variantId,
 		productGroup,
 		productType,
-		addOnGroup
+		addOnGroup,
+		freeGiftGroup,
 	}: {
 		cart: Cart
 		variantId: number
 		productGroup: number
 		productType: string
 		addOnGroup: string
+		freeGiftGroup: string
 	}): string {
 		const lineItem = this.findLineItem({
 			cart,
@@ -322,6 +329,7 @@ export default class CommercetoolsMeCartClient {
 			productGroup,
 			productType,
 			addOnGroup,
+			freeGiftGroup,
 		});
 		if (!lineItem) {
 			throw new Error('Line item not found in cart');
@@ -332,7 +340,8 @@ export default class CommercetoolsMeCartClient {
 	private findSecondaryLineItemIdsInProductGroup(cart: Cart, productGroup?: number) {
 		const lineItemIds = cart.lineItems.filter((item) =>
 			item.custom?.fields?.productType !== 'main_product' &&
-			item.custom?.fields?.productGroup === productGroup)
+			item.custom?.fields?.productGroup === productGroup
+		)
 			.map((item) => item.id)
 
 		return lineItemIds
@@ -350,12 +359,14 @@ export default class CommercetoolsMeCartClient {
 
 
 		lineItemKeys.forEach((lineItemKey) => {
-			const { variantId, productGroup, productType, addOnGroup } = lineItemKey
-			const lineItem = lineItems.find((item) => item.variant.id === variantId &&
-				item.custom?.fields?.productGroup === productGroup &&
-				item.custom?.fields?.productType === productType &&
-				(!addOnGroup || item.custom?.fields?.addOnGroup === addOnGroup)
-			)
+			const { variantId, productGroup, productType, addOnGroup, freeGiftGroup } = lineItemKey
+			const lineItem = lineItems.find((item) => {
+				return item.variant.id === variantId &&
+					item.custom?.fields?.productGroup === productGroup &&
+					item.custom?.fields?.productType === productType &&
+					(!addOnGroup || item.custom?.fields?.addOnGroup === addOnGroup) &&
+					(!freeGiftGroup || item.custom?.fields?.freeGiftGroup === freeGiftGroup);
+			})
 
 			if (lineItem) {
 				lineItemIds.push(lineItem.id);
@@ -391,6 +402,7 @@ export default class CommercetoolsMeCartClient {
 		productGroup,
 		productType,
 		addOnGroup,
+		freeGiftGroup,
 		quantity,
 	}: {
 		cart: Cart
@@ -398,6 +410,7 @@ export default class CommercetoolsMeCartClient {
 		productGroup: number
 		productType: string
 		addOnGroup: string
+		freeGiftGroup: string
 		quantity: number
 	}): Promise<Cart> {
 		const updateActions: MyCartUpdateAction[] = [];
@@ -410,7 +423,8 @@ export default class CommercetoolsMeCartClient {
 					variantId,
 					productGroup,
 					productType,
-					addOnGroup
+					addOnGroup,
+					freeGiftGroup
 				}),
 				quantity,
 			});
@@ -419,7 +433,8 @@ export default class CommercetoolsMeCartClient {
 				variantId,
 				productGroup,
 				productType,
-				addOnGroup
+				addOnGroup,
+				freeGiftGroup
 			}])
 
 			const removeLineItemActions = lineItemIds.map((lineItemId) => {
@@ -450,19 +465,22 @@ export default class CommercetoolsMeCartClient {
 		variantId,
 		productType,
 		productGroup,
-		addOnGroup
+		addOnGroup,
+		freeGiftGroup,
 	}: {
 		cart: Cart,
 		variantId: number,
 		productType: string
 		productGroup: number,
 		addOnGroup: string,
+		freeGiftGroup: string
 	}): Promise<Cart> {
 		const lineItemIds = this.findLineItemIds(cart, [{
 			variantId,
 			productType,
 			productGroup,
-			addOnGroup
+			addOnGroup,
+			freeGiftGroup
 		}]);
 
 		const updatedCart = await this.removeMultipleItemsFromCart(
@@ -646,6 +664,7 @@ export default class CommercetoolsMeCartClient {
 				const productType = lineItem.custom?.fields?.productType;
 				const productGroup = lineItem.custom?.fields?.productGroup;
 				const addOnGroup = lineItem.custom?.fields?.addOnGroup;
+				const freeGiftGroup = lineItem.custom?.fields?.freeGiftGroup
 				const image = this.getVariantImage(lineItem);
 				const totalUnitPrice = lineItem.price.value.centAmount * lineItem.quantity;
 				const discountAmount = this.calculateTotalDiscountAmount(lineItem);
@@ -662,6 +681,7 @@ export default class CommercetoolsMeCartClient {
 					productType,
 					productGroup,
 					addOnGroup,
+					freeGiftGroup,
 					image,
 					quantity: lineItem.quantity,
 					unitPrice: lineItem.price.value.centAmount,
@@ -844,7 +864,7 @@ export default class CommercetoolsMeCartClient {
 	
 			const quantity = lineItem.quantity
 
-			const cartItem = lineItemWithCampaignBenefits.find((item: any) => {
+			const lineItemWithCampaignBenefit = lineItemWithCampaignBenefits.find((item: any) => {
 				return lineItem.variant.sku === item.variant.sku &&
 					lineItemProductType === item.custom.fields.productType &&
 					lineItemProductGroup === item.custom.fields.productGroup &&
@@ -852,16 +872,16 @@ export default class CommercetoolsMeCartClient {
 					(!lineItemFreeGiftGroup || lineItemFreeGiftGroup === item.custom.fields.freeGiftGroup)
 			})
 	
-			const newPrivilege = cartItem?.privilege
+			const newPrivilege = lineItemWithCampaignBenefit?.privilege
 
 			myCartUpdateActions.push({
 				action: 'setLineItemCustomField',
 				lineItemId,
 				name: 'privilege',
-				value: newPrivilege ? JSON.stringify(newPrivilege) : null,
+				value: newPrivilege ? JSON.stringify(newPrivilege) : '',
 			});
 	
-			const newLineItemDiscounts: any[] = (cartItem.discounts ?? [])
+			const newLineItemDiscounts: any[] = (lineItemWithCampaignBenefit.discounts ?? [])
 			const discounts = []
 			if (newLineItemDiscounts.length) {
 				// ! Main product
@@ -960,7 +980,7 @@ export default class CommercetoolsMeCartClient {
 				value: discounts,
 			});
 
-			const newLineItemOtherPayments: any[] = (cartItem.otherPayments ?? [])
+			const newLineItemOtherPayments: any[] = (lineItemWithCampaignBenefit.otherPayments ?? [])
 			const otherPayments = []
 	
 	

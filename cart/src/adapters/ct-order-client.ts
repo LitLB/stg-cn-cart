@@ -175,6 +175,7 @@ class CommercetoolsOrderClient {
 				const productType = lineItem.custom?.fields?.productType;
 				const productGroup = lineItem.custom?.fields?.productGroup;
 				const addOnGroup = lineItem.custom?.fields?.addOnGroup;
+				const freeGiftGroup = lineItem.custom?.fields?.freeGiftGroup;
 				const image = this.getVariantImage(lineItem);
 				const totalUnitPrice = lineItem.price.value.centAmount * lineItem.quantity;
 				const discountAmount = this.calculateTotalDiscountAmount(lineItem);
@@ -191,6 +192,7 @@ class CommercetoolsOrderClient {
 					productType,
 					productGroup,
 					addOnGroup,
+					freeGiftGroup,
 					image,
 					quantity: lineItem.quantity,
 					unitPrice: lineItem.price.value.centAmount,
