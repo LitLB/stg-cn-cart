@@ -25,7 +25,6 @@ import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.in
 import { IOrderAdditional, IPaymentInfo, IClientInfo } from '../interfaces/order-additional.interface';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { PAYMENT_STATES } from '../constants/payment.constant';
-import { ctCartWithFreeGift } from '../mocks/ctCartWithFreeGift.mock';
 import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 
 export class CartService {
@@ -389,14 +388,11 @@ export class CartService {
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const config = readConfiguration()
-            console.log('JSON.stringify(cart)', JSON.stringify(cart));
-            const tsmOrder = new TsmOrderModel({ ctCart: ctCartWithFreeGift, config, orderNumber })
+            const tsmOrder = new TsmOrderModel({ ctCart: cart, config, orderNumber })
             const tsmOrderPayload = tsmOrder.toPayload()
-            console.log('JSON.stringify(tsmOrderPayload)', JSON.stringify(tsmOrderPayload));
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
             const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
-            // const response = { code: '0'}
             const { code } = response || {}
 
             // if (code !== '0') {
@@ -405,45 +401,6 @@ export class CartService {
             //         statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
             //         errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
             //     };
-            // }
-
-            // console.log(JSON.parse("{\"benefitType\":\"add_on\",\"campaignCode\":\"\",\"promotionSetCode\":\"MOCK007\",\"promotionSetProposition\":\"886\",\"group\":\"add_on_1\",\"discountBaht\":0,\"discountPercent\":0,\"specialPrice\":79000,\"isForcePromotion\":false}"))
-            // {
-            //     benefitType: 'add_on',
-            //     campaignCode: '',
-            //     promotionSetCode: 'MOCK007',
-            //     promotionSetProposition: '886',
-            //     group: 'add_on_1',
-            //     discountBaht: 0,
-            //     discountPercent: 0,
-            //     specialPrice: 79000,
-            //     isForcePromotion: false
-            // }
-
-            // Double Stringify
-            // console.log(JSON.stringify(JSON.stringify({
-            //     "benefitType": "free_gift",
-            //     "campaignCode": "",
-            //     "promotionSetCode": "UI034",
-            //     "promotionSetProposition": "999",
-            //     "group": "free_gift_1",
-            //     "discountBaht": 0,
-            //     "discountPercent": 0,
-            //     "specialPrice": 79000,
-            //     "isForcePromotion": false
-            // }
-            // )));
-            console.log(JSON.parse("{\"benefitType\":\"free_gift\",\"campaignCode\":\"\",\"promotionSetCode\":\"UI034\",\"promotionSetProposition\":\"999\",\"group\":\"free_gift_1\",\"discountBaht\":0,\"discountPercent\":0,\"specialPrice\":79000,\"isForcePromotion\":false}"));
-            // {
-            //   benefitType: 'free_gift',
-            //   campaignCode: '',
-            //   promotionSetCode: 'UI034',
-            //   promotionSetProposition: '999',
-            //   group: 'free_gift_1',
-            //   discountBaht: 0,
-            //   discountPercent: 0,
-            //   specialPrice: 79000,
-            //   isForcePromotion: false
             // }
 
             return {
@@ -511,7 +468,7 @@ export class CartService {
             {
                 journey, /* Mandarory */
                 ...(['truemoney'].includes(paymentOptionKey) ? { paymentTMNAccountNumber } : {}),
-                // ...(['ccw', 'installment'].includes(paymentOptionKey) ? { paymentCreditCardNumber } : {  }),
+                ...(['ccw', 'installment'].includes(paymentOptionKey) ? { paymentCreditCardNumber } : {  }),
                 ...(ip ? { ipAddress: ip } : {}),
                 ...(googleId ? { googleID: googleId } : {}),
                 shippingAddress: {
@@ -572,8 +529,6 @@ export class CartService {
     private validateSecondaryProduct(selectedLineItems: any[], selectedlineItemWithCampaignBenefits: any[]) {
         const mainProductLineItems = selectedLineItems.filter((selectedLineItem: any) => selectedLineItem?.custom?.fields?.productType === 'main_product')
 
-        const addOnLineItems = selectedLineItems.filter((selectedLineItem: any) => selectedLineItem?.custom?.fields?.productType === 'add_on')
-
         let validateObject = mainProductLineItems.reduce((acc: any, mainProductLineItem: any) => {
             const sku = mainProductLineItem.variant.sku
             const productType = mainProductLineItem?.custom?.fields?.productType
@@ -587,7 +542,8 @@ export class CartService {
 
             const { availableBenefits } = selectedlineItemWithCampaignBenefit
             const groupMap = availableBenefits?.reduce(((acc: any, availableBenefit: any) => {
-                const { promotionSetCode, maxReceive, group, maxItem } = availableBenefit
+                const { promotionSetCode, maxReceive, group, benefitType, maxItem } = availableBenefit
+
                 if (!acc?.[promotionSetCode]) {
                     acc[promotionSetCode] = {
                         remainingMaxReceive: maxReceive,
@@ -597,67 +553,77 @@ export class CartService {
 
                 acc[promotionSetCode].remainingMaxItem = {
                     ...acc[promotionSetCode].remainingMaxItem,
-                    [group]: maxItem
+                    [benefitType]: {
+                        ...acc[promotionSetCode].remainingMaxItem[benefitType],
+                        [group]: maxItem
+                    }
                 }
 
                 return acc
             }), {})
 
-            //! {
-            //!     1: {
-            //!         xx1234: {
-            //!             remainingMaxReceive: 5,
-            //!             remainingMaxItem: {
-            //!                 addon1: 2,
-            //!                 addon2: 2
-            //!             }
-            //!         }
-            //!     }
-            //! }
             acc[productGroup] = groupMap
 
             return acc
         }, {});
 
-        validateObject = addOnLineItems.reduce((acc: any, addOnLineItem: any) => {
+
+        const freeGiftLineItems = selectedLineItems.filter((selectedLineItem: any) => selectedLineItem?.custom?.fields?.productType === 'free_gift')
+
+        const addOnLineItems = selectedLineItems.filter((selectedLineItem: any) => selectedLineItem?.custom?.fields?.productType === 'add_on')
+
+        const secondaryLineItems = [...freeGiftLineItems, ...addOnLineItems]
+
+        validateObject = secondaryLineItems.reduce((acc: any, addOnLineItem: any) => {
             const quantity = addOnLineItem.quantity;
             const productGroup = addOnLineItem?.custom?.fields?.productGroup;
+            const productType = addOnLineItem?.custom?.fields?.productType;
             const addOnGroup = addOnLineItem?.custom?.fields?.addOnGroup;
+            const freeGiftGroup = addOnLineItem?.custom?.fields?.freeGiftGroup;
             let privilege = addOnLineItem?.custom?.fields?.privilege;
             privilege = privilege ? JSON.parse(privilege) : null;
 
+            const productTypeText = productType === 'add_on' ? 'add-on' : 'free gift';
+
+            const benefitGroup = productType === 'add_on' ? addOnGroup : freeGiftGroup;
+
             if (!privilege) {
-                throw new Error('Invalid add-on product');
+                throw new Error(`Invalid ${productTypeText} product`);
             }
 
             const groupMap = acc[productGroup]
 
             if (!groupMap) {
-                throw new Error('Invalid add-on product');
+                throw new Error(`Invalid ${productTypeText} product`);
             }
 
             const { promotionSetCode } = privilege
             const limit = groupMap[promotionSetCode]
 
             if (!limit) {
-                throw new Error('Invalid add-on product');
+                throw new Error(`Invalid ${productTypeText} product`);
             }
 
             const { remainingMaxReceive, remainingMaxItem } = limit
 
-            if (!remainingMaxItem[addOnGroup]) {
-                throw new Error('Invalid add-on product');
+            if (!remainingMaxItem[productType]) {
+                throw new Error(`Invalid ${productTypeText} product`);
 
             }
 
-            acc[productGroup][promotionSetCode] = {
-                remainingMaxReceive: remainingMaxReceive - quantity,
-                remainingMaxItem: {
-                    ...remainingMaxItem,
-                    [addOnGroup]: remainingMaxItem[addOnGroup] - quantity
+            acc[productGroup] = {
+                ...acc[productGroup],
+                [promotionSetCode]: {
+                    remainingMaxReceive: remainingMaxReceive - quantity,
+                    remainingMaxItem: {
+                        ...remainingMaxItem,
+                        [productType]: {
+                            ...remainingMaxItem[productType],
+                            [benefitGroup]: remainingMaxItem[productType][benefitGroup] - quantity,
+                        }
+                    }
                 }
             }
-
             return acc;
         }, validateObject);
 
@@ -684,12 +650,20 @@ export class CartService {
                 }
 
                 // Check remainingMaxItem for this level
-                Object.entries(remainingMaxItem as Record<string, any>).forEach(([addOnGroup, maxItem]) => {
-                    if (maxItem < 0) {
-                        throw new Error(
-                            `Total add-on group "${addOnGroup}" reach limit for level "${levelKey}" in product group "${productGroup}"`
-                        );
-                    }
+                Object.entries(remainingMaxItem as Record<string, any>).forEach(([benefitType, groupMaxItem]) => {
+
+                    const productTypeText = benefitType === 'add_on' ? 'add-on' : 'free gift';
+                    
+                    Object.entries(groupMaxItem as Record<string, number>).forEach(
+						([group, maxItem]) => {
+							if (maxItem < 0) {
+								throw new Error(
+                                    `Total ${productTypeText} group "${group}" reach limit for product group "${productGroup}"`
+                                );
+								return
+							}
+						}
+					)
                 });
             });
         });
