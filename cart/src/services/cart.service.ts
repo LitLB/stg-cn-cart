@@ -134,9 +134,8 @@ export class CartService {
     // TODO :: CART HAS CHANGED
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
         try {
-            const selectedOnly = true;
-
-            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+            const orderNumber = this.generateOrderNumber()
+            // const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
             const defaultValidateList = [
                 'BLACKLIST',
                 'CAMPAIGN',
@@ -149,19 +148,49 @@ export class CartService {
 
             const { cartId, client } = payload
             let ctCart = await this.getCtCartById(accessToken, cartId);
-            const selectedLineItems = commercetoolsMeCartClient.filterLineItems(ctCart.lineItems, selectedOnly);
-            if (!selectedLineItems?.length) {
-                throw createStandardizedError(
-                    {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: 'No selected items in cart. Please select items before placing an order.',
-                    },
-                    'createOrder'
-                );
+            const selectedLineItems = ctCart.lineItems.filter(
+                (lineItem) => lineItem.custom?.fields?.selected === true
+            );
+            if (selectedLineItems.length === 0) {
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'No selected items in the cart. Please select items before placing an order.',
+                }, 'createOrder');
             }
+
+            const unselectedLineItems = ctCart.lineItems.filter(
+                (lineItem) => lineItem.custom?.fields?.selected !== true
+            );
             console.log('ctCart.lineItems.length', ctCart.lineItems.length); // ctCart.lineItems.length 3
             console.log('selectedLineItems.length', selectedLineItems.length); // ctCart.lineItems.length 2
-            ctCart = { ...ctCart, lineItems: selectedLineItems };
+            console.log('unselectedLineItems.length', unselectedLineItems.length); // ctCart.lineItems.length 2
+
+            // Step 3: Temporarily Remove Unselected Items from the Cart
+            const removeActions: CartUpdateAction[] = unselectedLineItems.map((lineItem) => ({
+                action: 'removeLineItem',
+                lineItemId: lineItem.id,
+            }));
+            if (removeActions.length > 0) {
+                ctCart = await CommercetoolsCartClient.updateCart(
+                    ctCart.id,
+                    ctCart.version,
+                    removeActions
+                );
+            }
+
+            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, ctCart);
+
+            // Step 8: Restore Unselected Items
+            const addActions: CartUpdateAction[] = unselectedLineItems.map((lineItem) => ({
+                action: 'addLineItem',
+                ...lineItem,
+            }));
+
+            if (addActions.length > 0) {
+                await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, addActions);
+            }
+
+            return order;
             // return ctCart;
 
             // * STEP #2 - Validate Blacklist
@@ -211,33 +240,33 @@ export class CartService {
             // }
 
             console.log('JSON.stringify(selectedLineItems)', JSON.stringify(selectedLineItems)); // Have only 2/3 now but still placing 3 items.
-            const orderNumber = this.generateOrderNumber()
-            const orderDraft = {
-                orderNumber,
-                version: ctCart.version,
-                cart: {
-                    typeId: 'cart',
-                    id: ctCart.id,
-                },
-                lineItems: selectedLineItems.map((lineItem) => ({
-                    productId: lineItem.productId,
-                    variantId: lineItem.variant.id,
-                    quantity: lineItem.quantity,
-                    supplyChannel: lineItem.supplyChannel?.id,
-                    distributionChannel: lineItem.distributionChannel?.id,
-                    custom: lineItem.custom,
-                })),
-                orderState: ORDER_STATES.OPEN,
-                shipmentState: SHIPMENT_STATES.PENDING,
-                paymentState: PAYMENT_STATES.PENDING,
-                state: {
-                    typeId: 'state',
-                    key: STATE_ORDER_KEYS.ORDER_CREATED,
-                },
-                custom: ctCart.custom,
-            };
-            const order = await commercetoolsOrderClient.createOrderWithCustomDraft(orderDraft);
-            return order;
+            // const orderNumber = this.generateOrderNumber()
+            // const orderDraft = {
+            //     orderNumber,
+            //     version: ctCart.version,
+            //     cart: {
+            //         typeId: 'cart',
+            //         id: ctCart.id,
+            //     },
+            //     lineItems: selectedLineItems.map((lineItem) => ({
+            //         productId: lineItem.productId,
+            //         variantId: lineItem.variant.id,
+            //         quantity: lineItem.quantity,
+            //         supplyChannel: lineItem.supplyChannel?.id,
+            //         distributionChannel: lineItem.distributionChannel?.id,
+            //         custom: lineItem.custom,
+            //     })),
+            //     orderState: ORDER_STATES.OPEN,
+            //     shipmentState: SHIPMENT_STATES.PENDING,
+            //     paymentState: PAYMENT_STATES.PENDING,
+            //     state: {
+            //         typeId: 'state',
+            //         key: STATE_ORDER_KEYS.ORDER_CREATED,
+            //     },
+            //     custom: ctCart.custom,
+            // };
+            // const order = await commercetoolsOrderClient.createOrderWithCustomDraft(orderDraft);
+            // return order;
 
             // * STEP #5 - Create Order On TSM Sale
             const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
