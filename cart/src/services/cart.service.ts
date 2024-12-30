@@ -1,7 +1,7 @@
 // cart/src/services/cart.service.ts
 
 import _ from 'lodash'
-import { Cart, CartUpdateAction, Order } from '@commercetools/platform-sdk';
+import { Cart, CartUpdateAction, LineItem, Order } from '@commercetools/platform-sdk';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
@@ -128,10 +128,9 @@ export class CartService {
         }
     };
 
-    // TODO :: CART HAS CHANGED
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
         try {
-
+            const { cartId, client } = payload;
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
             const defaultValidateList = [
                 'BLACKLIST',
@@ -143,8 +142,34 @@ export class CartService {
                 validateList = partailValidateList
             }
 
-            const { cartId, client } = payload
             let ctCart = await this.getCtCartById(accessToken, cartId)
+
+            const selectedLineItems = ctCart.lineItems.filter(
+                (li: LineItem) => li.custom?.fields?.selected === true
+            );
+            if (selectedLineItems.length === 0) {
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'No selected items in the cart. Please select items before placing an order.',
+                }, 'createOrder');
+            }
+
+            const unselectedLineItems = ctCart.lineItems.filter(
+                (li: LineItem) => li.custom?.fields?.selected !== true
+            );
+
+            if (unselectedLineItems.length > 0) {
+                const removeActions: CartUpdateAction[] = unselectedLineItems.map((lineItem: LineItem) => ({
+                    action: 'removeLineItem',
+                    lineItemId: lineItem.id,
+                }));
+                
+                ctCart = await CommercetoolsCartClient.updateCart(
+                    ctCart.id,
+                    ctCart.version,
+                    removeActions
+                );
+            }
 
             // * STEP #2 - Validate Blacklist
             if (validateList.includes('BLACKLIST')) {
@@ -159,45 +184,7 @@ export class CartService {
             // * STEP #4 - Validate Available Quantity (Commercetools)
             await this.validateAvailableQuantity(ctCart)
 
-            // A) Auto-remove invalid coupons
-            const {
-                updatedCart: cartAfterAutoRemove,
-                permanentlyInvalidRejectedCoupons
-            } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(ctCart);
-            ctCart = cartAfterAutoRemove;
-            // console.log('permanentlyInvalidRejectedCoupons', permanentlyInvalidRejectedCoupons);
-
-            // B) Grab "coupons" data from cart
-            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(ctCart.id, ctCart.lineItems);
-
-            // C) Prepare updateActions array
-            const updateActions: CartUpdateAction[] = [];
-
-            // D) Run processCoupons => fill updateActions for discount lines, etc.
-            const { couponsEffects, talonOneUpdateActions } = await this.talonOneCouponAdapter.fetchCouponEffectsAndUpdateActionsById(ctCart.id, ctCart, couponEffects.coupons);
-            if (talonOneUpdateActions?.updateActions) {
-                updateActions.push(...talonOneUpdateActions.updateActions);
-            }
-
-            await this.couponService.addCouponInformation(updateActions, cartId, talonOneUpdateActions?.couponsInformation);
-
-            // If we have any updates from processCoupons, do them
-            if (updateActions.length > 0) {
-                const updatedCartFinal = await CommercetoolsCartClient.updateCart(
-                    ctCart.id,
-                    ctCart.version,
-                    updateActions
-                );
-                ctCart = updatedCartFinal;
-            }
-
-            if (permanentlyInvalidRejectedCoupons.length > 0) {
-                throw createStandardizedError({
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'Some coupons were rejected during processing.',
-                    data: permanentlyInvalidRejectedCoupons,
-                }, 'createOrder');
-            }
+            ctCart = await this.handleAutoRemoveCoupons(ctCart, cartId);
 
             const orderNumber = this.generateOrderNumber()
 
@@ -229,6 +216,84 @@ export class CartService {
             throw createStandardizedError(error, 'createOrder');
         }
     };
+
+    private async getCartAndRemoveUnselected(accessToken: string, cartId: string): Promise<Cart> {
+        // Get the cart
+        let ctCart = await this.getCtCartById(accessToken, cartId);
+    
+        // Filter line items
+        const unselectedLineItems = ctCart.lineItems.filter(
+          (li: LineItem) => li.custom?.fields?.selected !== true
+        );
+    
+        // If no unselected items, just return as is
+        if (unselectedLineItems.length === 0) {
+          return ctCart;
+        }
+    
+        // Build actions to remove them
+        const removeActions: CartUpdateAction[] = unselectedLineItems.map((lineItem: LineItem) => ({
+          action: 'removeLineItem',
+          lineItemId: lineItem.id,
+        }));
+    
+        // Update cart
+        ctCart = await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, removeActions);
+    
+        // Refresh cart to get the new version
+        return this.getCtCartById(accessToken, cartId);
+      }
+
+    private async handleAutoRemoveCoupons(ctCart: Cart, cartId: string): Promise<Cart> {
+        // 1. Auto-remove invalid coupons
+        const { updatedCart, permanentlyInvalidRejectedCoupons } =
+            await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(ctCart);
+        ctCart = updatedCart;
+        console.log('permanentlyInvalidRejectedCoupons', permanentlyInvalidRejectedCoupons);
+        if (permanentlyInvalidRejectedCoupons.length > 0) {
+            throw createStandardizedError(
+                {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Some coupons were rejected during processing.',
+                    data: permanentlyInvalidRejectedCoupons,
+                },
+                'handleAutoRemoveCoupons'
+            );
+        }
+
+        // 2. Grab coupon data
+        const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
+            ctCart.id,
+            ctCart.lineItems
+        );
+
+        // 3. Construct updateActions from coupon effects
+        const updateActions: CartUpdateAction[] = [];
+        const { couponsEffects, talonOneUpdateActions } =
+            await this.talonOneCouponAdapter.fetchCouponEffectsAndUpdateActionsById(
+                ctCart.id,
+                ctCart,
+                couponEffects.coupons
+            );
+
+        if (talonOneUpdateActions?.updateActions) {
+            updateActions.push(...talonOneUpdateActions.updateActions);
+        }
+
+        // 4. Possibly add coupon info
+        await this.couponService.addCouponInformation(
+            updateActions,
+            cartId,
+            talonOneUpdateActions?.couponsInformation
+        );
+
+        // 5. Apply any updates
+        if (updateActions.length > 0) {
+            return await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, updateActions);
+        }
+
+        return ctCart;
+    }
 
     public checkout = async (accessToken: string, id: string, body: any): Promise<any> => {
         try {
@@ -378,7 +443,7 @@ export class CartService {
         }
     };
 
-    public getCtCartById = async (accessToken: string, id: string): Promise<any> => {
+    public getCtCartById = async (accessToken: string, id: string): Promise<Cart> => {
         try {
             if (!id) {
                 throw {
