@@ -376,7 +376,6 @@ class CommercetoolsOrderClient {
 			}
 		}
 	}
-	
 }
 
 export const commercetoolsOrderClient = new CommercetoolsOrderClient();

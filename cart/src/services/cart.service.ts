@@ -134,6 +134,8 @@ export class CartService {
     // TODO :: CART HAS CHANGED
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
         try {
+            const{ cartId } = payload;
+            return await this.createOrderWithSelectedOnly(accessToken, cartId);
             const orderNumber = this.generateOrderNumber()
             // const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
             const defaultValidateList = [
@@ -146,7 +148,6 @@ export class CartService {
                 validateList = partailValidateList
             }
 
-            const { cartId, client } = payload
             let ctCart = await this.getCtCartById(accessToken, cartId);
             const selectedLineItems = ctCart.lineItems.filter(
                 (lineItem) => lineItem.custom?.fields?.selected === true
@@ -166,31 +167,31 @@ export class CartService {
             console.log('unselectedLineItems.length', unselectedLineItems.length); // ctCart.lineItems.length 2
 
             // Step 3: Temporarily Remove Unselected Items from the Cart
-            const removeActions: CartUpdateAction[] = unselectedLineItems.map((lineItem) => ({
-                action: 'removeLineItem',
-                lineItemId: lineItem.id,
-            }));
-            if (removeActions.length > 0) {
-                ctCart = await CommercetoolsCartClient.updateCart(
-                    ctCart.id,
-                    ctCart.version,
-                    removeActions
-                );
-            }
+            // const removeActions: CartUpdateAction[] = unselectedLineItems.map((lineItem) => ({
+            //     action: 'removeLineItem',
+            //     lineItemId: lineItem.id,
+            // }));
+            // if (removeActions.length > 0) {
+            //     ctCart = await CommercetoolsCartClient.updateCart(
+            //         ctCart.id,
+            //         ctCart.version,
+            //         removeActions
+            //     );
+            // }
 
-            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, ctCart);
+            // const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, ctCart);
 
             // Step 8: Restore Unselected Items
-            const addActions: CartUpdateAction[] = unselectedLineItems.map((lineItem) => ({
-                action: 'addLineItem',
-                ...lineItem,
-            }));
+            // const addActions: CartUpdateAction[] = unselectedLineItems.map((lineItem) => ({
+            //     action: 'addLineItem',
+            //     ...lineItem,
+            // }));
 
-            if (addActions.length > 0) {
-                await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, addActions);
-            }
+            // if (addActions.length > 0) {
+            //     await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, addActions);
+            // }
 
-            return order;
+            // return order;
             // return ctCart;
 
             // * STEP #2 - Validate Blacklist
@@ -240,33 +241,32 @@ export class CartService {
             // }
 
             console.log('JSON.stringify(selectedLineItems)', JSON.stringify(selectedLineItems)); // Have only 2/3 now but still placing 3 items.
-            // const orderNumber = this.generateOrderNumber()
-            // const orderDraft = {
-            //     orderNumber,
-            //     version: ctCart.version,
-            //     cart: {
-            //         typeId: 'cart',
-            //         id: ctCart.id,
-            //     },
-            //     lineItems: selectedLineItems.map((lineItem) => ({
-            //         productId: lineItem.productId,
-            //         variantId: lineItem.variant.id,
-            //         quantity: lineItem.quantity,
-            //         supplyChannel: lineItem.supplyChannel?.id,
-            //         distributionChannel: lineItem.distributionChannel?.id,
-            //         custom: lineItem.custom,
-            //     })),
-            //     orderState: ORDER_STATES.OPEN,
-            //     shipmentState: SHIPMENT_STATES.PENDING,
-            //     paymentState: PAYMENT_STATES.PENDING,
-            //     state: {
-            //         typeId: 'state',
-            //         key: STATE_ORDER_KEYS.ORDER_CREATED,
-            //     },
-            //     custom: ctCart.custom,
-            // };
-            // const order = await commercetoolsOrderClient.createOrderWithCustomDraft(orderDraft);
-            // return order;
+            const orderDraft = {
+                orderNumber,
+                version: ctCart.version,
+                // cart: {
+                //     typeId: 'cart',
+                //     id: ctCart.id,
+                // },
+                lineItems: selectedLineItems.map((lineItem) => ({
+                    productId: lineItem.productId,
+                    variantId: lineItem.variant.id,
+                    quantity: lineItem.quantity,
+                    supplyChannel: lineItem.supplyChannel?.id,
+                    distributionChannel: lineItem.distributionChannel?.id,
+                    custom: lineItem.custom,
+                })),
+                orderState: ORDER_STATES.OPEN,
+                shipmentState: SHIPMENT_STATES.PENDING,
+                paymentState: PAYMENT_STATES.PENDING,
+                state: {
+                    typeId: 'state',
+                    key: STATE_ORDER_KEYS.ORDER_CREATED,
+                },
+                custom: ctCart.custom,
+            };
+            const order = await commercetoolsOrderClient.createOrderWithCustomDraft(orderDraft);
+            return order;
 
             // * STEP #5 - Create Order On TSM Sale
             const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
@@ -295,6 +295,70 @@ export class CartService {
             }
 
             throw createStandardizedError(error, 'createOrder');
+        }
+    };
+
+    /**
+     * Creates an Order from only the "selected=true" line items in an existing cart,
+     * removing all unselected line items first. The cart becomes "ordered" afterwards,
+     * so it cannot be updated. If we want the unselected items again later, we will
+     * create a new cart (example method at bottom).
+     */
+    public createOrderWithSelectedOnly = async (
+        accessToken: string,
+        ctCartId: string,
+    ): Promise<Order> => {
+        try {
+            // 1. Fetch the existing Cart from Commercetools
+            let cart = await this.getCtCartById(accessToken, ctCartId);
+
+            // 2. Determine which items are selected vs. unselected
+            const selectedLineItems = cart.lineItems.filter(
+                (li) => li.custom?.fields?.selected === true
+            );
+            if (selectedLineItems.length === 0) {
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'No selected items in the cart. Please select items before placing an order.',
+                }, 'createOrderWithSelectedOnly');
+            }
+
+            const unselectedLineItems = cart.lineItems.filter(
+                (li) => li.custom?.fields?.selected !== true
+            );
+
+            // 3. Remove unselected line items while cart is still Active
+            if (unselectedLineItems.length > 0) {
+                const removeActions: CartUpdateAction[] = unselectedLineItems.map((lineItem) => ({
+                    action: 'removeLineItem',
+                    lineItemId: lineItem.id,
+                }));
+
+                cart = await CommercetoolsCartClient.updateCart(
+                    cart.id,
+                    cart.version,
+                    removeActions
+                );
+
+                // Refresh cart to get the new version
+                cart = await this.getCtCartById(accessToken, ctCartId);
+            }
+
+            // 4. Create the Order from the pruned cart
+            //    This immediately sets cart.cartState = 'Ordered',
+            //    making further updates impossible on this same cart.
+            const orderNumber = this.generateOrderNumber();
+            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cart);
+
+            // 5. Return the new Order; done. We do NOT try to re-add items, because the cart is no longer active.
+            return order;
+
+        } catch (error: any) {
+            logger.info(`CartService.createOrderWithSelectedOnly.error`, error);
+            if (error.status && error.message) {
+                throw error;
+            }
+            throw createStandardizedError(error, 'createOrderWithSelectedOnly');
         }
     };
 
