@@ -1,0 +1,452 @@
+[
+  {
+    "id": "7682874f-a563-4067-8fbc-38b960e2bba5",
+    "productId": "bb223b57-bf6b-454f-a1de-e0b6c4ebfe7b",
+    "productKey": "7a29ebcc-9c6d-4848-8d02-794b8733ce9b",
+    "name": {
+      "en-US": "iphone 21 Pro Max (By New)",
+      "th-TH": "ไอโฟน 21 โปรแม็กซ์ (นิว)"
+    },
+    "productType": {
+      "typeId": "product-type",
+      "id": "02584416-7fac-4a37-a511-be6b3e329664",
+      "version": 521
+    },
+    "productSlug": { "en-US": "slug-1726121072239" },
+    "variant": {
+      "id": 1,
+      "sku": "iphone-21-pro-max-black",
+      "key": "iphone-21-pro-max-black",
+      "prices": [
+        {
+          "id": "c4caae65-cb72-4f61-97a9-345c6256a97f",
+          "value": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 2500000,
+            "fractionDigits": 2
+          },
+          "key": "PRC-1",
+          "customerGroup": {
+            "typeId": "customer-group",
+            "id": "94e4dca6-8b56-4861-ab92-4fbeefacb228"
+          }
+        }
+      ],
+      "images": [
+        {
+          "url": "https://images.cdn.australia-southeast1.gcp.commercetools.com/11c6ea39-ac1a-4868-87d8-5bd23bc70f03/tree-736885_640-LX3K9HiH.jpg",
+          "label": "AAA",
+          "dimensions": { "w": 640, "h": 398 }
+        }
+      ],
+      "attributes": [
+        { "name": "akeneo_id", "value": "iphone-21-pro-max-black" },
+        { "name": "company", "value": { "key": "true", "label": "True" } },
+        { "name": "company_code", "value": "1064" },
+        { "name": "screen_size", "value": "1024" },
+        {
+          "name": "status",
+          "value": { "key": "disabled", "label": "Disabled" }
+        },
+        {
+          "name": "product_id",
+          "value": "7a29ebcc-9c6d-4848-8d02-794b8733ce9b"
+        },
+        {
+          "name": "variant_product_title",
+          "value": { "en-US": "iphone 21 Pro Max - Black" }
+        },
+        { "name": "brand_name", "value": { "key": "apple", "label": "Apple" } },
+        { "name": "color", "value": { "key": "black", "label": "Black" } },
+        {
+          "name": "payment_options_specification",
+          "value": [
+            { "key": "truemoney", "label": "True Money Wallet" },
+            { "key": "cod", "label": "Cash on Delivery" },
+            { "key": "installment", "label": "Installment Credit Card" },
+            { "key": "promptpay", "label": "PromptPay" },
+            { "key": "ccw", "label": "Credit / Debit Card" }
+          ]
+        },
+        {
+          "name": "image",
+          "value": "https://images.contentstack.io/v3/assets/blt8ba403bee4433fd8/blta971c43b460c7f42/6723354eb3d37517e0930d80/iphone-16.jpg?branch=develop"
+        },
+        { "name": "color_code", "value": "BLACK" },
+        { "name": "capacity", "value": { "key": "1TB", "label": "1TB" } },
+        { "name": "quantity_min", "value": 1 },
+        {
+          "name": "journey",
+          "value": [{ "key": "device_only", "label": "Device Only" }]
+        },
+        { "name": "quantity_max", "value": 999 }
+      ],
+      "assets": [],
+      "availability": {
+        "channels": {
+          "354a59c3-412a-4ecd-8264-795e1611b7df": {
+            "isOnStock": true,
+            "availableQuantity": 146,
+            "version": 132,
+            "id": "6998fe11-af8c-4510-a441-1e0f1fde629d"
+          }
+        }
+      }
+    },
+    "price": {
+      "id": "5d550200-a9cd-4bf5-8b94-b66f5419a927",
+      "value": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 2500000,
+        "fractionDigits": 2
+      }
+    },
+    "quantity": 1,
+    "discountedPricePerQuantity": [],
+    "supplyChannel": {
+      "typeId": "channel",
+      "id": "354a59c3-412a-4ecd-8264-795e1611b7df"
+    },
+    "taxRate": {
+      "name": "Bangkok",
+      "amount": 0.07,
+      "includedInPrice": true,
+      "country": "TH",
+      "state": "Bangkok",
+      "id": "opgU3dD5",
+      "subRates": []
+    },
+    "perMethodTaxRate": [],
+    "addedAt": "2024-12-30T07:12:36.794Z",
+    "lastModifiedAt": "2024-12-30T07:12:36.794Z",
+    "state": [
+      {
+        "quantity": 1,
+        "state": {
+          "typeId": "state",
+          "id": "4edd1d7a-f5ac-4ec8-b575-29dd9e87e020"
+        }
+      }
+    ],
+    "priceMode": "ExternalPrice",
+    "lineItemMode": "Standard",
+    "totalPrice": {
+      "type": "centPrecision",
+      "currencyCode": "THB",
+      "centAmount": 2500000,
+      "fractionDigits": 2
+    },
+    "taxedPrice": {
+      "totalNet": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 2336449,
+        "fractionDigits": 2
+      },
+      "totalGross": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 2500000,
+        "fractionDigits": 2
+      },
+      "taxPortions": [
+        {
+          "rate": 0.07,
+          "amount": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 163551,
+            "fractionDigits": 2
+          },
+          "name": "Bangkok"
+        }
+      ],
+      "totalTax": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 163551,
+        "fractionDigits": 2
+      }
+    },
+    "taxedPricePortions": [],
+    "custom": {
+      "type": {
+        "typeId": "type",
+        "id": "27d2c7ca-385b-4668-bbcf-526c1f2607ff"
+      },
+      "fields": {
+        "otherPayments": [],
+        "selected": true,
+        "productGroup": 1,
+        "productType": "main_product",
+        "discounts": [],
+        "privilege": ""
+      }
+    }
+  },
+  {
+    "id": "26ddc406-e9ab-4253-a678-8dde6e1111e7",
+    "productId": "bb223b57-bf6b-454f-a1de-e0b6c4ebfe7b",
+    "productKey": "7a29ebcc-9c6d-4848-8d02-794b8733ce9b",
+    "name": {
+      "en-US": "iphone 21 Pro Max (By New)",
+      "th-TH": "ไอโฟน 21 โปรแม็กซ์ (นิว)"
+    },
+    "productType": {
+      "typeId": "product-type",
+      "id": "02584416-7fac-4a37-a511-be6b3e329664",
+      "version": 521
+    },
+    "productSlug": { "en-US": "slug-1726121072239" },
+    "variant": {
+      "id": 2,
+      "sku": "iphone-21-pro-max-white",
+      "key": "iphone-21-pro-max-white",
+      "prices": [
+        {
+          "id": "ccb620ba-9521-4506-b6d0-ba13ff108529",
+          "value": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 1000200,
+            "fractionDigits": 2
+          },
+          "key": "PRC-2",
+          "customerGroup": {
+            "typeId": "customer-group",
+            "id": "2fc6f495-a47d-4250-a4da-4a366d06868a"
+          },
+          "validFrom": "2024-10-31T17:00:00.000Z",
+          "validUntil": "2024-11-29T17:00:00.000Z"
+        },
+        {
+          "id": "67d898a2-0d9b-47d1-824b-9c3f1725350e",
+          "value": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 1100000,
+            "fractionDigits": 2
+          },
+          "key": "PRC-4",
+          "customerGroup": {
+            "typeId": "customer-group",
+            "id": "94e4dca6-8b56-4861-ab92-4fbeefacb228"
+          },
+          "validFrom": "2023-09-30T17:00:00.000Z",
+          "validUntil": "2024-10-30T17:00:00.000Z"
+        },
+        {
+          "id": "c1396ae1-fb11-4884-9527-7e315ee54ae5",
+          "value": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 1200000,
+            "fractionDigits": 2
+          },
+          "key": "PRC-3",
+          "customerGroup": {
+            "typeId": "customer-group",
+            "id": "94e4dca6-8b56-4861-ab92-4fbeefacb228"
+          },
+          "validFrom": "2024-10-31T17:00:00.000Z",
+          "validUntil": "2024-11-29T17:00:00.000Z"
+        },
+        {
+          "id": "0764596f-6a29-4605-8ebf-8d82684a3ebc",
+          "value": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 2200000,
+            "fractionDigits": 2
+          },
+          "key": "PRC-5",
+          "customerGroup": {
+            "typeId": "customer-group",
+            "id": "94e4dca6-8b56-4861-ab92-4fbeefacb228"
+          },
+          "validFrom": "2024-11-30T17:00:00.000Z"
+        }
+      ],
+      "images": [
+        {
+          "url": "https://images.cdn.australia-southeast1.gcp.commercetools.com/11c6ea39-ac1a-4868-87d8-5bd23bc70f03/tree-736885_640-X1kea2xs.jpg",
+          "label": "BBB",
+          "dimensions": { "w": 640, "h": 398 }
+        }
+      ],
+      "attributes": [
+        {
+          "name": "product_id",
+          "value": "7a29ebcc-9c6d-4848-     -8d02-794b8733ce9b"
+        },
+        { "name": "color", "value": { "key": "white", "label": "White" } },
+        { "name": "status", "value": { "key": "enabled", "label": "Enabled" } },
+        { "name": "akeneo_id", "value": "iphone-21-pro-max-white" },
+        {
+          "name": "variant_product_title",
+          "value": {
+            "en-US": "iphone 21 Pro Max - White",
+            "th-TH": "iphone 21 Pro Max - White TH"
+          }
+        },
+        { "name": "brand_name", "value": { "key": "apple", "label": "Apple" } },
+        {
+          "name": "headphone_conection",
+          "value": { "key": "wireless", "label": "Wireless" }
+        },
+        {
+          "name": "charging_cable",
+          "value": { "key": "lightning", "label": "Lightning" }
+        },
+        {
+          "name": "connectivity",
+          "value": { "key": "wi_fi_cellular", "label": "Wi-Fi + Cellular" }
+        },
+        {
+          "name": "display_glass",
+          "value": {
+            "key": "nano_texture_glass",
+            "label": "Nano-texture glass"
+          }
+        },
+        {
+          "name": "variant_short_description",
+          "value": {
+            "en-US": "iphone-21-pro-max-white",
+            "th-TH": "iphone-21-pro-max-whiteTH"
+          }
+        },
+        {
+          "name": "variant_long_description",
+          "value": {
+            "en-US": "iphone-21-pro-max-white",
+            "th-TH": "iphone-21-pro-max-whiteTH"
+          }
+        },
+        { "name": "company_code", "value": "112" },
+        {
+          "name": "payment_options_specification",
+          "value": [{ "key": "promptpay", "label": "PromptPay" }]
+        },
+        { "name": "company", "value": { "key": "true", "label": "True" } },
+        { "name": "capacity", "value": { "key": "128GB", "label": "128GB" } },
+        { "name": "screen_size", "value": "128" },
+        { "name": "color_code", "value": "White" },
+        {
+          "name": "image",
+          "value": "https://images.contentstack.io/v3/assets/blt8ba403bee4433fd8/blta971c43b460c7f42/6723354eb3d37517e0930d80/iphone-16.jpg?branch=develop"
+        },
+        { "name": "quantity_min", "value": 1 },
+        {
+          "name": "journey",
+          "value": [{ "key": "device_only", "label": "Device Only" }]
+        },
+        { "name": "quantity_max", "value": 999 }
+      ],
+      "assets": [],
+      "availability": {
+        "channels": {
+          "354a59c3-412a-4ecd-8264-795e1611b7df": {
+            "isOnStock": true,
+            "availableQuantity": 107,
+            "version": 23,
+            "id": "f9785ed2-38ab-45a6-b5f1-fbf99025fdaf"
+          }
+        }
+      }
+    },
+    "price": {
+      "id": "60a36ab4-d1f2-414c-bfee-5a89c6a49dae",
+      "value": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 2200000,
+        "fractionDigits": 2
+      }
+    },
+    "quantity": 1,
+    "discountedPricePerQuantity": [],
+    "supplyChannel": {
+      "typeId": "channel",
+      "id": "354a59c3-412a-4ecd-8264-795e1611b7df"
+    },
+    "taxRate": {
+      "name": "Bangkok",
+      "amount": 0.07,
+      "includedInPrice": true,
+      "country": "TH",
+      "state": "Bangkok",
+      "id": "opgU3dD5",
+      "subRates": []
+    },
+    "perMethodTaxRate": [],
+    "addedAt": "2024-12-30T07:12:40.320Z",
+    "lastModifiedAt": "2024-12-30T07:12:40.320Z",
+    "state": [
+      {
+        "quantity": 1,
+        "state": {
+          "typeId": "state",
+          "id": "4edd1d7a-f5ac-4ec8-b575-29dd9e87e020"
+        }
+      }
+    ],
+    "priceMode": "ExternalPrice",
+    "lineItemMode": "Standard",
+    "totalPrice": {
+      "type": "centPrecision",
+      "currencyCode": "THB",
+      "centAmount": 2200000,
+      "fractionDigits": 2
+    },
+    "taxedPrice": {
+      "totalNet": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 2056075,
+        "fractionDigits": 2
+      },
+      "totalGross": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 2200000,
+        "fractionDigits": 2
+      },
+      "taxPortions": [
+        {
+          "rate": 0.07,
+          "amount": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 143925,
+            "fractionDigits": 2
+          },
+          "name": "Bangkok"
+        }
+      ],
+      "totalTax": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 143925,
+        "fractionDigits": 2
+      }
+    },
+    "taxedPricePortions": [],
+    "custom": {
+      "type": {
+        "typeId": "type",
+        "id": "27d2c7ca-385b-4668-bbcf-526c1f2607ff"
+      },
+      "fields": {
+        "otherPayments": [],
+        "selected": true,
+        "productGroup": 2,
+        "productType": "main_product",
+        "discounts": [],
+        "privilege": ""
+      }
+    }
+  }
+]

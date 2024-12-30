@@ -342,6 +342,41 @@ class CommercetoolsOrderClient {
 
 		return iOrder;
 	}
+
+	public async createOrderWithCustomDraft(orderDraft: any): Promise<Order> {
+		try {
+			const response = await this.apiRoot
+				.withProjectKey({ projectKey: this.projectKey })
+				.orders()
+				.post({ body: orderDraft })
+				.execute();
+	
+			return response.body;
+		} catch (error: any) {
+			console.error('Error creating order with custom draft:', error);
+			if (
+				error.code === 400 &&
+				error.body &&
+				error.body.errors &&
+				error.body.errors.some(
+					(err: any) => err.code === 'OutOfStock' || err.message.includes('out of stock')
+				)
+			) {
+				throw {
+					statusCode: HTTP_STATUSES.BAD_REQUEST,
+					statusMessage: `Cannot place order: Some line items are out of stock.`,
+					errorCode: "CREATE_ORDER_ON_CT_FAILED",
+				};
+			} else {
+				throw {
+					statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
+					statusMessage: `Cannot create an order on Commercetools. Internal server error.`,
+					errorCode: "CREATE_ORDER_ON_CT_FAILED",
+				};
+			}
+		}
+	}
+	
 }
 
 export const commercetoolsOrderClient = new CommercetoolsOrderClient();
