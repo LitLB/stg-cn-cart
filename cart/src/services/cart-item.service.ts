@@ -10,6 +10,7 @@ import { readConfiguration } from '../utils/config.utils';
 import { MyCartUpdateAction } from '@commercetools/platform-sdk';
 import { createStandardizedError } from '../utils/error.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
+import { updateCartFlag, validateInventory } from '../utils/cart.utils';
 
 export class CartItemService {
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
@@ -35,7 +36,7 @@ export class CartItemService {
                     statusMessage: 'Cart not found or has expired',
                 };
             }
-            // const cartJourney = cart.custom?.fields?.journey;
+
 
             const product = await CommercetoolsProductClient.getProductById(productId);
             if (!product) {
@@ -46,6 +47,7 @@ export class CartItemService {
             }
 
             const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
+
             if (!variant) {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
@@ -98,8 +100,12 @@ export class CartItemService {
                     statusMessage: 'Inventory not found',
                 };
             }
+
+            
             const inventory = inventories[0];
-            if (inventory.isOutOfStock) {
+            const { isDummyStock,isOutOfStock,isOverDummyStock } = validateInventory(inventory, quantity)
+
+            if (isOutOfStock || isOverDummyStock) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Insufficient stock for the requested quantity',
@@ -157,6 +163,8 @@ export class CartItemService {
                 addOnGroup,
                 freeGiftGroup,
                 externalPrice: validPrice.value,
+                dummyFlag: isDummyStock,
+                sku
             });
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
@@ -352,7 +360,8 @@ export class CartItemService {
 
             updatedCart = await commercetoolsMeCartClient.resetCartItemProductGroup(updatedCart)
 
-            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+            let iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+            iCartWithBenefit = updateCartFlag(iCartWithBenefit)
 
             return iCartWithBenefit;
         } catch (error: any) {
@@ -417,7 +426,8 @@ export class CartItemService {
 
             const updatedCart = await commercetoolsMeCartClient.removeItemsFromCart(cart, lineItemKeys);
 
-            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+            let iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+            iCartWithBenefit = updateCartFlag(iCartWithBenefit)
 
             return iCartWithBenefit;
         } catch (error: any) {
