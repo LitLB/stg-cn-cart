@@ -206,7 +206,7 @@ export class CartService {
 
             ctCart = await this.handleAutoRemoveCoupons(ctCart, cartId);
 
-            await this.removeUnselectedItems(ctCart);
+            ctCart = await this.removeUnselectedItems(ctCart);
 
             const orderNumber = this.generateOrderNumber()
 
@@ -238,33 +238,6 @@ export class CartService {
             throw createStandardizedError(error, 'createOrder');
         }
     };
-
-    private async getCartAndRemoveUnselected(accessToken: string, cartId: string): Promise<Cart> {
-        // Get the cart
-        let ctCart = await this.getCtCartById(accessToken, cartId);
-
-        // Filter line items
-        const unselectedLineItems = ctCart.lineItems.filter(
-            (li: LineItem) => li.custom?.fields?.selected !== true
-        );
-
-        // If no unselected items, just return as is
-        if (unselectedLineItems.length === 0) {
-            return ctCart;
-        }
-
-        // Build actions to remove them
-        const removeActions: CartUpdateAction[] = unselectedLineItems.map((lineItem: LineItem) => ({
-            action: 'removeLineItem',
-            lineItemId: lineItem.id,
-        }));
-
-        // Update cart
-        ctCart = await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, removeActions);
-
-        // Refresh cart to get the new version
-        return this.getCtCartById(accessToken, cartId);
-    }
 
     private async handleAutoRemoveCoupons(ctCart: Cart, cartId: string): Promise<Cart> {
         // 1. Auto-remove invalid coupons
