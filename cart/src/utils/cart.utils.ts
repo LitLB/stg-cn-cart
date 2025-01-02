@@ -9,13 +9,14 @@ export const updateCartFlag = (iCart: ICart): ICart => {
     return iCart
 }
 
+// TODO :: IMPROVE LOGIC OUT OF STOCK !!
 export const validateInventory = (inventory: any, quantity: number) => { 
 
     const { available, totalAvailableDummyStock, totalAvailableDummyPurchaseStock } = inventory.stock
     const quantityGTtotalAvailableDummyPurchaseStock = totalAvailableDummyPurchaseStock + quantity <= totalAvailableDummyStock
 
     return {
-        isOutOfStock: inventory.isOutOfStock || false,
+        isOutOfStock: available <= 0 || false,
         isOverDummyStock: available <= 0 && totalAvailableDummyStock > 0 && !quantityGTtotalAvailableDummyPurchaseStock || false,
         isDummyStock: available <= 0 && totalAvailableDummyStock > 0 && quantityGTtotalAvailableDummyPurchaseStock || false,
     }

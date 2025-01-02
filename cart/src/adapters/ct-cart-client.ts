@@ -74,7 +74,6 @@ class CommercetoolsCartClient {
 		freeGiftGroup,
 		externalPrice,
 		dummyFlag,
-		sku
 	}: {
 		cart: Cart;
 		productId: string;
@@ -89,22 +88,26 @@ class CommercetoolsCartClient {
 			centAmount: number;
 		};
 		dummyFlag: boolean,
-		sku: string
 	}): Promise<Cart> {
 		const { lineItems } = cart;
 
+
 		const cartFlag = cart.custom?.fields.preOrder;
 
-		// Find a line item that matches both productId and productType
-		const existingProductType = lineItems.find((lineItem: LineItem) =>
-			lineItem.custom?.fields?.productType === productType
-		);
 
-		if(existingProductType) {
-			const { variant } = existingProductType;
-			// If the cart flag or variant ID doesn't match, throw an error
-			if (cartFlag !== dummyFlag || variant?.id !== variantId) {
-				throw new Error('Cannot add different stock types in the same cart.');
+		if (dummyFlag) {
+			const existingMainProduct = lineItems.find((lineItem: LineItem) =>
+				lineItem.custom?.fields?.productType === 'main_product' 
+			);
+
+			if (existingMainProduct) {
+				if (productType === 'main_product') {
+					const { variant } = existingMainProduct;
+					// If the cart flag or variant ID doesn't match, throw an error
+					if (cartFlag !== dummyFlag || variant?.id !== variantId) {
+						throw new Error('Cannot add different stock types in the same cart.');
+					}
+				}
 			}
 		}
 
@@ -129,9 +132,6 @@ class CommercetoolsCartClient {
 
 		if (existingLineItem) {
 
-
-			
-
 			const externalPrice = existingLineItem.price.value;
 			const updatedCart = await this.updateCart(cart.id, cart.version, [{
 				action: 'changeLineItemQuantity',
@@ -147,7 +147,7 @@ class CommercetoolsCartClient {
 		const updateCustom: CartSetCustomFieldAction = {
 			action: 'setCustomField',
 			name: 'preOrder',
-			value: dummyFlag
+			value: cart.custom?.fields.preOrder ? true : dummyFlag
 		};
 
 
