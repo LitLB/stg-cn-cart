@@ -27,7 +27,8 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { PAYMENT_STATES } from '../constants/payment.constant';
 import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 import { CouponService } from './coupon.service';
-import { ICoupon } from '../interfaces/coupon.interface';
+import { Coupon, ICoupon } from '../interfaces/coupon.interface';
+import { CartValidator } from '../validators/cart.validator';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -181,15 +182,7 @@ export class CartService {
 
             let ctCart = await this.getCtCartById(accessToken, cartId)
 
-            const selectedLineItems = ctCart.lineItems.filter(
-                (li: LineItem) => li.custom?.fields?.selected === true
-            );
-            if (selectedLineItems.length === 0) {
-                throw createStandardizedError({
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'No selected items in the cart. Please select items before placing an order.',
-                }, 'createOrder');
-            }
+            CartValidator.validateCartHasSelectedItems(ctCart);
 
             // * STEP #2 - Validate Blacklist
             if (validateList.includes('BLACKLIST')) {
@@ -385,26 +378,12 @@ export class CartService {
                 });
             }
 
-            const filteredLineItems = commercetoolsMeCartClient.filterLineItems(ctCart.lineItems, selectedOnly);
-            const cartToProcess = { ...ctCart, lineItems: filteredLineItems };
-
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cartToProcess)
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
             // 2) Possibly auto-remove invalid coupons
             let cartAfterAutoRemove: Cart = cartWithUpdatedPrice;
-            let permanentlyInvalidRejectedCoupons: Array<{ code: string; reason: string }> = [];
-            if (includeCoupons) {
-                const {
-                    updatedCart,
-                    permanentlyInvalidRejectedCoupons: invalidCoupons
-                } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithUpdatedPrice);
-                cartAfterAutoRemove = updatedCart;
-                permanentlyInvalidRejectedCoupons = invalidCoupons;
-            }
-
-            // 3) Map to ICart
-            const iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartAfterAutoRemove);
+            let permanentlyInvalidRejectedCoupons: Coupon[] = [];
             let couponEffects: ICoupon = {
                 coupons: {
                     acceptedCoupons: [],
@@ -412,8 +391,20 @@ export class CartService {
                 },
             };
             if (includeCoupons) {
+                const {
+                    updatedCart: _cartAfterAutoRemove,
+                    permanentlyInvalidRejectedCoupons: _permanentlyInvalidRejectedCoupons
+                } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithUpdatedPrice);
+                cartAfterAutoRemove = _cartAfterAutoRemove;
+                permanentlyInvalidRejectedCoupons = _permanentlyInvalidRejectedCoupons;
                 couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartAfterAutoRemove.id, cartAfterAutoRemove.lineItems);
             }
+
+            const selectedLineItems: LineItem[] = commercetoolsMeCartClient.filterSelectedLineItems(cartAfterAutoRemove.lineItems, selectedOnly);
+            const cartWithFilteredItems: Cart = { ...cartAfterAutoRemove, lineItems: selectedLineItems };
+
+            // 3) Map to ICart
+            const iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartWithFilteredItems);
 
             const response = {
                 ...iCartWithBenefit,
@@ -429,6 +420,79 @@ export class CartService {
             }
 
             return response;
+        } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+            throw createStandardizedError(error, 'getCartById');
+        }
+    };
+
+    public getCartByIdV2 = async (
+        accessToken: string,
+        cartId: string,
+        selectedOnly = false,
+        includeCoupons = false
+    ): Promise<ICart> => {
+        try {
+            console.log('selectedOnly', selectedOnly);
+            console.log('includeCoupons', includeCoupons);
+
+            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+
+            // 1) Fetch the cart from Commercetools
+            const ctCart = await commercetoolsMeCartClient.getCartById(cartId);
+            if (!ctCart) {
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Cart not found or has expired',
+                }, 'getCartById');
+            }
+
+            // 2) Check for price/availability changes in the FULL (unfiltered) cart
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart);
+            const updatedCart = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged);
+
+            // 3) If `includeCoupons` is true, possibly do coupon auto-removal on the real updatedCart
+            let finalCart: Cart = updatedCart;
+            if (includeCoupons) {
+                const {
+                    updatedCart: couponCart,
+                    permanentlyInvalidRejectedCoupons,
+                } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(updatedCart);
+
+                finalCart = couponCart;
+            }
+
+            // 4) **Ephemeral** filter for the response if `selectedOnly === true`.
+            const ephemeralCart = {
+                ...finalCart,
+                lineItems: selectedOnly
+                    ? finalCart.lineItems.filter(li => li.custom?.fields?.selected === true)
+                    : finalCart.lineItems,
+            };
+
+            // 5) Convert ephemeralCart to ICart for the response
+            const iCart = commercetoolsMeCartClient.mapCartToICart(ephemeralCart);
+
+            // 6) Optionally attach any coupon effects if `includeCoupons` is true
+            if (includeCoupons) {
+                const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
+                    finalCart.id,
+                    finalCart.lineItems
+                );
+                return {
+                    ...iCart,
+                    hasChanged: updatedCart.compared,
+                    ...couponEffects,
+                };
+            }
+
+            // 7) If no coupons needed, just return ephemeral iCart
+            return {
+                ...iCart,
+                hasChanged: updatedCart.compared,
+            };
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;

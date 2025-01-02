@@ -7,9 +7,10 @@ import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
 import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateProductQuantity, validateProductReleaseDate, validateSelectCartItemBody, validateUpdateCartItemBody } from '../schemas/cart-item.schema';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { readConfiguration } from '../utils/config.utils';
-import { MyCartUpdateAction } from '@commercetools/platform-sdk';
+import { Cart, MyCartUpdateAction } from '@commercetools/platform-sdk';
 import { createStandardizedError } from '../utils/error.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
+import { CartValidator } from '../validators/cart.validator';
 
 export class CartItemService {
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
