@@ -13,6 +13,7 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 import { COUPON_REJECTION_REASONS } from '../interfaces/talon-one.interface';
+import { Coupon } from '../interfaces/coupon.interface';
 
 export class CouponService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -23,7 +24,7 @@ export class CouponService {
 
     public async autoRemoveInvalidCouponsAndReturnOnce(ctCart: Cart): Promise<{
         updatedCart: Cart;
-        permanentlyInvalidRejectedCoupons: Array<{ code: string; reason: string }>;
+        permanentlyInvalidRejectedCoupons: Coupon[];
     }> {
         try {
             // 1) Gather current coupon codes

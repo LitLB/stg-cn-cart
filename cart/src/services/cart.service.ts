@@ -27,7 +27,8 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { PAYMENT_STATES } from '../constants/payment.constant';
 import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 import { CouponService } from './coupon.service';
-import { ICoupon } from '../interfaces/coupon.interface';
+import { Coupon, ICoupon } from '../interfaces/coupon.interface';
+import { CartValidator } from '../validators/cart.validator';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -181,15 +182,7 @@ export class CartService {
 
             let ctCart = await this.getCtCartById(accessToken, cartId)
 
-            const selectedLineItems = ctCart.lineItems.filter(
-                (li: LineItem) => li.custom?.fields?.selected === true
-            );
-            if (selectedLineItems.length === 0) {
-                throw createStandardizedError({
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'No selected items in the cart. Please select items before placing an order.',
-                }, 'createOrder');
-            }
+            CartValidator.validateCartHasSelectedItems(ctCart);
 
             // * STEP #2 - Validate Blacklist
             if (validateList.includes('BLACKLIST')) {
@@ -374,9 +367,6 @@ export class CartService {
         includeCoupons = false,
     ): Promise<ICart> => {
         try {
-            console.log('selectedOnly', selectedOnly);
-            console.log('includeCoupons', includeCoupons);
-
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
             // 1) Fetch the cart
@@ -393,7 +383,7 @@ export class CartService {
 
             // 2) Possibly auto-remove invalid coupons
             let cartAfterAutoRemove: Cart = cartWithUpdatedPrice;
-            let permanentlyInvalidRejectedCoupons: Array<{ code: string; reason: string }> = [];
+            let permanentlyInvalidRejectedCoupons: Coupon[] = [];
             let couponEffects: ICoupon = {
                 coupons: {
                     acceptedCoupons: [],
@@ -402,23 +392,19 @@ export class CartService {
             };
             if (includeCoupons) {
                 const {
-                    updatedCart,
-                    permanentlyInvalidRejectedCoupons: invalidCoupons
+                    updatedCart: _cartAfterAutoRemove,
+                    permanentlyInvalidRejectedCoupons: _permanentlyInvalidRejectedCoupons
                 } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithUpdatedPrice);
-                cartAfterAutoRemove = updatedCart; // TODO: Should have discount = 30000
-                console.log(JSON.stringify(cartAfterAutoRemove));
-                permanentlyInvalidRejectedCoupons = invalidCoupons;
+                cartAfterAutoRemove = _cartAfterAutoRemove;
+                permanentlyInvalidRejectedCoupons = _permanentlyInvalidRejectedCoupons;
                 couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartAfterAutoRemove.id, cartAfterAutoRemove.lineItems);
             }
 
-            const test: ICart = commercetoolsMeCartClient.mapCartToICart(cartAfterAutoRemove);
-            return test; // 30000
-
-            const selectedLineItems: LineItem[] = commercetoolsMeCartClient.filterLineItems(cartAfterAutoRemove.lineItems, selectedOnly);
-            const cartToProcess: Cart = { ...cartAfterAutoRemove, lineItems: selectedLineItems };
+            const selectedLineItems: LineItem[] = commercetoolsMeCartClient.filterSelectedLineItems(cartAfterAutoRemove.lineItems, selectedOnly);
+            const cartWithFilteredItems: Cart = { ...cartAfterAutoRemove, lineItems: selectedLineItems };
 
             // 3) Map to ICart
-            const iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartToProcess);
+            const iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartWithFilteredItems);
 
             const response = {
                 ...iCartWithBenefit,

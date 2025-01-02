@@ -1229,7 +1229,7 @@ export default class CommercetoolsMeCartClient {
 		return iCartWithBenefit;
 	}
 
-	filterLineItems(lineItems: LineItem[], selectedOnly: boolean): LineItem[] {
+	filterSelectedLineItems(lineItems: LineItem[], selectedOnly: boolean): LineItem[] {
 		if (!selectedOnly) {
 			return lineItems;
 		}
