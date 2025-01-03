@@ -95,7 +95,7 @@ class CommercetoolsCartClient {
 		const cartFlag = cart.custom?.fields.preOrder;
 
 
-		if (cartFlag) {
+		if (cartFlag || dummyFlag) {
 			const existingMainProduct = lineItems.find((lineItem: LineItem) =>
 				lineItem.custom?.fields?.productType === 'main_product' 
 			);

@@ -104,7 +104,7 @@ export class CartItemService {
             
             const inventory = inventories[0];
 
-            const { isDummyStock,isOutOfStock } = validateInventory(inventory, quantity)
+            const { isDummyStock,isOutOfStock } = validateInventory(inventory)
 
             if (isOutOfStock && !isDummyStock) {
                 throw {
