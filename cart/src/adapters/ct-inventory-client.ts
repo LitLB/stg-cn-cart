@@ -301,6 +301,33 @@ class CommercetoolsInventoryClient {
 
 		return updatedDataInventories
 	}
+
+	public async setCustomField(
+		inventoryId: string,
+		version: number,
+		fieldName: string,
+		fieldValue: any
+	): Promise<void> {
+		const updateActions: InventoryEntryUpdateAction[] = [
+			{
+				action: 'setCustomField',
+				name: fieldName,
+				value: fieldValue,
+			},
+		];
+
+		const inventoryUpdate: InventoryEntryUpdate = {
+			version,
+			actions: updateActions,
+		};
+
+		await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.inventory()
+			.withId({ ID: inventoryId })
+			.post({ body: inventoryUpdate })
+			.execute();
+	}
 }
 
 export default CommercetoolsInventoryClient.getInstance();

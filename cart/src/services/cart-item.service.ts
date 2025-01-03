@@ -7,10 +7,11 @@ import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
 import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateProductQuantity, validateProductReleaseDate, validateSelectCartItemBody, validateUpdateCartItemBody } from '../schemas/cart-item.schema';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { readConfiguration } from '../utils/config.utils';
-import { Cart, MyCartUpdateAction } from '@commercetools/platform-sdk';
+import { MyCartUpdateAction } from '@commercetools/platform-sdk';
 import { createStandardizedError } from '../utils/error.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
-import { CartValidator } from '../validators/cart.validator';
+import { CART_JOURNEYS } from '../constants/cart.constant';
+import { InventoryValidator } from '../validators/inventory.validator';
 
 export class CartItemService {
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
@@ -29,6 +30,7 @@ export class CartItemService {
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
+            // 1) Fetch the cart
             const cart = await commercetoolsMeCartClient.getCartById(id);
             if (!cart) {
                 throw {
@@ -36,7 +38,20 @@ export class CartItemService {
                     statusMessage: 'Cart not found or has expired',
                 };
             }
-            // const cartJourney = cart.custom?.fields?.journey;
+            // 2) Determine your "journey"
+            const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
+
+            // 3) Define the supplyChannelId for this new item
+            const supplyChannelId = readConfiguration().ctpSupplyChannel;
+
+            // 4) **Validate inventory** BEFORE adding to cart
+            //    We pass the SKU, desired quantity, journey, and supplyChannelId:
+            await InventoryValidator.validatePotentialItem(
+                sku,
+                quantity,
+                journey,
+                supplyChannelId
+            );
 
             const product = await CommercetoolsProductClient.getProductById(productId);
             if (!product) {
