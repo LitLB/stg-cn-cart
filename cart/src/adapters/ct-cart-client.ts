@@ -95,16 +95,16 @@ class CommercetoolsCartClient {
 		const cartFlag = cart.custom?.fields.preOrder;
 
 
-		if (dummyFlag) {
+		if (cartFlag) {
 			const existingMainProduct = lineItems.find((lineItem: LineItem) =>
 				lineItem.custom?.fields?.productType === 'main_product' 
 			);
 
 			if (existingMainProduct) {
 				if (productType === 'main_product') {
-					const { variant } = existingMainProduct;
+					const { variant,productId:existingId } = existingMainProduct;
 					// If the cart flag or variant ID doesn't match, throw an error
-					if (cartFlag !== dummyFlag || variant?.id !== variantId) {
+					if (cartFlag !== dummyFlag || variant?.id !== variantId || productId !== existingId) {
 						throw new Error('Cannot add different stock types in the same cart.');
 					}
 				}

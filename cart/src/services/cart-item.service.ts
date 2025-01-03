@@ -38,7 +38,6 @@ export class CartItemService {
                 };
             }
 
-
             const product = await CommercetoolsProductClient.getProductById(productId);
             if (!product) {
                 throw {
@@ -106,12 +105,14 @@ export class CartItemService {
             const inventory = inventories[0];
 
             const { isDummyStock,isOutOfStock } = validateInventory(inventory, quantity)
+
             if (isOutOfStock && !isDummyStock) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Insufficient stock for the requested quantity',
                 };
             }
+
 
             const newProductGroup = this.calculateProductGroup({
                 cart,
