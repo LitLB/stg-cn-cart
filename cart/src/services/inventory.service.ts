@@ -8,7 +8,6 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { InventoryUtils } from '../utils/inventory.utils';
 
 export class InventoryService {
-
     public async commitLineItemStockUsage(lineItem: LineItem, journey: CART_JOURNEYS) {
         const journeyConfig = journeyConfigMap[journey];
         if (!journeyConfig?.inventory) {
@@ -43,11 +42,12 @@ export class InventoryService {
             }, 'InventoryService.commitLineItemStockUsage');
         }
 
-        // 3) read custom fields
-        const customFields = InventoryUtils.getCustomFieldsOrThrow(inventoryEntry);
-
-        const maxStock = customFields[maximumKey] ?? null;
-        const totalUsed = customFields[totalKey] ?? 0;
+        // 3) read custom fields to get maxStock & totalUsed
+        const { maxStock, totalUsed } = InventoryUtils.getMaxStockAndTotalUsed(
+            inventoryEntry,
+            maximumKey,
+            totalKey
+        );
 
         // 4) calculate new usage
         const newTotal = totalUsed + lineItem.quantity;
@@ -55,22 +55,14 @@ export class InventoryService {
         // 5) if unlimited => skip
         if (maxStock == null) return;
 
-        if (maxStock === 0) {
-            // Should never happen if validated earlier
-            throw createStandardizedError({
-                statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: 'maxStock=0 => This product is currently not available',
-            }, 'InventoryService.commitLineItemStockUsage');
-        }
+        // 6) validate new usage (throws if invalid)
+        InventoryUtils.validateNewUsage(
+            maxStock,
+            newTotal,
+            'InventoryService.commitLineItemStockUsage'
+        );
 
-        if (newTotal > maxStock) {
-            throw createStandardizedError({
-                statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: `Cannot commit usage: newTotal ${newTotal} > maxStock ${maxStock}`,
-            }, 'InventoryService.commitLineItemStockUsage');
-        }
-
-        // 6) update totalUsed
+        // 7) update totalUsed
         await CommercetoolsInventoryClient.setCustomField(
             inventoryEntry.id,
             inventoryEntry.version,
