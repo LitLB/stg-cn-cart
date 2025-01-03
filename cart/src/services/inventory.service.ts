@@ -4,26 +4,21 @@ import type { Cart, LineItem } from '@commercetools/platform-sdk';
 import { createStandardizedError } from '../utils/error.utils';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
-import { InventoryValidator } from '../validators/inventory.validator';
 import { HTTP_STATUSES } from '../constants/http.constant';
+import { InventoryUtils } from '../utils/inventory.utils';
 
-/**
- * InventoryService: 
- *   - Commits (updates) custom fields when a sale is confirmed (if not unlimited).
- *   - Possibly restore usage if line items are removed, etc. (optional).
- */
 export class InventoryService {
-    /**
-     * "Commit" the usage for a single lineItem after finalizing or at checkout.
-     */
+
     public async commitLineItemStockUsage(lineItem: LineItem, journey: CART_JOURNEYS) {
         const journeyConfig = journeyConfigMap[journey];
         if (!journeyConfig?.inventory) {
-            // no config => do nothing
+            // No special inventory config => skip
             return;
         }
 
         const { maximumKey, totalKey } = journeyConfig.inventory;
+
+        // 1) get supplyChannel + inventoryId
         const supplyChannelId = lineItem.supplyChannel?.id;
         if (!supplyChannelId) {
             throw createStandardizedError({
@@ -31,7 +26,6 @@ export class InventoryService {
                 statusMessage: 'Missing supplyChannel on lineItem.',
             }, 'InventoryService.commitLineItemStockUsage');
         }
-
         const inventoryId = lineItem.variant.availability?.channels?.[supplyChannelId]?.id;
         if (!inventoryId) {
             throw createStandardizedError({
@@ -40,6 +34,7 @@ export class InventoryService {
             }, 'InventoryService.commitLineItemStockUsage');
         }
 
+        // 2) fetch from CT
         const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
         if (!inventoryEntry) {
             throw createStandardizedError({
@@ -48,30 +43,26 @@ export class InventoryService {
             }, 'InventoryService.commitLineItemStockUsage');
         }
 
-        const customFields = inventoryEntry.custom?.fields;
-        if (!customFields) {
-            throw createStandardizedError({
-                statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: 'Missing custom fields on inventory entry.',
-            }, 'InventoryService.commitLineItemStockUsage');
-        }
+        // 3) read custom fields
+        const customFields = InventoryUtils.getCustomFieldsOrThrow(inventoryEntry);
 
-        const maxStock = customFields[maximumKey] ?? null; // null => unlimited
+        const maxStock = customFields[maximumKey] ?? null;
         const totalUsed = customFields[totalKey] ?? 0;
+
+        // 4) calculate new usage
         const newTotal = totalUsed + lineItem.quantity;
 
-        // If unlimited => skip
+        // 5) if unlimited => skip
         if (maxStock == null) return;
 
-        // If maxStock=0 => should never happen if validated properly
         if (maxStock === 0) {
+            // Should never happen if validated earlier
             throw createStandardizedError({
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: 'maxStock=0 => not sell. This should have been blocked earlier.',
+                statusMessage: 'maxStock=0 => This product is currently not available',
             }, 'InventoryService.commitLineItemStockUsage');
         }
 
-        // If newTotal > maxStock => also shouldn't happen if validated properly
         if (newTotal > maxStock) {
             throw createStandardizedError({
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -79,7 +70,7 @@ export class InventoryService {
             }, 'InventoryService.commitLineItemStockUsage');
         }
 
-        // If OK, update totalUsed
+        // 6) update totalUsed
         await CommercetoolsInventoryClient.setCustomField(
             inventoryEntry.id,
             inventoryEntry.version,
@@ -95,10 +86,6 @@ export class InventoryService {
         const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
         if (!journey) return;
 
-        // Before committing, let's do a final validation
-        await InventoryValidator.validateCart(ctCart);
-
-        // Then commit each lineItem
         for (const lineItem of ctCart.lineItems) {
             await this.commitLineItemStockUsage(lineItem, journey);
         }

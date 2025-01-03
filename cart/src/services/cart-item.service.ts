@@ -29,28 +29,21 @@ export class CartItemService {
             const { productId, sku, quantity, productType, productGroup, addOnGroup, freeGiftGroup } = value;
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-
-            // 1) Fetch the cart
             const cart = await commercetoolsMeCartClient.getCartById(id);
             if (!cart) {
                 throw {
-                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    statusCode: 404,
                     statusMessage: 'Cart not found or has expired',
                 };
             }
-            // 2) Determine your "journey"
+
             const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
 
-            // 3) Define the supplyChannelId for this new item
-            const supplyChannelId = readConfiguration().ctpSupplyChannel;
-
-            // 4) **Validate inventory** BEFORE adding to cart
-            //    We pass the SKU, desired quantity, journey, and supplyChannelId:
-            await InventoryValidator.validatePotentialItem(
+            await InventoryValidator.validateLineItemUpsert(
+                cart,
                 sku,
                 quantity,
                 journey,
-                supplyChannelId
             );
 
             const product = await CommercetoolsProductClient.getProductById(productId);
@@ -216,6 +209,9 @@ export class CartItemService {
                 };
             }
 
+            const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
+            await InventoryValidator.validateLineItemReplaceQty(cart, sku, quantity, journey);
+
             const product = await CommercetoolsProductClient.getProductById(productId);
             if (!product) {
                 throw {
@@ -310,6 +306,8 @@ export class CartItemService {
 
             return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
+            console.log('error', error);
+
             if (error.status && error.message) {
                 throw error;
             }

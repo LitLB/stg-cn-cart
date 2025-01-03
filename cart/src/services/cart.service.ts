@@ -19,7 +19,6 @@ import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
 import { BlacklistService } from './blacklist.service'
 import { safelyParse } from '../utils/response.utils';
 import { logger } from '../utils/logger.utils';
-import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { createStandardizedError } from '../utils/error.utils';
 import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.interface';
 import { IOrderAdditional, IPaymentInfo, IClientInfo } from '../interfaces/order-additional.interface';
@@ -29,18 +28,22 @@ import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 import { CouponService } from './coupon.service';
 import { Coupon, ICoupon } from '../interfaces/coupon.interface';
 import { CartValidator } from '../validators/cart.validator';
+import { InventoryValidator } from '../validators/inventory.validator';
+import { InventoryService } from './inventory.service';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
     private blacklistService: BlacklistService;
     private couponService: CouponService;
     private talonOneEffectConverter: typeof talonOneEffectConverter
+    private inventoryService: InventoryService;
 
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
         this.talonOneEffectConverter = talonOneEffectConverter
         this.blacklistService = new BlacklistService()
         this.couponService = new CouponService()
+        this.inventoryService = new InventoryService()
     }
 
     /**
@@ -70,62 +73,6 @@ export class CartService {
             }
 
             throw createStandardizedError(error, 'createAnonymousCart');
-        }
-    };
-
-    public updateStockAllocation = async (ctCart: Cart): Promise<void> => {
-        try {
-            const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
-            const journeyConfig = journeyConfigMap[journey];
-
-            for (const lineItem of ctCart.lineItems) {
-
-                const supplyChannel = lineItem.supplyChannel;
-
-                if (!supplyChannel || !supplyChannel.id) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: 'Supply channel is missing on line item.',
-                        errorCode: "SUPPLY_CHANNEL_MISSING",
-                    };
-                }
-
-                const inventoryId =
-                    lineItem.variant.availability?.channels?.[supplyChannel.id]?.id;
-
-                if (!inventoryId) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: 'InventoryId not found.',
-                        errorCode: "INVENTORY_ID_NOT_FOUND",
-                    };
-                }
-
-
-                const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
-                if (!inventoryEntry) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: `Inventory entry not found for ID: ${inventoryId}`,
-                        errorCode: "INVENTORY_ENTRY_NOT_FOUND",
-                    };
-                }
-
-                const orderedQuantity = lineItem.quantity;
-                await CommercetoolsInventoryClient.updateInventoryAllocationV2(
-                    inventoryEntry,
-                    orderedQuantity,
-                    journey,
-                    journeyConfig
-                );
-            }
-        } catch (error: any) {
-            console.log('error', error)
-            throw {
-                statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: `Update stock allocation failed.`,
-                errorCode: "CREATE_ORDER_ON_CT_FAILED",
-            };
         }
     };
 
@@ -197,6 +144,8 @@ export class CartService {
             // * STEP #4 - Validate Available Quantity (Commercetools)
             await this.validateAvailableQuantity(ctCart)
 
+            await InventoryValidator.validateCart(ctCart);
+
             ctCart = await this.handleAutoRemoveCoupons(ctCart, cartId);
 
             ctCart = await this.removeUnselectedItems(ctCart);
@@ -218,7 +167,7 @@ export class CartService {
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
-            await this.updateStockAllocation(cartWithUpdatedPrice);
+            await this.inventoryService.commitCartStock(ctCart);
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
             return { ...order, hasChanged: cartWithUpdatedPrice.compared };

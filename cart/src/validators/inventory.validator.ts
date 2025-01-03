@@ -1,223 +1,123 @@
 // cart/src/validators/inventory.validator.ts
 
 import type { Cart, LineItem } from '@commercetools/platform-sdk';
-import { HTTP_STATUSES } from '../constants/http.constant';
 import { createStandardizedError } from '../utils/error.utils';
-import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
+import { HTTP_STATUSES } from '../constants/http.constant';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
+import { readConfiguration } from '../utils/config.utils';
+import { InventoryUtils } from '../utils/inventory.utils';
 
-/**
- * InventoryValidator focuses on validation logic:
- *   - maxStock = 0 => Not sell
- *   - maxStock = null => Unlimited
- *   - maxStock > 0 => Check limit
- */
 export class InventoryValidator {
-
     /**
-     * 1) Validate a potential new item (not yet a lineItem).
-     *    Called from "AddItem" scenario:
-     *      - We only have SKU, quantity, the journey, and possibly supplyChannelId.
+     * A single method to validate line item stock, for both “Add/Upsert” or “Replace” flows.
+     * 
+     * @param cart - The current cart
+     * @param sku - The SKU we’re modifying
+     * @param finalDesiredQty - The total quantity we want in the cart for this SKU
+     * @param journey - The cart’s journey
+     * @param existingQtyInCart - If you already computed how many of this SKU are in the cart. 
+     *                            If not passed, we’ll find it ourselves.
      */
-    public static async validatePotentialItem(
+    public static async validateLineItemStock(
+        cart: Cart,
         sku: string,
-        quantity: number,
+        finalDesiredQty: number,
         journey: CART_JOURNEYS,
-        supplyChannelId?: string
+        existingQtyInCart?: number
     ): Promise<void> {
+        // 1) If no inventory config, skip
         const journeyConfig = journeyConfigMap[journey];
-        console.log('journeyConfig', journeyConfig);
         if (!journeyConfig?.inventory) {
-            // If no special inventory config for this journey, skip
             return;
         }
 
         const { maximumKey, totalKey } = journeyConfig.inventory;
+        const supplyChannelId = readConfiguration().ctpSupplyChannel;
 
-        // If supplyChannel is required, ensure we have one
-        if (!supplyChannelId) {
-            // Possibly fallback or throw if your business logic demands it
-            // For demonstration, we'll just throw:
-            throw createStandardizedError({
-                statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: 'Missing supplyChannelId for AddItem validation.',
-            }, 'InventoryValidator.validatePotentialItem');
+        // 2) If we don’t have existingQtyInCart, find it
+        let existingQty = existingQtyInCart ?? 0;
+        if (existingQty === 0 && existingQtyInCart == null) {
+            const existingLineItem = cart.lineItems.find((li: LineItem) => {
+                return li.variant?.sku === sku && li.supplyChannel?.id === supplyChannelId;
+            });
+            if (existingLineItem) {
+                existingQty = existingLineItem.quantity;
+            }
         }
 
-        // 1) Fetch inventory for that sku or supplyChannel.
-        //    If your system has a known way to derive inventoryId from SKU + channel,
-        //    do that. We might also do: CommercetoolsInventoryClient.getInventory(sku)
-        //    and find matching channel. For simplicity, let's assume we have an ID.
-        //    If you store inventory key as (channelId + '-' + sku), adapt accordingly.
+        // final total in the cart
+        // (“Add” = existingQty + user’s request, or “Replace” = user’s final requested qty)
+        const newRequestedTotal = finalDesiredQty;
 
-        // Example approach: we'll pretend "inventoryId" is the key:
-        const inventoryId = await InventoryValidator.deriveInventoryId(sku, supplyChannelId);
-        console.log('inventoryId', inventoryId);
-        if (!inventoryId) {
-            throw createStandardizedError({
-                statusCode: HTTP_STATUSES.NOT_FOUND,
-                statusMessage: `Cannot find inventory for sku=${sku} & channel=${supplyChannelId}`,
-            }, 'InventoryValidator.validatePotentialItem');
-        }
+        // 3) fetch inventory
+        const inventoryKey = InventoryUtils.buildInventoryKey(sku);
+        const inventoryEntry = await InventoryUtils.fetchInventoryByKeyOrThrow(inventoryKey);
 
-        // 2) Get the actual inventory entry
-        const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
-        console.log('inventoryEntry', inventoryEntry);
-        if (!inventoryEntry) {
-            throw createStandardizedError({
-                statusCode: HTTP_STATUSES.NOT_FOUND,
-                statusMessage: `Inventory entry ${inventoryId} not found.`,
-            }, 'InventoryValidator.validatePotentialItem');
-        }
+        // 4) read custom fields
+        const customFields = InventoryUtils.getCustomFieldsOrThrow(inventoryEntry);
 
-        // 3) Check custom fields
-        const customFields = inventoryEntry.custom?.fields;
-        console.log('customFields', customFields);
-        if (!customFields) {
-            throw createStandardizedError({
-                statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: 'Custom fields missing on inventory entry.',
-            }, 'InventoryValidator.validatePotentialItem');
-        }
-
-        const maxStock = customFields[maximumKey] ?? null; // null => unlimited
+        const maxStock = customFields[maximumKey] ?? null;  // null => unlimited
         const totalUsed = customFields[totalKey] ?? 0;
-        const newTotal = totalUsed + quantity;
 
-        // 4) Evaluate
+        // e.g. newTotalUsage = totalUsed + (newRequestedTotal) 
+        // If your logic requires partial differences, adapt here
+        const newTotalUsage = totalUsed + newRequestedTotal;
+
+        // 5) check logic
         if (maxStock === 0) {
             throw createStandardizedError({
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: 'Cannot sell. maxStock=0',
-            }, 'InventoryValidator.validatePotentialItem');
+                statusMessage: 'This product is currently not available (maxStock=0)',
+            }, 'InventoryValidator.validateLineItemStock');
         }
-
-        // if unlimited => pass
         if (maxStock == null) {
+            // unlimited => pass
             return;
         }
-
-        if (newTotal > maxStock) {
+        if (newTotalUsage > maxStock) {
             throw createStandardizedError({
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: `Exceeds maxStock: newTotal=${newTotal}, max=${maxStock}`,
-            }, 'InventoryValidator.validatePotentialItem');
+                statusMessage: `Exceeds maximum stock limit. usage=${newTotalUsage}, max=${maxStock}.`,
+            }, 'InventoryValidator.validateLineItemStock');
         }
     }
 
     /**
-     * 2) Validates a single *existing* lineItem in the cart.
-     *    Typically used for "Update Quantity" or final cart check.
+     * Convenience wrappers if you prefer separate calls 
      */
-    public static async validateLineItem(
-        lineItem: LineItem,
-        journey: CART_JOURNEYS
-    ): Promise<void> {
-        const journeyConfig = journeyConfigMap[journey];
-        if (!journeyConfig?.inventory) {
-            // If no special inventory config for this journey, skip
-            return;
-        }
+    public static async validateLineItemUpsert(cart: Cart, sku: string, requestedQty: number, journey: CART_JOURNEYS) {
+        // Upsert means existing + requested
+        let existingQty = 0;
+        const supplyChannelId = readConfiguration().ctpSupplyChannel;
+        const lineItem = cart.lineItems.find(
+            (li) => li.variant?.sku === sku && li.supplyChannel?.id === supplyChannelId
+        );
+        if (lineItem) existingQty = lineItem.quantity;
 
-        const { maximumKey, totalKey } = journeyConfig.inventory;
+        const finalDesiredQty = existingQty + requestedQty;
+        await InventoryValidator.validateLineItemStock(cart, sku, finalDesiredQty, journey, existingQty);
+    }
 
-        // Check supplyChannel
-        if (!lineItem.supplyChannel?.id) {
-            throw {
-                statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: 'Missing supplyChannel on lineItem.',
-            };
-        }
-
-        // Check inventoryId from lineItem
-        const inventoryId =
-            lineItem.variant.availability?.channels?.[lineItem.supplyChannel.id]?.id;
-        if (!inventoryId) {
-            throw {
-                statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: 'InventoryId not found on lineItem.',
-            };
-        }
-
-        // Fetch inventory
-        const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
-        if (!inventoryEntry) {
-            throw {
-                statusCode: HTTP_STATUSES.NOT_FOUND,
-                statusMessage: `Inventory entry ${inventoryId} not found.`,
-            };
-        }
-
-        // Check custom fields
-        const customFields = inventoryEntry.custom?.fields;
-        if (!customFields) {
-            throw {
-                statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: 'Custom fields missing on inventory entry.',
-            };
-        }
-
-        const maxStock = customFields[maximumKey] ?? null;
-        const totalUsed = customFields[totalKey] ?? 0;
-        const newTotal = totalUsed + lineItem.quantity;
-
-        // 0 => block
-        if (maxStock === 0) {
-            throw createStandardizedError({
-                statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: 'Cannot sell. maxStock = 0.',
-            }, 'InventoryValidator.validateLineItem');
-        }
-
-        // null => unlimited => pass
-        if (maxStock == null) {
-            return;
-        }
-
-        // positive => check limit
-        if (newTotal > maxStock) {
-            throw createStandardizedError({
-                statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: `Exceeds maxStock: ${newTotal} > ${maxStock}.`,
-            }, 'InventoryValidator.validateLineItem');
-        }
+    public static async validateLineItemReplaceQty(cart: Cart, sku: string, finalQty: number, journey: CART_JOURNEYS) {
+        // Replace means final = new qty
+        await InventoryValidator.validateLineItemStock(cart, sku, finalQty, journey);
     }
 
     /**
-     * 3) Validate the entire cart (for final check).
+     * Example method for validating entire cart before final checkout
      */
-    public static async validateCart(ctCart: Cart): Promise<void> {
-        const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
-        if (!journey) {
-            // No journey => skip
-            return;
-        }
+    public static async validateCart(cart: Cart): Promise<void> {
+        const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
+        if (!journey) return;
 
-        // Validate each lineItem
-        for (const lineItem of ctCart.lineItems) {
-            await InventoryValidator.validateLineItem(lineItem, journey);
+        for (const lineItem of cart.lineItems) {
+            if (!lineItem.variant?.sku) continue;
+            await InventoryValidator.validateLineItemStock(
+                cart,
+                lineItem.variant.sku,
+                lineItem.quantity,
+                journey
+            );
         }
-    }
-
-    /**
-     * (Helper) Example method that tries to figure out
-     *  your "inventoryId" from (sku, supplyChannelId).
-     *  The logic might differ depending on your CT setup.
-     */
-    private static async deriveInventoryId(sku: string, supplyChannelId: string): Promise<string | null> {
-        // For example, if your Inventory key = channel + '-' + sku, do:
-        //   key = supplyChannelId + '-' + sku
-        //   then query CommercetoolsInventoryClient by key
-        // This is just a placeholder
-        const possibleInventories = await CommercetoolsInventoryClient.getInventory(sku);
-        if (!possibleInventories?.length) {
-            return null;
-        }
-        // Filter to the one matching supplyChannel
-        const match = possibleInventories.find((inv: any) => {
-            // e.g., maybe inv.channelId === supplyChannelId
-            return inv.supplyChannel === supplyChannelId;
-        });
-        return match?.id || null;
     }
 }
