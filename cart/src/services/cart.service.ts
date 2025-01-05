@@ -144,11 +144,11 @@ export class CartService {
             // * STEP #4 - Validate Available Quantity (Commercetools)
             await this.validateAvailableQuantity(ctCart)
 
-            await InventoryValidator.validateCart(ctCart);
-
             ctCart = await this.handleAutoRemoveCoupons(ctCart, cartId);
 
             ctCart = await this.removeUnselectedItems(ctCart);
+
+            await InventoryValidator.validateCart(ctCart);
 
             const orderNumber = this.generateOrderNumber()
 

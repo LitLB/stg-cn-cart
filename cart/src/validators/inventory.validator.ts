@@ -50,6 +50,9 @@ export class InventoryValidator {
 
         // e.g. newTotalUsage = totalUsed + newRequestedTotal
         const newTotalUsage = totalUsed + newRequestedTotal;
+        console.log('maxStock', maxStock);
+        console.log('totalUsed', totalUsed);
+        console.log('newTotalUsage', newTotalUsage);
 
         // 5) validate new usage
         InventoryUtils.validateNewUsage(

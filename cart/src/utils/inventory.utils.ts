@@ -6,13 +6,10 @@ import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
 import { createStandardizedError } from './error.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
 
-/**
- * Reusable Inventory Utility functions
- */
 export class InventoryUtils {
     /**
      * Build the inventory key from channel + sku.
-     * E.g., "onlineChannel-sku123"
+     * E.g., "80000xxx-sku123"
      */
     public static buildInventoryKey(sku: string): string {
         const channelId = readConfiguration().onlineChannel;

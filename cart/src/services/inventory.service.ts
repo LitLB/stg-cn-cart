@@ -51,6 +51,9 @@ export class InventoryService {
 
         // 4) calculate new usage
         const newTotal = totalUsed + lineItem.quantity;
+        console.log('maxStock', maxStock);
+        console.log('totalUsed', totalUsed);
+        console.log('newTotal', newTotal);
 
         // 5) if unlimited => skip
         if (maxStock == null) return;

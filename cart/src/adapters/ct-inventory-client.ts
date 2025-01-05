@@ -346,6 +346,9 @@ class CommercetoolsInventoryClient {
 			actions: updateActions,
 		};
 
+		console.log('inventoryId', inventoryId);
+		console.log('inventoryUpdate', inventoryUpdate);
+
 		await this.apiRoot
 			.withProjectKey({ projectKey: this.projectKey })
 			.inventory()
