@@ -1,0 +1,171 @@
+[
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "acceptCoupon",
+    "props": { "value": "STG_NINEW_01" },
+    "triggeredByCoupon": 910486,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "acceptCoupon",
+    "props": { "value": "STG_NINEW_02" },
+    "triggeredByCoupon": 910487,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "acceptCoupon",
+    "props": { "value": "STG_NINEW_03" },
+    "triggeredByCoupon": 910488,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "setDiscount",
+    "props": { "name": "Cart Discount", "value": 100 },
+    "triggeredByCoupon": 910486,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "customEffect",
+    "props": {
+      "effectId": 48,
+      "name": "coupon_custom_effect",
+      "payload": {
+        "status": "true",
+        "discount_price": "100",
+        "discount_percentage": "0",
+        "discount_code": "STG_NINEW_01",
+        "other_payment_code": "STG_NINEW_01",
+        "name_th": "STG_NINEW_01",
+        "name_en": "STG_NINEW_01",
+        "marketing_name_th": "STG_NINEW_01",
+        "marketing_name_en": "STG_NINEW_01",
+        "coupon_short_detail_th": "STG_NINEW_01",
+        "coupon_short_detail_en": "STG_NINEW_01",
+        "term_condition_th": "STG_NINEW_01",
+        "term_condition_en": "STG_NINEW_01"
+      }
+    },
+    "triggeredByCoupon": 910486,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "setDiscount",
+    "props": { "name": "Cart Discount", "value": 100 },
+    "triggeredByCoupon": 910487,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "customEffect",
+    "props": {
+      "effectId": 48,
+      "name": "coupon_custom_effect",
+      "payload": {
+        "status": "true",
+        "discount_price": "100",
+        "discount_percentage": "0",
+        "discount_code": "STG_NINEW_02",
+        "other_payment_code": "STG_NINEW_02",
+        "name_th": "STG_NINEW_02",
+        "name_en": "STG_NINEW_02",
+        "marketing_name_th": "STG_NINEW_02",
+        "marketing_name_en": "STG_NINEW_02",
+        "coupon_short_detail_th": "STG_NINEW_02",
+        "coupon_short_detail_en": "STG_NINEW_02",
+        "term_condition_th": "STG_NINEW_02",
+        "term_condition_en": "STG_NINEW_02"
+      }
+    },
+    "triggeredByCoupon": 910487,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "setDiscount",
+    "props": { "name": "Cart Discount", "value": 100 },
+    "triggeredByCoupon": 910488,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "customEffect",
+    "props": {
+      "effectId": 48,
+      "name": "coupon_custom_effect",
+      "payload": {
+        "status": "true",
+        "discount_price": "100",
+        "discount_percentage": "0",
+        "discount_code": "STG_NINEW_03",
+        "other_payment_code": "STG_NINEW_03",
+        "name_th": "STG_NINEW_03",
+        "name_en": "STG_NINEW_03",
+        "marketing_name_th": "STG_NINEW_03",
+        "marketing_name_en": "STG_NINEW_03",
+        "coupon_short_detail_th": "STG_NINEW_03",
+        "coupon_short_detail_en": "STG_NINEW_03",
+        "term_condition_th": "STG_NINEW_03",
+        "term_condition_en": "STG_NINEW_03"
+      }
+    },
+    "triggeredByCoupon": 910488,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  },
+  {
+    "campaignId": 457,
+    "rulesetId": 8882,
+    "ruleIndex": 0,
+    "ruleName": "Cart Discount by Percentage & Flat Rate",
+    "effectType": "rejectCoupon",
+    "props": {
+      "value": "STG_NINEW_04",
+      "rejectionReason": "EffectCouldNotBeApplied",
+      "effectIndex": 1,
+      "details": "undefined at path $Coupon.Attributes.other_payment_code\n  at argument 6 in (customEffect 48 $Coupon.Attributes.coupon_status $Coupon.Attributes.discount_price $Coupon.Attributes.discount_percent $Coupon.Attributes.discount_code $Coupon.Attributes.other_payment_code $Coupon.Attributes.coupon_name_th $Coupon.Attributes.coupon_name_en $Coupon.Attributes.marketing_name_th $Coupon.Attributes.marketing_name_en $Coupon.Attributes.coupon_short_detail_th $Coupon.Attributes.coupon_name_en $Coupon.Attributes.term_condition_th $Coupon.Attributes.term_condition_en)"
+    },
+    "triggeredByCoupon": 910489,
+    "evaluationGroupID": 1,
+    "evaluationGroupMode": "stackable"
+  }
+]

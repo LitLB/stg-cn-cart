@@ -15,6 +15,9 @@ export class InventoryService {
             return;
         }
 
+        // TODO: Max's code
+        // const preOrder = cart?.custom?.preOrder;
+
         const { maximumKey, totalKey } = journeyConfig.inventory;
 
         // 1) get supplyChannel + inventoryId
@@ -48,6 +51,8 @@ export class InventoryService {
             maximumKey,
             totalKey
         );
+        console.log('maximumKey', maximumKey);
+        console.log('totalKey', totalKey);
 
         // 4) calculate new usage
         const newTotal = totalUsed + lineItem.quantity;
