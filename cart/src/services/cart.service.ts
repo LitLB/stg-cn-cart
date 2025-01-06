@@ -76,6 +76,7 @@ export class CartService {
     public updateStockAllocation = async (ctCart: Cart): Promise<void> => {
         try {
             const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
+            const isPreOrder = ctCart.custom?.fields?.preOrder
             const journeyConfig = journeyConfigMap[journey];
 
             for (const lineItem of ctCart.lineItems) {
@@ -112,12 +113,20 @@ export class CartService {
                 }
 
                 const orderedQuantity = lineItem.quantity;
-                await CommercetoolsInventoryClient.updateInventoryAllocationV2(
-                    inventoryEntry,
-                    orderedQuantity,
-                    journey,
-                    journeyConfig
-                );
+                const isMainProduct = lineItem.custom?.fields?.productType === 'main_product'
+
+                if (isPreOrder && isMainProduct) {
+                    console.log(`Inventory dummy`)
+                    await CommercetoolsInventoryClient.updateInventoryDummyStock(inventoryEntry, orderedQuantity, journeyConfig)
+                } else {
+                    console.log(`Inventory allocated`)
+                    await CommercetoolsInventoryClient.updateInventoryAllocationV2(
+                        inventoryEntry,
+                        orderedQuantity,
+                        journey,
+                        journeyConfig
+                    );
+                }
             }
         } catch (error: any) {
             console.log('error', error)
@@ -182,6 +191,8 @@ export class CartService {
 
             let ctCart = await this.getCtCartById(accessToken, cartId)
 
+            const isPreOrder = ctCart.custom?.fields.preOrder
+
             CartValidator.validateCartHasSelectedItems(ctCart);
 
             // * STEP #2 - Validate Blacklist
@@ -203,25 +214,34 @@ export class CartService {
 
             const orderNumber = this.generateOrderNumber()
 
-            // * STEP #5 - Create Order On TSM Sale
-            const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
-            // //! IF available > x
-            // //! THEN continue
-            // //! ELSE 
-            // //! THEN throw error
+            let tsmSaveOrder = {
+              
+            }
 
-            const tsmSaveOrder = {
-                tsmOrderIsSaved: success,
-                tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+            if (!isPreOrder) {
+
+                // * STEP #5 - Create Order On TSM Sale
+                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+                // //! IF available > x
+                // //! THEN continue
+                // //! ELSE 
+                // //! THEN throw error
+                tsmSaveOrder = {
+                    tsmOrderIsSaved: success,
+                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+                }
+
             }
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
             await this.updateStockAllocation(cartWithUpdatedPrice);
+
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
             return { ...order, hasChanged: cartWithUpdatedPrice.compared };
+            // return { hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             logger.info(`CartService.createOrder.error`, error);
             if (error.status && error.message) {

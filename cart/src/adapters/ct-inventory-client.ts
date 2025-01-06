@@ -301,6 +301,54 @@ class CommercetoolsInventoryClient {
 
 		return updatedDataInventories
 	}
+
+	public async updateInventoryDummyStock(inventoryEntry: InventoryEntry, orderedQuantity: number, journeyConfig: any): Promise<void> {
+
+		const { dummyKey, dummyPurchaseKey } = journeyConfig.inventory;
+		if (!dummyKey || !dummyPurchaseKey) {
+			throw {
+				statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
+				statusMessage: 'dummyKey or dummyPurchaseKey invalid.',
+				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
+			}
+		}
+	
+
+		const customFields = inventoryEntry.custom?.fields;
+		if (!customFields) {
+			throw {
+				statusCode: HTTP_STATUSES.BAD_REQUEST,
+				statusMessage: 'Custom fields are missing on inventory entry.',
+				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
+			}
+		}
+
+		console.log({customFields})
+
+		const maximumStock = customFields[dummyKey] || 0;
+		const totalPurchaseDummy = customFields[dummyPurchaseKey] || 0;
+
+		console.log(`maximumStock : ${maximumStock}`)
+		console.log(`totalPurchaseDummy : ${totalPurchaseDummy}`)
+		console.log(`orderedQuantity : ${orderedQuantity}`)
+
+
+		const newTotal = totalPurchaseDummy + orderedQuantity;
+		if (newTotal > maximumStock) {
+			throw {
+				statusCode: HTTP_STATUSES.BAD_REQUEST,
+				statusMessage: `Exceeds maximum stock allocation for journey.`,
+				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
+			};
+		}
+
+		await this.updateInventoryCustomField(
+			inventoryEntry,
+			dummyPurchaseKey,
+			newTotal
+		);
+
+	}
 }
 
 export default CommercetoolsInventoryClient.getInstance();

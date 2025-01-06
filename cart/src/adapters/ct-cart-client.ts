@@ -6,6 +6,8 @@ import { readConfiguration } from '../utils/config.utils';
 import { compareLineItemsArrays } from '../utils/compare.util';
 import { getAttributeValue } from '../utils/product-utils';
 import { UpdateAction } from '@commercetools/sdk-client-v2';
+import { CART_INVENTORY_MODES } from '../constants/cart.constant';
+import { LINE_ITEM_INVENTORY_MODES } from '../constants/lineItem.constant';
 
 class CommercetoolsCartClient {
 	private static instance: CommercetoolsCartClient;
@@ -92,22 +94,20 @@ class CommercetoolsCartClient {
 		const { lineItems } = cart;
 
 
-		const cartFlag = cart.custom?.fields.preOrder;
+		const existingMainProduct = lineItems.find((lineItem: LineItem) =>
+			lineItem.custom?.fields?.productType === 'main_product'
+		);
 
 
-		if (cartFlag || dummyFlag) {
-			const existingMainProduct = lineItems.find((lineItem: LineItem) =>
-				lineItem.custom?.fields?.productType === 'main_product' 
-			);
+		if (existingMainProduct) {
 
-			if (existingMainProduct) {
-				if (productType === 'main_product') {
-					const { variant,productId:existingId } = existingMainProduct;
-					// If the cart flag or variant ID doesn't match, throw an error
-					if (cartFlag !== dummyFlag || variant?.id !== variantId || productId !== existingId) {
-						throw new Error('Cannot add different stock types in the same cart.');
-					}
-				}
+			const { variant, productId: existingId , custom } = existingMainProduct;
+
+			const isPreOrderProduct = custom?.fields.isPreOrder
+
+			// If the cart flag or variant ID doesn't match, throw an error
+			if (isPreOrderProduct !== dummyFlag || variant?.id !== variantId || productId !== existingId) {
+				throw new Error('Cannot add different stock types in the same cart.');
 			}
 		}
 
@@ -131,7 +131,6 @@ class CommercetoolsCartClient {
 		const selected = existingLineItem?.custom?.fields?.selected;
 
 		if (existingLineItem) {
-
 			const externalPrice = existingLineItem.price.value;
 			const updatedCart = await this.updateCart(cart.id, cart.version, [{
 				action: 'changeLineItemQuantity',
@@ -147,7 +146,7 @@ class CommercetoolsCartClient {
 		const updateCustom: CartSetCustomFieldAction = {
 			action: 'setCustomField',
 			name: 'preOrder',
-			value: cart.custom?.fields.preOrder ? true : dummyFlag
+			value: dummyFlag
 		};
 
 
@@ -158,6 +157,7 @@ class CommercetoolsCartClient {
 		const lineItemDraft: LineItemDraft = {
 			productId,
 			variantId,
+			inventoryMode: dummyFlag ? LINE_ITEM_INVENTORY_MODES.TRACK_ONLY : LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
 			quantity,
 			supplyChannel: {
 				typeId: 'channel',
@@ -177,6 +177,7 @@ class CommercetoolsCartClient {
 					...(selected != null ? { selected } : {}),
 					...(discounts?.length ? { discounts } : {}),
 					...(otherPayments?.length ? { otherPayments } : {}),
+					isPreOrder: dummyFlag
 				},
 			},
 			externalPrice,
@@ -188,6 +189,7 @@ class CommercetoolsCartClient {
 			cartWithDummyFlag.version,
 			lineItemDraft,
 		);
+
 
 
 		return updatedCart;
@@ -208,7 +210,7 @@ class CommercetoolsCartClient {
 			{
 				action: 'addLineItem',
 				...lineItemDraft,
-			},
+			},	
 		];
 
 		const cartUpdate: MyCartUpdate = {
