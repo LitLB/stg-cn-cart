@@ -2,6 +2,10 @@
 
 import _ from 'lodash'
 import { Cart, CartUpdateAction, LineItem, Order } from '@commercetools/platform-sdk';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
@@ -35,12 +39,10 @@ export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
     private blacklistService: BlacklistService;
     private couponService: CouponService;
-    private talonOneEffectConverter: typeof talonOneEffectConverter
     private inventoryService: InventoryService;
 
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
-        this.talonOneEffectConverter = talonOneEffectConverter
         this.blacklistService = new BlacklistService()
         this.couponService = new CouponService()
         this.inventoryService = new InventoryService()
@@ -150,7 +152,7 @@ export class CartService {
 
             await InventoryValidator.validateCart(ctCart);
 
-            const orderNumber = this.generateOrderNumber()
+            const orderNumber = await this.generateOrderNumber(`TRUE`)
 
             // * STEP #5 - Create Order On TSM Sale
             const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
@@ -172,7 +174,7 @@ export class CartService {
             await this.createOrderAdditional(order, client);
             return { ...order, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
-            logger.info(`CartService.createOrder.error`, error);
+            logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
                 throw error;
             }
@@ -300,7 +302,7 @@ export class CartService {
 
             return { ...iCart, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
-            logger.info(`CartService.checkout.error`, error);
+            logger.error(`CartService.checkout.error`, error);
             if (error.status && error.message) {
                 throw error;
             }
@@ -785,7 +787,7 @@ export class CartService {
 
             return true;
         } catch (error: any) {
-            console.error('error-cartService-validateCampaign', error)
+            logger.error('CartService.validateCampaign.error', error)
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
@@ -852,11 +854,54 @@ export class CartService {
         }
     }
 
+    private async generateOrderNumber(company: string) {
+        const MAXIMUM_RUNNING_NUMBER = 99999;
+        const CONTAINER_KEY = 'orderNumber';
 
-    private generateOrderNumber() {
-        const timestamp = Date.now().toString(); // Current timestamp
-        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0'); // Random 4-digit number
-        return `ORD-${timestamp}-${random}`; // Combine parts into an order number
+        dayjs.extend(utc);
+        dayjs.extend(timezone);
+        const currentDate = dayjs().tz('Asia/Bangkok');
+
+        const companyAbbr = company === 'DTAC' ? 'D' : 'T';
+
+        const key = `${companyAbbr}${currentDate.format('YYMM')}`;
+
+        const maxRetries = 3
+        let retries = 0
+        let newCounter = 1
+        while (retries < maxRetries) {
+
+            try {
+                const existingObject = await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey(CONTAINER_KEY, key)
+                newCounter = existingObject.value + 1
+                await CommercetoolsCustomObjectClient.createOrUpdateCustomObject({
+                    container: CONTAINER_KEY,
+                    key,
+                    value: newCounter,
+                    version: existingObject.version
+                })
+
+                const runningNumber = newCounter % MAXIMUM_RUNNING_NUMBER
+                const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYMMDD')}${runningNumber.toString().padStart(5, '0')}`
+
+                return orderNumberFormatted
+            } catch (err: any) {
+                if (err.statusCode === 404) {
+                    await CommercetoolsCustomObjectClient.createOrUpdateCustomObject({
+                        container: CONTAINER_KEY,
+                        key,
+                        value: newCounter,
+                        version: 0
+                    })
+                    const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYMMDD')}${newCounter.toString().padStart(5, '0')}`
+                    return orderNumberFormatted
+                }
+                retries = retries + 1
+                continue // Retry on conflict
+            }
+        }
+
+        throw new Error("Failed after maximum retries")
     }
 
     public createOrderAdditional = async (
