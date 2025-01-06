@@ -34,6 +34,7 @@ import { HTTP_STATUSES } from '../../constants/http.constant';
 import { LOCALES } from '../../constants/locale.constant';
 import { updatedCartWithFreeGiftAdded } from '../../mocks/free-gift/updatedCart.mock';
 import { lineItemWithCampaignBenefitsMock } from '../../mocks/lineItemWithCampaignBenefits.mock';
+import { updateCartFlag } from '../../utils/cart.utils';
 
 export default class CommercetoolsMeCartClient {
 	private apiRoot: ApiRoot;
@@ -89,6 +90,7 @@ export default class CommercetoolsMeCartClient {
 				fields: {
 					campaignGroup,
 					journey,
+					preOrder: false
 				},
 			},
 		};
@@ -715,6 +717,7 @@ export default class CommercetoolsMeCartClient {
 			deleteDaysAfterLastModification,
 		);
 
+
 		const iCart: ICart = {
 			cartId: ctCart.id,
 			locale: ctCart?.locale || null,
@@ -739,6 +742,7 @@ export default class CommercetoolsMeCartClient {
 			updatedAt: new Date(ctCart.lastModifiedAt),
 			deleteDaysAfterLastModification: ctCart.deleteDaysAfterLastModification || 30,
 			expiredAt,
+			preOrder: ctCart.custom?.fields.preOrder || false
 		};
 
 		return iCart;

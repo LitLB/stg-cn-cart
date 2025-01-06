@@ -8,15 +8,12 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { InventoryUtils } from '../utils/inventory.utils';
 
 export class InventoryService {
-    public async commitLineItemStockUsage(lineItem: LineItem, journey: CART_JOURNEYS) {
+    public async commitLineItemStockUsage(lineItem: LineItem, journey: CART_JOURNEYS, preOrder?: boolean) {
         const journeyConfig = journeyConfigMap[journey];
         if (!journeyConfig?.inventory) {
             // No special inventory config => skip
             return;
         }
-
-        // TODO: Max's code
-        // const preOrder = cart?.custom?.preOrder;
 
         const { maximumKey, totalKey } = journeyConfig.inventory;
 
@@ -45,7 +42,20 @@ export class InventoryService {
             }, 'InventoryService.commitLineItemStockUsage');
         }
 
-        // 3) read custom fields to get maxStock & totalUsed
+        // 3) Check if this is a "preOrder main product"
+        const isMainProduct = lineItem.custom?.fields?.productType === 'main_product';
+        if (preOrder && isMainProduct) {
+            // Merge Max's dummy stock logic here
+            console.log('[InventoryService] Using dummy stock for preOrder main_product');
+            await CommercetoolsInventoryClient.updateInventoryDummyStock(
+                inventoryEntry,
+                lineItem.quantity,
+                journeyConfig
+            );
+            return; 
+        }
+
+        // Otherwise, physical
         const { maxStock, totalUsed } = InventoryUtils.getMaxStockAndTotalUsed(
             inventoryEntry,
             maximumKey,
@@ -71,9 +81,8 @@ export class InventoryService {
         );
 
         // 7) update totalUsed
-        await CommercetoolsInventoryClient.setCustomField(
-            inventoryEntry.id,
-            inventoryEntry.version,
+        await CommercetoolsInventoryClient.updateInventoryCustomField(
+            inventoryEntry,
             totalKey,
             newTotal
         );
@@ -84,10 +93,12 @@ export class InventoryService {
      */
     public async commitCartStock(ctCart: Cart): Promise<void> {
         const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
+        const preOrder = ctCart.custom?.fields?.preOrder || false; // from Max's branch
+
         if (!journey) return;
 
         for (const lineItem of ctCart.lineItems) {
-            await this.commitLineItemStockUsage(lineItem, journey);
+            await this.commitLineItemStockUsage(lineItem, journey, preOrder);
         }
     }
 }

@@ -134,7 +134,7 @@ class CommercetoolsOrderClient {
 				},
 				fields: {
 					...(tsmOrderIsSaved !== undefined && tsmOrderIsSaved !== null ? { tsmOrderIsSaved } : {}),
-					...(tsmOrderResponse ? { tsmOrderResponse } : {})
+					...(tsmOrderResponse ? { tsmOrderResponse } : {}),
 				}
 			}
 		};

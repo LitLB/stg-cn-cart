@@ -25,7 +25,7 @@ export class InventoryValidator {
         const { maximumKey, totalKey } = journeyConfig.inventory;
         const supplyChannelId = readConfiguration().ctpSupplyChannel;
 
-        // 2) If we don’t have existingQtyInCart, find it
+        // 2) If existingQtyInCart not exists, find it
         let existingQty = existingQtyInCart ?? 0;
         if (existingQty === 0 && existingQtyInCart == null) {
             const existingLineItem = InventoryUtils.findLineItem(cart, sku, supplyChannelId);
@@ -97,16 +97,27 @@ export class InventoryValidator {
      */
     public static async validateCart(cart: Cart): Promise<void> {
         const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
+        const isPreOrder = cart.custom?.fields?.preOrder;
+
         if (!journey) return;
 
         for (const lineItem of cart.lineItems) {
             if (!lineItem.variant?.sku) continue;
-            await InventoryValidator.validateLineItemStock(
-                cart,
-                lineItem.variant.sku,
-                lineItem.quantity,
-                journey
-            );
+
+            // If it’s a preOrder main_product, you could optionally skip or do a separate validation
+            const isMainProduct = lineItem.custom?.fields?.productType === 'main_product';
+            if (isPreOrder && isMainProduct) {
+                // Optionally validate dummy usage here if desired
+                // e.g. verify that new dummyPurchase + orderedQty <= dummyStock
+            } else {
+                // Fallback to your existing maxStock/totalUsed usage
+                await InventoryValidator.validateLineItemStock(
+                    cart,
+                    lineItem.variant.sku,
+                    lineItem.quantity,
+                    journey
+                );
+            }
         }
     }
 }

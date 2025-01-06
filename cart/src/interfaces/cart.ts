@@ -35,6 +35,7 @@ export interface ICart {
 	expiredAt: Date;
 	deleteDaysAfterLastModification?: number;
 	hasChanged?: any // TODO
+	preOrder: boolean;
 }
 
 export interface IItem {

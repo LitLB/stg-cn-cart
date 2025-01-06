@@ -21,6 +21,8 @@ export const journeyConfigMap: Record<CART_JOURNEYS, any> = {
         inventory: {
             maximumKey: 'maximumStockAllocationDeviceOnly',
             totalKey: 'totalPurchaseStockAllocationDeviceOnly',
+            dummyKey: 'dummyStock',
+            dummyPurchaseKey: 'dummyPurchase',
         },
     },
 }
