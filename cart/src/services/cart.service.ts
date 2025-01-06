@@ -199,7 +199,10 @@ export class CartService {
             // * STEP #4 - Validate Available Quantity (Commercetools)
             await this.validateAvailableQuantity(ctCart)
 
+            console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
             ctCart = await this.handleAutoRemoveCoupons(ctCart, cartId);
+            console.log('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
+            return ctCart;
 
             ctCart = await this.removeUnselectedItems(ctCart);
 

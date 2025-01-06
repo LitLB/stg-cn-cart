@@ -26,7 +26,7 @@ export class TalonOneCouponAdapter {
 
     public processCouponEffects(effects: any[]): {
         updateActions: CartUpdateAction[];
-        acceptedCoupons: string[];
+        acceptedCoupons: ICoupon[];
         rejectedCoupons: { code: string; reason: string }[];
         customEffects: any[];
         couponIdToCode: { [key: number]: string };
@@ -34,7 +34,7 @@ export class TalonOneCouponAdapter {
         applyCoupons: { code: string; }[];
     } {
         const updateActions: CartUpdateAction[] = [];
-        const acceptedCoupons: string[] = [];
+        const acceptedCoupons: ICoupon[] = [];
         const rejectedCoupons: { code: string; reason: string }[] = [];
         const customEffects: any[] = [];
         const couponIdToCode: { [key: number]: string } = {};
@@ -253,7 +253,7 @@ export class TalonOneCouponAdapter {
         });
     }
 
-    async getCouponEffectsByCtCartId(id: any, lineItems: any): Promise<ICoupon> {
+    async getCouponEffectsByCtCartId(id: any, lineItems: any): Promise<any> {
         const defaultCoupons: ICoupon = { coupons: { acceptedCoupons: [], rejectedCoupons: [] } };
 
         // Early return if no line items are provided
@@ -263,10 +263,14 @@ export class TalonOneCouponAdapter {
 
         try {
             const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(id);
+            console.log('talonEffects', talonEffects);
 
-            const { applyCoupons: acceptedCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects);
+            // const { applyCoupons: acceptedCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects);
+            const processedEffects = this.processCouponEffects(talonEffects);
+            console.log('processedEffects.acceptedCoupons', processedEffects.acceptedCoupons);
+            console.log('processedEffects.rejectedCoupons', processedEffects.rejectedCoupons);
 
-            return { coupons: { acceptedCoupons, rejectedCoupons } };
+            return { processedEffects, coupons: { acceptedCoupons: processedEffects.acceptedCoupons, rejectedCoupons: processedEffects.rejectedCoupons } };
         } catch (error: any) {
             logger.error("cartService.checkout.talonOneCouponAdapter.getCouponEffectsByCtCartId.error: ", error);
 

@@ -22,6 +22,54 @@ export class CouponService {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
     }
 
+    // T1 auto clear invalid coupons
+    // CT update cart needed
+    // Throw 400, with errorCode HANDLE_AUTO_REMOVE_COUPONS_FAILED
+    public async autoRemoveInvalidCouponsAndReturnOnceV2(ctCart: Cart): Promise<{
+        updatedCart: Cart;
+        permanentlyInvalidRejectedCoupons: Coupon[];
+    }> {
+        const processedEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
+            ctCart.id,
+            ctCart.lineItems
+        );
+        console.log('ccccccccccccccccccccccccccccccccccccccccccccccccccccccccc');
+        console.log('processedEffects.coupons.rejectedCoupons', processedEffects.coupons.rejectedCoupons);
+        if (processedEffects.coupons.rejectedCoupons.length > 0) {
+            throw createStandardizedError(
+                {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Some coupons were rejected during processing.',
+                    data: processedEffects.coupons.rejectedCoupons,
+                },
+                'handleAutoRemoveCoupons' // errorCode must correct
+            );
+        }
+
+        const { updateActions } =
+            this.talonOneCouponAdapter.buildCouponActions(ctCart, processedEffects.processedEffects);
+
+        if (updateActions.length === 0) {
+            // No cart changes needed
+            return {
+                updatedCart: ctCart,
+                permanentlyInvalidRejectedCoupons: []
+            };
+        }
+
+        // 7) Update the cart in CT
+        const cartAfterAutoRemove = await CommercetoolsCartClient.updateCart(
+            ctCart.id,
+            ctCart.version,
+            updateActions
+        );
+
+        return {
+            updatedCart: cartAfterAutoRemove,
+            permanentlyInvalidRejectedCoupons: []
+        };
+    }
+
     public async autoRemoveInvalidCouponsAndReturnOnce(ctCart: Cart): Promise<{
         updatedCart: Cart;
         permanentlyInvalidRejectedCoupons: Coupon[];
@@ -32,6 +80,20 @@ export class CouponService {
                 ctCart.id,
                 ctCart.lineItems
             );
+            // CN-CART, rejectedCoupons
+            console.log('ccccccccccccccccccccccccccccccccccccccccccccccccccccccccc');
+            console.log('couponEffects.coupons.rejectedCoupons', couponEffects.coupons.rejectedCoupons);
+            // if (couponEffects.coupons.rejectedCoupons.length > 0) {
+            //     throw createStandardizedError(
+            //         {
+            //             statusCode: HTTP_STATUSES.BAD_REQUEST,
+            //             statusMessage: 'Some coupons were rejected during processing.',
+            //             data: couponEffects.coupons.rejectedCoupons,
+            //         },
+            //         'autoRemoveInvalidCouponsAndReturnOnce'
+            //     );
+            // }
+
             const currentCouponCodes: string[] =
                 couponEffects?.coupons?.acceptedCoupons?.map((c: any) => c.code) ?? [];
 
@@ -53,11 +115,13 @@ export class CouponService {
                 ctCart.id,
                 customerSessionPayload
             );
+            console.log('JSON.stringify(updatedSession)', JSON.stringify(updatedSession));
 
             // 3) Process any effects
             const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(
                 updatedSession.effects
             );
+            console.log('processedCouponEffects.rejectedCoupons', processedCouponEffects.rejectedCoupons);
 
             // 3.1) Identify permanently invalid coupons
             const permanentlyInvalid = this.findPermanentlyInvalidCoupons(
@@ -69,6 +133,7 @@ export class CouponService {
                     permanentlyInvalidRejectedCoupons: []
                 };
             }
+            console.log('permanentlyInvalid', permanentlyInvalid);
 
             // 4) Remove them from the Talon.One session
             const removeResult = await this.removeInvalidCouponsFromSession(
