@@ -915,7 +915,7 @@ export class CartService {
 
         const companyAbbr = company === 'DTAC' ? 'D' : 'T';
 
-        const key = `${companyAbbr}${currentDate.format('YYYYMM')}`;
+        const key = `${companyAbbr}${currentDate.format('YYMM')}`;
 
         const maxRetries = 3
         let retries = 0
@@ -933,7 +933,7 @@ export class CartService {
                 })
 
                 const runningNumber = newCounter % MAXIMUM_RUNNING_NUMBER
-                const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYYYMMDD')}${runningNumber.toString().padStart(5, '0')}`
+                const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYMMDD')}${runningNumber.toString().padStart(5, '0')}`
 
                 return orderNumberFormatted
             } catch (err: any) {
@@ -944,7 +944,7 @@ export class CartService {
                         value: newCounter,
                         version: 0
                     })
-                    const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYYYMMDD')}${newCounter.toString().padStart(5, '0')}`
+                    const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYMMDD')}${newCounter.toString().padStart(5, '0')}`
                     return orderNumberFormatted
                 }
                 retries = retries + 1

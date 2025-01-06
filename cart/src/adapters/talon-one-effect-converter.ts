@@ -1270,7 +1270,7 @@ class TalonOneEffectConverter {
 				return availableBenefit.group === addOnGroup
 			})
 
-			let privilege = {}
+			let privilege = null
 			const discounts = []
 			if (matchedBenefit) {
 				const {
