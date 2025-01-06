@@ -183,6 +183,8 @@ export class CartItemService {
 
             return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
+            console.log('error', error);
+            
             if (error.status && error.message) {
                 throw error;
             }

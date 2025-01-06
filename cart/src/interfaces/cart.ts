@@ -7,6 +7,7 @@ export interface ICart {
 	cartId: string;
 	locale?: string | null,
 	// isPrivilege: boolean;
+	preOrder: boolean;
 	campaignGroup: string;
 	journey: string;
 	// loyaltyTier: string;
@@ -35,7 +36,6 @@ export interface ICart {
 	expiredAt: Date;
 	deleteDaysAfterLastModification?: number;
 	hasChanged?: any // TODO
-	preOrder: boolean;
 }
 
 export interface IItem {

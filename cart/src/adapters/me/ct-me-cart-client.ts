@@ -721,6 +721,7 @@ export default class CommercetoolsMeCartClient {
 		const iCart: ICart = {
 			cartId: ctCart.id,
 			locale: ctCart?.locale || null,
+			preOrder: ctCart.custom?.fields.preOrder || false,
 			campaignGroup: ctCart.custom?.fields.campaignGroup,
 			journey: ctCart.custom?.fields.journey,
 			subtotalPrice,
@@ -742,7 +743,6 @@ export default class CommercetoolsMeCartClient {
 			updatedAt: new Date(ctCart.lastModifiedAt),
 			deleteDaysAfterLastModification: ctCart.deleteDaysAfterLastModification || 30,
 			expiredAt,
-			preOrder: ctCart.custom?.fields.preOrder || false
 		};
 
 		return iCart;
