@@ -241,7 +241,6 @@ export class CartService {
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
             return { ...order, hasChanged: cartWithUpdatedPrice.compared };
-            // return { hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             logger.info(`CartService.createOrder.error`, error);
             if (error.status && error.message) {

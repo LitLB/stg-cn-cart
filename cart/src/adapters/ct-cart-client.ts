@@ -94,19 +94,23 @@ class CommercetoolsCartClient {
 		const { lineItems } = cart;
 
 
-		const existingMainProduct = lineItems.find((lineItem: LineItem) =>
+		const existingPreOrderMainProduct = lineItems.find((lineItem: LineItem) =>
 			lineItem.custom?.fields?.productType === 'main_product'
 		);
 
 
-		if (existingMainProduct) {
+		if (existingPreOrderMainProduct) {
 
-			const { variant, productId: existingId , custom } = existingMainProduct;
+			const { productId: existingId, variant } = existingPreOrderMainProduct;
+			const isProductPreOrder = existingPreOrderMainProduct.custom?.fields?.isPreOrder 
 
-			const isPreOrderProduct = custom?.fields.isPreOrder
 
-			// If the cart flag or variant ID doesn't match, throw an error
-			if (isPreOrderProduct !== dummyFlag || variant?.id !== variantId || productId !== existingId) {
+			if(isProductPreOrder && productType === 'main_product') {
+	
+				if (productId === existingId && variantId !== variant.id) {
+					throw new Error('Cannot add different stock types in the same cart.');
+				}
+			}else if(!isProductPreOrder && dummyFlag){
 				throw new Error('Cannot add different stock types in the same cart.');
 			}
 		}
@@ -123,7 +127,6 @@ class CommercetoolsCartClient {
 				&& (!freeGiftGroup || item.custom?.fields?.freeGiftGroup === freeGiftGroup)
 			);
 		});
-
 
 		const privilege = existingLineItem?.custom?.fields?.privilege;
 		const discounts = existingLineItem?.custom?.fields?.discounts;
