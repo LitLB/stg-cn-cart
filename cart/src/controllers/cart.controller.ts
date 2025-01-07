@@ -56,7 +56,7 @@ export class CartController {
         req: Request<{ id: string }, unknown, unknown, GetCartByIdInPut>,
         res: Response,
         next: NextFunction
-      ): Promise<void> => {
+    ): Promise<void> => {
         try {
             const { id } = req.params;
             const { selectedOnly = false, includeCoupons = false } = req.query;

@@ -7,6 +7,7 @@ export interface ICart {
 	cartId: string;
 	locale?: string | null,
 	// isPrivilege: boolean;
+	preOrder: boolean;
 	campaignGroup: string;
 	journey: string;
 	// loyaltyTier: string;

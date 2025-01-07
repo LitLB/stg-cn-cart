@@ -115,6 +115,7 @@ export class CouponService {
             // Re-process effects if the session was updated again
             const finalEffects = updatedCustomerSession.effects;
             const finalProcessedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(finalEffects);
+            // console.log('finalProcessedCouponEffects', finalProcessedCouponEffects);
 
             // 6) Build final cart update actions from the coupon effects
             const updateActions = this.talonOneCouponAdapter.buildCouponActions(
@@ -136,6 +137,7 @@ export class CouponService {
                 ...initiallyRejectedCoupons,
                 ...(finalProcessedCouponEffects.rejectedCoupons || []),
             ];
+            // console.log('finalRejected', finalRejected);
 
             const uniqueRejectedByCode = Array.from(
                 new Map(finalRejected.map(rc => [rc.code, rc])).values()
