@@ -100,8 +100,8 @@ export class TalonOneCouponAdapter {
     public buildCouponActions(
         ctCart: Cart,
         processedEffects: {
-            acceptedCoupons: string[];
-            rejectedCoupons: { code: string; reason: string }[];
+            acceptedCoupons: Coupon[];
+            rejectedCoupons: Coupon[];
             couponIdToCode: { [key: number]: string };
             couponIdToEffects: { [key: number]: any[] };
         }
@@ -143,8 +143,10 @@ export class TalonOneCouponAdapter {
             });
         }
 
+        const applyCoupons = acceptedCoupons?.map((coupon: {code: string}) => coupon.code) ?? [];
+
         // Remove custom line items for rejected or missing coupons
-        this.removeInvalidCustomLineItems(ctCart, updateActions, couponsWithCustomLineItems, acceptedCoupons);
+        this.removeInvalidCustomLineItems(ctCart, updateActions, couponsWithCustomLineItems, applyCoupons);
 
         return { updateActions, couponsInformation };
     }
