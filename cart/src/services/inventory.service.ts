@@ -73,7 +73,7 @@ export class InventoryService {
         // 5) if unlimited => skip
         if (maxStock == null) return;
 
-        // 6) validate new usage (throws if invalid)
+        // 6) maxStock = 0, validate new usage (throws if invalid)
         InventoryUtils.validateNewUsage(
             maxStock,
             newTotal,
