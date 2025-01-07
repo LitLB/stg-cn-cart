@@ -21,7 +21,7 @@ export class InventoryService {
                 statusMessage: 'Missing supplyChannel on lineItem.',
             }, 'InventoryService.commitLineItemStockUsage');
         }
-        
+
         const inventoryId = lineItem.variant.availability?.channels?.[supplyChannelId]?.id;
         if (!inventoryId) {
             throw createStandardizedError({
@@ -29,7 +29,7 @@ export class InventoryService {
                 statusMessage: 'InventoryId not found on lineItem.',
             }, 'InventoryService.commitLineItemStockUsage');
         }
-        
+
         const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
         if (!inventoryEntry) {
             throw createStandardizedError({
@@ -39,9 +39,7 @@ export class InventoryService {
         }
 
         if (isPreOrder && isMainProduct) {
-            // 3.1) Line Item Dummy Stock Validation her.
-
-            // 3.2) Update Dummy Stock.
+            // Update Dummy Stock.
             console.log('[InventoryService] Using dummy stock for isPreOrder main_product');
             await CommercetoolsInventoryClient.updateInventoryDummyStock(
                 inventoryEntry,
@@ -57,7 +55,7 @@ export class InventoryService {
 
         const { maximumKey, totalKey } = journeyConfig.inventory;
 
-        // 2) fetch from CT
+        // Get Inventory Entry
         const refetchedInventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
         if (!refetchedInventoryEntry) {
             throw createStandardizedError({
@@ -66,7 +64,7 @@ export class InventoryService {
             }, 'InventoryService.commitLineItemStockUsage');
         }
 
-        // Otherwise, physical
+        // Get Stock Allocation of Journey by Key
         const { maxStock, totalUsed } = InventoryUtils.getMaxStockAndTotalUsed(
             inventoryEntry,
             maximumKey,
@@ -75,23 +73,23 @@ export class InventoryService {
         console.log('maximumKey', maximumKey);
         console.log('totalKey', totalKey);
 
-        // 4) calculate new usage
+        // calculate new usage
         const newTotal = totalUsed + lineItem.quantity;
         console.log('maxStock', maxStock);
         console.log('totalUsed', totalUsed);
         console.log('newTotal', newTotal);
 
-        // 5) if unlimited => skip
+        // if unlimited => skip
         if (maxStock == null) return;
 
-        // 6) maxStock = 0, validate new usage (throws if invalid)
+        // maxStock = 0, validate new usage (throws if invalid)
         InventoryUtils.validateNewUsage(
             maxStock,
             newTotal,
             'InventoryService.commitLineItemStockUsage'
         );
 
-        // 7) update totalUsed
+        // update totalUsed
         await CommercetoolsInventoryClient.updateInventoryCustomField(
             refetchedInventoryEntry,
             totalKey,
@@ -104,7 +102,6 @@ export class InventoryService {
      */
     public async commitCartStock(ctCart: Cart): Promise<void> {
         const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
-
         if (!journey) return;
 
         for (const lineItem of ctCart.lineItems) {
