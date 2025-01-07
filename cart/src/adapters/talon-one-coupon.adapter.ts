@@ -13,7 +13,7 @@ import { COUPON_CUSTOM_EFFECT } from '../constants/cart.constant';
 import { talonOneIntegrationAdapter } from './talon-one.adapter';
 import { logger } from '../utils/logger.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
-import { ICoupon } from '../interfaces/coupon.interface';
+import { Coupon, ICoupon } from '../interfaces/coupon.interface';
 
 export class TalonOneCouponAdapter {
     private ctpAddCustomCouponLineItemPrefix: string;
@@ -24,19 +24,18 @@ export class TalonOneCouponAdapter {
         this.ctpTaxCategoryId = readConfiguration().ctpTaxCategoryId;
     }
 
-    public processCouponEffects(effects: any[]):
-    {
+    public processCouponEffects(effects: any[]): {
         updateActions: CartUpdateAction[];
-        acceptedCoupons: string[];
-        rejectedCoupons: { code: string; reason: string }[];
+        acceptedCoupons: Coupon[];
+        rejectedCoupons: Coupon[];
         customEffects: any[];
         couponIdToCode: { [key: number]: string };
         couponIdToEffects: { [key: number]: any[] };
         applyCoupons: { code: string; }[];
-    }  {
+    } {
         const updateActions: CartUpdateAction[] = [];
-        const acceptedCoupons: string[] = [];
-        const rejectedCoupons: { code: string; reason: string }[] = [];
+        const acceptedCoupons: Coupon[] = [];
+        const rejectedCoupons: Coupon[] = [];
         const customEffects: any[] = [];
         const couponIdToCode: { [key: number]: string } = {};
         const couponIdToEffects: { [key: number]: any[] } = {};
@@ -254,7 +253,7 @@ export class TalonOneCouponAdapter {
         });
     }
 
-    async getCouponEffectsByCtCartId(id: any, lineItems: any): Promise<any> {
+    async getCouponEffectsByCtCartId(id: any, lineItems: any): Promise<ICoupon> {
         const defaultCoupons: ICoupon = { coupons: { acceptedCoupons: [], rejectedCoupons: [] } };
 
         // Early return if no line items are provided
@@ -264,14 +263,10 @@ export class TalonOneCouponAdapter {
 
         try {
             const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(id);
-            console.log('talonEffects', talonEffects);
 
-            // const { applyCoupons: acceptedCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects);
-            const processedEffects = this.processCouponEffects(talonEffects);
-            console.log('processedEffects.acceptedCoupons', processedEffects.acceptedCoupons);
-            console.log('processedEffects.rejectedCoupons', processedEffects.rejectedCoupons);
+            const { applyCoupons: acceptedCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects);
 
-            return { processedEffects, coupons: { acceptedCoupons: processedEffects.acceptedCoupons, rejectedCoupons: processedEffects.rejectedCoupons } };
+            return { coupons: { acceptedCoupons, rejectedCoupons } };
         } catch (error: any) {
             logger.error("cartService.checkout.talonOneCouponAdapter.getCouponEffectsByCtCartId.error: ", error);
 
@@ -286,11 +281,11 @@ export class TalonOneCouponAdapter {
             }
 
             // Step 1: Extract coupon codes
-            let couponCodes: string[] = couponsEffects.acceptedCoupons.map((coupon: string) => coupon);
+            let couponCodes: string[] = couponsEffects.acceptedCoupons.map((coupon: {code: string}) => coupon.code);
 
             // Merge and deduplicate coupon codes from couponsEffects rejectedCoupons
             if (couponsEffects?.rejectedCoupons?.length > 0) {
-                const rejectedCouponCodes: string[] = couponsEffects.rejectedCoupons.map((coupon: string) => coupon);
+                const rejectedCouponCodes: string[] = couponsEffects.rejectedCoupons.map((coupon: {code: string}) => coupon.code);
                 couponCodes = Array.from(new Set([...couponCodes, ...rejectedCouponCodes]));
             }
 
