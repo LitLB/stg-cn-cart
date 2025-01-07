@@ -257,7 +257,9 @@ export class CartItemService {
                 };
             }
             const inventory = inventories[0];
-            if (inventory.isOutOfStock) {
+            const { isDummyStock,isOutOfStock } = validateInventory(inventory)
+
+            if (isOutOfStock && !isDummyStock) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Insufficient stock for the requested quantity',

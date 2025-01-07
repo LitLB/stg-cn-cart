@@ -8,7 +8,7 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { InventoryUtils } from '../utils/inventory.utils';
 
 export class InventoryService {
-    public async commitLineItemStockUsage(lineItem: LineItem, journey: CART_JOURNEYS, preOrder?: boolean) {
+    public async commitLineItemStockUsage(lineItem: LineItem, journey: CART_JOURNEYS) {
         const journeyConfig = journeyConfigMap[journey];
         if (!journeyConfig?.inventory) {
             // No special inventory config => skip
@@ -44,7 +44,8 @@ export class InventoryService {
 
         // 3) Check if this is a "preOrder main product"
         const isMainProduct = lineItem.custom?.fields?.productType === 'main_product';
-        if (preOrder && isMainProduct) {
+        const isPreOrder = lineItem.custom?.fields?.isPreOrder
+        if (isPreOrder && isMainProduct) {
             // 3.1) Line Item Dummy Stock Validation her.
 
             // 3.2) Update Dummy Stock.
@@ -95,12 +96,11 @@ export class InventoryService {
      */
     public async commitCartStock(ctCart: Cart): Promise<void> {
         const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
-        const preOrder = ctCart.custom?.fields?.preOrder || false; // from Max's branch
 
         if (!journey) return;
 
         for (const lineItem of ctCart.lineItems) {
-            await this.commitLineItemStockUsage(lineItem, journey, preOrder);
+            await this.commitLineItemStockUsage(lineItem, journey);
         }
     }
 }

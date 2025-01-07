@@ -35,6 +35,7 @@ import { CartValidator } from '../validators/cart.validator';
 import { InventoryValidator } from '../validators/inventory.validator';
 import { InventoryService } from './inventory.service';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
+import { validateInventory } from '../utils/cart.utils';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -126,12 +127,12 @@ export class CartService {
                     await CommercetoolsInventoryClient.updateInventoryDummyStock(inventoryEntry, orderedQuantity, journeyConfig)
                 } else {
                     console.log(`Inventory allocated`)
-                    await CommercetoolsInventoryClient.updateInventoryAllocationV2(
-                        inventoryEntry,
-                        orderedQuantity,
-                        journey,
-                        journeyConfig
-                    );
+                    // await CommercetoolsInventoryClient.updateInventoryAllocationV2(
+                    //     inventoryEntry,
+                    //     orderedQuantity,
+                    //     journey,
+                    //     journeyConfig
+                    // );
                 }
             }
         } catch (error: any) {
@@ -904,12 +905,14 @@ export class CartService {
                     };
                 }
                 const inventory = inventories[0];
-                if (inventory.isOutOfStock) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: 'Insufficient stock for the requested quantity',
-                    };
-                }
+                 const { isDummyStock,isOutOfStock } = validateInventory(inventory)
+                
+                            if (isOutOfStock && !isDummyStock) {
+                                throw {
+                                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                                    statusMessage: 'Insufficient stock for the requested quantity',
+                                };
+                            }
 
                 validateProductQuantity(
                     productType,

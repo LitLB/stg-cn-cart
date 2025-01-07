@@ -93,26 +93,33 @@ class CommercetoolsCartClient {
 	}): Promise<Cart> {
 		const { lineItems } = cart;
 
-
+		
+		
 		const existingPreOrderMainProduct = lineItems.find((lineItem: LineItem) =>
 			lineItem.custom?.fields?.productType === 'main_product'
-		);
-
+	);
+	
+		let cartFlag: boolean
 
 		if (existingPreOrderMainProduct) {
 
 			const { productId: existingId, variant } = existingPreOrderMainProduct;
 			const isProductPreOrder = existingPreOrderMainProduct.custom?.fields?.isPreOrder 
 
+			cartFlag = isProductPreOrder
+
+
 
 			if(isProductPreOrder && productType === 'main_product') {
 	
-				if (productId === existingId && variantId !== variant.id) {
+				if (productId !== existingId || variantId !== variant.id) {
 					throw new Error('Cannot add different stock types in the same cart.');
 				}
 			}else if(!isProductPreOrder && dummyFlag){
 				throw new Error('Cannot add different stock types in the same cart.');
 			}
+		}else {
+			cartFlag = dummyFlag
 		}
 
 		
@@ -149,7 +156,7 @@ class CommercetoolsCartClient {
 		const updateCustom: CartSetCustomFieldAction = {
 			action: 'setCustomField',
 			name: 'preOrder',
-			value: dummyFlag
+			value: cartFlag
 		};
 
 

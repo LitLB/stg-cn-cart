@@ -241,23 +241,21 @@ class CommercetoolsInventoryClient {
 			}
 		}
 
-		console.log({customFields})
-
-		const maximumStock = customFields[dummyKey] || 0;
+		const maximumStock = customFields[dummyKey];
 		const totalPurchaseDummy = customFields[dummyPurchaseKey] || 0;
-
-		console.log(`maximumStock : ${maximumStock}`)
-		console.log(`totalPurchaseDummy : ${totalPurchaseDummy}`)
-		console.log(`orderedQuantity : ${orderedQuantity}`)
 
 
 		const newTotal = totalPurchaseDummy + orderedQuantity;
-		if (newTotal > maximumStock) {
-			throw {
-				statusCode: HTTP_STATUSES.BAD_REQUEST,
-				statusMessage: `Exceeds maximum stock allocation for journey.`,
-				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
-			};
+
+		// Check if maximum stock is set and new total exceeds it.
+		if(maximumStock !== undefined ) {
+			if (newTotal > maximumStock) {
+				throw {
+					statusCode: HTTP_STATUSES.BAD_REQUEST,
+					statusMessage: `Exceeds maximum stock allocation for journey [Dummy - Stock].`,
+					errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
+				};
+			}
 		}
 
 		await this.updateInventoryCustomField(
