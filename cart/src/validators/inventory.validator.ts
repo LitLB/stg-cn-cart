@@ -93,31 +93,21 @@ export class InventoryValidator {
     }
 
     /**
-     * Example method for validating entire cart before final checkout
+     * Method for validating entire cart before final checkout
      */
     public static async validateCart(cart: Cart): Promise<void> {
         const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
-        const isPreOrder = cart.custom?.fields?.preOrder;
 
         if (!journey) return;
 
         for (const lineItem of cart.lineItems) {
             if (!lineItem.variant?.sku) continue;
-
-            // If it’s a preOrder main_product, you could optionally skip or do a separate validation
-            const isMainProduct = lineItem.custom?.fields?.productType === 'main_product';
-            if (isPreOrder && isMainProduct) {
-                // Optionally validate dummy usage here if desired
-                // e.g. verify that new dummyPurchase + orderedQty <= dummyStock
-            } else {
-                // Fallback to your existing maxStock/totalUsed usage
-                await InventoryValidator.validateLineItemStock(
-                    cart,
-                    lineItem.variant.sku,
-                    lineItem.quantity,
-                    journey
-                );
-            }
+            await InventoryValidator.validateLineItemStock(
+                cart,
+                lineItem.variant.sku,
+                lineItem.quantity,
+                journey
+            );
         }
     }
 }

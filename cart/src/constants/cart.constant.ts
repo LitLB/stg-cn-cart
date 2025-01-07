@@ -26,3 +26,4 @@ export const journeyConfigMap: Record<CART_JOURNEYS, any> = {
         },
     },
 }
+

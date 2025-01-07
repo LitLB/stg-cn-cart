@@ -112,6 +112,7 @@ class CommercetoolsOrderClient {
 	 * @param tsmSaveOrder - The detail of TSM save order.
 	 */
 	public async createOrderFromCart(orderNumber: string, cart: Cart, tsmSaveOrder?: any): Promise<Order> {
+		const isPreOrder = cart.custom?.fields.preOrder
 		const { tsmOrderIsSaved, tsmOrderResponse } = tsmSaveOrder || {}
 		const orderDraft: OrderFromCartDraft = {
 			version: cart.version,
@@ -121,7 +122,7 @@ class CommercetoolsOrderClient {
 			},
 			orderNumber,
 			orderState: ORDER_STATES.OPEN,
-			shipmentState: SHIPMENT_STATES.PENDING,
+			shipmentState: isPreOrder ? SHIPMENT_STATES.BACK_ORDER : SHIPMENT_STATES.PENDING,
 			paymentState: PAYMENT_STATES.PENDING,
 			state: {
 				typeId: 'state',
@@ -149,6 +150,7 @@ class CommercetoolsOrderClient {
 			return response.body;
 		} catch (error: any) {
 			console.log('createOrderFromCart.error', error);
+
 			if (
 				error.code === 400 &&
 				error.body &&

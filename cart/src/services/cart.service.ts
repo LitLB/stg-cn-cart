@@ -34,6 +34,8 @@ import { Coupon, ICoupon } from '../interfaces/coupon.interface';
 import { CartValidator } from '../validators/cart.validator';
 import { InventoryValidator } from '../validators/inventory.validator';
 import { InventoryService } from './inventory.service';
+import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
+import { validateInventory } from '../utils/cart.utils';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -131,6 +133,8 @@ export class CartService {
 
             let ctCart = await this.getCtCartById(accessToken, cartId)
 
+            const isPreOrder = ctCart.custom?.fields.preOrder
+
             CartValidator.validateCartHasSelectedItems(ctCart);
 
             // * STEP #2 - Validate Blacklist
@@ -154,26 +158,32 @@ export class CartService {
 
             const orderNumber = await this.generateOrderNumber(`TRUE`)
 
-            // * STEP #5 - Create Order On TSM Sale
-            const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
-            // //! IF available > x
-            // //! THEN continue
-            // //! ELSE 
-            // //! THEN throw error
+            let tsmSaveOrder = {
+              
+            }
 
-            const tsmSaveOrder = {
-                tsmOrderIsSaved: success,
-                tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+            if (!isPreOrder) {
+
+                // * STEP #5 - Create Order On TSM Sale
+                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+                // //! IF available > x
+                // //! THEN continue
+                // //! ELSE 
+                // //! THEN throw error
+                tsmSaveOrder = {
+                    tsmOrderIsSaved: success,
+                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+                }
+
             }
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
             await this.inventoryService.commitCartStock(ctCart);
-            // TODO: Uncomment 3 lines below if done.
-            // const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
-            // await this.createOrderAdditional(order, client);
-            // return { ...order, hasChanged: cartWithUpdatedPrice.compared };
+            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            await this.createOrderAdditional(order, client);
+            return { ...order, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -829,12 +839,14 @@ export class CartService {
                     };
                 }
                 const inventory = inventories[0];
-                if (inventory.isOutOfStock) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: 'Insufficient stock for the requested quantity',
-                    };
-                }
+                 const { isDummyStock,isOutOfStock } = validateInventory(inventory)
+                
+                            if (isOutOfStock && !isDummyStock) {
+                                throw {
+                                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                                    statusMessage: 'Insufficient stock for the requested quantity',
+                                };
+                            }
 
                 validateProductQuantity(
                     productType,
