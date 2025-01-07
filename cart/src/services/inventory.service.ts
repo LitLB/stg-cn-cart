@@ -45,7 +45,9 @@ export class InventoryService {
         // 3) Check if this is a "preOrder main product"
         const isMainProduct = lineItem.custom?.fields?.productType === 'main_product';
         if (preOrder && isMainProduct) {
-            // Merge Max's dummy stock logic here
+            // 3.1) Line Item Dummy Stock Validation her.
+
+            // 3.2) Update Dummy Stock.
             console.log('[InventoryService] Using dummy stock for preOrder main_product');
             await CommercetoolsInventoryClient.updateInventoryDummyStock(
                 inventoryEntry,
