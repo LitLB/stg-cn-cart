@@ -24,17 +24,18 @@ export class TalonOneCouponAdapter {
         this.ctpTaxCategoryId = readConfiguration().ctpTaxCategoryId;
     }
 
-    public processCouponEffects(effects: any[]): {
+    public processCouponEffects(effects: any[]):
+    {
         updateActions: CartUpdateAction[];
-        acceptedCoupons: ICoupon[];
+        acceptedCoupons: string[];
         rejectedCoupons: { code: string; reason: string }[];
         customEffects: any[];
         couponIdToCode: { [key: number]: string };
         couponIdToEffects: { [key: number]: any[] };
         applyCoupons: { code: string; }[];
-    } {
+    }  {
         const updateActions: CartUpdateAction[] = [];
-        const acceptedCoupons: ICoupon[] = [];
+        const acceptedCoupons: string[] = [];
         const rejectedCoupons: { code: string; reason: string }[] = [];
         const customEffects: any[] = [];
         const couponIdToCode: { [key: number]: string } = {};
