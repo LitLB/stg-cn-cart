@@ -37,7 +37,7 @@ export class CouponService {
             );
             
             const currentCouponCodes: string[] =
-                couponEffects?.coupons?.acceptedCoupons?.map((code: any) => code) ?? [];
+                couponEffects?.coupons?.acceptedCoupons?.map((c: any) => c.code) ?? [];
 
             if (currentCouponCodes.length === 0) {
                 // No coupons to re-check
@@ -149,7 +149,7 @@ export class CouponService {
             );
             
             const currentCouponCodes: string[] =
-                couponEffects?.coupons?.acceptedCoupons?.map((code: any) => code) ?? [];
+                couponEffects?.coupons?.acceptedCoupons?.map((coupons: any) => coupons.code) ?? [];
 
             if (currentCouponCodes.length === 0) {
                 // No coupons to re-check
