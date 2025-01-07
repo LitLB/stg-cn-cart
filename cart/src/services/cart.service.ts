@@ -80,71 +80,6 @@ export class CartService {
         }
     };
 
-    // public updateStockAllocation = async (ctCart: Cart): Promise<void> => {
-    //     try {
-    //         const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
-    //         const isPreOrder = ctCart.custom?.fields?.preOrder
-    //         const journeyConfig = journeyConfigMap[journey];
-
-    //         for (const lineItem of ctCart.lineItems) {
-
-    //             const supplyChannel = lineItem.supplyChannel;
-
-    //             if (!supplyChannel || !supplyChannel.id) {
-    //                 throw {
-    //                     statusCode: HTTP_STATUSES.BAD_REQUEST,
-    //                     statusMessage: 'Supply channel is missing on line item.',
-    //                     errorCode: "SUPPLY_CHANNEL_MISSING",
-    //                 };
-    //             }
-
-    //             const inventoryId =
-    //                 lineItem.variant.availability?.channels?.[supplyChannel.id]?.id;
-
-    //             if (!inventoryId) {
-    //                 throw {
-    //                     statusCode: HTTP_STATUSES.BAD_REQUEST,
-    //                     statusMessage: 'InventoryId not found.',
-    //                     errorCode: "INVENTORY_ID_NOT_FOUND",
-    //                 };
-    //             }
-
-
-    //             const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
-    //             if (!inventoryEntry) {
-    //                 throw {
-    //                     statusCode: HTTP_STATUSES.BAD_REQUEST,
-    //                     statusMessage: `Inventory entry not found for ID: ${inventoryId}`,
-    //                     errorCode: "INVENTORY_ENTRY_NOT_FOUND",
-    //                 };
-    //             }
-
-    //             const orderedQuantity = lineItem.quantity;
-    //             const isMainProduct = lineItem.custom?.fields?.productType === 'main_product'
-
-    //             if (isPreOrder && isMainProduct) {
-    //                 console.log(`Inventory dummy`)
-    //                 await CommercetoolsInventoryClient.updateInventoryDummyStock(inventoryEntry, orderedQuantity, journeyConfig)
-    //             } else {
-    //                 console.log(`Inventory allocated`)
-    //                 await CommercetoolsInventoryClient.updateInventoryAllocationV2(
-    //                     inventoryEntry,
-    //                     orderedQuantity,
-    //                     journey,
-    //                     journeyConfig
-    //                 );
-    //             }
-    //         }
-    //     } catch (error: any) {
-    //         console.log('error', error)
-    //         throw {
-    //             statusCode: HTTP_STATUSES.BAD_REQUEST,
-    //             statusMessage: `Update stock allocation failed.`,
-    //             errorCode: "CREATE_ORDER_ON_CT_FAILED",
-    //         };
-    //     }
-    // };
-
     private async removeUnselectedItems(ctCart: Cart): Promise<Cart> {
         try {
             const unselectedLineItems = ctCart.lineItems.filter(
@@ -246,7 +181,6 @@ export class CartService {
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
             await this.inventoryService.commitCartStock(ctCart);
-            // TODO: Uncomment 3 lines below if done.
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
             return { ...order, hasChanged: cartWithUpdatedPrice.compared };
