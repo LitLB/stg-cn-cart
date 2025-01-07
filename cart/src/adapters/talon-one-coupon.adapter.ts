@@ -285,11 +285,11 @@ export class TalonOneCouponAdapter {
             }
 
             // Step 1: Extract coupon codes
-            let couponCodes: string[] = couponsEffects.acceptedCoupons.map((coupon: { code: string }) => coupon.code);
+            let couponCodes: string[] = couponsEffects.acceptedCoupons.map((coupon: string) => coupon);
 
             // Merge and deduplicate coupon codes from couponsEffects rejectedCoupons
             if (couponsEffects?.rejectedCoupons?.length > 0) {
-                const rejectedCouponCodes: string[] = couponsEffects.rejectedCoupons.map((coupon: { code: string }) => coupon.code);
+                const rejectedCouponCodes: string[] = couponsEffects.rejectedCoupons.map((coupon: string) => coupon);
                 couponCodes = Array.from(new Set([...couponCodes, ...rejectedCouponCodes]));
             }
 

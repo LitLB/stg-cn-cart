@@ -199,10 +199,7 @@ export class CartService {
             // * STEP #4 - Validate Available Quantity (Commercetools)
             await this.validateAvailableQuantity(ctCart)
 
-            console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
             ctCart = await this.handleAutoRemoveCoupons(ctCart, cartId);
-            console.log('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
-            return ctCart;
 
             ctCart = await this.removeUnselectedItems(ctCart);
 
@@ -240,7 +237,7 @@ export class CartService {
     private async handleAutoRemoveCoupons(ctCart: Cart, cartId: string): Promise<Cart> {
         // 1. Auto-remove invalid coupons
         const { updatedCart, permanentlyInvalidRejectedCoupons } =
-            await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(ctCart);
+            await this.couponService.autoRemoveInvalidCouponsAndReturnOnceV2(ctCart);
         ctCart = updatedCart;
         if (permanentlyInvalidRejectedCoupons.length > 0) {
             throw createStandardizedError(
