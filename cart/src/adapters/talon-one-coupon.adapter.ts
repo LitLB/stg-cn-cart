@@ -267,6 +267,8 @@ export class TalonOneCouponAdapter {
             const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(id);
 
             const { applyCoupons: acceptedCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects);
+            console.log('acceptedCoupons', acceptedCoupons);
+            console.log('rejectedCoupons', rejectedCoupons);
 
             return { coupons: { acceptedCoupons, rejectedCoupons } };
         } catch (error: any) {

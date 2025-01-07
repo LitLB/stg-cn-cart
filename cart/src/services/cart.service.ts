@@ -152,38 +152,40 @@ export class CartService {
 
             ctCart = await this.handleAutoRemoveCoupons(ctCart, cartId);
 
-            ctCart = await this.removeUnselectedItems(ctCart);
+            return true;
 
-            await InventoryValidator.validateCart(ctCart);
+            // ctCart = await this.removeUnselectedItems(ctCart);
 
-            const orderNumber = await this.generateOrderNumber(`TRUE`)
+            // await InventoryValidator.validateCart(ctCart);
 
-            let tsmSaveOrder = {
+            // const orderNumber = await this.generateOrderNumber(`TRUE`)
+
+            // let tsmSaveOrder = {
               
-            }
+            // }
 
-            if (!isPreOrder) {
+            // if (!isPreOrder) {
 
-                // * STEP #5 - Create Order On TSM Sale
-                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
-                // //! IF available > x
-                // //! THEN continue
-                // //! ELSE 
-                // //! THEN throw error
-                tsmSaveOrder = {
-                    tsmOrderIsSaved: success,
-                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
-                }
+            //     // * STEP #5 - Create Order On TSM Sale
+            //     const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+            //     // //! IF available > x
+            //     // //! THEN continue
+            //     // //! ELSE 
+            //     // //! THEN throw error
+            //     tsmSaveOrder = {
+            //         tsmOrderIsSaved: success,
+            //         tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+            //     }
 
-            }
+            // }
 
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
-            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            // const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+            // const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
-            await this.inventoryService.commitCartStock(ctCart);
-            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
-            await this.createOrderAdditional(order, client);
-            return { ...order, hasChanged: cartWithUpdatedPrice.compared };
+            // await this.inventoryService.commitCartStock(ctCart);
+            // const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            // await this.createOrderAdditional(order, client);
+            // return { ...order, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -210,11 +212,14 @@ export class CartService {
             );
         }
 
+        console.log('handleAutoRemoveCoupons.a')
+
         // 2. Grab coupon data
         const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
             ctCart.id,
             ctCart.lineItems
         );
+        console.log('handleAutoRemoveCoupons.b')
 
         // 3. Construct updateActions from coupon effects
         const updateActions: CartUpdateAction[] = [];
@@ -224,6 +229,9 @@ export class CartService {
                 ctCart,
                 couponEffects.coupons
             );
+
+        console.log('updateActions', updateActions);
+        console.log('handleAutoRemoveCoupons.c')
 
         if (talonOneUpdateActions?.updateActions) {
             updateActions.push(...talonOneUpdateActions.updateActions);
@@ -236,10 +244,15 @@ export class CartService {
             talonOneUpdateActions?.couponsInformation
         );
 
+        console.log('handleAutoRemoveCoupons.d')
+
         // 5. Apply any updates
         if (updateActions.length > 0) {
             return await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, updateActions);
         }
+
+        console.log('handleAutoRemoveCoupons.e')
+
 
         return ctCart;
     }
