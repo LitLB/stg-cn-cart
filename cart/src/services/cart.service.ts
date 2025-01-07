@@ -247,9 +247,9 @@ export class CartService {
 
             await this.inventoryService.commitCartStock(ctCart);
             // TODO: Uncomment 3 lines below if done.
-            // const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
-            // await this.createOrderAdditional(order, client);
-            // return { ...order, hasChanged: cartWithUpdatedPrice.compared };
+            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            await this.createOrderAdditional(order, client);
+            return { ...order, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {

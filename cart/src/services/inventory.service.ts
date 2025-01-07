@@ -8,10 +8,11 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { InventoryUtils } from '../utils/inventory.utils';
 
 export class InventoryService {
-    public async commitLineItemStockUsage(lineItem: LineItem, journey: CART_JOURNEYS, preOrder?: boolean) {
+    public async commitLineItemStockUsage(lineItem: LineItem, journey: CART_JOURNEYS) {
         const isMainProduct = lineItem.custom?.fields?.productType === 'main_product';
-        console.log('preOrder', preOrder);
+        const isPreOrder = lineItem.custom?.fields?.isPreOrder;
         console.log('isMainProduct', isMainProduct);
+        console.log('isPreOrder', isPreOrder);
 
         const supplyChannelId = lineItem.supplyChannel?.id;
         if (!supplyChannelId) {
@@ -37,16 +38,15 @@ export class InventoryService {
             }, 'InventoryService.commitLineItemStockUsage');
         }
 
-        if (preOrder && isMainProduct) {
+        if (isPreOrder && isMainProduct) {
             // 3.1) Line Item Dummy Stock Validation her.
 
             // 3.2) Update Dummy Stock.
-            console.log('[InventoryService] Using dummy stock for preOrder main_product');
+            console.log('[InventoryService] Using dummy stock for isPreOrder main_product');
             await CommercetoolsInventoryClient.updateInventoryDummyStock(
                 inventoryEntry,
                 lineItem.quantity,
             );
-            // return; 3.3) Comment this line, To also calculate Device Only Stock below.
         }
 
         const journeyConfig = journeyConfigMap[journey];
@@ -58,7 +58,6 @@ export class InventoryService {
         const { maximumKey, totalKey } = journeyConfig.inventory;
 
         // 2) fetch from CT
-
         const refetchedInventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
         if (!refetchedInventoryEntry) {
             throw createStandardizedError({

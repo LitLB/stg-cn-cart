@@ -221,10 +221,9 @@ class CommercetoolsInventoryClient {
 	}
 
 	public async updateInventoryDummyStock(inventoryEntry: InventoryEntry, orderedQuantity: number): Promise<void> {
-
 		const dummyKey = 'dummyStock';
 		const dummyPurchaseKey = 'dummyPurchase';
-		// const { dummyKey, dummyPurchaseKey } = journeyConfig.inventory;
+
 		if (!dummyKey || !dummyPurchaseKey) {
 			throw {
 				statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
