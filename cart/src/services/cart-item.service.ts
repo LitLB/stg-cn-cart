@@ -104,7 +104,9 @@ export class CartItemService {
             
             const inventory = inventories[0];
 
+
             const { isDummyStock,isOutOfStock } = validateInventory(inventory)
+
 
             if (isOutOfStock && !isDummyStock) {
                 throw {
@@ -112,6 +114,7 @@ export class CartItemService {
                     statusMessage: 'Insufficient stock for the requested quantity',
                 };
             }
+
 
 
             const newProductGroup = this.calculateProductGroup({
@@ -243,7 +246,10 @@ export class CartItemService {
                 };
             }
             const inventory = inventories[0];
-            if (inventory.isOutOfStock) {
+            const { isDummyStock,isOutOfStock } = validateInventory(inventory)
+
+
+            if (isOutOfStock && !isDummyStock) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Insufficient stock for the requested quantity',

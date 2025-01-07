@@ -88,6 +88,7 @@ class CommercetoolsInventoryClient {
 		orderedQuantity: number,
 		journeyConfig: any,
 	): Promise<void> {
+
 		const { totalKey, maximumKey } = journeyConfig.inventory;
 		if (!totalKey || !maximumKey) {
 			throw {
@@ -323,30 +324,30 @@ class CommercetoolsInventoryClient {
 			}
 		}
 
-		console.log({customFields})
 
-		const maximumStock = customFields[dummyKey] || 0;
+		const maximumStock = customFields[dummyKey];
+
+		
 		const totalPurchaseDummy = customFields[dummyPurchaseKey] || 0;
-
-		console.log(`maximumStock : ${maximumStock}`)
-		console.log(`totalPurchaseDummy : ${totalPurchaseDummy}`)
-		console.log(`orderedQuantity : ${orderedQuantity}`)
 
 
 		const newTotal = totalPurchaseDummy + orderedQuantity;
-		if (newTotal > maximumStock) {
-			throw {
-				statusCode: HTTP_STATUSES.BAD_REQUEST,
-				statusMessage: `Exceeds maximum stock allocation for journey.`,
-				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
-			};
+
+		if(maximumStock !== undefined ) {
+			if (newTotal > maximumStock) {
+				throw {
+					statusCode: HTTP_STATUSES.BAD_REQUEST,
+					statusMessage: `Exceeds maximum stock allocation for journey.`,
+					errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
+				};
+			}
 		}
 
-		await this.updateInventoryCustomField(
-			inventoryEntry,
-			dummyPurchaseKey,
-			newTotal
-		);
+		// await this.updateInventoryCustomField(
+		// 	inventoryEntry,
+		// 	dummyPurchaseKey,
+		// 	newTotal
+		// );
 
 	}
 }

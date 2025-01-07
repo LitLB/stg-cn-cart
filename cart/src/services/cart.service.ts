@@ -29,6 +29,7 @@ import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 import { CouponService } from './coupon.service';
 import { Coupon, ICoupon } from '../interfaces/coupon.interface';
 import { CartValidator } from '../validators/cart.validator';
+import { validateInventory } from '../utils/cart.utils';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -238,9 +239,9 @@ export class CartService {
 
             await this.updateStockAllocation(cartWithUpdatedPrice);
 
-            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
-            await this.createOrderAdditional(order, client);
-            return { ...order, hasChanged: cartWithUpdatedPrice.compared };
+            // const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            // await this.createOrderAdditional(order, client);
+            return { hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             logger.info(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -895,8 +896,12 @@ export class CartService {
                         statusMessage: 'Inventory not found',
                     };
                 }
+
+                
                 const inventory = inventories[0];
-                if (inventory.isOutOfStock) {
+
+                const { isDummyStock, isOutOfStock } = validateInventory(inventory)
+                if (isOutOfStock && !isDummyStock) {
                     throw {
                         statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: 'Insufficient stock for the requested quantity',
