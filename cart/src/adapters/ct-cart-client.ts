@@ -111,11 +111,14 @@ class CommercetoolsCartClient {
 
 
 			if(isProductPreOrder && productType === 'main_product') {
+				console.log('a');
 	
 				if (productId !== existingId || variantId !== variant.id) {
 					throw new Error('Cannot add different stock types in the same cart.');
 				}
 			}else if(!isProductPreOrder && dummyFlag){
+				console.log('b');
+
 				throw new Error('Cannot add different stock types in the same cart.');
 			}
 		}else {

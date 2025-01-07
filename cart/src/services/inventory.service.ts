@@ -8,16 +8,11 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { InventoryUtils } from '../utils/inventory.utils';
 
 export class InventoryService {
-    public async commitLineItemStockUsage(lineItem: LineItem, journey: CART_JOURNEYS) {
-        const journeyConfig = journeyConfigMap[journey];
-        if (!journeyConfig?.inventory) {
-            // No special inventory config => skip
-            return;
-        }
+    public async commitLineItemStockUsage(lineItem: LineItem, journey: CART_JOURNEYS, preOrder?: boolean) {
+        const isMainProduct = lineItem.custom?.fields?.productType === 'main_product';
+        console.log('preOrder', preOrder);
+        console.log('isMainProduct', isMainProduct);
 
-        const { maximumKey, totalKey } = journeyConfig.inventory;
-
-        // 1) get supplyChannel + inventoryId
         const supplyChannelId = lineItem.supplyChannel?.id;
         if (!supplyChannelId) {
             throw createStandardizedError({
@@ -25,6 +20,7 @@ export class InventoryService {
                 statusMessage: 'Missing supplyChannel on lineItem.',
             }, 'InventoryService.commitLineItemStockUsage');
         }
+        
         const inventoryId = lineItem.variant.availability?.channels?.[supplyChannelId]?.id;
         if (!inventoryId) {
             throw createStandardizedError({
@@ -32,8 +28,7 @@ export class InventoryService {
                 statusMessage: 'InventoryId not found on lineItem.',
             }, 'InventoryService.commitLineItemStockUsage');
         }
-
-        // 2) fetch from CT
+        
         const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
         if (!inventoryEntry) {
             throw createStandardizedError({
@@ -42,10 +37,7 @@ export class InventoryService {
             }, 'InventoryService.commitLineItemStockUsage');
         }
 
-        // 3) Check if this is a "preOrder main product"
-        const isMainProduct = lineItem.custom?.fields?.productType === 'main_product';
-        const isPreOrder = lineItem.custom?.fields?.isPreOrder
-        if (isPreOrder && isMainProduct) {
+        if (preOrder && isMainProduct) {
             // 3.1) Line Item Dummy Stock Validation her.
 
             // 3.2) Update Dummy Stock.
@@ -53,9 +45,26 @@ export class InventoryService {
             await CommercetoolsInventoryClient.updateInventoryDummyStock(
                 inventoryEntry,
                 lineItem.quantity,
-                journeyConfig
             );
-            return; 
+            // return; 3.3) Comment this line, To also calculate Device Only Stock below.
+        }
+
+        const journeyConfig = journeyConfigMap[journey];
+        if (!journeyConfig?.inventory) {
+            // No special inventory config => skip
+            return;
+        }
+
+        const { maximumKey, totalKey } = journeyConfig.inventory;
+
+        // 2) fetch from CT
+
+        const refetchedInventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
+        if (!refetchedInventoryEntry) {
+            throw createStandardizedError({
+                statusCode: HTTP_STATUSES.NOT_FOUND,
+                statusMessage: `Refetched Inventory entry ${inventoryId} not found.`,
+            }, 'InventoryService.commitLineItemStockUsage');
         }
 
         // Otherwise, physical
@@ -85,7 +94,7 @@ export class InventoryService {
 
         // 7) update totalUsed
         await CommercetoolsInventoryClient.updateInventoryCustomField(
-            inventoryEntry,
+            refetchedInventoryEntry,
             totalKey,
             newTotal
         );
