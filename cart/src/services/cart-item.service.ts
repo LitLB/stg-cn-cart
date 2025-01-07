@@ -112,14 +112,16 @@ export class CartItemService {
 
             
             const inventory = inventories[0];
-            const { isDummyStock,isOutOfStock,isOverDummyStock } = validateInventory(inventory, quantity)
 
-            if (isOutOfStock || isOverDummyStock) {
+            const { isDummyStock,isOutOfStock } = validateInventory(inventory)
+
+            if (isOutOfStock && !isDummyStock) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Insufficient stock for the requested quantity',
                 };
             }
+
 
             const newProductGroup = this.calculateProductGroup({
                 cart,
@@ -173,12 +175,10 @@ export class CartItemService {
                 freeGiftGroup,
                 externalPrice: validPrice.value,
                 dummyFlag: isDummyStock,
-                sku
             });
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
-
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
             return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };

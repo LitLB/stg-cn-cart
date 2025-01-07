@@ -34,6 +34,7 @@ import { Coupon, ICoupon } from '../interfaces/coupon.interface';
 import { CartValidator } from '../validators/cart.validator';
 import { InventoryValidator } from '../validators/inventory.validator';
 import { InventoryService } from './inventory.service';
+import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -75,6 +76,71 @@ export class CartService {
             }
 
             throw createStandardizedError(error, 'createAnonymousCart');
+        }
+    };
+
+    public updateStockAllocation = async (ctCart: Cart): Promise<void> => {
+        try {
+            const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
+            const isPreOrder = ctCart.custom?.fields?.preOrder
+            const journeyConfig = journeyConfigMap[journey];
+
+            for (const lineItem of ctCart.lineItems) {
+
+                const supplyChannel = lineItem.supplyChannel;
+
+                if (!supplyChannel || !supplyChannel.id) {
+                    throw {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: 'Supply channel is missing on line item.',
+                        errorCode: "SUPPLY_CHANNEL_MISSING",
+                    };
+                }
+
+                const inventoryId =
+                    lineItem.variant.availability?.channels?.[supplyChannel.id]?.id;
+
+                if (!inventoryId) {
+                    throw {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: 'InventoryId not found.',
+                        errorCode: "INVENTORY_ID_NOT_FOUND",
+                    };
+                }
+
+
+                const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
+                if (!inventoryEntry) {
+                    throw {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: `Inventory entry not found for ID: ${inventoryId}`,
+                        errorCode: "INVENTORY_ENTRY_NOT_FOUND",
+                    };
+                }
+
+                const orderedQuantity = lineItem.quantity;
+                const isMainProduct = lineItem.custom?.fields?.productType === 'main_product'
+
+                if (isPreOrder && isMainProduct) {
+                    console.log(`Inventory dummy`)
+                    await CommercetoolsInventoryClient.updateInventoryDummyStock(inventoryEntry, orderedQuantity, journeyConfig)
+                } else {
+                    console.log(`Inventory allocated`)
+                    await CommercetoolsInventoryClient.updateInventoryAllocationV2(
+                        inventoryEntry,
+                        orderedQuantity,
+                        journey,
+                        journeyConfig
+                    );
+                }
+            }
+        } catch (error: any) {
+            console.log('error', error)
+            throw {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                statusMessage: `Update stock allocation failed.`,
+                errorCode: "CREATE_ORDER_ON_CT_FAILED",
+            };
         }
     };
 
@@ -131,6 +197,8 @@ export class CartService {
 
             let ctCart = await this.getCtCartById(accessToken, cartId)
 
+            const isPreOrder = ctCart.custom?.fields.preOrder
+
             CartValidator.validateCartHasSelectedItems(ctCart);
 
             // * STEP #2 - Validate Blacklist
@@ -154,16 +222,23 @@ export class CartService {
 
             const orderNumber = await this.generateOrderNumber(`TRUE`)
 
-            // * STEP #5 - Create Order On TSM Sale
-            const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
-            // //! IF available > x
-            // //! THEN continue
-            // //! ELSE 
-            // //! THEN throw error
+            let tsmSaveOrder = {
+              
+            }
 
-            const tsmSaveOrder = {
-                tsmOrderIsSaved: success,
-                tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+            if (!isPreOrder) {
+
+                // * STEP #5 - Create Order On TSM Sale
+                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+                // //! IF available > x
+                // //! THEN continue
+                // //! ELSE 
+                // //! THEN throw error
+                tsmSaveOrder = {
+                    tsmOrderIsSaved: success,
+                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+                }
+
             }
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)

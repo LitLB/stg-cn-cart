@@ -6,6 +6,8 @@ import { readConfiguration } from '../utils/config.utils';
 import { compareLineItemsArrays } from '../utils/compare.util';
 import { getAttributeValue } from '../utils/product-utils';
 import { UpdateAction } from '@commercetools/sdk-client-v2';
+import { CART_INVENTORY_MODES } from '../constants/cart.constant';
+import { LINE_ITEM_INVENTORY_MODES } from '../constants/lineItem.constant';
 
 class CommercetoolsCartClient {
 	private static instance: CommercetoolsCartClient;
@@ -74,7 +76,6 @@ class CommercetoolsCartClient {
 		freeGiftGroup,
 		externalPrice,
 		dummyFlag,
-		sku
 	}: {
 		cart: Cart;
 		productId: string;
@@ -89,21 +90,27 @@ class CommercetoolsCartClient {
 			centAmount: number;
 		};
 		dummyFlag: boolean,
-		sku: string
 	}): Promise<Cart> {
 		const { lineItems } = cart;
 
-		const cartFlag = cart.custom?.fields.preOrder;
 
-		// Find a line item that matches both productId and productType
-		const existingProductType = lineItems.find((lineItem: LineItem) =>
-			lineItem.custom?.fields?.productType === productType
+		const existingPreOrderMainProduct = lineItems.find((lineItem: LineItem) =>
+			lineItem.custom?.fields?.productType === 'main_product'
 		);
 
-		if(existingProductType) {
-			const { variant } = existingProductType;
-			// If the cart flag or variant ID doesn't match, throw an error
-			if (cartFlag !== dummyFlag || variant?.id !== variantId) {
+
+		if (existingPreOrderMainProduct) {
+
+			const { productId: existingId, variant } = existingPreOrderMainProduct;
+			const isProductPreOrder = existingPreOrderMainProduct.custom?.fields?.isPreOrder 
+
+
+			if(isProductPreOrder && productType === 'main_product') {
+	
+				if (productId === existingId && variantId !== variant.id) {
+					throw new Error('Cannot add different stock types in the same cart.');
+				}
+			}else if(!isProductPreOrder && dummyFlag){
 				throw new Error('Cannot add different stock types in the same cart.');
 			}
 		}
@@ -121,17 +128,12 @@ class CommercetoolsCartClient {
 			);
 		});
 
-
 		const privilege = existingLineItem?.custom?.fields?.privilege;
 		const discounts = existingLineItem?.custom?.fields?.discounts;
 		const otherPayments = existingLineItem?.custom?.fields?.otherPayments;
 		const selected = existingLineItem?.custom?.fields?.selected;
 
 		if (existingLineItem) {
-
-
-			
-
 			const externalPrice = existingLineItem.price.value;
 			const updatedCart = await this.updateCart(cart.id, cart.version, [{
 				action: 'changeLineItemQuantity',
@@ -158,6 +160,7 @@ class CommercetoolsCartClient {
 		const lineItemDraft: LineItemDraft = {
 			productId,
 			variantId,
+			inventoryMode: dummyFlag ? LINE_ITEM_INVENTORY_MODES.TRACK_ONLY : LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
 			quantity,
 			supplyChannel: {
 				typeId: 'channel',
@@ -177,6 +180,7 @@ class CommercetoolsCartClient {
 					...(selected != null ? { selected } : {}),
 					...(discounts?.length ? { discounts } : {}),
 					...(otherPayments?.length ? { otherPayments } : {}),
+					isPreOrder: dummyFlag
 				},
 			},
 			externalPrice,
@@ -188,6 +192,7 @@ class CommercetoolsCartClient {
 			cartWithDummyFlag.version,
 			lineItemDraft,
 		);
+
 
 
 		return updatedCart;
@@ -208,7 +213,7 @@ class CommercetoolsCartClient {
 			{
 				action: 'addLineItem',
 				...lineItemDraft,
-			},
+			},	
 		];
 
 		const cartUpdate: MyCartUpdate = {

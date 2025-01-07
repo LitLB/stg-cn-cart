@@ -79,7 +79,7 @@ export default class CommercetoolsMeCartClient {
 		const cartDraft: MyCartDraft = {
 			country: COUNTRIES.TH,
 			currency: CURRENCY_CODES.THB,
-			inventoryMode: CART_INVENTORY_MODES.RESERVE_ON_ORDER,
+			// inventoryMode: CART_INVENTORY_MODES.RESERVE_ON_ORDER,
 			deleteDaysAfterLastModification: CART_EXPIRATION_DAYS,
 			locale,
 			custom: {

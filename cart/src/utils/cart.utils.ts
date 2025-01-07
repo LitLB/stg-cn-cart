@@ -1,3 +1,4 @@
+import { Cart } from "@commercetools/platform-sdk";
 import { ICart } from "../interfaces/cart";
 
 export const updateCartFlag = (iCart: ICart): ICart => {
@@ -9,14 +10,16 @@ export const updateCartFlag = (iCart: ICart): ICart => {
     return iCart
 }
 
-export const validateInventory = (inventory: any, quantity: number) => { 
+// TODO :: IMPROVE LOGIC OUT OF STOCK !!
+export const validateInventory = (inventory: any) => {
 
-    const { available, totalAvailableDummyStock, totalAvailableDummyPurchaseStock } = inventory.stock
-    const quantityGTtotalAvailableDummyPurchaseStock = totalAvailableDummyPurchaseStock + quantity <= totalAvailableDummyStock
+    const { stock } = inventory
+    const { available, totalAvailableDummyStock, totalAvailableDummyPurchaseStock } = stock
+
+    const quantityGTtotalAvailableDummyPurchaseStock = totalAvailableDummyPurchaseStock < totalAvailableDummyStock
 
     return {
-        isOutOfStock: inventory.isOutOfStock || false,
-        isOverDummyStock: available <= 0 && totalAvailableDummyStock > 0 && !quantityGTtotalAvailableDummyPurchaseStock || false,
+        isOutOfStock: available <= 0,
         isDummyStock: available <= 0 && totalAvailableDummyStock > 0 && quantityGTtotalAvailableDummyPurchaseStock || false,
     }
 }
