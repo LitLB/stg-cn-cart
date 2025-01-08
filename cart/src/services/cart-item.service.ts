@@ -40,6 +40,7 @@ export class CartItemService {
 
             const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
 
+            // Inven 1
             await InventoryValidator.validateLineItemUpsert(
                 cart,
                 sku,
@@ -92,6 +93,7 @@ export class CartItemService {
                 };
             }
 
+            // Inven 2
             const deltaQuantity = quantity;
             validateProductQuantity(
                 productType,
@@ -113,6 +115,7 @@ export class CartItemService {
             
             const inventory = inventories[0];
 
+            // Inven 3
             const { isDummyStock,isOutOfStock } = validateInventory(inventory)
 
             if (isOutOfStock && !isDummyStock) {

@@ -1,0 +1,1127 @@
+{
+  "data": [
+      {
+          "id": 8943,
+          "created": "2025-01-08T04:34:16.169334Z",
+          "userId": 65,
+          "rules": [
+              {
+                  "id": "6b01bde8-72a2-4274-a300-81dfe51db563",
+                  "title": "Combo Set A-1: IP21128SG + IPADPRO2020 x Exiting (Total 85,800 - 10,900 = 74,900)",
+                  "condition": [
+                      "and",
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "IP21128SG",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "IPADPRO2020",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Session",
+                                  "Attributes",
+                                  "journey"
+                              ],
+                              "Existing"
+                          ]
+                      ]
+                  ],
+                  "effects": [
+                      [
+                          "catch",
+                          [
+                              "noop"
+                          ],
+                          [
+                              "setDiscount",
+                              [
+                                  "concat",
+                                  "10,900 ",
+                                  "off"
+                              ],
+                              10900,
+                              [
+                                  "kv"
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "id": "a93011ca-d99e-4825-9a90-7c0937bfbc89",
+                  "parentId": "6b01bde8-72a2-4274-a300-81dfe51db563",
+                  "title": "Combo Set A-2: IP21128SG + IPADPRO2020 x Device only (Total 85,800 - 4,900 = 80,900)",
+                  "condition": [
+                      "and",
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "IP21128SG",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "IPADPRO2020",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Session",
+                                  "Attributes",
+                                  "journey"
+                              ],
+                              "Device Only"
+                          ]
+                      ]
+                  ],
+                  "effects": [
+                      [
+                          "catch",
+                          [
+                              "noop"
+                          ],
+                          [
+                              "setDiscount",
+                              [
+                                  "concat",
+                                  "4,900 ",
+                                  "off"
+                              ],
+                              4900,
+                              [
+                                  "kv"
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "id": "c4245653-d71f-4199-a3a3-b3b68df57487",
+                  "title": "Pro-rata: iPad Pro + Apple Watch Series 7 (Discount Proportionally)",
+                  "condition": [
+                      "and",
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "is_ipad_pro",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "is_apple_watch_series_7",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ]
+                  ],
+                  "effects": [
+                      [
+                          "catch",
+                          [
+                              "noop"
+                          ],
+                          [
+                              "setDiscountProRata",
+                              [
+                                  "concat",
+                                  "10% off from each item"
+                              ],
+                              [
+                                  "*",
+                                  [
+                                      ".",
+                                      "Session",
+                                      "Total"
+                                  ],
+                                  [
+                                      "/",
+                                      10,
+                                      100
+                                  ]
+                              ],
+                              [
+                                  ".",
+                                  "Session",
+                                  "CartItems"
+                              ],
+                              [
+                                  "kv"
+                              ]
+                          ]
+                      ]
+                  ]
+              }
+          ],
+          "bindings": [
+              {
+                  "name": "IP21128SG",
+                  "type": "cartItemFilter",
+                  "expression": [
+                      "filter",
+                      [
+                          ".",
+                          "Session",
+                          "CartItems"
+                      ],
+                      [
+                          [
+                              "Item"
+                          ],
+                          [
+                              "catch",
+                              false,
+                              [
+                                  "and",
+                                  [
+                                      "=",
+                                      [
+                                          ".",
+                                          "Item",
+                                          "Sku"
+                                      ],
+                                      "iPhone 21 - 128GB - Space Grey (SKU: IP21128SG)"
+                                  ]
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "name": "IPADPRO2020",
+                  "type": "cartItemFilter",
+                  "expression": [
+                      "filter",
+                      [
+                          ".",
+                          "Session",
+                          "CartItems"
+                      ],
+                      [
+                          [
+                              "Item"
+                          ],
+                          [
+                              "catch",
+                              false,
+                              [
+                                  "and",
+                                  [
+                                      "=",
+                                      [
+                                          ".",
+                                          "Item",
+                                          "Sku"
+                                      ],
+                                      "iPad Pro - 512GB - Silver (SKU: IPADPRO2020)"
+                                  ]
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "name": "is_ipad_pro",
+                  "type": "cartItemFilter",
+                  "expression": [
+                      "filter",
+                      [
+                          ".",
+                          "Session",
+                          "CartItems"
+                      ],
+                      [
+                          [
+                              "Item"
+                          ],
+                          [
+                              "catch",
+                              false,
+                              [
+                                  "and",
+                                  [
+                                      "=",
+                                      [
+                                          ".",
+                                          "Item",
+                                          "Attributes",
+                                          "commercetools_product_id"
+                                      ],
+                                      "iPad Pro"
+                                  ]
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "name": "is_apple_watch_series_7",
+                  "type": "cartItemFilter",
+                  "expression": [
+                      "filter",
+                      [
+                          ".",
+                          "Session",
+                          "CartItems"
+                      ],
+                      [
+                          [
+                              "Item"
+                          ],
+                          [
+                              "catch",
+                              false,
+                              [
+                                  "and",
+                                  [
+                                      "=",
+                                      [
+                                          ".",
+                                          "Item",
+                                          "Attributes",
+                                          "commercetools_product_id"
+                                      ],
+                                      "Apple Watch Series 7"
+                                  ]
+                              ]
+                          ]
+                      ]
+                  ]
+              }
+          ],
+          "rbVersion": "v2",
+          "campaignId": 530
+      },
+      {
+          "id": 8942,
+          "created": "2025-01-08T04:30:02.744745Z",
+          "userId": 65,
+          "rules": [
+              {
+                  "id": "6b01bde8-72a2-4274-a300-81dfe51db563",
+                  "title": "Combo Set A-1: IP21128SG + IPADPRO2020 x Exiting (Total 85,800 - 10,900 = 74,900)",
+                  "condition": [
+                      "and",
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "IP21128SG",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "IPADPRO2020",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Session",
+                                  "Attributes",
+                                  "journey"
+                              ],
+                              "Existing"
+                          ]
+                      ]
+                  ],
+                  "effects": [
+                      [
+                          "catch",
+                          [
+                              "noop"
+                          ],
+                          [
+                              "setDiscount",
+                              [
+                                  "concat",
+                                  "10,900 ",
+                                  "off"
+                              ],
+                              [
+                                  "-",
+                                  [
+                                      ".",
+                                      "Session",
+                                      "Total"
+                                  ],
+                                  10900
+                              ],
+                              [
+                                  "kv"
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "id": "a93011ca-d99e-4825-9a90-7c0937bfbc89",
+                  "parentId": "6b01bde8-72a2-4274-a300-81dfe51db563",
+                  "title": "Combo Set A-2: IP21128SG + IPADPRO2020 x Device only (Total 85,800 - 4,900 = 80,900)",
+                  "condition": [
+                      "and",
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "IP21128SG",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "IPADPRO2020",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Session",
+                                  "Attributes",
+                                  "journey"
+                              ],
+                              "Device Only"
+                          ]
+                      ]
+                  ],
+                  "effects": [
+                      [
+                          "catch",
+                          [
+                              "noop"
+                          ],
+                          [
+                              "setDiscount",
+                              [
+                                  "concat",
+                                  "4,900 ",
+                                  "off"
+                              ],
+                              [
+                                  "-",
+                                  [
+                                      ".",
+                                      "Session",
+                                      "Total"
+                                  ],
+                                  4900
+                              ],
+                              [
+                                  "kv"
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "id": "c4245653-d71f-4199-a3a3-b3b68df57487",
+                  "title": "Pro-rata: iPad Pro + Apple Watch Series 7 (Discount Proportionally)",
+                  "condition": [
+                      "and",
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "is_ipad_pro",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "is_apple_watch_series_7",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ]
+                  ],
+                  "effects": [
+                      [
+                          "catch",
+                          [
+                              "noop"
+                          ],
+                          [
+                              "setDiscountProRata",
+                              [
+                                  "concat",
+                                  "10% off from each item"
+                              ],
+                              [
+                                  "*",
+                                  [
+                                      ".",
+                                      "Session",
+                                      "Total"
+                                  ],
+                                  [
+                                      "/",
+                                      10,
+                                      100
+                                  ]
+                              ],
+                              [
+                                  ".",
+                                  "Session",
+                                  "CartItems"
+                              ],
+                              [
+                                  "kv"
+                              ]
+                          ]
+                      ]
+                  ]
+              }
+          ],
+          "bindings": [
+              {
+                  "name": "IP21128SG",
+                  "type": "cartItemFilter",
+                  "expression": [
+                      "filter",
+                      [
+                          ".",
+                          "Session",
+                          "CartItems"
+                      ],
+                      [
+                          [
+                              "Item"
+                          ],
+                          [
+                              "catch",
+                              false,
+                              [
+                                  "and",
+                                  [
+                                      "=",
+                                      [
+                                          ".",
+                                          "Item",
+                                          "Sku"
+                                      ],
+                                      "iPhone 21 - 128GB - Space Grey (SKU: IP21128SG)"
+                                  ]
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "name": "IPADPRO2020",
+                  "type": "cartItemFilter",
+                  "expression": [
+                      "filter",
+                      [
+                          ".",
+                          "Session",
+                          "CartItems"
+                      ],
+                      [
+                          [
+                              "Item"
+                          ],
+                          [
+                              "catch",
+                              false,
+                              [
+                                  "and",
+                                  [
+                                      "=",
+                                      [
+                                          ".",
+                                          "Item",
+                                          "Sku"
+                                      ],
+                                      "iPad Pro - 512GB - Silver (SKU: IPADPRO2020)"
+                                  ]
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "name": "is_ipad_pro",
+                  "type": "cartItemFilter",
+                  "expression": [
+                      "filter",
+                      [
+                          ".",
+                          "Session",
+                          "CartItems"
+                      ],
+                      [
+                          [
+                              "Item"
+                          ],
+                          [
+                              "catch",
+                              false,
+                              [
+                                  "and",
+                                  [
+                                      "=",
+                                      [
+                                          ".",
+                                          "Item",
+                                          "Attributes",
+                                          "commercetools_product_id"
+                                      ],
+                                      "iPad Pro"
+                                  ]
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "name": "is_apple_watch_series_7",
+                  "type": "cartItemFilter",
+                  "expression": [
+                      "filter",
+                      [
+                          ".",
+                          "Session",
+                          "CartItems"
+                      ],
+                      [
+                          [
+                              "Item"
+                          ],
+                          [
+                              "catch",
+                              false,
+                              [
+                                  "and",
+                                  [
+                                      "=",
+                                      [
+                                          ".",
+                                          "Item",
+                                          "Attributes",
+                                          "commercetools_product_id"
+                                      ],
+                                      "Apple Watch Series 7"
+                                  ]
+                              ]
+                          ]
+                      ]
+                  ]
+              }
+          ],
+          "rbVersion": "v2",
+          "campaignId": 530
+      },
+      {
+          "id": 8941,
+          "created": "2025-01-08T04:27:00.551379Z",
+          "userId": 65,
+          "rules": [
+              {
+                  "id": "6b01bde8-72a2-4274-a300-81dfe51db563",
+                  "title": "Combo Set A-1: IP21128SG + IPADPRO2020 x Exiting (Total 85,800 - 10,900 = 74,900)",
+                  "condition": [
+                      "and",
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "IP21128SG",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "IPADPRO2020",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Session",
+                                  "Attributes",
+                                  "journey"
+                              ],
+                              "Existing"
+                          ]
+                      ]
+                  ],
+                  "effects": [
+                      [
+                          "catch",
+                          [
+                              "noop"
+                          ],
+                          [
+                              "setDiscount",
+                              [
+                                  "concat",
+                                  "10,900 ",
+                                  "off"
+                              ],
+                              [
+                                  "-",
+                                  [
+                                      ".",
+                                      "Session",
+                                      "Total"
+                                  ],
+                                  10900
+                              ],
+                              [
+                                  "kv"
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "id": "a93011ca-d99e-4825-9a90-7c0937bfbc89",
+                  "parentId": "6b01bde8-72a2-4274-a300-81dfe51db563",
+                  "title": "Combo Set A-2: IP21128SG + IPADPRO2020 x Device only (Total 85,800 - 4,900 = 80,900)",
+                  "condition": [
+                      "and",
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "IP21128SG",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "IPADPRO2020",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Session",
+                                  "Attributes",
+                                  "journey"
+                              ],
+                              "Device Only"
+                          ]
+                      ]
+                  ],
+                  "effects": [
+                      [
+                          "catch",
+                          [
+                              "noop"
+                          ],
+                          [
+                              "setDiscount",
+                              [
+                                  "concat",
+                                  "4,900 ",
+                                  "off"
+                              ],
+                              [
+                                  "-",
+                                  [
+                                      ".",
+                                      "Session",
+                                      "Total"
+                                  ],
+                                  4900
+                              ],
+                              [
+                                  "kv"
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "id": "c4245653-d71f-4199-a3a3-b3b68df57487",
+                  "title": "Pro-rata: iPad Pro + Apple Watch Series 7 (Discount Proportionally)",
+                  "condition": [
+                      "and",
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "is_ipad_pro",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "is_apple_watch_series_7",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ]
+                  ],
+                  "effects": [
+                      [
+                          "catch",
+                          [
+                              "noop"
+                          ],
+                          [
+                              "setDiscountProRata",
+                              [
+                                  "concat",
+                                  "10% off from each item"
+                              ],
+                              [
+                                  "*",
+                                  [
+                                      ".",
+                                      "Session",
+                                      "Total"
+                                  ],
+                                  [
+                                      "/",
+                                      10,
+                                      100
+                                  ]
+                              ],
+                              [
+                                  ".",
+                                  "Session",
+                                  "CartItems"
+                              ],
+                              [
+                                  "kv"
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "id": "331d1c0f-8b41-4743-bee6-c6fc45258bab",
+                  "title": "Coupon 100 OFF",
+                  "condition": [
+                      "and",
+                      [
+                          "catch",
+                          false,
+                          [
+                              "=",
+                              [
+                                  ".",
+                                  "Bindings",
+                                  "is_ipad_pro",
+                                  "Count"
+                              ],
+                              1
+                          ]
+                      ],
+                      [
+                          "couponValid"
+                      ]
+                  ],
+                  "effects": []
+              }
+          ],
+          "bindings": [
+              {
+                  "name": "IP21128SG",
+                  "type": "cartItemFilter",
+                  "expression": [
+                      "filter",
+                      [
+                          ".",
+                          "Session",
+                          "CartItems"
+                      ],
+                      [
+                          [
+                              "Item"
+                          ],
+                          [
+                              "catch",
+                              false,
+                              [
+                                  "and",
+                                  [
+                                      "=",
+                                      [
+                                          ".",
+                                          "Item",
+                                          "Sku"
+                                      ],
+                                      "iPhone 21 - 128GB - Space Grey (SKU: IP21128SG)"
+                                  ]
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "name": "IPADPRO2020",
+                  "type": "cartItemFilter",
+                  "expression": [
+                      "filter",
+                      [
+                          ".",
+                          "Session",
+                          "CartItems"
+                      ],
+                      [
+                          [
+                              "Item"
+                          ],
+                          [
+                              "catch",
+                              false,
+                              [
+                                  "and",
+                                  [
+                                      "=",
+                                      [
+                                          ".",
+                                          "Item",
+                                          "Sku"
+                                      ],
+                                      "iPad Pro - 512GB - Silver (SKU: IPADPRO2020)"
+                                  ]
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "name": "is_ipad_pro",
+                  "type": "cartItemFilter",
+                  "expression": [
+                      "filter",
+                      [
+                          ".",
+                          "Session",
+                          "CartItems"
+                      ],
+                      [
+                          [
+                              "Item"
+                          ],
+                          [
+                              "catch",
+                              false,
+                              [
+                                  "and",
+                                  [
+                                      "=",
+                                      [
+                                          ".",
+                                          "Item",
+                                          "Attributes",
+                                          "commercetools_product_id"
+                                      ],
+                                      "iPad Pro"
+                                  ]
+                              ]
+                          ]
+                      ]
+                  ]
+              },
+              {
+                  "name": "is_apple_watch_series_7",
+                  "type": "cartItemFilter",
+                  "expression": [
+                      "filter",
+                      [
+                          ".",
+                          "Session",
+                          "CartItems"
+                      ],
+                      [
+                          [
+                              "Item"
+                          ],
+                          [
+                              "catch",
+                              false,
+                              [
+                                  "and",
+                                  [
+                                      "=",
+                                      [
+                                          ".",
+                                          "Item",
+                                          "Attributes",
+                                          "commercetools_product_id"
+                                      ],
+                                      "Apple Watch Series 7"
+                                  ]
+                              ]
+                          ]
+                      ]
+                  ]
+              }
+          ],
+          "rbVersion": "v2",
+          "campaignId": 530
+      }
+  ],
+  "totalResultSize": 3
+}

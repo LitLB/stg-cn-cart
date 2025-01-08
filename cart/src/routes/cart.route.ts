@@ -15,14 +15,14 @@ const cartController = new CartController();
 const cartItemController = new CartItemController();
 const blacklistController = new BlacklistController();
 
-cartRouter.post('/v1/oauth/anonymous', authController.createAnonymousSession);
+cartRouter.post('/v1/oauth/anonymous', authController.createAnonymousSession); // 1
 cartRouter.patch('/v1/oauth/anonymous', authController.renewAnonymousSession);
 
-cartRouter.post('/v1/carts', authenticate, validateRequest({ body: createAnonymousCartSchema }), cartController.createAnonymousCart);
+cartRouter.post('/v1/carts', authenticate, validateRequest({ body: createAnonymousCartSchema }), cartController.createAnonymousCart); // 2
 cartRouter.get('/v1/carts/:id', authenticate, validateRequest({ params: cartParamsSchema, query: getCartQuerySchema }), cartController.getCartById);
 cartRouter.post('/v1/checkout/:id', authenticate, cartController.checkout);
 
-cartRouter.post('/v1/carts/:id/items', authenticate, cartItemController.addItem);
+cartRouter.post('/v1/carts/:id/items', authenticate, cartItemController.addItem); // 3
 cartRouter.post('/v1/carts/:id/items/select', authenticate, cartItemController.select);
 cartRouter.delete('/v1/carts/:id/items/bulk-delete', authenticate, cartItemController.bulkDelete);
 cartRouter.put('/v1/carts/:id/items/:itemId', authenticate, cartItemController.updateItemQuantityById);
