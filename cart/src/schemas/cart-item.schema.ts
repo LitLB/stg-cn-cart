@@ -458,3 +458,10 @@ export const validateProductReleaseDate = (variant: any, today: Date):boolean =>
 
 	return isValidPeriod
 }
+
+export const validateSkuStatus = (attributes: any) => {
+
+	const skuStatus = getAttributeValue(attributes, 'status')
+
+	return skuStatus.key === 'enabled'
+}

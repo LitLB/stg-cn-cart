@@ -4,7 +4,7 @@ import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
-import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateProductQuantity, validateProductReleaseDate, validateSelectCartItemBody, validateUpdateCartItemBody } from '../schemas/cart-item.schema';
+import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateProductQuantity, validateProductReleaseDate, validateSelectCartItemBody, validateSkuStatus, validateUpdateCartItemBody } from '../schemas/cart-item.schema';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { readConfiguration } from '../utils/config.utils';
 import { MyCartUpdateAction } from '@commercetools/platform-sdk';
@@ -17,6 +17,7 @@ import { updateCartFlag, validateInventory } from '../utils/cart.utils';
 export class CartItemService {
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
         try {
+
             const { error, value } = validateAddItemCartBody(body);
             if (error) {
                 throw {
@@ -72,11 +73,18 @@ export class CartItemService {
 
             const isValidReleaseDate = validateProductReleaseDate(variant.attributes, now)
 
-
             if (!isValidReleaseDate) {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Product release date is not in period',
+                };
+            }
+
+            const isValidSkuStatus = validateSkuStatus(variant.attributes)
+            if (!isValidSkuStatus) {
+                throw {
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    statusMessage: 'Product is unavailable.',
                 };
             }
 
@@ -110,10 +118,8 @@ export class CartItemService {
                 };
             }
 
-            
             const inventory = inventories[0];
-
-            const { isDummyStock,isOutOfStock } = validateInventory(inventory)
+            const { isDummyStock, isOutOfStock } = validateInventory(inventory)
 
             if (isOutOfStock && !isDummyStock) {
                 throw {
@@ -121,7 +127,6 @@ export class CartItemService {
                     statusMessage: 'Insufficient stock for the requested quantity',
                 };
             }
-
 
             const newProductGroup = this.calculateProductGroup({
                 cart,
@@ -184,7 +189,7 @@ export class CartItemService {
             return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
             console.log('error', error);
-            
+
             if (error.status && error.message) {
                 throw error;
             }
@@ -257,7 +262,7 @@ export class CartItemService {
                 };
             }
             const inventory = inventories[0];
-            const { isDummyStock,isOutOfStock } = validateInventory(inventory)
+            const { isDummyStock, isOutOfStock } = validateInventory(inventory)
 
             if (isOutOfStock && !isDummyStock) {
                 throw {
