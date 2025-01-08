@@ -143,7 +143,7 @@ export class TalonOneCouponAdapter {
             });
         }
 
-        const applyCoupons = acceptedCoupons?.map((coupon: {code: string}) => coupon.code) ?? [];
+        const applyCoupons = acceptedCoupons?.map((coupon: any) => coupon) ?? [];
 
         // Remove custom line items for rejected or missing coupons
         this.removeInvalidCustomLineItems(ctCart, updateActions, couponsWithCustomLineItems, applyCoupons);
