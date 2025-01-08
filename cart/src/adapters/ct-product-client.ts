@@ -9,6 +9,7 @@ import { getAttributeValue } from '../utils/product-utils';
 import CommercetoolsMeCartClient from './me/ct-me-cart-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client'
 import { isNull } from 'lodash';
+import { removeDuplicateStringArray } from '../utils/array.urils';
 
 class CommercetoolsProductClient {
 	private static instance: CommercetoolsProductClient;
@@ -252,17 +253,17 @@ class CommercetoolsProductClient {
 		const variant = allVariant.find((v) => v.key === variantKey);
 
 		if (!variant) {
-            throw new Error(`Could not find variant with key "${variantKey}"`);
-        }
+			throw new Error(`Could not find variant with key "${variantKey}"`);
+		}
 
 		return variant
 	}
 
 	async checkCartHasChanged(ctCart: any) {
 
-		const { lineItems} = ctCart;
+		const { lineItems } = ctCart;
 
-		if (lineItems.length === 0) return {...ctCart, lineItems: []}
+		if (lineItems.length === 0) return { ...ctCart, lineItems: [] }
 
 		const mainProductLineItems = lineItems.filter(
 			(item: LineItem) => item.custom?.fields?.productType === 'main_product',
@@ -283,15 +284,15 @@ class CommercetoolsProductClient {
 			});
 		}
 
-		
 
-		
+
+
 
 		const processedItems = lineItems.map((cartItem: any) => {
 
 			const parentQuantity = mainProductLineItems
-			.filter((item: LineItem) => item.productId === cartItem.productId)
-			.reduce((sum:any, item:any) => sum + item.quantity, 0);
+				.filter((item: LineItem) => item.productId === cartItem.productId)
+				.reduce((sum: any, item: any) => sum + item.quantity, 0);
 
 			const matchingSkuItem = skuItems.find(
 				(skuItem: any) => cartItem.productId === skuItem.id
@@ -350,8 +351,7 @@ class CommercetoolsProductClient {
 			totalLineItemQuantity,
 		};
 	}
-	
-	
+
 }
 
 export default CommercetoolsProductClient.getInstance();
