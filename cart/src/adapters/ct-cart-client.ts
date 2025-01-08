@@ -6,8 +6,10 @@ import { readConfiguration } from '../utils/config.utils';
 import { compareLineItemsArrays } from '../utils/compare.util';
 import { getAttributeValue } from '../utils/product-utils';
 import { UpdateAction } from '@commercetools/sdk-client-v2';
-import { CART_INVENTORY_MODES } from '../constants/cart.constant';
 import { LINE_ITEM_INVENTORY_MODES } from '../constants/lineItem.constant';
+import CommercetoolsProductClient from '../adapters/ct-product-client';
+import { isBoolean } from 'lodash';
+
 
 class CommercetoolsCartClient {
 	private static instance: CommercetoolsCartClient;
@@ -245,7 +247,7 @@ class CommercetoolsCartClient {
 		const recalculatedCart = await this.recalculateCart(updatedPrice.id, updatedPrice.version)
 		const validateProduct = await this.validateDateItems(recalculatedCart)
 		const compared = compareLineItemsArrays(oldCart.lineItems, validateProduct.lineItems)
-		return { ...validateProduct, compared }
+		return { ...validateProduct, compared, }
 	}
 
 	public async updatePrice(cartId: string, cartUpdate: any) {
@@ -335,7 +337,70 @@ class CommercetoolsCartClient {
 			})
 			return await this.removeItem(version, id, removeActions)
 		}
+
+
 		return { ...ctCart, lineItems: itemsWithCheckedCondition }
+	}
+
+	public async validateProductIsPublished(ctCart: Cart): Promise<any> {
+
+		const { lineItems, version, id } = ctCart;
+
+		// If no line items, return early or handle accordingly
+		if (!lineItems || lineItems.length === 0) {
+			return [];
+		}
+
+		// Extract productIds from lineItems and remove duplicates
+		const productIds = [...new Set(lineItems.map(li => li.productId))];
+
+
+		// Fetch products from Commercetools
+		const response = await CommercetoolsProductClient.getProductsByIds(productIds);
+
+		if (!response) {
+			throw new Error('Products not found in Commercetools response.');
+		}
+
+		const products = response.body.results || [];
+
+		// Create a Map for faster lookups: productId -> product
+		const productMap = new Map(products.map((p) => [p.id, p]));
+
+		// Map over line items and set isPublished
+		// Throw an error (or handle as needed) if product is missing
+		const updatedLineItems = lineItems.map((lineItem) => {
+			const product = productMap.get(lineItem.productId);
+
+			return {
+				...lineItem,
+				isPublished: product ? product.published : false,
+			};
+		});
+
+		// Identify items that are NOT published (including when isPublished is undefined)
+		const itemsForRemoval = updatedLineItems.filter((item) => !(item.isPublished ?? false));
+
+		// If there are no items to remove, return as is
+		if (itemsForRemoval.length === 0) {
+			return { ...ctCart, notice: '' };
+		}
+
+		// Build the remove actions
+		const removeActions: UpdateAction[] = itemsForRemoval.map((item) => ({
+			action: 'removeLineItem',
+			lineItemId: item.id,
+		}));
+
+		// Execute removals and update the cart
+		const updatedCart = await this.removeItem(version, id, removeActions);
+
+		// Add a user-facing notice
+		const notice = 'Cart items have changed; some items removed due to unavailability.';
+
+		// Return the updated cart along with a notice
+		return { ...updatedCart, notice };
+
 	}
 
 	public async removeItem(cartVersion: number, cartId: string, actions: any) {

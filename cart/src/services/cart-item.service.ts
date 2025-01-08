@@ -56,6 +56,13 @@ export class CartItemService {
                 };
             }
 
+            if(!product.masterData.published) {
+                throw {
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    statusMessage: 'Product is no longer available.',
+                };
+            }
+
             const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
 
             if (!variant) {
@@ -235,6 +242,13 @@ export class CartItemService {
                 };
             }
 
+            if(!product.masterData.published) {
+                throw {
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    statusMessage: 'Product is no longer available.',
+                };
+            }
+
             const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
             if (!variant) {
                 throw {
@@ -316,12 +330,13 @@ export class CartItemService {
                 quantity
             });
 
+
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
+            return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared};
         } catch (error: any) {
             console.log('error', error);
 

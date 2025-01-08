@@ -341,7 +341,8 @@ export class CartService {
                 });
             }
 
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+            const ctCartWithPublishedProduct = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCartWithPublishedProduct)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
             // 2) Possibly auto-remove invalid coupons
@@ -372,6 +373,7 @@ export class CartService {
             const response = {
                 ...iCartWithBenefit,
                 hasChanged: cartWithUpdatedPrice.compared,
+                hasChangedNote: ctCartWithPublishedProduct.notice,
                 ...couponEffects
             };
 
