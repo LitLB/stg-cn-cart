@@ -1,11 +1,13 @@
 // server/adapters/ct-cart-client.ts
 
-import type { ApiRoot, Cart, CartUpdate, CartUpdateAction, MyCartUpdate, MyCartUpdateAction, LineItemDraft, LineItem } from '@commercetools/platform-sdk';
+import type { ApiRoot, Cart, CartUpdate, CartUpdateAction, MyCartUpdate, MyCartUpdateAction, LineItemDraft, LineItem,CartSetCustomFieldAction } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from './ct-base-client';
 import { readConfiguration } from '../utils/config.utils';
 import { compareLineItemsArrays } from '../utils/compare.util';
 import { getAttributeValue } from '../utils/product-utils';
 import { UpdateAction } from '@commercetools/sdk-client-v2';
+import { CART_INVENTORY_MODES } from '../constants/cart.constant';
+import { LINE_ITEM_INVENTORY_MODES } from '../constants/lineItem.constant';
 
 class CommercetoolsCartClient {
 	private static instance: CommercetoolsCartClient;
@@ -15,7 +17,7 @@ class CommercetoolsCartClient {
 	private constructor() {
 		this.apiRoot = CommercetoolsBaseClient.getApiRoot();
 		this.projectKey = readConfiguration().ctpProjectKey as string;
-		
+
 	}
 
 	public static getInstance(): CommercetoolsCartClient {
@@ -37,6 +39,7 @@ class CommercetoolsCartClient {
 			};
 
 
+
 			const response = await this.apiRoot
 				.withProjectKey({ projectKey: this.projectKey })
 				.carts()
@@ -45,6 +48,7 @@ class CommercetoolsCartClient {
 					body: cartUpdate,
 				})
 				.execute();
+
 
 
 			return response.body;
@@ -71,6 +75,7 @@ class CommercetoolsCartClient {
 		addOnGroup,
 		freeGiftGroup,
 		externalPrice,
+		dummyFlag,
 	}: {
 		cart: Cart;
 		productId: string;
@@ -84,8 +89,44 @@ class CommercetoolsCartClient {
 			currencyCode: string;
 			centAmount: number;
 		};
+		dummyFlag: boolean,
 	}): Promise<Cart> {
 		const { lineItems } = cart;
+
+		
+		
+		const existingPreOrderMainProduct = lineItems.find((lineItem: LineItem) =>
+			lineItem.custom?.fields?.productType === 'main_product'
+	);
+	
+		let cartFlag: boolean
+
+		if (existingPreOrderMainProduct) {
+
+			const { productId: existingId, variant } = existingPreOrderMainProduct;
+			const isProductPreOrder = existingPreOrderMainProduct.custom?.fields?.isPreOrder 
+
+			cartFlag = isProductPreOrder
+
+
+
+			if(isProductPreOrder && productType === 'main_product') {
+				console.log('a');
+	
+				if (productId !== existingId || variantId !== variant.id) {
+					throw new Error('Cannot add different stock types in the same cart.');
+				}
+			}else if(!isProductPreOrder && dummyFlag){
+				console.log('b');
+
+				throw new Error('Cannot add different stock types in the same cart.');
+			}
+		}else {
+			cartFlag = dummyFlag
+		}
+
+		
+		
 		const existingLineItem = lineItems.find((item: any) => {
 			return (
 				item.productId === productId // TODO: Free Gift Changes
@@ -96,6 +137,7 @@ class CommercetoolsCartClient {
 				&& (!freeGiftGroup || item.custom?.fields?.freeGiftGroup === freeGiftGroup)
 			);
 		});
+
 		const privilege = existingLineItem?.custom?.fields?.privilege;
 		const discounts = existingLineItem?.custom?.fields?.discounts;
 		const otherPayments = existingLineItem?.custom?.fields?.otherPayments;
@@ -113,9 +155,22 @@ class CommercetoolsCartClient {
 			return updatedCart;
 		}
 
+			
+		const updateCustom: CartSetCustomFieldAction = {
+			action: 'setCustomField',
+			name: 'preOrder',
+			value: cartFlag
+		};
+
+
+		const cartWithDummyFlag = await this.updateCart(cart.id,cart.version, [updateCustom])
+
+
+
 		const lineItemDraft: LineItemDraft = {
 			productId,
 			variantId,
+			inventoryMode: dummyFlag ? LINE_ITEM_INVENTORY_MODES.TRACK_ONLY : LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
 			quantity,
 			supplyChannel: {
 				typeId: 'channel',
@@ -134,17 +189,21 @@ class CommercetoolsCartClient {
 					...(privilege ? { privilege } : {}),
 					...(selected != null ? { selected } : {}),
 					...(discounts?.length ? { discounts } : {}),
-					...(otherPayments?.length ? { otherPayments } : {})
+					...(otherPayments?.length ? { otherPayments } : {}),
+					isPreOrder: dummyFlag
 				},
 			},
 			externalPrice,
 		};
 
+
 		const updatedCart = await this.addLineItemToCart(
-			cart.id,
-			cart.version,
+			cartWithDummyFlag.id,
+			cartWithDummyFlag.version,
 			lineItemDraft,
 		);
+
+
 
 		return updatedCart;
 	}
@@ -164,7 +223,7 @@ class CommercetoolsCartClient {
 			{
 				action: 'addLineItem',
 				...lineItemDraft,
-			},
+			},	
 		];
 
 		const cartUpdate: MyCartUpdate = {
@@ -250,8 +309,8 @@ class CommercetoolsCartClient {
 		const itemsWithCheckedCondition = lineItems.map(lineItem => {
 
 			const parentQuantity = mainProductLineItems
-			.filter((item: LineItem) => item.productId === lineItem.productId)
-			.reduce((sum:any, item:any) => sum + item.quantity, 0);
+				.filter((item: LineItem) => item.productId === lineItem.productId)
+				.reduce((sum: any, item: any) => sum + item.quantity, 0);
 
 			const { variant } = lineItem
 			const { attributes } = variant
@@ -279,7 +338,7 @@ class CommercetoolsCartClient {
 			}
 
 			return {
-				...lineItem,parentQuantity, hasChanged: {
+				...lineItem, parentQuantity, hasChanged: {
 					lineItemId: lineItem.id,
 				}
 			}

@@ -3,7 +3,6 @@
 import type { ApiRoot, InventoryEntry, InventoryEntryUpdate, InventoryEntryUpdateAction } from '@commercetools/platform-sdk';
 import { readConfiguration } from '../utils/config.utils';
 import CommercetoolsBaseClient from './ct-base-client'
-import { CART_JOURNEYS } from '../constants/cart.constant';
 import { HTTP_STATUSES } from '../constants/http.constant';
 
 class CommercetoolsInventoryClient {
@@ -23,153 +22,6 @@ class CommercetoolsInventoryClient {
 			CommercetoolsInventoryClient.instance = new CommercetoolsInventoryClient();
 		}
 		return CommercetoolsInventoryClient.instance;
-	}
-
-	/**
-  * Updates the inventory allocation based on the journey.
-  * @param inventoryEntry - The inventory entry to update.
-  * @param orderedQuantity - The quantity ordered.
-  * @param journey - The journey type from ctCart.custom.fields.journey.
-  * @param journeyConfig - The journey configuration.
-  */
-	public async updateInventoryAllocationV2(
-		inventoryEntry: InventoryEntry,
-		orderedQuantity: number,
-		journey: string,
-		journeyConfig: any
-	): Promise<void> {
-		switch (journey) {
-			case CART_JOURNEYS.SINGLE_PRODUCT:
-				// Inventory is reserved on order creation; no additional actions required.
-				console.log(`Single Product journey: Inventory for ${inventoryEntry.id} is reserved on order.`);
-				break;
-			case CART_JOURNEYS.DEVICE_ONLY:
-				await this.processCustomInventory(
-					inventoryEntry,
-					orderedQuantity,
-					journeyConfig
-				);
-				break;
-			default:
-				throw {
-					statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
-					statusMessage: `Unhandled journey type: ${journey}.`,
-					errorCode: 'UNHANDLED_JOURNEY',
-				};
-		}
-	}
-
-	private async reduceInventoryQuantity(
-		inventoryEntry: InventoryEntry,
-		orderedQuantity: number
-	): Promise<void> {
-		const updateActions: InventoryEntryUpdateAction[] = [
-			{
-				action: 'removeQuantity',
-				quantity: orderedQuantity,
-			},
-		];
-
-		const inventoryUpdate: InventoryEntryUpdate = {
-			version: inventoryEntry.version,
-			actions: updateActions,
-		};
-
-		await this.apiRoot
-			.withProjectKey({ projectKey: this.projectKey })
-			.inventory()
-			.withId({ ID: inventoryEntry.id })
-			.post({ body: inventoryUpdate })
-			.execute();
-	}
-
-	private async processCustomInventory(
-		inventoryEntry: InventoryEntry,
-		orderedQuantity: number,
-		journeyConfig: any,
-	): Promise<void> {
-		const { totalKey, maximumKey } = journeyConfig.inventory;
-		if (!totalKey || !maximumKey) {
-			throw {
-				statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
-				statusMessage: 'totalKey or maximumKey invalid.',
-				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
-			}
-		}
-
-		const customFields = inventoryEntry.custom?.fields;
-		if (!customFields) {
-			throw {
-				statusCode: HTTP_STATUSES.BAD_REQUEST,
-				statusMessage: 'Custom fields are missing on inventory entry.',
-				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
-			}
-		}
-
-		const total = customFields[totalKey] || 0;
-		const maximum = customFields[maximumKey] || 0;
-		const newTotal = total + orderedQuantity;
-		if (newTotal > maximum) {
-			throw {
-				statusCode: HTTP_STATUSES.BAD_REQUEST,
-				statusMessage: `Exceeds maximum stock allocation for journey.`,
-				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
-			};
-		}
-
-		// Update the custom field with the new total
-		await this.updateInventoryCustomField(
-			inventoryEntry,
-			totalKey,
-			newTotal
-		);
-	}
-
-	private async updateInventoryCustomField(
-		inventoryEntry: InventoryEntry,
-		fieldName: string,
-		fieldValue: any
-	): Promise<void> {
-		const updateActions: InventoryEntryUpdateAction[] = [
-			{
-				action: 'setCustomField',
-				name: fieldName,
-				value: fieldValue,
-			},
-		];
-
-		const inventoryUpdate: InventoryEntryUpdate = {
-			version: inventoryEntry.version,
-			actions: updateActions,
-		};
-
-		await this.apiRoot
-			.withProjectKey({ projectKey: this.projectKey })
-			.inventory()
-			.withId({ ID: inventoryEntry.id })
-			.post({ body: inventoryUpdate })
-			.execute();
-	}
-
-	/**
-	 * Fetches inventory by ID.
-	 * @param inventoryId - The ID of the inventory entry.
-	 * @returns {Promise<InventoryEntry | null>} - Returns the inventory entry or null if not found.
-	 */
-	public async getInventoryById(inventoryId: string): Promise<InventoryEntry | null> {
-		try {
-			const response = await this.apiRoot
-				.withProjectKey({ projectKey: this.projectKey })
-				.inventory()
-				.withId({ ID: inventoryId })
-				.get()
-				.execute();
-
-			return response.body;
-		} catch (error: any) {
-			console.error('Error fetching inventory by ID:', error);
-			return null;
-		}
 	}
 
 	/**
@@ -300,6 +152,119 @@ class CommercetoolsInventoryClient {
 		})
 
 		return updatedDataInventories
+	}
+
+	/**
+	 * @param inventoryId - The ID of the inventory entry.
+	 * @returns {Promise<InventoryEntry | null>} - Returns the inventory entry or null if not found.
+	 */
+		public async getInventoryById(inventoryId: string): Promise<InventoryEntry | null> {
+			try {
+				const response = await this.apiRoot
+					.withProjectKey({ projectKey: this.projectKey })
+					.inventory()
+					.withId({ ID: inventoryId })
+					.get()
+					.execute();
+
+				return response.body;
+			} catch (error: any) {
+				console.error('Error fetching inventory by ID:', error);
+				return null;
+			}
+		}
+
+	/**
+	 * @param inventoryKey - The key of the inventory entry.
+	 * @returns {Promise<InventoryEntry | null>} - Returns the inventory entry or null if not found.
+	 */
+	public async getInventoryByKey(inventoryKey: string): Promise<InventoryEntry | null> {
+		try {
+			const response = await this.apiRoot
+				.withProjectKey({ projectKey: this.projectKey })
+				.inventory()
+				.withKey({ key: inventoryKey })
+				.get()
+				.execute();
+
+			return response.body;
+		} catch (error: any) {
+			console.error('Error fetching inventory by Key:', error);
+			return null;
+		}
+	}
+
+	public async updateInventoryCustomField(
+		inventoryEntry: InventoryEntry,
+		fieldName: string,
+		fieldValue: any
+	): Promise<void> {
+		const updateActions: InventoryEntryUpdateAction[] = [
+			{
+				action: 'setCustomField',
+				name: fieldName,
+				value: fieldValue,
+			},
+		];
+
+		const inventoryUpdate: InventoryEntryUpdate = {
+			version: inventoryEntry.version,
+			actions: updateActions,
+		};
+
+		await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.inventory()
+			.withId({ ID: inventoryEntry.id })
+			.post({ body: inventoryUpdate })
+			.execute();
+	}
+
+	public async updateInventoryDummyStock(inventoryEntry: InventoryEntry, orderedQuantity: number): Promise<void> {
+		const dummyKey = 'dummyStock';
+		const dummyPurchaseKey = 'dummyPurchase';
+
+		if (!dummyKey || !dummyPurchaseKey) {
+			throw {
+				statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
+				statusMessage: 'dummyKey or dummyPurchaseKey invalid.',
+				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
+			}
+		}
+	
+
+		const customFields = inventoryEntry.custom?.fields;
+		if (!customFields) {
+			throw {
+				statusCode: HTTP_STATUSES.BAD_REQUEST,
+				statusMessage: 'Custom fields are missing on inventory entry.',
+				errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
+			}
+		}
+
+		const maximumStock = customFields[dummyKey];
+		const totalPurchaseDummy = customFields[dummyPurchaseKey] || 0;
+
+
+		const newTotal = totalPurchaseDummy + orderedQuantity;
+
+		// Check if maximum stock is set and new total exceeds it.
+		if(maximumStock !== undefined ) {
+			if (newTotal > maximumStock) {
+				throw {
+					statusCode: HTTP_STATUSES.BAD_REQUEST,
+					statusMessage: `Exceeds maximum stock allocation for journey [Dummy - Stock].`,
+					errorCode: "CUSTOM_INVENTORY_PROCESS_FAILED",
+				};
+			}
+		}
+
+		await this.updateInventoryCustomField(
+			inventoryEntry,
+			dummyPurchaseKey,
+			newTotal
+		);
+
 	}
 }
 

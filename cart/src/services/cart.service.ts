@@ -23,7 +23,6 @@ import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
 import { BlacklistService } from './blacklist.service'
 import { safelyParse } from '../utils/response.utils';
 import { logger } from '../utils/logger.utils';
-import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { createStandardizedError } from '../utils/error.utils';
 import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.interface';
 import { IOrderAdditional, IPaymentInfo, IClientInfo } from '../interfaces/order-additional.interface';
@@ -34,15 +33,22 @@ import { CouponService } from './coupon.service';
 import { Coupon, ICoupon } from '../interfaces/coupon.interface';
 import { CartValidator } from '../validators/cart.validator';
 import { COUPON_INFO_CONTAINER } from '../constants/ct.constant';
+import { InventoryValidator } from '../validators/inventory.validator';
+import { InventoryService } from './inventory.service';
+import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
+import { validateInventory } from '../utils/cart.utils';
+
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
     private blacklistService: BlacklistService;
     private couponService: CouponService;
+    private inventoryService: InventoryService;
 
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
         this.blacklistService = new BlacklistService()
         this.couponService = new CouponService()
+        this.inventoryService = new InventoryService()
     }
 
     /**
@@ -72,62 +78,6 @@ export class CartService {
             }
 
             throw createStandardizedError(error, 'createAnonymousCart');
-        }
-    };
-
-    public updateStockAllocation = async (ctCart: Cart): Promise<void> => {
-        try {
-            const journey = ctCart.custom?.fields?.journey as CART_JOURNEYS;
-            const journeyConfig = journeyConfigMap[journey];
-
-            for (const lineItem of ctCart.lineItems) {
-
-                const supplyChannel = lineItem.supplyChannel;
-
-                if (!supplyChannel || !supplyChannel.id) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: 'Supply channel is missing on line item.',
-                        errorCode: "SUPPLY_CHANNEL_MISSING",
-                    };
-                }
-
-                const inventoryId =
-                    lineItem.variant.availability?.channels?.[supplyChannel.id]?.id;
-
-                if (!inventoryId) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: 'InventoryId not found.',
-                        errorCode: "INVENTORY_ID_NOT_FOUND",
-                    };
-                }
-
-
-                const inventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
-                if (!inventoryEntry) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: `Inventory entry not found for ID: ${inventoryId}`,
-                        errorCode: "INVENTORY_ENTRY_NOT_FOUND",
-                    };
-                }
-
-                const orderedQuantity = lineItem.quantity;
-                await CommercetoolsInventoryClient.updateInventoryAllocationV2(
-                    inventoryEntry,
-                    orderedQuantity,
-                    journey,
-                    journeyConfig
-                );
-            }
-        } catch (error: any) {
-            console.log('error', error)
-            throw {
-                statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: `Update stock allocation failed.`,
-                errorCode: "CREATE_ORDER_ON_CT_FAILED",
-            };
         }
     };
 
@@ -184,6 +134,8 @@ export class CartService {
 
             let ctCart = await this.getCtCartById(accessToken, cartId)
 
+            const isPreOrder = ctCart.custom?.fields.preOrder
+
             CartValidator.validateCartHasSelectedItems(ctCart);
 
             // * STEP #2 - Validate Blacklist
@@ -203,24 +155,33 @@ export class CartService {
 
             ctCart = await this.removeUnselectedItems(ctCart);
 
+            await InventoryValidator.validateCart(ctCart);
+
             const orderNumber = await this.generateOrderNumber(`TRUE`)
 
-            // * STEP #5 - Create Order On TSM Sale
-            const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
-            // //! IF available > x
-            // //! THEN continue
-            // //! ELSE 
-            // //! THEN throw error
+            let tsmSaveOrder = {
+              
+            }
 
-            const tsmSaveOrder = {
-                tsmOrderIsSaved: success,
-                tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+            if (!isPreOrder) {
+
+                // * STEP #5 - Create Order On TSM Sale
+                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+                // //! IF available > x
+                // //! THEN continue
+                // //! ELSE 
+                // //! THEN throw error
+                tsmSaveOrder = {
+                    tsmOrderIsSaved: success,
+                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+                }
+
             }
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
-            await this.updateStockAllocation(cartWithUpdatedPrice);
+            await this.inventoryService.commitCartStock(ctCart);
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
             return { ...order, hasChanged: cartWithUpdatedPrice.compared };
@@ -237,7 +198,7 @@ export class CartService {
     private async handleAutoRemoveCoupons(ctCart: Cart, cartId: string): Promise<Cart> {
         // 1. Auto-remove invalid coupons
         const { updatedCart, permanentlyInvalidRejectedCoupons } =
-            await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(ctCart);
+            await this.couponService.autoRemoveInvalidCouponsAndReturnOnceV2(ctCart);
         ctCart = updatedCart;
         if (permanentlyInvalidRejectedCoupons.length > 0) {
             throw createStandardizedError(
@@ -881,12 +842,14 @@ export class CartService {
                     };
                 }
                 const inventory = inventories[0];
-                if (inventory.isOutOfStock) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: 'Insufficient stock for the requested quantity',
-                    };
-                }
+                 const { isDummyStock,isOutOfStock } = validateInventory(inventory)
+                
+                            if (isOutOfStock && !isDummyStock) {
+                                throw {
+                                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                                    statusMessage: 'Insufficient stock for the requested quantity',
+                                };
+                            }
 
                 validateProductQuantity(
                     productType,
@@ -917,7 +880,7 @@ export class CartService {
 
         const companyAbbr = company === 'DTAC' ? 'D' : 'T';
 
-        const key = `${companyAbbr}${currentDate.format('YYYYMM')}`;
+        const key = `${companyAbbr}${currentDate.format('YYMM')}`;
 
         const maxRetries = 3
         let retries = 0
@@ -935,7 +898,7 @@ export class CartService {
                 })
 
                 const runningNumber = newCounter % MAXIMUM_RUNNING_NUMBER
-                const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYYYMMDD')}${runningNumber.toString().padStart(5, '0')}`
+                const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYMMDD')}${runningNumber.toString().padStart(5, '0')}`
 
                 return orderNumberFormatted
             } catch (err: any) {
@@ -946,7 +909,7 @@ export class CartService {
                         value: newCounter,
                         version: 0
                     })
-                    const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYYYMMDD')}${newCounter.toString().padStart(5, '0')}`
+                    const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYMMDD')}${newCounter.toString().padStart(5, '0')}`
                     return orderNumberFormatted
                 }
                 retries = retries + 1

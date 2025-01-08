@@ -7,10 +7,12 @@ import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
 import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateProductQuantity, validateProductReleaseDate, validateSelectCartItemBody, validateUpdateCartItemBody } from '../schemas/cart-item.schema';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { readConfiguration } from '../utils/config.utils';
-import { Cart, MyCartUpdateAction } from '@commercetools/platform-sdk';
+import { MyCartUpdateAction } from '@commercetools/platform-sdk';
 import { createStandardizedError } from '../utils/error.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
-import { CartValidator } from '../validators/cart.validator';
+import { CART_JOURNEYS } from '../constants/cart.constant';
+import { InventoryValidator } from '../validators/inventory.validator';
+import { updateCartFlag, validateInventory } from '../utils/cart.utils';
 
 export class CartItemService {
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
@@ -28,15 +30,22 @@ export class CartItemService {
             const { productId, sku, quantity, productType, productGroup, addOnGroup, freeGiftGroup } = value;
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-
             const cart = await commercetoolsMeCartClient.getCartById(id);
             if (!cart) {
                 throw {
-                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    statusCode: 404,
                     statusMessage: 'Cart not found or has expired',
                 };
             }
-            // const cartJourney = cart.custom?.fields?.journey;
+
+            const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
+
+            await InventoryValidator.validateLineItemUpsert(
+                cart,
+                sku,
+                quantity,
+                journey,
+            );
 
             const product = await CommercetoolsProductClient.getProductById(productId);
             if (!product) {
@@ -47,6 +56,7 @@ export class CartItemService {
             }
 
             const variant = CommercetoolsProductClient.findVariantBySku(product, sku);
+
             if (!variant) {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
@@ -99,13 +109,19 @@ export class CartItemService {
                     statusMessage: 'Inventory not found',
                 };
             }
+
+            
             const inventory = inventories[0];
-            if (inventory.isOutOfStock) {
+
+            const { isDummyStock,isOutOfStock } = validateInventory(inventory)
+
+            if (isOutOfStock && !isDummyStock) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Insufficient stock for the requested quantity',
                 };
             }
+
 
             const newProductGroup = this.calculateProductGroup({
                 cart,
@@ -158,15 +174,17 @@ export class CartItemService {
                 addOnGroup,
                 freeGiftGroup,
                 externalPrice: validPrice.value,
+                dummyFlag: isDummyStock,
             });
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
-
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
             return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
+            console.log('error', error);
+            
             if (error.status && error.message) {
                 throw error;
             }
@@ -200,6 +218,9 @@ export class CartItemService {
                     statusMessage: 'Cart not found or has expired',
                 };
             }
+
+            const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
+            await InventoryValidator.validateLineItemReplaceQty(cart, sku, quantity, journey);
 
             const product = await CommercetoolsProductClient.getProductById(productId);
             if (!product) {
@@ -236,7 +257,9 @@ export class CartItemService {
                 };
             }
             const inventory = inventories[0];
-            if (inventory.isOutOfStock) {
+            const { isDummyStock,isOutOfStock } = validateInventory(inventory)
+
+            if (isOutOfStock && !isDummyStock) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Insufficient stock for the requested quantity',
@@ -295,6 +318,8 @@ export class CartItemService {
 
             return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
+            console.log('error', error);
+
             if (error.status && error.message) {
                 throw error;
             }
@@ -353,7 +378,8 @@ export class CartItemService {
 
             updatedCart = await commercetoolsMeCartClient.resetCartItemProductGroup(updatedCart)
 
-            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+            let iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+            iCartWithBenefit = updateCartFlag(iCartWithBenefit)
 
             return iCartWithBenefit;
         } catch (error: any) {
@@ -418,7 +444,8 @@ export class CartItemService {
 
             const updatedCart = await commercetoolsMeCartClient.removeItemsFromCart(cart, lineItemKeys);
 
-            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+            let iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+            iCartWithBenefit = updateCartFlag(iCartWithBenefit)
 
             return iCartWithBenefit;
         } catch (error: any) {
