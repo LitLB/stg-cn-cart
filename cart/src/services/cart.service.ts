@@ -232,7 +232,7 @@ export class CartService {
         // 4. Possibly add coupon info
         await this.couponService.addCouponInformation(
             updateActions,
-            cartId,
+            ctCart.id,
             talonOneUpdateActions?.couponsInformation
         );
 

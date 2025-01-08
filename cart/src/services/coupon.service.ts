@@ -295,20 +295,18 @@ export class CouponService {
             if (addedCouponsInformation) {
                 const updateCustom: CartSetCustomFieldAction = {
                     action: 'setCustomField',
-                    name: 'couponInfomation',
-                    value: [
-                        {
-                            typeId: 'key-value-document',
-                            id: addedCouponsInformation.id
-                        }
-                    ]
+                    name: 'couponsInfomation',
+                    value: {
+                        typeId: 'key-value-document',
+                        id: addedCouponsInformation.id
+                    }
                 };
                 updateActions.push(updateCustom);
             } else {
                 if (couponsInformation) {
                     const removeCustom: CartSetCustomFieldAction = {
                         action: 'setCustomField',
-                        name: 'couponInfomation',
+                        name: 'couponsInfomation',
                         value: null
                     };
                     updateActions.push(removeCustom);
