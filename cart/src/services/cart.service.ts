@@ -32,6 +32,7 @@ import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 import { CouponService } from './coupon.service';
 import { Coupon, ICoupon } from '../interfaces/coupon.interface';
 import { CartValidator } from '../validators/cart.validator';
+import { COUPON_INFO_CONTAINER } from '../constants/ct.constant';
 import { InventoryValidator } from '../validators/inventory.validator';
 import { InventoryService } from './inventory.service';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
@@ -497,7 +498,9 @@ export class CartService {
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const config = readConfiguration()
-            const tsmOrder = new TsmOrderModel({ ctCart: cart, config, orderNumber })
+             // Get coupon information
+            const couponDiscounts = await this.getCouponInformation(orderNumber ,COUPON_INFO_CONTAINER, cart.id)
+            const tsmOrder = new TsmOrderModel({ ctCart: cart, config, orderNumber, couponDiscounts })
             const tsmOrderPayload = tsmOrder.toPayload()
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
@@ -944,4 +947,49 @@ export class CartService {
 
         return true;
     };
+
+    private async getCouponInformation(orderNumber: string, container: string, cartId: string) {
+        let couponResult: any[] = []
+        try {
+            const customObjectCouponInformation = await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey(container, cartId)
+            if (customObjectCouponInformation) {
+                couponResult = customObjectCouponInformation.value
+            }
+        } catch (error: any) {
+            logger.error(`CartService.createOrder.getCouponInformation.error`, error);
+            return { discounts: [], otherPayments: [] }
+        }
+
+        const discounts: { orderNumber: string; no: number; code: string; amount: string; serial: string }[] = [];
+        const otherPayments: { orderNumber: string; no: number; code: string; amount: string; serial: string }[] = [];
+        let discountNo = 1;
+        let otherPaymentNo = 1;
+
+        couponResult.forEach((item: any) => {
+
+            if (item.discountCode.toUpperCase() !== "NULL") {
+                discounts.push({
+                    orderNumber,
+                    no: discountNo,
+                    code: item.couponCode,
+                    amount: item.discountPrice.toString(),
+                    serial: "",
+                });
+                discountNo++;
+            }
+
+            if (item.otherPaymentCode.toUpperCase() !== "NULL") {
+                otherPayments.push({
+                    orderNumber,
+                    no: otherPaymentNo,
+                    code: item.otherPaymentCode,
+                    amount: item.discountPrice.toString(),
+                    serial: "",
+                });
+                otherPaymentNo++;
+            }
+        });
+
+        return { discounts, otherPayments };
+    }
 }

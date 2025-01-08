@@ -2,19 +2,23 @@ export default class TsmOrderModel {
     private readonly ctCart: any
     private readonly config: any
     private readonly orderNumber: string
+    private readonly couponDiscounts: any
     constructor({
         ctCart,
         orderNumber,
-        config
+        config,
+        couponDiscounts
     }: {
         ctCart: any,
         orderNumber: string
-        config: any
+        config: any,
+        couponDiscounts: any
     }) {
 
         this.ctCart = ctCart
         this.config = config
         this.orderNumber = orderNumber
+        this.couponDiscounts = couponDiscounts
     }
 
     toPayload() {
@@ -149,12 +153,12 @@ export default class TsmOrderModel {
 
         //! ค่า netAmount ใน items ทั้งหมดรวมกัน
         const totalAmount = sequenceItems.reduce((total: any, item: any) => total + +item.netAmount, 0,)
+        //! From Custom Object
+        const {discounts, otherPayments} = this.couponDiscounts
         //! ค่า discounts (นอก items) ทั้งหมดรวมกัน
-        const discounts: any[] = []
-        const discountAmount = 0
+        const discountAmount = discounts.reduce((total: any, discount: any) => total + +discount.amount, 0,)
         //! ค่า ค่า otherPayments (นอก items) ทั้งหมดรวมกัน
-        const otherPayments: any[] = []
-        const otherPaymentAmount = 0
+        const otherPaymentAmount = otherPayments.reduce((total: any, otherPayment: any) => total + +otherPayment.amount, 0,)
         //! ค่า totalAmount - discountAmount
         const totalAfterDiscount = totalAmount - discountAmount
 
