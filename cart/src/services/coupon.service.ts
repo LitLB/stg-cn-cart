@@ -39,7 +39,7 @@ export class CouponService {
             const currentCouponCodes: string[] =
                 couponEffects?.coupons?.acceptedCoupons?.map((c: any) => c.code) ?? [];
 
-            if (currentCouponCodes.length === 0) {
+            if (currentCouponCodes.length === 0 && couponEffects.coupons.rejectedCoupons.length === 0) {
                 // No coupons to re-check
                 return {
                     updatedCart: ctCart,
