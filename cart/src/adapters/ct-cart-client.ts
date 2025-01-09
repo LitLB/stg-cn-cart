@@ -347,9 +347,7 @@ class CommercetoolsCartClient {
 		const { lineItems, version, id } = ctCart;
 
 		// If no line items, return early or handle accordingly
-		if (!lineItems || lineItems.length === 0) {
-			return [];
-		}
+		if (!lineItems || lineItems.length === 0) return { ...ctCart, lineItems: [] } 
 
 		// Extract productIds from lineItems and remove duplicates
 		const productIds = [...new Set(lineItems.map(li => li.productId))];
