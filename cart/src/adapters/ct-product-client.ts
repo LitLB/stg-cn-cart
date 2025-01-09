@@ -1,15 +1,14 @@
 import { LineItem } from '@commercetools/platform-sdk';
 // src/server/adapters/ct-product-client.ts
 
-import type { ApiRoot, Product, ProductDraft, ProductVariant } from '@commercetools/platform-sdk';
+import type { ApiRoot, Cart, Product, ProductDraft, ProductVariant } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
 import { CT_PRODUCT_ACTIONS } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
 import { getAttributeValue } from '../utils/product-utils';
 import CommercetoolsMeCartClient from './me/ct-me-cart-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client'
-import { isNull } from 'lodash';
-import { removeDuplicateStringArray } from '../utils/array.urils';
+
 
 class CommercetoolsProductClient {
 	private static instance: CommercetoolsProductClient;
@@ -259,11 +258,11 @@ class CommercetoolsProductClient {
 		return variant
 	}
 
-	async checkCartHasChanged(ctCart: any) {
+	async checkCartHasChanged(ctCart: Cart): Promise<Cart> {
 
 		const { lineItems } = ctCart;
 
-		if (lineItems.length === 0) return { ...ctCart, lineItems: [] }
+		if (!lineItems || lineItems.length === 0) return { ...ctCart, lineItems: [] }
 
 		const mainProductLineItems = lineItems.filter(
 			(item: LineItem) => item.custom?.fields?.productType === 'main_product',
@@ -288,11 +287,11 @@ class CommercetoolsProductClient {
 
 
 
-		const processedItems = lineItems.map((cartItem: any) => {
+		const processedItems = lineItems.map((cartItem: LineItem) => {
 
 			const parentQuantity = mainProductLineItems
 				.filter((item: LineItem) => item.productId === cartItem.productId)
-				.reduce((sum: any, item: any) => sum + item.quantity, 0);
+				.reduce((sum: any, item: LineItem) => sum + item.quantity, 0);
 
 			const matchingSkuItem = skuItems.find(
 				(skuItem: any) => cartItem.productId === skuItem.id
@@ -304,7 +303,7 @@ class CommercetoolsProductClient {
 			const { quantity } = cartItem;
 
 			const matchedVariant = this.findVariantByKey(
-				cartItem?.variant?.key,
+				cartItem?.variant?.key as string,
 				matchingSkuItem.masterVariant,
 				matchingSkuItem.variants
 			);
@@ -337,7 +336,7 @@ class CommercetoolsProductClient {
 			0
 		);
 		const totalLineItemQuantity = processedItems.reduce(
-			(total: number, item: any) => total + item.quantity,
+			(total: number, item: LineItem) => total + item.quantity,
 			0
 		);
 
