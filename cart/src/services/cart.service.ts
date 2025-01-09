@@ -179,12 +179,12 @@ export class CartService {
             }
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
-            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
             await this.inventoryService.commitCartStock(ctCart);
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
-            return { ...order, hasChanged: cartWithUpdatedPrice.compared };
+            return { ...order, hasChanged: compared };
         } catch (error: any) {
             logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -309,10 +309,10 @@ export class CartService {
 
             const updatedCart = await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, updateActions);
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
-            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
             const iCart = commercetoolsMeCartClient.mapCartToICart(cartWithUpdatedPrice);
 
-            return { ...iCart, hasChanged: cartWithUpdatedPrice.compared };
+            return { ...iCart, hasChanged: compared };
         } catch (error: any) {
             logger.error(`CartService.checkout.error`, error);
             if (error.status && error.message) {
@@ -341,9 +341,9 @@ export class CartService {
                 });
             }
 
-            const { ctCart: cartWithPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cartWithPublish)
-            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cartWithCheckPublicPublish)
+            const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
 
             // 2) Possibly auto-remove invalid coupons
             let cartAfterAutoRemove: Cart = cartWithUpdatedPrice;
@@ -372,7 +372,7 @@ export class CartService {
 
             const response = {
                 ...iCartWithBenefit,
-                hasChanged: cartWithUpdatedPrice.compared,
+                hasChanged: compared,
                 hasChangedNote: notice,
                 ...couponEffects
             };
@@ -416,7 +416,7 @@ export class CartService {
 
             // 2) Check for price/availability changes in the FULL (unfiltered) cart
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart);
-            const updatedCart = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged);
+            const { ctCart: updatedCart, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged);
 
             // 3) If `includeCoupons` is true, possibly do coupon auto-removal on the real updatedCart
             let finalCart: Cart = updatedCart;
@@ -448,7 +448,7 @@ export class CartService {
                 );
                 return {
                     ...iCart,
-                    hasChanged: updatedCart.compared,
+                    hasChanged: compared,
                     ...couponEffects,
                 };
             }
@@ -456,7 +456,7 @@ export class CartService {
             // 7) If no coupons needed, just return ephemeral iCart
             return {
                 ...iCart,
-                hasChanged: updatedCart.compared,
+                hasChanged: compared,
             };
         } catch (error: any) {
             if (error.status && error.message) {

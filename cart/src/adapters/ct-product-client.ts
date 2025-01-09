@@ -268,7 +268,7 @@ class CommercetoolsProductClient {
 			(item: LineItem) => item.custom?.fields?.productType === 'main_product',
 		);
 
-		const skus = lineItems.map((item: any) => item.variant.sku);
+		const skus = lineItems.map((item: LineItem) => item.variant.sku);
 		const inventoryKey = skus.map((sku: any) => sku).join(',');
 		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
 
@@ -283,10 +283,6 @@ class CommercetoolsProductClient {
 			});
 		}
 
-
-
-
-
 		const processedItems = lineItems.map((cartItem: LineItem) => {
 
 			const parentQuantity = mainProductLineItems
@@ -300,6 +296,7 @@ class CommercetoolsProductClient {
 			const matchedInventory = inventories.find((invItem: any) => invItem.sku === cartItem.variant.sku)
 
 			if (!matchingSkuItem) return cartItem;
+
 			const { quantity } = cartItem;
 
 			const matchedVariant = this.findVariantByKey(
@@ -308,14 +305,12 @@ class CommercetoolsProductClient {
 				matchingSkuItem.variants
 			);
 
-
 			const validPrice = findValidPrice(matchedVariant);
 
 			const hasChanged = {
 				quantity_over_stock: quantity > matchedInventory.stock.available,
 			};
 
-			// Update item data
 			const updatedItem = {
 				...cartItem,
 				price: validPrice,

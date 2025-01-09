@@ -1269,7 +1269,7 @@ export default class CommercetoolsMeCartClient {
 		return iCartWithBenefit;
 	}
 
-	async updateCartChangeDataToCommerceTools(ctCartWithUpdated: any) {
+	async updateCartChangeDataToCommerceTools(ctCartWithUpdated: Cart) {
 		return await this.ctCartClient.updateCartWithNewValue(ctCartWithUpdated)
 	}
 }

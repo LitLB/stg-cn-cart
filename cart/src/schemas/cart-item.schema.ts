@@ -1,6 +1,6 @@
 // cart/src/schemas/cart-item.schema.ts
 
-import type { Cart, LineItem, ProductVariant } from '@commercetools/platform-sdk';
+import type { Attribute, Cart, LineItem, ProductVariant } from '@commercetools/platform-sdk';
 import Joi from 'joi';
 import { getAttributeValue } from '../utils/product-utils';
 import { readConfiguration } from '../utils/config.utils';
@@ -432,15 +432,15 @@ export const validateJourneyCompatibility = (
 	}
 };
 
-export const validateProductReleaseDate = (variant: any, today: Date):boolean => {
+export const validateProductReleaseDate = (variant: any, today: Date): boolean => {
 
-	
+
 	const releaseDate = getAttributeValue(variant, 'release_start_date')
 	const endDate = getAttributeValue(variant, 'release_end_date')
 
 	if (!releaseDate && !endDate) {
-        return true;
-    }
+		return true;
+	}
 
 	const validForm = new Date(releaseDate) <= today
 	const validTo = new Date(endDate) >= today
@@ -448,20 +448,24 @@ export const validateProductReleaseDate = (variant: any, today: Date):boolean =>
 	let isValidPeriod = true
 
 
-	if(releaseDate && endDate){
+	if (releaseDate && endDate) {
 		isValidPeriod = validForm && validTo
-	}else if(releaseDate && !endDate) {
+	} else if (releaseDate && !endDate) {
 		isValidPeriod = validForm
-	}else if(!releaseDate && endDate) {
+	} else if (!releaseDate && endDate) {
 		isValidPeriod = validTo
 	}
 
 	return isValidPeriod
 }
 
-export const validateSkuStatus = (attributes: any) => {
+export const validateSkuStatus = (attributes: Attribute[]) => {
 
 	const skuStatus = getAttributeValue(attributes, 'status')
-
-	return skuStatus.key === 'enabled'
+	if (skuStatus.key !== 'enabled') {
+		throw {
+			statusCode: HTTP_STATUSES.NOT_FOUND,
+			statusMessage: 'Product is unavailable.',
+		};
+	}
 }

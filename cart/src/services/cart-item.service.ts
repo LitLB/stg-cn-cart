@@ -7,7 +7,7 @@ import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
 import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateProductQuantity, validateProductReleaseDate, validateSelectCartItemBody, validateSkuStatus, validateUpdateCartItemBody } from '../schemas/cart-item.schema';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { readConfiguration } from '../utils/config.utils';
-import { MyCartUpdateAction } from '@commercetools/platform-sdk';
+import { Cart, MyCartUpdateAction } from '@commercetools/platform-sdk';
 import { createStandardizedError } from '../utils/error.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { CART_JOURNEYS } from '../constants/cart.constant';
@@ -56,7 +56,7 @@ export class CartItemService {
                 };
             }
 
-            if(!product.masterData.published) {
+            if (!product.masterData.published) {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Product is no longer available.',
@@ -87,13 +87,14 @@ export class CartItemService {
                 };
             }
 
-            const isValidSkuStatus = validateSkuStatus(variant.attributes)
-            if (!isValidSkuStatus) {
+            if (!variant.attributes || variant.attributes.length === 0) {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
-                    statusMessage: 'Product is unavailable.',
+                    statusMessage: 'No attributes found for this variant',
                 };
             }
+
+            validateSkuStatus(variant.attributes)
 
             const validPrice = CommercetoolsProductClient.findValidPrice({
                 prices: variant.prices,
@@ -189,11 +190,11 @@ export class CartItemService {
                 dummyFlag: isDummyStock,
             });
 
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
-            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            const ctCartWithChanged: Cart = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+            const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
+            return { ...iCartWithBenefit, hasChanged: compared };
         } catch (error: any) {
             console.log('error', error);
 
@@ -242,7 +243,7 @@ export class CartItemService {
                 };
             }
 
-            if(!product.masterData.published) {
+            if (!product.masterData.published) {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Product is no longer available.',
@@ -331,12 +332,12 @@ export class CartItemService {
             });
 
 
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
-            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            const ctCartWithChanged: Cart = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+            const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
 
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared};
+            return { ...iCartWithBenefit, hasChanged: compared };
         } catch (error: any) {
             console.log('error', error);
 
@@ -534,12 +535,12 @@ export class CartItemService {
                 updateActions,
             );
 
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
-            const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            const ctCartWithChanged: Cart = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+            const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
 
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
+            return { ...iCartWithBenefit, hasChanged: compared };
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
