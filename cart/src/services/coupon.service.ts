@@ -35,7 +35,7 @@ export class CouponService {
                 ctCart.id,
                 ctCart.lineItems
             );
-            
+
             const currentCouponCodes: string[] =
                 couponEffects?.coupons?.acceptedCoupons?.map((c: any) => c.code) ?? [];
 
@@ -62,9 +62,9 @@ export class CouponService {
             const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(
                 updatedSession.effects
             );
-            
+
             processedCouponEffects.rejectedCoupons = [...processedCouponEffects.rejectedCoupons, ...couponEffects.coupons.rejectedCoupons];
-            
+
             // 3.1) Identify permanently invalid coupons
             const permanentlyInvalid = this.findPermanentlyInvalidCoupons(
                 processedCouponEffects
@@ -147,7 +147,7 @@ export class CouponService {
                 ctCart.id,
                 ctCart.lineItems
             );
-            
+
             const currentCouponCodes: string[] =
                 couponEffects?.coupons?.acceptedCoupons?.map((coupons: any) => coupons.code) ?? [];
 
@@ -174,9 +174,9 @@ export class CouponService {
             const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(
                 updatedSession.effects
             );
-            
+
             processedCouponEffects.rejectedCoupons = [...processedCouponEffects.rejectedCoupons, ...couponEffects.coupons.rejectedCoupons]
-            
+
             // 3.1) Identify permanently invalid coupons
             const permanentlyInvalid = this.findPermanentlyInvalidCoupons(
                 processedCouponEffects
@@ -335,5 +335,51 @@ export class CouponService {
                 permanentlyInvalidReasons.includes(rc.reason)
             ) || []
         );
+    }
+
+    /**
+    * Clears all applied coupons from the cart.
+    * @param ctCart The current cart object.
+    * @returns A promise that resolves to the updated cart.
+    */
+    public async clearAllCoupons(ctCart: Cart, customerSession: any): Promise<Cart> {
+        try {
+            const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(customerSession.effects);
+            if (processedCouponEffects.acceptedCoupons.length === 0) {
+                return ctCart;
+            }
+
+            const clearAllCouponsPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
+                profileId: ctCart.id,
+                ctCartData: ctCart,
+                couponCodes: [],
+            });
+            const clearAllCouponsUpdatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(
+                ctCart.id,
+                clearAllCouponsPayload
+            );
+
+            const clearAllCouponsEffects = this.talonOneCouponAdapter.processCouponEffects(clearAllCouponsUpdatedCustomerSession.effects);
+            const { updateActions } =
+                this.talonOneCouponAdapter.buildCouponActions(ctCart, clearAllCouponsEffects);
+
+            if (updateActions.length === 0) {
+                return ctCart;
+            }
+
+            const updatedCart = await CommercetoolsCartClient.updateCart(
+                ctCart.id,
+                ctCart.version,
+                updateActions
+            );
+
+            return updatedCart;
+        } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+
+            throw createStandardizedError(error, 'clearAllCoupons');
+        }
     }
 }

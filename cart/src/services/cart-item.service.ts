@@ -13,8 +13,16 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { CART_JOURNEYS } from '../constants/cart.constant';
 import { InventoryValidator } from '../validators/inventory.validator';
 import { updateCartFlag, validateInventory } from '../utils/cart.utils';
+import { CouponService } from './coupon.service';
+import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 
 export class CartItemService {
+    private couponService: CouponService;
+
+    constructor() {
+        this.couponService = new CouponService();
+    }
+
     public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
         try {
 
@@ -56,7 +64,7 @@ export class CartItemService {
                 };
             }
 
-            if(!product.masterData.published) {
+            if (!product.masterData.published) {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Product is no longer available.',
@@ -242,7 +250,7 @@ export class CartItemService {
                 };
             }
 
-            if(!product.masterData.published) {
+            if (!product.masterData.published) {
                 throw {
                     statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Product is no longer available.',
@@ -320,7 +328,7 @@ export class CartItemService {
                 }
             }
 
-            const updatedCart = await commercetoolsMeCartClient.updateItemQuantityInCart({
+            let updatedCart = await commercetoolsMeCartClient.updateItemQuantityInCart({
                 cart,
                 variantId: variant.id,
                 productGroup,
@@ -330,16 +338,19 @@ export class CartItemService {
                 quantity
             });
 
+            const customerSession = await talonOneIntegrationAdapter.getCustomerSession(updatedCart.id);
+
+            if (updatedCart.lineItems.length === 0) {
+                updatedCart = await this.couponService.clearAllCoupons(updatedCart, customerSession);
+            }
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared};
+            return { ...iCartWithBenefit, hasChanged: cartWithUpdatedPrice.compared };
         } catch (error: any) {
-            console.log('error', error);
-
             if (error.status && error.message) {
                 throw error;
             }
@@ -395,6 +406,12 @@ export class CartItemService {
                 addOnGroup,
                 freeGiftGroup
             });
+
+            const customerSession = await talonOneIntegrationAdapter.getCustomerSession(updatedCart.id);
+
+            if (updatedCart.lineItems.length === 0) {
+                updatedCart = await this.couponService.clearAllCoupons(updatedCart, customerSession);
+            }
 
             updatedCart = await commercetoolsMeCartClient.resetCartItemProductGroup(updatedCart)
 
@@ -462,7 +479,13 @@ export class CartItemService {
                 });
             }
 
-            const updatedCart = await commercetoolsMeCartClient.removeItemsFromCart(cart, lineItemKeys);
+            let updatedCart = await commercetoolsMeCartClient.removeItemsFromCart(cart, lineItemKeys);
+
+            const customerSession = await talonOneIntegrationAdapter.getCustomerSession(updatedCart.id);
+
+            if (updatedCart.lineItems.length === 0) {
+                updatedCart = await this.couponService.clearAllCoupons(updatedCart, customerSession);
+            }
 
             let iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
             iCartWithBenefit = updateCartFlag(iCartWithBenefit)
