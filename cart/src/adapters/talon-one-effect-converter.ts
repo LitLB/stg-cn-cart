@@ -770,21 +770,19 @@ class TalonOneEffectConverter {
 			changes
 		})
 
-		const mainProductOnly = customerSessionPayload?.customerSession?.cartItems?.every((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
-
-		if (mainProductOnly) {
-			return {
-				isValid: true,
-				errorMessage: ''
-			}
-		}
-
 		const customerSessionId = ctCart?.id
 		const { customerSession, effects } = await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, customerSessionPayload, { dry: true })
 
 		const { cartItems } = customerSession;
 		const distintEffects = this.groupEffect(effects);
 		const filteredEffects = this.filter(distintEffects);
+
+		if (!filteredEffects.length) {
+			return {
+				isValid: true,
+				errorMessage: ''
+			}
+		}
 		const convertedEffects = filteredEffects.map((filteredEffect: any) => this.convert(filteredEffect, cartItems));
 		const promotionSets = convertedEffects.map((convertedEffect) => convertedEffect.promotionSet)
 
@@ -804,13 +802,87 @@ class TalonOneEffectConverter {
 				(wrappedBenefit: any) => wrappedBenefit.cartItemPosition === position
 			)
 
+			const convertedEffect = (convertedEffects || []).find((convertedEffect: any) => convertedEffect.cartItemPosition === position)
+
+			const {
+				campaignCode,
+				promotionSetCode,
+				campaignVerifyKey: campaignVerifyKeys = [] 
+			} = convertedEffect || {}
+			const cleanedCampaignVerifyKeys = campaignVerifyKeys.map((campaignVerifyKey: any) => {
+				const { 
+					campaign_verify_key__name: name,
+					campaign_verify_key__is_require: isRequire,
+					campaign_verify_key__is_key_check_aging: isKeyCheckAging,
+				} = campaignVerifyKey
+				return {
+					name,
+					isRequire,
+					isKeyCheckAging
+				}
+			})
+
 			return {
 				...cartItem,
 				addOnBenefits: addOnBenefitByPositions,
 				freeGiftBenefits: freeGiftBenefitByPositions,
+				campaignVerifyKeys: cleanedCampaignVerifyKeys,
+				campaignCode,
+				promotionSetCode,
 			}
 		})
 
+		// ! Validate Main Product
+		const cartItemCampaignCodes = newCartItems
+		.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
+		.map((cartItem: any) => cartItem.campaignCode)
+
+		const uniqueCampaginCodes = [...new Set(cartItemCampaignCodes)];
+		if (uniqueCampaginCodes.length > 1) {
+			return {
+				isValid: false,
+				errorMessage: 'Multiple campaigns in a single cart are not supported.'
+			}
+		}
+
+		if (action === 'add_product') {
+			const changedItems = changes
+			for (const newCartItem of newCartItems) {
+				const { sku, attributes, campaignVerifyKeys } = newCartItem
+				const { product_group: productGroup, product_type: productType } = attributes || {}
+				if (!campaignVerifyKeys.length) {
+					continue
+				}	
+
+				const changedItem = changedItems.find((changedItem: any) =>
+					changedItem.sku === sku &&
+					changedItem.productGroup === productGroup &&
+					changedItem.productType === productType
+				)
+
+				if (!changedItem) {
+					continue
+				}
+
+				const { campaignVerifyValues = [] } = changedItem
+
+				for (const campaignVerifyKey of campaignVerifyKeys) {
+					const { name } = campaignVerifyKey
+					const matchedCampaignVerifyValue = campaignVerifyValues.find((campaignVerifyValue: any) => campaignVerifyValue.name === name && campaignVerifyValue.value)
+
+					if (!matchedCampaignVerifyValue) {
+						return {
+							isValid: false,
+							isRequireCampaignVerify: true,
+							errorMessage: `Campaign Verify Key '${name}' is required`,
+							campaignVerifyKeys
+						}
+					}
+				}
+			}
+		}
+
+		// ! Validate Secondary Product
 		const mainProductCartItems = newCartItems.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
 
 		let validateObject = mainProductCartItems.reduce((acc: any, item: any) => {
@@ -843,7 +915,7 @@ class TalonOneEffectConverter {
 
 		const addOnCartItems = newCartItems.filter((cartItem: any) => cartItem?.attributes.product_type === 'add_on')
 		const freeGiftCartItems = newCartItems.filter((cartItem: any) => cartItem?.attributes.product_type === 'free_gift')
-		
+
 		const secondaryCartItems = [...addOnCartItems, ...freeGiftCartItems]
 
 		validateObject = secondaryCartItems.reduce((acc: any, item: any) => {
@@ -880,7 +952,7 @@ class TalonOneEffectConverter {
 			if (remainingMaxReceive < 0) {
 				validateResult = {
 					isValid: false,
-					errorMessage: `Total add-on reach limit for product group "${productGroup}"`
+					errorMessage: `Total add-on and free gift reach limit for product group "${productGroup}"`
 				}
 				return
 			}

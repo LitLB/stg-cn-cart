@@ -104,6 +104,9 @@ deployAs:
         - key: APIGW_CLIENT_SECRET
           description: Apigee client secret
           required: true
+        - key: APIGW_PRIVATE_KEY_ENCRYPTION
+          description: Apigee private key encryption
+          required: true
   - name: coupon
     applicationType: service
     endpoint: /coupon

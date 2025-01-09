@@ -137,6 +137,14 @@ export function validateAddItemCartBody(body: any) {
 			.messages({
 				'string.base': 'Free Gift Group must be a string',
 			}),
+		campaignVerifyValues: Joi.array()
+			.items(
+				Joi.object({
+					name: Joi.string().required(),
+					value: Joi.required()
+				})
+			)
+			.optional()
 	}).validate(body, { abortEarly: false });
 }
 

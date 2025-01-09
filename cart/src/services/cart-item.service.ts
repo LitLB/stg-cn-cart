@@ -4,7 +4,7 @@ import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
-import { validateAddItemCartBody, validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateProductQuantity, validateProductReleaseDate, validateSelectCartItemBody, validateSkuStatus, validateUpdateCartItemBody } from '../schemas/cart-item.schema';
+import { validateBulkDeleteCartItemBody, validateDeleteCartItemBody, validateProductQuantity, validateProductReleaseDate, validateSelectCartItemBody, validateUpdateCartItemBody, validateSkuStatus } from '../schemas/cart-item.schema';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { readConfiguration } from '../utils/config.utils';
 import { Cart, MyCartUpdateAction } from '@commercetools/platform-sdk';
@@ -23,20 +23,10 @@ export class CartItemService {
         this.couponService = new CouponService();
     }
 
-    public addItem = async (accessToken: string, id: string, body: any): Promise<any> => {
+    public addItem = async (accessToken: string, id: string, payload: any): Promise<any> => {
         try {
-
-            const { error, value } = validateAddItemCartBody(body);
-            if (error) {
-                throw {
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'Validation failed',
-                    data: error.details.map((err) => err.message),
-                };
-            }
-
             const now = new Date();
-            const { productId, sku, quantity, productType, productGroup, addOnGroup, freeGiftGroup } = value;
+            const { productId, sku, quantity, productType, productGroup, addOnGroup, freeGiftGroup, campaignVerifyValues = [] } = payload;
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
             const cart = await commercetoolsMeCartClient.getCartById(id);
@@ -152,15 +142,6 @@ export class CartItemService {
                 productGroup,
             })
 
-            const changes = [{
-                sku,
-                quantity,
-                productType,
-                productGroup: newProductGroup,
-                addOnGroup,
-                freeGiftGroup
-            }]
-
             if (productType === 'insurance') {
                 const validateInsuranceResult = await commercetoolsMeCartClient.validateInsurance(cart, {
                     productGroup: newProductGroup,
@@ -176,13 +157,33 @@ export class CartItemService {
                 }
             }
 
+            const changes = [{
+                sku,
+                quantity,
+                productType,
+                productGroup: newProductGroup,
+                addOnGroup,
+                freeGiftGroup,
+                campaignVerifyValues
+            }]
             const action = 'add_product'
             const validateResult = await talonOneEffectConverter.validate(cart, changes, action)
+
+            if (!validateResult?.isValid && (validateResult as any)?.isRequireCampaignVerify) {
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: validateResult?.errorMessage,
+                    data: {
+                        campaignVerifyKeys: (validateResult as any)?.campaignVerifyKeys,
+                    }
+                }, 'addItem');
+            }
+
             if (!validateResult?.isValid) {
-                return {
-                    status: 'error',
-                    message: validateResult?.errorMessage
-                }
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: validateResult?.errorMessage
+                }, 'addItem');
             }
 
             const updatedCart = await CommercetoolsCartClient.addItemToCart({
@@ -196,6 +197,7 @@ export class CartItemService {
                 freeGiftGroup,
                 externalPrice: validPrice.value,
                 dummyFlag: isDummyStock,
+                campaignVerifyValues,
             });
 
             const ctCartWithChanged: Cart = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)

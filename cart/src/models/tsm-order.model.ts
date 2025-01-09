@@ -1,3 +1,4 @@
+import { apigeeEncrypt } from '../utils/apigeeEncrypt.utils'
 export default class TsmOrderModel {
     private readonly ctCart: any
     private readonly config: any
@@ -27,17 +28,24 @@ export default class TsmOrderModel {
         const saleCode = this.config.tsmOrder.saleCode
         const saleName = this.config.tsmOrder.saleName
 
+        const ApigeePrivateKeyEncryption = this.config.apigee.privateKeyEncryption
+
         // ! Generate
         const orderId = this.orderNumber
 
         // ! Cart
         const { shippingAddress, lineItems } = this.ctCart
+        const campaignVerifyValues = this.getCampaignVerifyValues(lineItems)
+        const thaiId = campaignVerifyValues.find((v: any) => v.name === 'ThaiId')?.value || ''
+        const encryptedThaiId = thaiId ? apigeeEncrypt(thaiId, ApigeePrivateKeyEncryption) : ''
+
         const customer = {
-            thaiId: '',
+            thaiId: encryptedThaiId,
             firstName: shippingAddress.firstName,
             lastName: shippingAddress.lastName,
         }
 
+        // TODO filter lineItems by selected 
         const sequenceItems = lineItems.flatMap((lineItem: any, lineItemIndex: number) => {
             const productCode = lineItem.variant.sku
             const productGroup = lineItem.custom?.fields?.productGroup
@@ -45,6 +53,11 @@ export default class TsmOrderModel {
             let privilege = lineItem?.custom?.fields?.privilege
             privilege = privilege && JSON.parse(privilege);
 
+            const campaignVerifyValues = this.getCampaignVerifyValuesFromCurrentLineItem(lineItem, lineItems)
+            const privilegeRequiredValue = campaignVerifyValues.reduce((acc: any, v: any) => {
+                return `${acc ? `${acc},` : ''}${v.name}=${v.value}`
+            }, '')
+        
             const {
                 campaignCode = '',
                 campaignName = '',
@@ -92,7 +105,7 @@ export default class TsmOrderModel {
                         netAmount: '0',
                         discountAmount: '0',
                         otherPaymentAmount: '0',
-                        privilegeRequiredValue: '',
+                        privilegeRequiredValue,
                         discounts: [],
                         otherPayments: [],
                         serials: [],
@@ -128,7 +141,7 @@ export default class TsmOrderModel {
                     proposition: '' + promotionSetProposition,
                     promotionSet: promotionSetCode,
                     promotionType: this.getPromotionType(productType),
-                    group: '' + productGroup,
+                    group: '1',
                     product: {
                         productType: this.getProductType(productType),
                         productCode,
@@ -142,7 +155,7 @@ export default class TsmOrderModel {
                     netAmount: '' + this.stangToBaht(netAmount),
                     discountAmount: '' + discountAmountBaht,
                     otherPaymentAmount: '' + otherPaymentAmountBaht,
-                    privilegeRequiredValue: '',
+                    privilegeRequiredValue,
                     discounts,
                     otherPayments,
                     serials: [],
@@ -356,4 +369,27 @@ export default class TsmOrderModel {
 
         return baht * Math.pow(10, fractionDigits)
     }
+
+    getCampaignVerifyValues (lineItems: any[]) {
+        const mainProductlineItems = lineItems.find((lineItem: any) => {
+            return lineItem.custom?.fields?.productType === 'main_product'
+        })
+
+        const campaignVerifyValues = (mainProductlineItems.custom?.fields?.campaignVerifyValues  ?? []).map((v: any) => JSON.parse(v))
+
+        return campaignVerifyValues
+    }
+
+    getCampaignVerifyValuesFromCurrentLineItem = (currentLineItem: any, lineItems: any[]) => {
+        const productGroup = currentLineItem.custom?.fields?.productGroup
+        const mainProductlineItems = lineItems.find((lineItem: any) => {
+            return lineItem.custom?.fields?.productGroup === productGroup && lineItem.custom?.fields?.productType === 'main_product'
+        })
+
+        const campaignVerifyValues = (mainProductlineItems.custom?.fields?.campaignVerifyValues  ?? []).map((v: any) => JSON.parse(v))
+
+        return campaignVerifyValues
+    }
+
+
 }

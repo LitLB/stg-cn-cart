@@ -79,6 +79,7 @@ class CommercetoolsCartClient {
 		freeGiftGroup,
 		externalPrice,
 		dummyFlag,
+		campaignVerifyValues,
 	}: {
 		cart: Cart;
 		productId: string;
@@ -93,6 +94,12 @@ class CommercetoolsCartClient {
 			centAmount: number;
 		};
 		dummyFlag: boolean,
+		campaignVerifyValues: [
+			{
+				name: string;
+				value: string;
+			}
+		];
 	}): Promise<Cart> {
 		const { lineItems } = cart;
 
@@ -155,7 +162,7 @@ class CommercetoolsCartClient {
 		};
 
 		const cartWithDummyFlag = await this.updateCart(cart.id, cart.version, [updateCustom])
-
+		const transformedCampaignVerifyValues = campaignVerifyValues.map((item:any) => JSON.stringify(item))
 		const lineItemDraft: LineItemDraft = {
 			productId,
 			variantId,
@@ -179,7 +186,8 @@ class CommercetoolsCartClient {
 					...(selected != null ? { selected } : {}),
 					...(discounts?.length ? { discounts } : {}),
 					...(otherPayments?.length ? { otherPayments } : {}),
-					isPreOrder: dummyFlag
+					isPreOrder: dummyFlag,
+					...(productType === 'main_product' ? { campaignVerifyValues: transformedCampaignVerifyValues } : {})
 				},
 			},
 			externalPrice,

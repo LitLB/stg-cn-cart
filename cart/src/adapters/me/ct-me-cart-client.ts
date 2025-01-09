@@ -1064,6 +1064,7 @@ export default class CommercetoolsMeCartClient {
 			return {
 				...item,
 				availableBenefits: mappedAvailableBenefits,
+				isRequirePrivilege: !!privilege?.campaignCode,
 				privilege,
 				discounts,
 				otherPayments

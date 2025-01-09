@@ -745,17 +745,6 @@ export class CartService {
             return acc;
         }, validateObject);
 
-        //! {
-        //!     1: {
-        //!         xx1234: {
-        //!             remainingMaxReceive: 5,
-        //!             remainingMaxItem: {
-        //!                 addon1: 2,
-        //!                 addon2: 2
-        //!             }
-        //!         }
-        //!     }
-        //! }
         // Loop through the product groups
         Object.entries(validateObject as Record<string, any>).forEach(([productGroup, groupLimits]) => {
             // Loop through the next level (e.g., xx1234)
@@ -764,7 +753,7 @@ export class CartService {
 
                 // Check the remainingMaxReceive for this level
                 if (remainingMaxReceive < 0) {
-                    throw new Error(`Total add-on reach limit for product group "${productGroup}"`);
+                    throw new Error(`Total add-on and free gift reach limit for product group "${productGroup}"`);
                 }
 
                 // Check remainingMaxItem for this level
@@ -899,7 +888,7 @@ export class CartService {
                     version: existingObject.version
                 })
 
-                const runningNumber = newCounter % MAXIMUM_RUNNING_NUMBER
+                const runningNumber = newCounter % MAXIMUM_RUNNING_NUMBER || 99999
                 const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYMMDD')}${runningNumber.toString().padStart(5, '0')}`
 
                 return orderNumberFormatted
