@@ -7,9 +7,7 @@ interface ILineItem extends LineItem {
 }
 
 
-function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: ILineItem) {
-
-
+function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: ILineItem): boolean {
     const parentQuantityA = lineItemA.parentQuantity ?? 0
     const parentQuantityB = lineItemB.parentQuantity ?? 0
 
@@ -99,7 +97,7 @@ function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: ILineItem) {
     // Sort the keys and recreate the object
     const sortedResult = Object.keys(result)
         .sort() // Sort keys alphabetically (or use a custom comparator function)
-        .reduce((sortedObj:any, key) => {
+        .reduce((sortedObj: any, key) => {
             sortedObj[key] = result[key];
             return sortedObj;
         }, {});
@@ -115,6 +113,10 @@ export function compareLineItemsArrays(lineItemsA: LineItem[], lineItemsB: LineI
         }
         const hasChange = compareLineItemAttributes(itemA, matchingItemB);
 
-        return { productId: itemA.productId, skuId: itemA.variant.sku, hasChange };
+        return { 
+            productId: itemA.productId, 
+            skuId: itemA.variant.sku, 
+            hasChange,
+        };
     });
 }

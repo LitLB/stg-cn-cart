@@ -126,7 +126,7 @@ class CommercetoolsInventoryClient {
 		const skusArray = skus.split(",")
 		const keys = this.generateKey(skusArray)
 		const expand = `key in (${keys.map((id: any) => `"${id}"`).join(",")})`;
-		let response = await this.apiRoot
+		const response = await this.apiRoot
 			.withProjectKey({ projectKey: this.projectKey })
 			.inventory()
 			.get({ queryArgs: { where: expand } })
