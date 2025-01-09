@@ -5,6 +5,7 @@
     "resolveJsonModule": true,
     "outDir": "./build",
     "rootDir": "./src",
+    "esModuleInterop": true,
     "inlineSourceMap": true,
     "typeRoots": ["./node_modules/@types"]
   }

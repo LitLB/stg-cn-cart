@@ -842,14 +842,13 @@ export class CartService {
                     };
                 }
                 const inventory = inventories[0];
-                 const { isDummyStock,isOutOfStock } = validateInventory(inventory)
-                
-                            if (isOutOfStock && !isDummyStock) {
-                                throw {
-                                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                                    statusMessage: 'Insufficient stock for the requested quantity',
-                                };
-                            }
+                const { isDummyStock, isOutOfStock } = validateInventory(inventory)
+                if (isOutOfStock && !isDummyStock) {
+                    throw {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: 'Insufficient stock for the requested quantity',
+                    };
+                }
 
                 validateProductQuantity(
                     productType,
