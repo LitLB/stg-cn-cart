@@ -160,7 +160,7 @@ export class CartService {
             const orderNumber = await this.generateOrderNumber(`TRUE`)
 
             let tsmSaveOrder = {
-              
+
             }
 
             if (!isPreOrder) {
@@ -341,8 +341,8 @@ export class CartService {
                 });
             }
 
-            const ctCartWithPublishedProduct = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCartWithPublishedProduct)
+            const { ctCart: cartWithPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cartWithPublish)
             const cartWithUpdatedPrice = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
             // 2) Possibly auto-remove invalid coupons
@@ -373,7 +373,7 @@ export class CartService {
             const response = {
                 ...iCartWithBenefit,
                 hasChanged: cartWithUpdatedPrice.compared,
-                hasChangedNote: ctCartWithPublishedProduct.notice,
+                hasChangedNote: notice,
                 ...couponEffects
             };
 
@@ -500,8 +500,8 @@ export class CartService {
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const config = readConfiguration()
-             // Get coupon information
-            const couponDiscounts = await this.getCouponInformation(orderNumber ,COUPON_INFO_CONTAINER, cart.id)
+            // Get coupon information
+            const couponDiscounts = await this.getCouponInformation(orderNumber, COUPON_INFO_CONTAINER, cart.id)
             const tsmOrder = new TsmOrderModel({ ctCart: cart, config, orderNumber, couponDiscounts })
             const tsmOrderPayload = tsmOrder.toPayload()
 
@@ -844,14 +844,14 @@ export class CartService {
                     };
                 }
                 const inventory = inventories[0];
-                 const { isDummyStock,isOutOfStock } = validateInventory(inventory)
-                
-                            if (isOutOfStock && !isDummyStock) {
-                                throw {
-                                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                                    statusMessage: 'Insufficient stock for the requested quantity',
-                                };
-                            }
+                const { isDummyStock, isOutOfStock } = validateInventory(inventory)
+
+                if (isOutOfStock && !isDummyStock) {
+                    throw {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: 'Insufficient stock for the requested quantity',
+                    };
+                }
 
                 validateProductQuantity(
                     productType,

@@ -9,13 +9,15 @@ import { UpdateAction } from '@commercetools/sdk-client-v2';
 import { LINE_ITEM_INVENTORY_MODES } from '../constants/lineItem.constant';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import { isBoolean } from 'lodash';
+import { CustomCartPublish } from '../types/customCart.types';
+
 
 
 class CommercetoolsCartClient {
 	private static instance: CommercetoolsCartClient;
 	private apiRoot: ApiRoot;
 	private projectKey: string;
-
+	
 	private constructor() {
 		this.apiRoot = CommercetoolsBaseClient.getApiRoot();
 		this.projectKey = readConfiguration().ctpProjectKey as string;
@@ -342,18 +344,17 @@ class CommercetoolsCartClient {
 		return { ...ctCart, lineItems: itemsWithCheckedCondition }
 	}
 
-	public async validateProductIsPublished(ctCart: Cart): Promise<any> {
+	public async validateProductIsPublished(ctCart: Cart): Promise<CustomCartPublish> {
 
 		const { lineItems, version, id } = ctCart;
 
 		// If no line items, return early or handle accordingly
 		if (!lineItems || lineItems.length === 0) {
-			return [];
+			return { ctCart , notice: '' }
 		}
 
 		// Extract productIds from lineItems and remove duplicates
-		const productIds = [...new Set(lineItems.map(li => li.productId))];
-
+		const productIds = [...new Set(lineItems.map((lineItem:LineItem) => lineItem.productId))];
 
 		// Fetch products from Commercetools
 		const response = await CommercetoolsProductClient.getProductsByIds(productIds);
@@ -383,7 +384,7 @@ class CommercetoolsCartClient {
 
 		// If there are no items to remove, return as is
 		if (itemsForRemoval.length === 0) {
-			return { ...ctCart, notice: '' };
+			return { ctCart, notice: '' };
 		}
 
 		// Build the remove actions
@@ -399,7 +400,7 @@ class CommercetoolsCartClient {
 		const notice = 'Cart items have changed; some items removed due to unavailability.';
 
 		// Return the updated cart along with a notice
-		return { ...updatedCart, notice };
+		return {  ctCart: updatedCart, notice };
 
 	}
 
