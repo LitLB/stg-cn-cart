@@ -5,10 +5,8 @@ import type { ApiRoot, Cart, Product, ProductDraft, ProductVariant } from '@comm
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
 import { CT_PRODUCT_ACTIONS } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
-import { getAttributeValue } from '../utils/product-utils';
-import CommercetoolsMeCartClient from './me/ct-me-cart-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client'
-
+import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 
 class CommercetoolsProductClient {
 	private static instance: CommercetoolsProductClient;
@@ -258,11 +256,9 @@ class CommercetoolsProductClient {
 		return variant
 	}
 
-	async checkCartHasChanged(ctCart: Cart): Promise<Cart> {
-
+	async checkCartHasChanged(ctCart: Cart): Promise<Cart>{
 		const { lineItems } = ctCart;
-
-		if (!lineItems || lineItems.length === 0) return { ...ctCart, lineItems: [] }
+		if (lineItems.length === 0) return {...ctCart, lineItems: []}
 
 		const mainProductLineItems = lineItems.filter(
 			(item: LineItem) => item.custom?.fields?.productType === 'main_product',
@@ -283,17 +279,18 @@ class CommercetoolsProductClient {
 			});
 		}
 
-		const processedItems = lineItems.map((cartItem: LineItem) => {
-
+		const processedItems = lineItems.map((cartItem: any) => {
 			const parentQuantity = mainProductLineItems
-				.filter((item: LineItem) => item.productId === cartItem.productId)
-				.reduce((sum: any, item: LineItem) => sum + item.quantity, 0);
+                .filter((item: LineItem) => item.productId === cartItem.productId)
+                .reduce((sum:any, item:any) => sum + item.quantity, 0);
 
 			const matchingSkuItem = skuItems.find(
 				(skuItem: any) => cartItem.productId === skuItem.id
 			);
 
-			const matchedInventory = inventories.find((invItem: any) => invItem.sku === cartItem.variant.sku)
+			const matchedInventory = inventories.find(
+                (invItem: any) => invItem.sku === cartItem.variant.sku
+            );
 
 			if (!matchingSkuItem) return cartItem;
 
@@ -306,9 +303,19 @@ class CommercetoolsProductClient {
 			);
 
 			const validPrice = findValidPrice(matchedVariant);
+            
+            let stockAvailable = matchedInventory.stock.available
+
+            // Check maximum stock allocation by journey
+            const journey = ctCart.custom?.fields.journey as CART_JOURNEYS
+            const journeyConfig = journeyConfigMap[journey];
+            if (journeyConfig.inventory) {
+                const maximumStockAllocation = matchedInventory.custom.fields[journeyConfig.inventory.maximumKey];
+                stockAvailable = maximumStockAllocation;
+            }
 
 			const hasChanged = {
-				quantity_over_stock: quantity > matchedInventory.stock.available,
+				quantity_over_stock: quantity > stockAvailable,
 			};
 
 			const updatedItem = {
