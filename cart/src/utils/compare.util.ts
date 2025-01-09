@@ -53,7 +53,7 @@ function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: ILineItem) {
     const allAttrNames = new Set([...mapA.keys(), ...mapB.keys()]);
 
 
-    const ignoredAttributes = ['akeneo_id', 'product_id', 'status', 'company_code', 'journey'];
+    const ignoredAttributes = ['akeneo_id', 'product_id', 'company_code'];
 
     for (const name of allAttrNames) {
 
@@ -108,12 +108,10 @@ function compareLineItemAttributes(lineItemA: ILineItem, lineItemB: ILineItem) {
 }
 
 export function compareLineItemsArrays(lineItemsA: LineItem[], lineItemsB: LineItem[]) {
-
-
     return lineItemsA.map((itemA) => {
         const matchingItemB = lineItemsB.find(itemB => itemB.id === itemA.id);
         if (!matchingItemB) {
-            return { productId: itemA.productId, skuId: itemA.variant.sku, hasChange: "Line item was remove by condition." };
+            return { productId: itemA.productId, skuId: itemA.variant.sku, hasChange: "Item no longer available." };
         }
         const hasChange = compareLineItemAttributes(itemA, matchingItemB);
 

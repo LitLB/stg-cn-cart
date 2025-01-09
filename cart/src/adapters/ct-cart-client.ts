@@ -8,7 +8,8 @@ import { getAttributeValue } from '../utils/product-utils';
 import { UpdateAction } from '@commercetools/sdk-client-v2';
 import { LINE_ITEM_INVENTORY_MODES } from '../constants/lineItem.constant';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
-import { isBoolean } from 'lodash';
+import { CustomCartWithCompared, CustomCartWithNotice } from '../types/custom.types';
+
 
 
 class CommercetoolsCartClient {
@@ -226,9 +227,9 @@ class CommercetoolsCartClient {
 		return response.body;
 	}
 
-	public async updateCartWithNewValue(oldCart: Cart) {
+	public async updateCartWithNewValue(oldCart: Cart): Promise<CustomCartWithCompared> {
 		const { id: cartId, version: cartVersion, lineItems } = oldCart
-		const updateActions: CartUpdateAction[] = lineItems.map((lineItem: any) => {
+		const updateActions: CartUpdateAction[] = lineItems.map((lineItem: LineItem) => {
 			const { id, price } = lineItem
 			return {
 				action: 'setLineItemPrice',
@@ -247,10 +248,10 @@ class CommercetoolsCartClient {
 		const recalculatedCart = await this.recalculateCart(updatedPrice.id, updatedPrice.version)
 		const validateProduct = await this.validateDateItems(recalculatedCart)
 		const compared = compareLineItemsArrays(oldCart.lineItems, validateProduct.lineItems)
-		return { ...validateProduct, compared, }
+		return { ctCart: validateProduct, compared }
 	}
 
-	public async updatePrice(cartId: string, cartUpdate: any) {
+	public async updatePrice(cartId: string, cartUpdate: CartUpdate) {
 		const response = await this.apiRoot
 			.withProjectKey({ projectKey: this.projectKey })
 			.carts()
@@ -304,6 +305,7 @@ class CommercetoolsCartClient {
 
 			const releaseDate = getAttributeValue(itemAttr, 'release_start_date')
 			const endDate = getAttributeValue(itemAttr, 'release_end_date')
+			const status = getAttributeValue(itemAttr, 'status')
 
 			const validForm = new Date(releaseDate) <= today
 			const validTo = new Date(endDate) >= today
@@ -318,9 +320,9 @@ class CommercetoolsCartClient {
 				isValidPeriod = validTo
 			}
 
-			if (!isValidPeriod) {
+			if (!isValidPeriod || status.key === 'disabled') {
 				itemForRemove.push(lineItem)
-			}
+			} 
 
 			return {
 				...lineItem, parentQuantity, hasChanged: {
@@ -342,16 +344,17 @@ class CommercetoolsCartClient {
 		return { ...ctCart, lineItems: itemsWithCheckedCondition }
 	}
 
-	public async validateProductIsPublished(ctCart: Cart): Promise<any> {
+	public async validateProductIsPublished(ctCart: Cart): Promise<CustomCartWithNotice> {
 
 		const { lineItems, version, id } = ctCart;
 
 		// If no line items, return early or handle accordingly
-		if (!lineItems || lineItems.length === 0) return { ...ctCart, lineItems: [] } 
+		if (!lineItems || lineItems.length === 0) {
+			return { ctCart, notice: '' }
+		}
 
 		// Extract productIds from lineItems and remove duplicates
-		const productIds = [...new Set(lineItems.map(li => li.productId))];
-
+		const productIds = [...new Set(lineItems.map((lineItem: LineItem) => lineItem.productId))];
 
 		// Fetch products from Commercetools
 		const response = await CommercetoolsProductClient.getProductsByIds(productIds);
@@ -367,7 +370,7 @@ class CommercetoolsCartClient {
 
 		// Map over line items and set isPublished
 		// Throw an error (or handle as needed) if product is missing
-		const updatedLineItems = lineItems.map((lineItem) => {
+		const updatedLineItems = lineItems.map((lineItem: LineItem) => {
 			const product = productMap.get(lineItem.productId);
 
 			return {
@@ -381,7 +384,7 @@ class CommercetoolsCartClient {
 
 		// If there are no items to remove, return as is
 		if (itemsForRemoval.length === 0) {
-			return { ...ctCart, notice: '' };
+			return { ctCart, notice: '' };
 		}
 
 		// Build the remove actions
@@ -397,7 +400,39 @@ class CommercetoolsCartClient {
 		const notice = 'Cart items have changed; some items removed due to unavailability.';
 
 		// Return the updated cart along with a notice
-		return { ...updatedCart, notice };
+		return { ctCart: updatedCart, notice };
+
+	}
+
+	public async validateAndRemoveSku(ctCart: Cart): Promise<Cart> {
+
+		const { lineItems, version, id } = ctCart;
+
+		// Identify items that are NOT published (including when isPublished is undefined)
+		const itemsForRemoval = lineItems.filter((lineItem: LineItem) => {
+			const { attributes } = lineItem.variant
+			const skuStatus = getAttributeValue(attributes ?? [], 'status')
+			return skuStatus.key === 'disabled'
+		});
+
+		console.log(`itemsForRemove`)
+		console.log({ itemsForRemoval })
+
+		// If there are no items to remove, return as is
+		if (itemsForRemoval.length === 0) {
+			return ctCart
+		}
+
+		// Build the remove actions
+		const removeActions: UpdateAction[] = itemsForRemoval.map((item) => ({
+			action: 'removeLineItem',
+			lineItemId: item.id,
+		}));
+
+		// Return the updated cart along with a notice
+		const updatedCart: Cart = await this.removeItem(version, id, removeActions);
+
+		return updatedCart
 
 	}
 
