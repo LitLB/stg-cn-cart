@@ -54,6 +54,24 @@ export class TalonOneCouponAdapter {
         };
     }
 
+    /**
+     * Merge effect data into an array of coupons.
+     *
+     * @param coupons - The array of coupons to enhance.
+     * @param couponCustomEffectData - Map of coupon code => custom effect details.
+     * @returns A new array of coupons with customEffect if available.
+     */
+    private mergeCouponsWithCustomEffects(
+        coupons: Coupon[],
+        couponCustomEffectData: { [key: string]: CouponCustomEffect }
+    ): Coupon[] {
+        return coupons.map(c => {
+            const { code } = c;
+            const customEffect = couponCustomEffectData[code];
+            return customEffect ? { ...c, customEffect } : c;
+        });
+    }
+
     public processCouponEffectsOld(effects: any[]): ProcessedCouponEffect {
         const couponCodes: string[] = [];
         const acceptedCouponCodes: string[] = [];
@@ -120,20 +138,18 @@ export class TalonOneCouponAdapter {
             }
         });
 
-        const acceptedCouponsWithCustomEffects = acceptedCoupons.map(c => {
-            const { code } = c;
-            const customEffect = couponCustomEffectData[code];
-            return customEffect ? { ...c, customEffect } : c;
-        });
+        const acceptedCouponsWithCustomEffects = this.mergeCouponsWithCustomEffects(
+            acceptedCoupons,
+            couponCustomEffectData
+        );
 
-        const rejectedCouponsWithCustomEffects = rejectedCoupons.map(c => {
-            const { code } = c;
-            const customEffect = couponCustomEffectData[code];
-            return customEffect ? { ...c, customEffect } : c;
-        });
+        const rejectedCouponsWithCustomEffects = this.mergeCouponsWithCustomEffects(
+            rejectedCoupons,
+            couponCustomEffectData
+        );
 
-        const hasCoupons = acceptedCoupons.length > 0 || rejectedCoupons.length > 0;
-        const iCoupons = this.mapICoupons(acceptedCoupons, rejectedCoupons);
+        const hasCoupons = couponCodes.length > 0;
+        const iCoupons = this.mapICoupons(acceptedCouponsWithCustomEffects, rejectedCouponsWithCustomEffects);
 
         return {
             hasCoupons,

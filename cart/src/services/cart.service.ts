@@ -502,11 +502,10 @@ export class CartService {
 
             return response;
         } catch (error: any) {
-            console.log('error', error);
-
             if (error.status && error.message) {
                 throw error;
             }
+
             throw createStandardizedError(error, 'getCartById');
         }
     };
