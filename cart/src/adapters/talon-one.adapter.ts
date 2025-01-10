@@ -4,6 +4,7 @@ import { HTTP_STATUSES } from "../constants/http.constant";
 import { ApiResponse } from "../interfaces/response.interface";
 import { logger } from "../utils/logger.utils";
 import { validateCouponLimit } from "../validators/coupon.validator";
+import { CustomerSession, IntegrationCustomerSessionResponse } from "talon_one";
 
 class TalonOneIntegrationAdapter {
 	private readonly integrationApi: talonOne.IntegrationApi;
@@ -19,6 +20,20 @@ class TalonOneIntegrationAdapter {
 	// ! Used to retrieve only closed customer sessions because the response is a snapshot effect.
 	getCustomerSession(customerSessionId: string) {
 		return this.integrationApi.getCustomerSession(customerSessionId);
+	}
+
+	/**
+	 * Retrieves a customer session by its ID.
+	 * Returns the customer session if found, otherwise returns null.
+	 * @param customerSessionId - The ID of the customer session to retrieve.
+	 * @returns A Promise that resolves to the CustomerSession or null.
+	 */
+	async getCustomerSessionById(customerSessionId: string): Promise<IntegrationCustomerSessionResponse | null> {
+		try {
+			return await this.integrationApi.getCustomerSession(customerSessionId);
+		} catch (error: any) {
+			return null;
+		}
 	}
 
 	async getActiveCustomerSession(ctCart: any) {

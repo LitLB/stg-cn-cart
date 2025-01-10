@@ -13,7 +13,7 @@ import { COUPON_CUSTOM_EFFECT } from '../constants/cart.constant';
 import { talonOneIntegrationAdapter } from './talon-one.adapter';
 import { logger } from '../utils/logger.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
-import { Coupon, ICoupon, ProcessedCouponEffect } from '../interfaces/coupon.interface';
+import { Coupon, CouponCustomEffect, ICoupon, ProcessedCouponEffect } from '../interfaces/coupon.interface';
 
 export class TalonOneCouponAdapter {
     private ctpAddCustomCouponLineItemPrefix: string;
@@ -24,6 +24,36 @@ export class TalonOneCouponAdapter {
         this.ctpTaxCategoryId = readConfiguration().ctpTaxCategoryId;
     }
 
+    public mapICoupons(acceptedCoupons: Coupon[], rejectedCoupons: Coupon[]): ICoupon {
+        return {
+            coupons: {
+                acceptedCoupons,
+                rejectedCoupons,
+            },
+        };
+    }
+
+    private parseCouponCustomEffectPayload(payload: any): CouponCustomEffect | null {
+        if (!payload) {
+            return null;
+        }
+        return {
+            status: payload.status === 'true',
+            discount_price: payload.discount_price ? parseFloat(payload.discount_price) : 0,
+            discount_percentage: payload.discount_percentage ? parseFloat(payload.discount_percentage) : 0,
+            discount_code: payload.discount_code,
+            other_payment_code: payload.other_payment_code,
+            name_th: payload.name_th,
+            name_en: payload.name_en,
+            marketing_name_th: payload.marketing_name_th,
+            marketing_name_en: payload.marketing_name_en,
+            coupon_short_detail_th: payload.coupon_short_detail_th,
+            coupon_short_detail_en: payload.coupon_short_detail_en,
+            term_condition_th: payload.term_condition_th,
+            term_condition_en: payload.term_condition_en,
+        };
+    }
+
     public processCouponEffectsOld(effects: any[]): ProcessedCouponEffect {
         const couponCodes: string[] = [];
         const acceptedCouponCodes: string[] = [];
@@ -32,28 +62,26 @@ export class TalonOneCouponAdapter {
         const rejectedCoupons: Coupon[] = [];
         const customEffects: any[] = [];
         const couponIdToCode: { [key: number]: string } = {};
-        const couponIdToEffects: { [key: number]: any[] } = {};
+        const couponIdToEffects: { [key: number]: CouponCustomEffect[] } = {};
+        const couponCustomEffectData: { [key: string]: CouponCustomEffect } = {};
 
-        // Process effects to build mappings
         effects.forEach(effect => {
             const { effectType, props, triggeredByCoupon } = effect;
 
             if (triggeredByCoupon) {
-                if (!couponIdToEffects[triggeredByCoupon]) {
-                    couponIdToEffects[triggeredByCoupon] = [];
-                }
+                couponIdToEffects[triggeredByCoupon] = couponIdToEffects[triggeredByCoupon] || [];
                 couponIdToEffects[triggeredByCoupon].push(effect);
             }
 
             switch (effectType) {
                 case 'acceptCoupon':
                     couponCodes.push(props.value);
-
                     acceptedCouponCodes.push(props.value);
 
                     acceptedCoupons.push({
                         code: props.value,
                     });
+
                     if (triggeredByCoupon) {
                         couponIdToCode[triggeredByCoupon] = props.value;
                     }
@@ -61,7 +89,6 @@ export class TalonOneCouponAdapter {
 
                 case 'rejectCoupon':
                     couponCodes.push(props.value);
-
                     rejectedCouponCodes.push(props.value);
 
                     rejectedCoupons.push({
@@ -72,10 +99,17 @@ export class TalonOneCouponAdapter {
 
                 case 'customEffect':
                     if (props.name === COUPON_CUSTOM_EFFECT) {
-                        customEffects.push({
-                            couponCode: couponIdToCode[triggeredByCoupon],
-                            props,
-                        });
+                        const couponCode = triggeredByCoupon ? couponIdToCode[triggeredByCoupon] : undefined;
+                        customEffects.push({ couponCode, props });
+
+                        if (couponCode) {
+                            const parsedPayload = this.parseCouponCustomEffectPayload(props.payload);
+
+                            couponCustomEffectData[couponCode] = {
+                                ...couponCustomEffectData[couponCode],
+                                ...parsedPayload,
+                            };
+                        }
                     }
                     break;
 
@@ -86,13 +120,29 @@ export class TalonOneCouponAdapter {
             }
         });
 
-        const thereIsCoupons = acceptedCoupons.length > 0 || rejectedCoupons.length > 0;
+        const acceptedCouponsWithCustomEffects = acceptedCoupons.map(c => {
+            const { code } = c;
+            const customEffect = couponCustomEffectData[code];
+            return customEffect ? { ...c, customEffect } : c;
+        });
+
+        const rejectedCouponsWithCustomEffects = rejectedCoupons.map(c => {
+            const { code } = c;
+            const customEffect = couponCustomEffectData[code];
+            return customEffect ? { ...c, customEffect } : c;
+        });
+
+        const hasCoupons = acceptedCoupons.length > 0 || rejectedCoupons.length > 0;
+        const iCoupons = this.mapICoupons(acceptedCoupons, rejectedCoupons);
 
         return {
-            thereIsCoupons,
+            hasCoupons,
+            iCoupons,
             couponCodes,
             acceptedCouponCodes,
             rejectedCouponCodes,
+            acceptedCouponsWithCustomEffects,
+            rejectedCouponsWithCustomEffects,
             acceptedCoupons,
             rejectedCoupons,
             customEffects,

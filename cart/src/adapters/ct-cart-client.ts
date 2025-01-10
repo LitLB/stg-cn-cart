@@ -41,8 +41,6 @@ class CommercetoolsCartClient {
 				actions,
 			};
 
-
-
 			const response = await this.apiRoot
 				.withProjectKey({ projectKey: this.projectKey })
 				.carts()
@@ -51,8 +49,6 @@ class CommercetoolsCartClient {
 					body: cartUpdate,
 				})
 				.execute();
-
-
 
 			return response.body;
 		} catch (error: any) {
