@@ -1082,13 +1082,21 @@ class TalonOneEffectConverter {
 							0
 						);
 
-						const newFreeGiftProducts = freeGiftProducts.map((freeGiftProduct: any) => ({
-							...freeGiftProduct,
-							variants: freeGiftProduct.variants.map((variant: any) => ({
+						const newFreeGiftProducts = freeGiftProducts.map((freeGiftProduct: any) => {
+							const variants = freeGiftProduct.variants.map((variant: any) => ({
 								...variant,
 								totalSelectedItem: freeGiftItemsMapQuantity?.[lineItemProductGroup]?.[freeGiftGroup]?.[variant.sku] || 0,
-							})),
-						}));
+							}))
+
+							const totalSelectedItem = variants.reduce((acc:any, current: any) => {
+								return acc + current.totalSelectedItem
+							}, 0)
+							return {
+								...freeGiftProduct,
+								variants,
+								totalSelectedItem
+							}
+						});
 
 						return {
 							...wrappedBenefit,
@@ -1226,13 +1234,20 @@ class TalonOneEffectConverter {
 							0
 						);
 
-						const newAddOnProducts = addOnProducts.map((addOnProduct: any) => ({
-							...addOnProduct,
-							variants: addOnProduct.variants.map((variant: any) => ({
+						const newAddOnProducts = addOnProducts.map((addOnProduct: any) => {
+							const variants = addOnProduct.variants.map((variant: any) => ({
 								...variant,
 								totalSelectedItem: addOnItemsMapQuantity?.[lineItemProductGroup]?.[addOnGroup]?.[variant.sku] || 0,
-							})),
-						}));
+							}))
+							const totalSelectedItem = variants.reduce((acc:any, current: any) => {
+								return acc + current.totalSelectedItem
+							}, 0)
+							return {
+								...addOnProduct,
+								variants,
+								totalSelectedItem
+							}
+						});
 
 						// TODO: Condition need to have product group as well
 						return {

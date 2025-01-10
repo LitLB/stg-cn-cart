@@ -4,6 +4,7 @@ import { createApiBuilderFromCtpClient } from '@commercetools/platform-sdk';
 import { ClientBuilder } from '@commercetools/sdk-client-v2';
 import { createAuthMiddlewareWithExistingToken } from '@commercetools/sdk-middleware-auth';
 import { createHttpMiddleware } from '@commercetools/sdk-middleware-http';
+import { getAttributeValue } from '../../utils/product-utils';
 import type {
 	Cart,
 	MyCartDraft,
@@ -20,7 +21,7 @@ import type {
 	CartUpdateAction,
 	CartChangeCustomLineItemQuantityAction,
 } from '@commercetools/platform-sdk';
-import type { ICart, IImage, IItem } from '../../interfaces/cart';
+import type { IAvailableBenefitProduct, IAvailableBenefitProductVariant, ICart, IImage, IItem } from '../../interfaces/cart';
 import { CART_EXPIRATION_DAYS, CART_INVENTORY_MODES } from '../../constants/cart.constant';
 import dayjs from 'dayjs';
 import CommercetoolsInventoryClient from '../ct-inventory-client';
@@ -1048,29 +1049,154 @@ export default class CommercetoolsMeCartClient {
 		return newCart
 	}
 
-	attachBenefitToICart(iCart: any, lineItemWithCampaignBenefits: any[]) {
+	async attachBenefitToICart(iCart: any, lineItemWithCampaignBenefits: any[]) {
 		const { items } = iCart
-		const newItems = items.map((item: any) => {
+		const promises = items.map(async (item: any) => {
 			const sku = item.sku
 			const lineItem = lineItemWithCampaignBenefits.find((lineItem: any) => lineItem.variant.sku === sku)
+
 			const availableBenefits = lineItem?.availableBenefits || []
+			const mappedAvailableBenefits = await this.mapAvailableBenefits(availableBenefits)
 			const privilege = lineItem?.privilege || null
 			const discounts = lineItem?.discounts || []
 			const otherPayments = lineItem?.otherPayments || []
+
 			return {
 				...item,
-				availableBenefits,
+				availableBenefits: mappedAvailableBenefits,
 				privilege,
 				discounts,
 				otherPayments
 			}
 		})
+
+		const newItems = await Promise.all(promises)
 		const newICart = {
 			...iCart,
 			items: newItems
 		}
 
 		return newICart
+	}
+
+	async mapAvailableBenefits(availableBenefits: any[]) {
+		const mappedAvailableBenefits = availableBenefits.map((availableBenefit:any) => {
+			const { benefitType, freeGiftProducts = [], addOnProducts = [] }=availableBenefit
+
+			const newAddOnProducts: IAvailableBenefitProduct[] = addOnProducts.map((addOnProduct:any) => {
+				const {
+					id,
+					key,
+					name,
+					productType,
+					productSlug,
+					variants,
+					totalSelectedItem
+				} = addOnProduct
+
+				const newVariants: IAvailableBenefitProductVariant[] = variants.map((variant:any) => {
+					const {
+						attributes,
+						images,
+						key,
+						sku,
+						id,
+						prices,
+						totalSelectedItem,
+					} = variant
+
+					const price = this.ctProductClient.findValidPrice({
+						prices,
+						customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp
+					})
+					const unitPrice = price?.value.centAmount
+					const image = images?.[0] || null
+					return {
+						attributes,
+						image,
+						varientkey: key,
+						sku,
+						varientId: id,
+						unitPrice,
+						totalSelectedItem,
+					}
+				})
+
+				const image = getAttributeValue((variants?.[0]?.attributes ?? []), 'image')
+
+				return {
+					productId: id,
+					productKey: key,
+					productName: name,
+					ctProductType: productType,
+					productSlug: productSlug,
+					variants: newVariants,
+					image,
+					totalSelectedItem
+				}
+			})
+
+			const newFreeGiftProducts: IAvailableBenefitProduct[] = freeGiftProducts.map((freeGiftProduct:any) => {
+				const {
+					id,
+					key,
+					name,
+					productType,
+					productSlug,
+					variants,
+					totalSelectedItem
+				} = freeGiftProduct
+
+				const newVariants: IAvailableBenefitProductVariant[] = variants.map((variant:any) => {
+					const {
+						attributes,
+						images,
+						key,
+						sku,
+						id,
+						prices,
+						totalSelectedItem,
+					} = variant
+
+					const price = this.ctProductClient.findValidPrice({
+						prices,
+						customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp
+					})
+					const unitPrice = price?.value.centAmount
+					const image = images?.[0] || null
+					return {
+						attributes,
+						image,
+						varientkey: key,
+						sku,
+						varientId: id,
+						unitPrice,
+						totalSelectedItem,
+					}
+				})
+
+				const image = getAttributeValue((variants?.[0]?.attributes ?? []), 'image')
+
+				return {
+					productId: id,
+					productKey: key,
+					productName: name,
+					ctProductType: productType,
+					productSlug: productSlug,
+					variants: newVariants,
+					image,
+					totalSelectedItem
+				}
+			})
+
+			return {
+				...availableBenefit,
+				...(benefitType === 'add_on' ? { addOnProducts: newAddOnProducts } : {}),
+				...(benefitType === 'free_gift' ? { freeGiftProducts: newFreeGiftProducts } : {})
+			}
+		})
+
+		return mappedAvailableBenefits
 	}
 
 	async validateInsurance(ctCart: any, insurance: any) {
@@ -1263,7 +1389,7 @@ export default class CommercetoolsMeCartClient {
 		let iCartWithBenefit = iCart;
 		if (ctCart?.lineItems?.length) {
 			const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart);
-			iCartWithBenefit = this.attachBenefitToICart(iCart, lineItemWithCampaignBenefits);
+			iCartWithBenefit = await this.attachBenefitToICart(iCart, lineItemWithCampaignBenefits);
 		}
 
 		return iCartWithBenefit;

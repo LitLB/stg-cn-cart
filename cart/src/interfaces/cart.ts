@@ -149,3 +149,24 @@ export interface ValidateResponse {
 	status: boolean;
 	limit: number;
 }
+
+export interface IAvailableBenefitProduct {
+	productId: string;
+	productKey?: string;
+	productName: LocalizedString;
+	ctProductType: ProductTypeReference;
+	productSlug?: LocalizedString;
+	image: IImage | null;
+	variants: IAvailableBenefitProductVariant[];
+	totalSelectedItem: number;
+}
+export interface IAvailableBenefitProductVariant {
+	attributes: Attribute[];
+	image: IImage | null;
+	varientkey: string;
+	sku: string;
+	varientId: number;
+	unitPrice: number;
+	// inventory?: any;
+	totalSelectedItem: number;
+}
