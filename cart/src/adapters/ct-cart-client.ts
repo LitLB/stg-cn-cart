@@ -1,6 +1,6 @@
 // server/adapters/ct-cart-client.ts
 
-import type { ApiRoot, Cart, CartUpdate, CartUpdateAction, MyCartUpdate, MyCartUpdateAction, LineItemDraft, LineItem, CartSetCustomFieldAction } from '@commercetools/platform-sdk';
+import type { ApiRoot, Cart, CartUpdate, CartUpdateAction, MyCartUpdate, MyCartUpdateAction, LineItemDraft, LineItem, CartSetCustomFieldAction, CartChangeLineItemQuantityAction } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from './ct-base-client';
 import { readConfiguration } from '../utils/config.utils';
 import { compareLineItemsArrays } from '../utils/compare.util';
@@ -8,7 +8,7 @@ import { getAttributeValue } from '../utils/product-utils';
 import { UpdateAction } from '@commercetools/sdk-client-v2';
 import { LINE_ITEM_INVENTORY_MODES } from '../constants/lineItem.constant';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
-import { CustomCartWithCompared, CustomCartWithNotice } from '../types/custom.types';
+import { CustomCartWithCompared, CustomCartWithNotice, CustomLineItemHasChanged, HasChangedAction } from '../types/custom.types';
 
 
 
@@ -228,9 +228,27 @@ class CommercetoolsCartClient {
 	}
 
 	public async updateCartWithNewValue(oldCart: Cart): Promise<CustomCartWithCompared> {
-		const { id: cartId, version: cartVersion, lineItems } = oldCart
-		const updateActions: CartUpdateAction[] = lineItems.map((lineItem: LineItem) => {
-			const { id, price } = lineItem
+		const { id: cartId, version: cartVersion } = oldCart
+        const lineItems = oldCart.lineItems as CustomLineItemHasChanged[]
+        const lineItemHasChanged: Record<string, HasChangedAction> = {}
+        const updateLineItemQuantityPayload: CartChangeLineItemQuantityAction[] = []
+
+		const updateActions: CartUpdateAction[] = lineItems.map((lineItem: CustomLineItemHasChanged) => {
+			const { id, price, hasChangedAction } = lineItem
+
+            // check if line item has changed
+            if (hasChangedAction?.action === 'UPDATE_QUANTITY') {
+                const externalPrice = lineItem.price.value;
+                updateLineItemQuantityPayload.push({
+                    action: 'changeLineItemQuantity',
+                    lineItemId: id,
+                    quantity: hasChangedAction.updateValue,
+                    externalPrice,
+                })
+            } else if (hasChangedAction?.action === 'REMOVE_LINE_ITEM') {
+                lineItemHasChanged[id] = hasChangedAction
+            }
+
 			return {
 				action: 'setLineItemPrice',
 				lineItemId: id,
@@ -240,14 +258,22 @@ class CommercetoolsCartClient {
 				}
 			}
 		})
+
 		const cartUpdate: CartUpdate = {
 			version: cartVersion,
 			actions: updateActions
 		};
-		const updatedPrice = await this.updatePrice(cartId, cartUpdate)
-		const recalculatedCart = await this.recalculateCart(updatedPrice.id, updatedPrice.version)
-		const validateProduct = await this.validateDateItems(recalculatedCart)
+
+        let updatedCart: Cart = await this.updatePrice(cartId, cartUpdate)
+
+        if (updateLineItemQuantityPayload.length > 0) {
+            updatedCart = await this.updateCart(updatedCart.id, updatedCart.version, updateLineItemQuantityPayload)
+        }
+
+		const recalculatedCart = await this.recalculateCart(updatedCart.id, updatedCart.version)
+		const validateProduct = await this.validateDateItems(recalculatedCart, lineItemHasChanged)
 		const compared = compareLineItemsArrays(oldCart.lineItems, validateProduct.lineItems)
+
 		return { ctCart: validateProduct, compared }
 	}
 
@@ -281,7 +307,7 @@ class CommercetoolsCartClient {
 		return response.body;
 	}
 
-	public async validateDateItems(ctCart: Cart) {
+	public async validateDateItems(ctCart: Cart, lineItemHasChanged: Record<string, HasChangedAction>) {
 		const today = new Date();
 		const { lineItems, totalLineItemQuantity, version, id } = ctCart
 		if (!totalLineItemQuantity) return ctCart
@@ -293,7 +319,6 @@ class CommercetoolsCartClient {
 		const itemForRemove: LineItem[] = []
 
 		const itemsWithCheckedCondition = lineItems.map(lineItem => {
-
 			const parentQuantity = mainProductLineItems
 				.filter((item: LineItem) => item.productId === lineItem.productId)
 				.reduce((sum: any, item: any) => sum + item.quantity, 0);
@@ -311,7 +336,6 @@ class CommercetoolsCartClient {
 			const validTo = new Date(endDate) >= today
 
 			let isValidPeriod = true
-
 			if (releaseDate && endDate) {
 				isValidPeriod = validForm && validTo
 			} else if (releaseDate && !endDate) {
@@ -324,12 +348,20 @@ class CommercetoolsCartClient {
 				itemForRemove.push(lineItem)
 			} 
 
+            if (lineItemHasChanged[lineItem.id]) {
+                const hasChanged = lineItemHasChanged[lineItem.id]
+                if (hasChanged.action === 'REMOVE_LINE_ITEM') {
+                    itemForRemove.push(lineItem)
+                }
+            }
+
 			return {
 				...lineItem, parentQuantity, hasChanged: {
 					lineItemId: lineItem.id,
 				}
 			}
 		})
+        
 		if (itemForRemove.length > 0) {
 			const removeActions: UpdateAction[] = itemForRemove.map(item => {
 				return {
@@ -453,7 +485,6 @@ class CommercetoolsCartClient {
 		return response.body
 
 	}
-
 }
 
 export default CommercetoolsCartClient.getInstance();

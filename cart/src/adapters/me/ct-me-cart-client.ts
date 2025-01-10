@@ -753,6 +753,7 @@ export default class CommercetoolsMeCartClient {
 			const sku = item.sku;
 			const inventory = inventoryMap.get(sku);
 			if (inventory) {
+                // check out of stock allocation
 				const { id, key, stock, isOutOfStock } = inventory;
 				item.inventory = { id, key, stock, isOutOfStock };
 			} else {
