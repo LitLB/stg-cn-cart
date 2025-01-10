@@ -37,6 +37,7 @@ import { InventoryValidator } from '../validators/inventory.validator';
 import { InventoryService } from './inventory.service';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { validateInventory } from '../utils/cart.utils';
+import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -153,38 +154,40 @@ export class CartService {
 
             ctCart = await this.handleAutoRemoveCoupons(ctCart, cartId);
 
-            ctCart = await this.removeUnselectedItems(ctCart);
+            return ctCart; // ! Only for development
 
-            await InventoryValidator.validateCart(ctCart);
+            // ctCart = await this.removeUnselectedItems(ctCart);
 
-            const orderNumber = await this.generateOrderNumber(`TRUE`)
+            // await InventoryValidator.validateCart(ctCart);
 
-            let tsmSaveOrder = {
+            // const orderNumber = await this.generateOrderNumber(`TRUE`)
 
-            }
+            // let tsmSaveOrder = {
 
-            if (!isPreOrder) {
+            // }
 
-                // * STEP #5 - Create Order On TSM Sale
-                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
-                // //! IF available > x
-                // //! THEN continue
-                // //! ELSE 
-                // //! THEN throw error
-                tsmSaveOrder = {
-                    tsmOrderIsSaved: success,
-                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
-                }
+            // if (!isPreOrder) {
 
-            }
+            //     // * STEP #5 - Create Order On TSM Sale
+            //     const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+            //     // //! IF available > x
+            //     // //! THEN continue
+            //     // //! ELSE 
+            //     // //! THEN throw error
+            //     tsmSaveOrder = {
+            //         tsmOrderIsSaved: success,
+            //         tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+            //     }
 
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
-            const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            // }
 
-            await this.inventoryService.commitCartStock(ctCart);
-            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
-            await this.createOrderAdditional(order, client);
-            return { ...order, hasChanged: compared };
+            // const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+            // const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+
+            // await this.inventoryService.commitCartStock(ctCart);
+            // const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            // await this.createOrderAdditional(order, client);
+            // return { ...order, hasChanged: compared };
         } catch (error: any) {
             logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -341,6 +344,38 @@ export class CartService {
                 });
             }
 
+            const customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
+
+            let iCoupons: ICoupon = {
+                coupons: {
+                    acceptedCoupons: [],
+                    rejectedCoupons: [],
+                },
+            };
+            if (includeCoupons && customerSession) {
+                const processCouponEffectsOldV1 = this.talonOneCouponAdapter.processCouponEffectsOld(customerSession.effects);
+
+                if (processCouponEffectsOldV1.thereIsCoupons) {
+                    iCoupons = this.couponService.mapICoupons(processCouponEffectsOldV1.acceptedCoupons, processCouponEffectsOldV1.rejectedCoupons);
+
+                    const removeInvalidCouponsPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
+                        profileId: ctCart.id,
+                        ctCartData: ctCart,
+                        couponCodes: processCouponEffectsOldV1.couponCodes,
+                    });
+                    const removeInvalidCouponsUpdatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(
+                        ctCart.id,
+                        removeInvalidCouponsPayload
+                    );
+                    const processCouponEffectsOldV2 = this.talonOneCouponAdapter.processCouponEffectsOld(removeInvalidCouponsUpdatedCustomerSession.effects);
+                    
+                    // TODO: Check if there is any rejectedCoupons
+                    // TODO: Build CT Actions
+                    // TODO: Get updatedCart then update to ctCart. 
+                    const { updateActions, couponsInformation } = this.talonOneCouponAdapter.buildCouponActionsAndCouponsInformationOld(ctCart, processCouponEffectsOldV2);
+                }
+            }
+
             const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cartWithCheckPublicPublish)
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
@@ -374,7 +409,7 @@ export class CartService {
                 ...iCartWithBenefit,
                 hasChanged: compared,
                 hasChangedNote: notice,
-                ...couponEffects
+                ...iCoupons
             };
 
             if (includeCoupons && permanentlyInvalidRejectedCoupons.length > 0) {

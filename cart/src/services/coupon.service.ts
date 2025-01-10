@@ -13,13 +13,63 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 import { COUPON_REJECTION_REASONS } from '../interfaces/talon-one.interface';
-import { Coupon } from '../interfaces/coupon.interface';
+import { Coupon, ICoupon, ProcessedCouponEffect } from '../interfaces/coupon.interface';
 
 export class CouponService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
 
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
+    }
+
+    public checkInvalidCoupons(customerSession: any) {
+        const { rejectedCoupons } = this.talonOneCouponAdapter.processCouponEffectsOld(customerSession.effects);
+        if (rejectedCoupons.length > 0) {
+            throw {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                statusMessage: 'Some coupons were rejected during processing.',
+                data: rejectedCoupons,
+            }
+        }
+    }
+
+    public async removeInvalidCoupons(ctCart: Cart, rejectedCoupons: Coupon[]) {
+        console.log('rejectedCoupons', rejectedCoupons);
+
+        const couponCodes: string[] = rejectedCoupons.map((rejectedCoupon: Coupon) => rejectedCoupon.code);
+
+        const removeInvalidCouponsPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
+            profileId: ctCart.id,
+            ctCartData: ctCart,
+            couponCodes: couponCodes,
+        });
+        const removeInvalidCouponsUpdatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(
+            ctCart.id,
+            removeInvalidCouponsPayload
+        );
+    }
+
+    public mapICoupons(acceptedCoupons: Coupon[], rejectedCoupons: Coupon[]): ICoupon {
+        return {
+            coupons: {
+                acceptedCoupons,
+                rejectedCoupons,
+            },
+        };
+    }
+
+    public async allCouponProcesses(ctCart: Cart) {
+        const customerSession = await talonOneIntegrationAdapter.getCustomerSession(ctCart.id);
+
+        const processedEffect = this.talonOneCouponAdapter.processCouponEffectsOld(customerSession.effects);
+
+        const { updateActions, couponsInformation } = this.talonOneCouponAdapter.buildCouponActionsAndCouponsInformationOld(ctCart, processedEffect);
+
+        await this.addCouponInformation(
+            updateActions,
+            ctCart.id,
+            couponsInformation
+        );
     }
 
     // T1 auto clear invalid coupons
@@ -62,6 +112,7 @@ export class CouponService {
             const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(
                 updatedSession.effects
             );
+            console.log('processedCouponEffects.rejectedCoupons', processedCouponEffects.rejectedCoupons);
 
             processedCouponEffects.rejectedCoupons = [...processedCouponEffects.rejectedCoupons, ...couponEffects.coupons.rejectedCoupons];
 
@@ -82,6 +133,7 @@ export class CouponService {
                 currentCouponCodes,
                 permanentlyInvalid
             );
+            console.log('removeResult.applyCoupons', removeResult.applyCoupons);
 
             // 5) Re-update the session with the final set of coupons
             const reUpdatedPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
@@ -98,6 +150,7 @@ export class CouponService {
             const newProcessedEffects = this.talonOneCouponAdapter.processCouponEffects(reUpdatedSession.effects);
             const { updateActions } =
                 this.talonOneCouponAdapter.buildCouponActions(ctCart, newProcessedEffects);
+            console.log('updateActions', updateActions);
 
             if (updateActions.length === 0) {
                 // No cart changes needed
@@ -194,6 +247,7 @@ export class CouponService {
                 currentCouponCodes,
                 permanentlyInvalid
             );
+            console.log('removeResult.applyCoupons', removeResult.applyCoupons);
 
             // 5) Re-update the session with the final set of coupons
             const reUpdatedPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
@@ -210,6 +264,7 @@ export class CouponService {
             const newProcessedEffects = this.talonOneCouponAdapter.processCouponEffects(reUpdatedSession.effects);
             const { updateActions } =
                 this.talonOneCouponAdapter.buildCouponActions(ctCart, newProcessedEffects);
+            console.log('updateActions', updateActions);
 
             if (updateActions.length === 0) {
                 // No cart changes needed
@@ -321,6 +376,21 @@ export class CouponService {
             };
         }
     };
+
+    private findPermanentlyInvalidCouponsOld(rejectedCoupons: Coupon[]) {
+        const permanentlyInvalidReasons = [
+            COUPON_REJECTION_REASONS.COUPON_EXPIRED,
+            COUPON_REJECTION_REASONS.COUPON_LIMIT_REACHED,
+            COUPON_REJECTION_REASONS.COUPON_NOT_FOUND,
+            COUPON_REJECTION_REASONS.COUPON_REJECTED_BY_CONDITION,
+            COUPON_REJECTION_REASONS.PROFILE_LIMIT_REACHED,
+        ];
+        return (
+            rejectedCoupons?.filter((rc: any) =>
+                permanentlyInvalidReasons.includes(rc.reason)
+            ) || []
+        );
+    }
 
     private findPermanentlyInvalidCoupons(processedCouponEffects: any) {
         const permanentlyInvalidReasons = [

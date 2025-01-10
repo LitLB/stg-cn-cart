@@ -13,7 +13,7 @@ import { COUPON_CUSTOM_EFFECT } from '../constants/cart.constant';
 import { talonOneIntegrationAdapter } from './talon-one.adapter';
 import { logger } from '../utils/logger.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
-import { Coupon, ICoupon } from '../interfaces/coupon.interface';
+import { Coupon, ICoupon, ProcessedCouponEffect } from '../interfaces/coupon.interface';
 
 export class TalonOneCouponAdapter {
     private ctpAddCustomCouponLineItemPrefix: string;
@@ -22,6 +22,157 @@ export class TalonOneCouponAdapter {
     constructor() {
         this.ctpAddCustomCouponLineItemPrefix = readConfiguration().ctpAddCustomCouponLineItemPrefix;
         this.ctpTaxCategoryId = readConfiguration().ctpTaxCategoryId;
+    }
+
+    public processCouponEffectsOld(effects: any[]): ProcessedCouponEffect {
+        const couponCodes: string[] = [];
+        const acceptedCouponCodes: string[] = [];
+        const rejectedCouponCodes: string[] = [];
+        const acceptedCoupons: Coupon[] = [];
+        const rejectedCoupons: Coupon[] = [];
+        const customEffects: any[] = [];
+        const couponIdToCode: { [key: number]: string } = {};
+        const couponIdToEffects: { [key: number]: any[] } = {};
+
+        // Process effects to build mappings
+        effects.forEach(effect => {
+            const { effectType, props, triggeredByCoupon } = effect;
+
+            if (triggeredByCoupon) {
+                if (!couponIdToEffects[triggeredByCoupon]) {
+                    couponIdToEffects[triggeredByCoupon] = [];
+                }
+                couponIdToEffects[triggeredByCoupon].push(effect);
+            }
+
+            switch (effectType) {
+                case 'acceptCoupon':
+                    couponCodes.push(props.value);
+
+                    acceptedCouponCodes.push(props.value);
+
+                    acceptedCoupons.push({
+                        code: props.value,
+                    });
+                    if (triggeredByCoupon) {
+                        couponIdToCode[triggeredByCoupon] = props.value;
+                    }
+                    break;
+
+                case 'rejectCoupon':
+                    couponCodes.push(props.value);
+
+                    rejectedCouponCodes.push(props.value);
+
+                    rejectedCoupons.push({
+                        code: props.value,
+                        reason: props.rejectionReason,
+                    });
+                    break;
+
+                case 'customEffect':
+                    if (props.name === COUPON_CUSTOM_EFFECT) {
+                        customEffects.push({
+                            couponCode: couponIdToCode[triggeredByCoupon],
+                            props,
+                        });
+                    }
+                    break;
+
+                default:
+                    // do nothing
+
+                    break;
+            }
+        });
+
+        const thereIsCoupons = acceptedCoupons.length > 0 || rejectedCoupons.length > 0;
+
+        return {
+            thereIsCoupons,
+            couponCodes,
+            acceptedCouponCodes,
+            rejectedCouponCodes,
+            acceptedCoupons,
+            rejectedCoupons,
+            customEffects,
+            couponIdToCode,
+            couponIdToEffects,
+        };
+    }
+
+    public buildCouponActionsAndCouponsInformationOld(
+        ctCart: Cart,
+        processedEffects: ProcessedCouponEffect,
+    ): { updateActions: CartUpdateAction[]; couponsInformation: any[] } {
+        const updateActions: CartUpdateAction[] = [];
+        const { acceptedCoupons, couponIdToCode, couponIdToEffects } = processedEffects;
+
+        // Keep track of coupons that have custom line items
+        const couponsInformation: any[] = [];
+
+        // Process accepted coupons and their associated effects
+        for (const triggeredByCoupon in couponIdToCode) {
+            const couponCode = couponIdToCode[triggeredByCoupon];
+            const associatedEffects = couponIdToEffects[triggeredByCoupon];
+
+            associatedEffects.forEach(effect => {
+                const { effectType, props } = effect;
+
+                switch (effectType) {
+                    case 'setDiscount':
+                        this.handleSetDiscountEffect(ctCart, updateActions, couponCode, props);
+                        break;
+
+                    case 'addFreeItem':
+                        this.handleAddFreeItemEffect(updateActions, props);
+                        break;
+
+                    case 'customEffect':
+                        couponsInformation.push(this.prepareCouponInformation(couponCode, props));
+                        break;
+
+                    default:
+                        // do nothing
+
+                        break;
+                }
+            });
+        }
+
+        // Remove custom line items for rejected or missing coupons
+        this.buildRemoveCouponActions(ctCart, updateActions, acceptedCoupons);
+
+        return { updateActions, couponsInformation };
+    }
+
+    private buildRemoveCouponActions(
+        ctCart: Cart,
+        updateActions: CartUpdateAction[],
+        acceptedCoupons: Coupon[]
+    ): void {
+        const applyCoupons = acceptedCoupons?.map((coupon: { code: string }) => coupon.code) || [];
+
+        // Get all custom line items that are coupon discounts
+        const couponCustomLineItems = ctCart.customLineItems.filter((item: any) =>
+            item.slug.startsWith(this.ctpAddCustomCouponLineItemPrefix)
+        );
+
+        // Build a set of accepted coupon slugs
+        const acceptedCouponSlugs = new Set(
+            applyCoupons.map(code => `${this.ctpAddCustomCouponLineItemPrefix}${code}`)
+        );
+
+        // For each coupon custom line item, if it's not in the accepted coupons, remove it
+        couponCustomLineItems.forEach((item: any) => {
+            if (!acceptedCouponSlugs.has(item.slug)) {
+                const removeAction: CartRemoveCustomLineItemAction = {
+                    action: 'removeCustomLineItem',
+                    customLineItemId: item.id,
+                };
+                updateActions.push(removeAction);
+            }
+        });
     }
 
     public processCouponEffects(effects: any[]): {
@@ -283,11 +434,11 @@ export class TalonOneCouponAdapter {
             }
 
             // Step 1: Extract coupon codes
-            let couponCodes: string[] = couponsEffects.acceptedCoupons.map((coupon: {code: string}) => coupon.code);
+            let couponCodes: string[] = couponsEffects.acceptedCoupons.map((coupon: { code: string }) => coupon.code);
 
             // Merge and deduplicate coupon codes from couponsEffects rejectedCoupons
             if (couponsEffects?.rejectedCoupons?.length > 0) {
-                const rejectedCouponCodes: string[] = couponsEffects.rejectedCoupons.map((coupon: {code: string}) => coupon.code);
+                const rejectedCouponCodes: string[] = couponsEffects.rejectedCoupons.map((coupon: { code: string }) => coupon.code);
                 couponCodes = Array.from(new Set([...couponCodes, ...rejectedCouponCodes]));
             }
 
