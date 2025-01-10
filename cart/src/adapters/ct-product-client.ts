@@ -7,6 +7,7 @@ import { CT_PRODUCT_ACTIONS } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client'
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
+import { HasChangedAction } from '../types/custom.types';
 
 class CommercetoolsProductClient {
 	private static instance: CommercetoolsProductClient;
@@ -256,7 +257,7 @@ class CommercetoolsProductClient {
 		return variant
 	}
 
-	async checkCartHasChanged(ctCart: Cart): Promise<Cart>{
+	async checkCartHasChanged(ctCart: Cart): Promise<Cart> {
 		const { lineItems } = ctCart;
 		if (lineItems.length === 0) return {...ctCart, lineItems: []}
 
@@ -303,19 +304,31 @@ class CommercetoolsProductClient {
 			);
 
 			const validPrice = findValidPrice(matchedVariant);
-            
-            let stockAvailable = matchedInventory.stock.available
+            const stockAvailable = matchedInventory.stock.available
+
+            const hasChangedAction: HasChangedAction = { action: 'NONE', updateValue: 0 }
+            let quantityOverStock = quantity > stockAvailable
 
             // Check maximum stock allocation by journey
             const journey = ctCart.custom?.fields.journey as CART_JOURNEYS
             const journeyConfig = journeyConfigMap[journey];
+            let maximumStockAllocation: number | undefined
             if (journeyConfig.inventory) {
-                const maximumStockAllocation = matchedInventory.custom.fields[journeyConfig.inventory.maximumKey];
-                stockAvailable = maximumStockAllocation;
+                maximumStockAllocation = matchedInventory.custom.fields[journeyConfig.inventory.maximumKey];
+
+                if ((maximumStockAllocation !== undefined && maximumStockAllocation !== 0) && quantity > maximumStockAllocation) {
+                    // update quantity if stock allocation less than quantity
+                    quantityOverStock = true
+                    hasChangedAction.action = 'UPDATE_QUANTITY'
+                    hasChangedAction.updateValue = maximumStockAllocation
+                } else if (maximumStockAllocation === 0) {
+                    // remove if stock allocation is set to 0
+                    hasChangedAction.action = 'REMOVE_LINE_ITEM'
+                }
             }
 
 			const hasChanged = {
-				quantity_over_stock: quantity > stockAvailable,
+                quantity_over_stock: quantityOverStock,
 			};
 
 			const updatedItem = {
@@ -326,7 +339,8 @@ class CommercetoolsProductClient {
 					centAmount: validPrice.value.centAmount * quantity,
 				},
 				parentQuantity,
-				hasChanged
+				hasChanged,
+                hasChangedAction,
 			}
 
 			return updatedItem;
