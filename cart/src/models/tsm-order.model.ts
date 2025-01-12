@@ -244,7 +244,7 @@ export default class TsmOrderModel {
         lineItemDiscounts = (lineItemDiscounts ?? []).map((v: any) => JSON.parse(v))
         const { promotionSetCode } = privilege || {};
         for (const lineItemDiscount of lineItemDiscounts) {
-            const { benefitType, specialPrice, discountBaht } = lineItemDiscount
+            const { source, discountCode, benefitType, specialPrice, discountBaht } = lineItemDiscount
             if (benefitType === 'add_on') {
                 const price = lineItem.price.value.centAmount
                 const discount = price - specialPrice
@@ -262,12 +262,13 @@ export default class TsmOrderModel {
 
             if (benefitType === 'main_product') {
                 const discount = discountBaht
+                const code = source === 'campaignDiscount' ? discountCode : promotionSetCode
                 discounts.push(
                     {
                         id: orderId,
                         sequence,
                         no: '' + no,
-                        code: promotionSetCode,
+                        code,
                         amount: '' + this.stangToBaht(discount),
                         serial: '',
                     }

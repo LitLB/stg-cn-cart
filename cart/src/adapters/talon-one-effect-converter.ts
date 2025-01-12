@@ -264,6 +264,10 @@ class TalonOneEffectConverter {
 			productPromotionDetails,
 			promotionProducts,
 			promotionProductGroups,
+			discountCode,
+			otherPaymentCode,
+			discount,
+			otherPayment,
 		} = convertedEffect;
 
 
@@ -548,13 +552,52 @@ class TalonOneEffectConverter {
 			}
 		})
 
-		// ! For multi promotion set & campaign need to have wrapper this benefit on top level such as "campaignCode", "promotionSetCode", "discountCode"
-		// ! For multiple cart need to handle by using cartItemPosition, cartItemSubPosition
+		let campaignDiscount = null
+		let campaignOtherPayment = null
+
+		if (discountCode) {
+			const discountBaht = Number(discount.tsm_discount__dis_bath)
+			const discountPercent = Number(discount.tsm_discount__dis_percent)
+			campaignDiscount = {
+				sku,
+				productGroup,
+				productType,
+				cartItemPosition,
+				cartItemSubPosition,
+				benefitType: 'main_product',
+				source: 'campaignDiscount',
+				campaignCode,
+				campaignName,
+				discountCode,
+				discountBaht: this.bahtToStang(Number(discountBaht)),
+				discountPercent,
+			}
+		}
+
+		if (otherPaymentCode) {
+			const otherPaymentAmt = Number(otherPayment.tsm_other_payment__amount)
+			campaignOtherPayment = {
+				sku,
+				productGroup,
+				productType,
+				cartItemPosition,
+				cartItemSubPosition,
+				benefitType: 'main_product',
+				source: 'campaignOtherPayment',
+				campaignCode,
+				campaignName,
+				otherPaymentCode,
+				otherPaymentAmt: this.bahtToStang(Number(otherPaymentAmt)),
+			}
+		}
+
 		return {
 			freeGiftBenefits,
 			addOnBenefits,
 			productGroupBenefits,
-			productBenefits
+			productBenefits,
+			campaignDiscount,
+			campaignOtherPayment
 		}
 	}
 
@@ -873,7 +916,19 @@ class TalonOneEffectConverter {
 		return customerSession
 	}
 
-	attachMainProductBenefits(lineItems: any[], productGroupBenefits: any[], productBenefits: any[]) {
+	attachMainProductBenefits({
+		lineItems,
+		productGroupBenefits,
+		productBenefits,
+		campaignDiscounts,
+		campaignOtherPayments
+	}: {
+		lineItems: any[];
+		productGroupBenefits: any[];
+		productBenefits: any[];
+		campaignDiscounts: any[];
+		campaignOtherPayments: any[]
+	}) {
 		const newLineItems = [...lineItems].map((newLineItem: any) => {
 			const { variant, custom } = newLineItem
 			const sku = variant.sku
@@ -1022,6 +1077,73 @@ class TalonOneEffectConverter {
 						forcePromotion
 					})
 				}
+			}
+
+			const campaignDiscount = campaignDiscounts.find((campaignDiscount: any) => {
+				return campaignDiscount.sku === sku &&
+					campaignDiscount.productType === productType &&
+					campaignDiscount.productGroup === productGroup
+			})
+
+			if (campaignDiscount) {
+				const { 
+					benefitType,
+					productType,
+					source,
+					campaignCode,
+					campaignName,
+					discountCode,
+					discountBaht
+				} = campaignDiscount
+				privilege = {
+					...(privilege ? { ...privilege } : {}),
+					discountCode
+				}
+
+				if (discountBaht > 0) {
+					discounts.push({
+						benefitType,
+						productType,
+						source,
+						campaignCode,
+						campaignName,
+						discountCode,
+						discountBaht
+					})
+				}
+			}
+
+			const campaignOtherPayment = campaignOtherPayments.find((campaignOtherPayment: any) => {
+				return campaignOtherPayment.sku === sku &&
+					campaignOtherPayment.productType === productType &&
+					campaignOtherPayment.productGroup === productGroup
+			})
+
+			if (campaignOtherPayment) {
+				const {
+					benefitType,
+					productType,
+					source,
+					campaignCode,
+					campaignName,
+					otherPaymentCode,
+					otherPaymentAmt
+				} = campaignOtherPayment
+
+				privilege = {
+					...(privilege ? { ...privilege } : {}),
+					otherPaymentCode
+				}
+
+				otherPayments.push({
+					benefitType,
+					productType,
+					source,
+					campaignCode,
+					campaignName,
+					otherPaymentCode,
+					otherPaymentAmt
+				})
 			}
 
 			return {
@@ -1353,20 +1475,39 @@ class TalonOneEffectConverter {
 
 		const productBenefits = benefits.map((item: any) => item.productBenefits).flat()
 
+		const campaignDiscounts = benefits.map((item: any) => item.campaignDiscount).flat()
+
+		const campaignOtherPayments = benefits.map((item: any) => item.campaignOtherPayment).flat()
+		
 		return {
 			freeGiftBenefits: wrappedFreeGiftbenefits,
 			addOnbenefits: wrappedAddOnbenefits,
 			productGroupBenefits,
-			productBenefits
+			productBenefits,
+			campaignDiscounts,
+			campaignOtherPayments
 		}
 	}
 
 	async getCtLineItemWithCampaignBenefits(ctCart: any) {
-		const { freeGiftBenefits, addOnbenefits, productGroupBenefits, productBenefits } = await this.getBenefitByCtCart(ctCart)
+		const {
+			freeGiftBenefits, 
+			addOnbenefits, 
+			productGroupBenefits, 
+			productBenefits,
+			campaignDiscounts,
+			campaignOtherPayments
+		} = await this.getBenefitByCtCart(ctCart)
 
 		let { lineItems } = ctCart
 
-		lineItems = this.attachMainProductBenefits(lineItems, productGroupBenefits, productBenefits)
+		lineItems = this.attachMainProductBenefits({
+			lineItems,
+			productGroupBenefits,
+			productBenefits,
+			campaignDiscounts,
+			campaignOtherPayments
+		})
 		lineItems = this.attachFreeGiftBenefits(lineItems, freeGiftBenefits)
 		lineItems = this.attachAddOnBenefits(lineItems, addOnbenefits)
 
