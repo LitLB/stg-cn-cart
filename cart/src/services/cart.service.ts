@@ -154,40 +154,38 @@ export class CartService {
 
             ctCart = await this.handleAutoRemoveCoupons(ctCart, cartId);
 
-            return ctCart; // ! Only for development
+            ctCart = await this.removeUnselectedItems(ctCart);
 
-            // ctCart = await this.removeUnselectedItems(ctCart);
+            await InventoryValidator.validateCart(ctCart);
 
-            // await InventoryValidator.validateCart(ctCart);
+            const orderNumber = await this.generateOrderNumber(`TRUE`)
 
-            // const orderNumber = await this.generateOrderNumber(`TRUE`)
+            let tsmSaveOrder = {
 
-            // let tsmSaveOrder = {
+            }
 
-            // }
+            if (!isPreOrder) {
 
-            // if (!isPreOrder) {
+                // * STEP #5 - Create Order On TSM Sale
+                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+                // //! IF available > x
+                // //! THEN continue
+                // //! ELSE 
+                // //! THEN throw error
+                tsmSaveOrder = {
+                    tsmOrderIsSaved: success,
+                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+                }
 
-            //     // * STEP #5 - Create Order On TSM Sale
-            //     const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
-            //     // //! IF available > x
-            //     // //! THEN continue
-            //     // //! ELSE 
-            //     // //! THEN throw error
-            //     tsmSaveOrder = {
-            //         tsmOrderIsSaved: success,
-            //         tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
-            //     }
+            }
 
-            // }
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+            const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
-            // const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
-            // const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
-
-            // await this.inventoryService.commitCartStock(ctCart);
-            // const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
-            // await this.createOrderAdditional(order, client);
-            // return { ...order, hasChanged: compared };
+            await this.inventoryService.commitCartStock(ctCart);
+            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            await this.createOrderAdditional(order, client);
+            return { ...order, hasChanged: compared };
         } catch (error: any) {
             logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -433,7 +431,7 @@ export class CartService {
             if (includeCoupons && customerSession) {
                 console.log('aaaaaaaaaaaaaaaaaaaaaaaaaa');
 
-                const customerSessionProcessedEffects = this.talonOneCouponAdapter.processCouponEffectsOld(customerSession.effects);
+                const customerSessionProcessedEffects = this.talonOneCouponAdapter.processCouponEffectsV2(customerSession.effects);
                 console.log('JSON.stringify(customerSessionProcessedEffects)', JSON.stringify(customerSessionProcessedEffects, null, 2));
 
                 iCoupons = customerSessionProcessedEffects.iCoupons;
@@ -453,7 +451,7 @@ export class CartService {
                         recheckCustomerSessionPayload
                     );
 
-                    const recheckEffects = this.talonOneCouponAdapter.processCouponEffectsOld(recheckCustomerSession.effects);
+                    const recheckEffects = this.talonOneCouponAdapter.processCouponEffectsV2(recheckCustomerSession.effects);
                     console.log('JSON.stringify(recheckEffects)', JSON.stringify(recheckEffects, null, 2));
                     iCoupons = recheckEffects.iCoupons;
 
@@ -472,7 +470,7 @@ export class CartService {
                             ctCart.id,
                             reUpdatedPayload
                         );
-                        // const reUpdatedEffects = this.talonOneCouponAdapter.processCouponEffectsOld(reUpdatedSession.effects);
+                        // const reUpdatedEffects = this.talonOneCouponAdapter.processCouponEffectsV2(reUpdatedSession.effects);
                         // console.log('reUpdatedEffects', reUpdatedEffects);
                         // iCoupons = reUpdatedEffects.iCoupons;
 

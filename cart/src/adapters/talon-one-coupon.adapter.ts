@@ -72,7 +72,7 @@ export class TalonOneCouponAdapter {
         });
     }
 
-    public processCouponEffectsOld(effects: any[]): ProcessedCouponEffect {
+    public processCouponEffectsV2(effects: any[]): ProcessedCouponEffect {
         const couponCodes: string[] = [];
         const acceptedCouponCodes: string[] = [];
         const rejectedCouponCodes: string[] = [];

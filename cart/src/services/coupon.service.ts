@@ -23,7 +23,7 @@ export class CouponService {
     }
 
     public checkInvalidCoupons(customerSession: any) {
-        const { rejectedCoupons } = this.talonOneCouponAdapter.processCouponEffectsOld(customerSession.effects);
+        const { rejectedCoupons } = this.talonOneCouponAdapter.processCouponEffectsV2(customerSession.effects);
         if (rejectedCoupons.length > 0) {
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -61,7 +61,7 @@ export class CouponService {
     public async allCouponProcesses(ctCart: Cart) {
         const customerSession = await talonOneIntegrationAdapter.getCustomerSession(ctCart.id);
 
-        const processedEffect = this.talonOneCouponAdapter.processCouponEffectsOld(customerSession.effects);
+        const processedEffect = this.talonOneCouponAdapter.processCouponEffectsV2(customerSession.effects);
 
         const { updateActions, couponsInformation } = this.talonOneCouponAdapter.buildCouponActionsAndCouponsInformationOld(ctCart, processedEffect);
 
