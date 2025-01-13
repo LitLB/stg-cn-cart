@@ -554,8 +554,7 @@ class TalonOneEffectConverter {
 
 		let campaignDiscount = null
 		let campaignOtherPayment = null
-
-		if (discountCode) {
+		if (this.checkPlaceholderContainsValue(discountCode)) {
 			const discountBaht = Number(discount.tsm_discount__dis_bath)
 			const discountPercent = Number(discount.tsm_discount__dis_percent)
 			campaignDiscount = {
@@ -574,7 +573,7 @@ class TalonOneEffectConverter {
 			}
 		}
 
-		if (otherPaymentCode) {
+		if (this.checkPlaceholderContainsValue(otherPaymentCode)) {
 			const otherPaymentAmt = Number(otherPayment.tsm_other_payment__amount)
 			campaignOtherPayment = {
 				sku,
@@ -807,8 +806,11 @@ class TalonOneEffectConverter {
 			const {
 				campaignCode,
 				promotionSetCode,
-				campaignVerifyKey: campaignVerifyKeys = [] 
+				campaignVerifyKey
 			} = convertedEffect || {}
+
+			const campaignVerifyKeys = this.checkPlaceholderContainsValue(campaignVerifyKey) ? campaignVerifyKey : []
+
 			const cleanedCampaignVerifyKeys = campaignVerifyKeys.map((campaignVerifyKey: any) => {
 				const { 
 					campaign_verify_key__name: name,
@@ -1547,10 +1549,9 @@ class TalonOneEffectConverter {
 
 		const productBenefits = benefits.map((item: any) => item.productBenefits).flat()
 
-		const campaignDiscounts = benefits.map((item: any) => item.campaignDiscount).flat()
+		const campaignDiscounts = benefits.filter((item: any) => item.campaignDiscount).map((item: any) => item.campaignDiscount)
+		const campaignOtherPayments = benefits.filter((item: any) => item.campaignDiscount).map((item: any) => item.campaignOtherPayment)
 
-		const campaignOtherPayments = benefits.map((item: any) => item.campaignOtherPayment).flat()
-		
 		return {
 			freeGiftBenefits: wrappedFreeGiftbenefits,
 			addOnbenefits: wrappedAddOnbenefits,
