@@ -304,7 +304,7 @@ class CommercetoolsProductClient {
 			);
 
 			const validPrice = findValidPrice(matchedVariant);
-            const stockAvailable = matchedInventory.stock.available
+            let stockAvailable: number = matchedInventory.stock.available
 
             const hasChangedAction: HasChangedAction = { action: 'NONE', updateValue: 0 }
             let quantityOverStock = quantity > stockAvailable
@@ -315,8 +315,10 @@ class CommercetoolsProductClient {
             let maximumStockAllocation: number | undefined
             if (journeyConfig.inventory) {
                 maximumStockAllocation = matchedInventory.custom.fields[journeyConfig.inventory.maximumKey];
+                // use min value of stock
+                stockAvailable = maximumStockAllocation !== undefined ? Math.min(stockAvailable, maximumStockAllocation): stockAvailable
 
-                if ((maximumStockAllocation !== undefined && maximumStockAllocation !== 0) && quantity > maximumStockAllocation) {
+                if ((maximumStockAllocation !== undefined && maximumStockAllocation !== 0) && quantity > stockAvailable) {
                     // update quantity if stock allocation less than quantity
                     quantityOverStock = true
                     hasChangedAction.action = 'UPDATE_QUANTITY'
