@@ -978,8 +978,8 @@ export class CartService {
             return { discounts: [], otherPayments: [] }
         }
 
-        const discounts: { orderNumber: string; no: number; code: string; amount: string; serial: string }[] = [];
-        const otherPayments: { orderNumber: string; no: number; code: string; amount: string; serial: string }[] = [];
+        const discounts: { id: string; no: string; code: string; amount: string; serial: string }[] = [];
+        const otherPayments: { id: string; no: string; code: string; amount: string; serial: string }[] = [];
         let discountNo = 1;
         let otherPaymentNo = 1;
 
@@ -987,8 +987,8 @@ export class CartService {
 
             if (item.discountCode.toUpperCase() !== "NULL") {
                 discounts.push({
-                    orderNumber,
-                    no: discountNo,
+                    id: orderNumber,
+                    no: discountNo.toString(),
                     code: item.couponCode,
                     amount: item.discountPrice.toString(),
                     serial: "",
@@ -998,8 +998,8 @@ export class CartService {
 
             if (item.otherPaymentCode.toUpperCase() !== "NULL") {
                 otherPayments.push({
-                    orderNumber,
-                    no: otherPaymentNo,
+                    id: orderNumber,
+                    no: otherPaymentNo.toString(),
                     code: item.otherPaymentCode,
                     amount: item.discountPrice.toString(),
                     serial: "",
