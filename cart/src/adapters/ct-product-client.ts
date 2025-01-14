@@ -310,10 +310,12 @@ class CommercetoolsProductClient {
             let quantityOverStock = quantity > stockAvailable
 
             // Check maximum stock allocation by journey
+            // !!exclude dummy stock
             const journey = ctCart.custom?.fields.journey as CART_JOURNEYS
-            const journeyConfig = journeyConfigMap[journey];
+            const journeyConfig = journeyConfigMap[journey]
+            const dummyStock = matchedInventory.custom.fields[journeyConfig.inventory.dummyKey]
             let maximumStockAllocation: number | undefined
-            if (journeyConfig.inventory) {
+            if (journeyConfig.inventory && (!dummyStock || dummyStock === 0)) {
                 maximumStockAllocation = matchedInventory.custom.fields[journeyConfig.inventory.maximumKey];
                 // use min value of stock
                 stockAvailable = maximumStockAllocation !== undefined ? Math.min(stockAvailable, maximumStockAllocation): stockAvailable
