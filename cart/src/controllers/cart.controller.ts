@@ -17,6 +17,27 @@ export class CartController {
         this.cartService = new CartService();
     }
 
+    public test = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const { id } = req.params;
+            const accessToken = req.accessToken as string;
+
+            const updatedCart = await this.cartService.test(accessToken, id, req.body);
+
+            const response: ApiResponse = {
+                statusCode: HTTP_STATUSES.OK,
+                statusMessage: RESPONSE_MESSAGES.SUCCESS,
+                data: updatedCart,
+            };
+
+            res.status(200).json(response);
+        } catch (error: any) {
+            logger.error(`CartController.test.error`, error);
+
+            next(error);
+        }
+    };
+
     /**
      * Handles the creation of an anonymous cart.
      *

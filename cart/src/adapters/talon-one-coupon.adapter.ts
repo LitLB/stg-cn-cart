@@ -13,7 +13,7 @@ import { COUPON_CUSTOM_EFFECT } from '../constants/cart.constant';
 import { talonOneIntegrationAdapter } from './talon-one.adapter';
 import { logger } from '../utils/logger.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
-import { Coupon, ICoupon } from '../interfaces/coupon.interface';
+import { Coupon, CouponCustomEffect, ICoupon, ProcessedCouponEffect } from '../interfaces/coupon.interface';
 
 export class TalonOneCouponAdapter {
     private ctpAddCustomCouponLineItemPrefix: string;
@@ -24,46 +24,91 @@ export class TalonOneCouponAdapter {
         this.ctpTaxCategoryId = readConfiguration().ctpTaxCategoryId;
     }
 
-    public processCouponEffects(effects: any[]): {
-        updateActions: CartUpdateAction[];
-        acceptedCoupons: Coupon[];
-        rejectedCoupons: Coupon[];
-        customEffects: any[];
-        couponIdToCode: { [key: number]: string };
-        couponIdToEffects: { [key: number]: any[] };
-        applyCoupons: { code: string; }[];
-    } {
-        const updateActions: CartUpdateAction[] = [];
+    public mapICoupons(acceptedCoupons: Coupon[], rejectedCoupons: Coupon[]): ICoupon {
+        return {
+            coupons: {
+                acceptedCoupons,
+                rejectedCoupons,
+            },
+        };
+    }
+
+    /**
+     * Merge effect data into an array of coupons.
+     *
+     * @param coupons - The array of coupons to enhance.
+     * @param couponCustomEffectData - Map of coupon code => custom effect details.
+     * @returns A new array of coupons with customEffect if available.
+     */
+    private mergeCouponsWithCustomEffects(
+        coupons: Coupon[],
+        couponCustomEffectData: { [key: string]: CouponCustomEffect }
+    ): Coupon[] {
+        return coupons.map(c => {
+            const { code } = c;
+            const customEffect = couponCustomEffectData[code];
+            return customEffect ? { ...c, customEffect } : c;
+        });
+    }
+
+    private parseCouponCustomEffectPayload(payload: any): CouponCustomEffect | null {
+        if (!payload) {
+            return null;
+        }
+        return {
+            status: payload.status === 'true',
+            discount_price: payload.discount_price ? parseFloat(payload.discount_price) : 0,
+            discount_percentage: payload.discount_percentage ? parseFloat(payload.discount_percentage) : 0,
+            discount_code: payload.discount_code,
+            other_payment_code: payload.other_payment_code,
+            name_th: payload.name_th,
+            name_en: payload.name_en,
+            marketing_name_th: payload.marketing_name_th,
+            marketing_name_en: payload.marketing_name_en,
+            coupon_short_detail_th: payload.coupon_short_detail_th,
+            coupon_short_detail_en: payload.coupon_short_detail_en,
+            term_condition_th: payload.term_condition_th,
+            term_condition_en: payload.term_condition_en,
+        };
+    }
+
+    public processCouponEffects(effects: any[]): ProcessedCouponEffect {
+        const couponCodes: string[] = [];
+        const acceptedCouponCodes: string[] = [];
+        const rejectedCouponCodes: string[] = [];
         const acceptedCoupons: Coupon[] = [];
         const rejectedCoupons: Coupon[] = [];
         const customEffects: any[] = [];
         const couponIdToCode: { [key: number]: string } = {};
-        const couponIdToEffects: { [key: number]: any[] } = {};
-        const applyCoupons: { code: string; }[] = [];
+        const couponIdToEffects: { [key: number]: CouponCustomEffect[] } = {};
+        const couponCustomEffectData: { [key: string]: CouponCustomEffect } = {};
 
-        // Process effects to build mappings
         effects.forEach(effect => {
             const { effectType, props, triggeredByCoupon } = effect;
 
             if (triggeredByCoupon) {
-                if (!couponIdToEffects[triggeredByCoupon]) {
-                    couponIdToEffects[triggeredByCoupon] = [];
-                }
+                couponIdToEffects[triggeredByCoupon] = couponIdToEffects[triggeredByCoupon] || [];
                 couponIdToEffects[triggeredByCoupon].push(effect);
             }
 
             switch (effectType) {
                 case 'acceptCoupon':
-                    acceptedCoupons.push(props.value);
-                    applyCoupons.push({
+                    couponCodes.push(props.value);
+                    acceptedCouponCodes.push(props.value);
+
+                    acceptedCoupons.push({
                         code: props.value,
                     });
+
                     if (triggeredByCoupon) {
                         couponIdToCode[triggeredByCoupon] = props.value;
                     }
                     break;
 
                 case 'rejectCoupon':
+                    couponCodes.push(props.value);
+                    rejectedCouponCodes.push(props.value);
+
                     rejectedCoupons.push({
                         code: props.value,
                         reason: props.rejectionReason,
@@ -72,10 +117,17 @@ export class TalonOneCouponAdapter {
 
                 case 'customEffect':
                     if (props.name === COUPON_CUSTOM_EFFECT) {
-                        customEffects.push({
-                            couponCode: couponIdToCode[triggeredByCoupon],
-                            props,
-                        });
+                        const couponCode = triggeredByCoupon ? couponIdToCode[triggeredByCoupon] : undefined;
+                        customEffects.push({ couponCode, props });
+
+                        if (couponCode) {
+                            const parsedPayload = this.parseCouponCustomEffectPayload(props.payload);
+
+                            couponCustomEffectData[couponCode] = {
+                                ...couponCustomEffectData[couponCode],
+                                ...parsedPayload,
+                            };
+                        }
                     }
                     break;
 
@@ -86,14 +138,32 @@ export class TalonOneCouponAdapter {
             }
         });
 
+        const acceptedCouponsWithCustomEffects = this.mergeCouponsWithCustomEffects(
+            acceptedCoupons,
+            couponCustomEffectData
+        );
+
+        const rejectedCouponsWithCustomEffects = this.mergeCouponsWithCustomEffects(
+            rejectedCoupons,
+            couponCustomEffectData
+        );
+
+        const hasCoupons = couponCodes.length > 0;
+        const iCoupons = this.mapICoupons(acceptedCouponsWithCustomEffects, rejectedCouponsWithCustomEffects);
+
         return {
-            updateActions,
+            hasCoupons,
+            iCoupons,
+            couponCodes,
+            acceptedCouponCodes,
+            rejectedCouponCodes,
+            acceptedCouponsWithCustomEffects,
+            rejectedCouponsWithCustomEffects,
             acceptedCoupons,
             rejectedCoupons,
             customEffects,
             couponIdToCode,
             couponIdToEffects,
-            applyCoupons,
         };
     }
 
@@ -266,9 +336,10 @@ export class TalonOneCouponAdapter {
         try {
             const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(id);
 
-            const { applyCoupons: acceptedCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects);
+            const processCouponEffects = this.processCouponEffects(talonEffects);
+            console.log('processCouponEffects', processCouponEffects);
 
-            return { coupons: { acceptedCoupons, rejectedCoupons } };
+            return { coupons: { acceptedCoupons: processCouponEffects.acceptedCoupons, rejectedCoupons: processCouponEffects.rejectedCoupons } };
         } catch (error: any) {
             logger.error("cartService.checkout.talonOneCouponAdapter.getCouponEffectsByCtCartId.error: ", error);
 
@@ -283,11 +354,11 @@ export class TalonOneCouponAdapter {
             }
 
             // Step 1: Extract coupon codes
-            let couponCodes: string[] = couponsEffects.acceptedCoupons.map((coupon: {code: string}) => coupon.code);
+            let couponCodes: string[] = couponsEffects.acceptedCoupons.map((coupon: { code: string }) => coupon.code);
 
             // Merge and deduplicate coupon codes from couponsEffects rejectedCoupons
             if (couponsEffects?.rejectedCoupons?.length > 0) {
-                const rejectedCouponCodes: string[] = couponsEffects.rejectedCoupons.map((coupon: {code: string}) => coupon.code);
+                const rejectedCouponCodes: string[] = couponsEffects.rejectedCoupons.map((coupon: { code: string }) => coupon.code);
                 couponCodes = Array.from(new Set([...couponCodes, ...rejectedCouponCodes]));
             }
 
@@ -320,7 +391,7 @@ export class TalonOneCouponAdapter {
             const talonOneUpdateActions = this.buildCouponActions(ctCart, processedCouponEffects);
 
             // Step 6: Update acceptedCoupons and rejectedCoupons
-            couponsEffects.acceptedCoupons = processedCouponEffects.applyCoupons;
+            couponsEffects.acceptedCoupons = processedCouponEffects.acceptedCoupons;
             couponsEffects.rejectedCoupons = processedCouponEffects.rejectedCoupons;
 
             return { couponsEffects, talonOneUpdateActions };

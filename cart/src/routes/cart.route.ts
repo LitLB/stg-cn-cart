@@ -15,6 +15,9 @@ const cartController = new CartController();
 const cartItemController = new CartItemController();
 const blacklistController = new BlacklistController();
 
+cartRouter.post('/test', authenticate, cartController.test);
+
+
 cartRouter.post('/v1/oauth/anonymous', authController.createAnonymousSession);
 cartRouter.patch('/v1/oauth/anonymous', authController.renewAnonymousSession);
 

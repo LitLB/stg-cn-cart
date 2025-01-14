@@ -37,6 +37,7 @@ import { InventoryValidator } from '../validators/inventory.validator';
 import { InventoryService } from './inventory.service';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { validateInventory } from '../utils/cart.utils';
+import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -49,6 +50,30 @@ export class CartService {
         this.blacklistService = new BlacklistService()
         this.couponService = new CouponService()
         this.inventoryService = new InventoryService()
+    }
+
+    async test(accessToken: string, id: string, body: any): Promise<any> {
+        try {
+            const { cartId } = body;
+            const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(cartId);
+
+            const processCouponEffects = this.talonOneCouponAdapter.processCouponEffects(talonEffects);
+            // console.log('processCouponEffects', processCouponEffects);
+
+            return processCouponEffects;
+        } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+
+            throw createStandardizedError(
+                {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Some coupons were rejected during processing.',
+                },
+                'removeUnselectedItems'
+            );
+        }
     }
 
     /**
