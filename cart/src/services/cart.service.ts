@@ -57,10 +57,10 @@ export class CartService {
             const { cartId } = body;
             const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(cartId);
 
-            const processCouponEffects = this.talonOneCouponAdapter.processCouponEffects(talonEffects);
+            const processCouponEffectsV2 = this.talonOneCouponAdapter.processCouponEffectsV2(talonEffects);
             // console.log('processCouponEffects', processCouponEffects);
 
-            return processCouponEffects;
+            return processCouponEffectsV2;
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
@@ -411,6 +411,8 @@ export class CartService {
 
             return response;
         } catch (error: any) {
+            console.log('error', error);
+            
             if (error.status && error.message) {
                 throw error;
             }
