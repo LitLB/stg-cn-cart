@@ -9,6 +9,8 @@ import { UpdateAction } from '@commercetools/sdk-client-v2';
 import { LINE_ITEM_INVENTORY_MODES } from '../constants/lineItem.constant';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import { CustomCartWithCompared, CustomCartWithNotice, CustomLineItemHasChanged, HasChangedAction } from '../types/custom.types';
+import { createStandardizedError } from '../utils/error.utils';
+import { HttpStatusCode } from 'axios';
 
 
 
@@ -116,13 +118,41 @@ class CommercetoolsCartClient {
 
 			cartFlag = isProductPreOrder
 
-			if (isProductPreOrder && productType === 'main_product') {
-				if (productId !== existingId || variantId !== variant.id) {
-					throw new Error('Cannot add different stock types in the same cart.');
-				}
-			} else if (!isProductPreOrder && dummyFlag) {
-				throw new Error('Cannot add different stock types in the same cart.');
+			// Define conflict conditions
+			const isDummyToPhysicalCartConflict = !isProductPreOrder && dummyFlag;
+			const isPhysicalToDummyCartConflict = isProductPreOrder && !dummyFlag;
+			const isDifferentSkuConflict =
+				productId === existingId && variant.id !== variantId;
+			const isDifferentProductConflict =
+				productId !== existingId 
+
+			// Check conflicts in a clear sequence
+			if (isDummyToPhysicalCartConflict) {
+				throw createStandardizedError({
+					statusCode: HttpStatusCode.BadRequest,
+					statusMessage: 'Cannot add dummy product to physical cart.',
+					errorCode: 'CONFLICT_DUMMY_TO_PHYSICAL_CART',
+				});
+			} else if (isPhysicalToDummyCartConflict) {
+				throw createStandardizedError({
+					statusCode: HttpStatusCode.BadRequest,
+					statusMessage: 'Cannot add physical product to dummy cart.',
+					errorCode: 'CONFLICT_PHYSICAL_TO_DUMMY_CART',
+				});
+			} else if (isProductPreOrder && isDifferentSkuConflict) {
+				throw createStandardizedError({
+					statusCode: HttpStatusCode.BadRequest,
+					statusMessage: 'Cannot add a different SKU to the dummy cart.',
+					errorCode: 'CONFLICT_SKU_IN_DUMMY_CART',
+				});
+			}else if((isProductPreOrder && isDifferentProductConflict)) {
+				throw createStandardizedError({
+					statusCode: HttpStatusCode.BadRequest,
+					statusMessage: 'Cannot add a different SKU to the dummy cart.',
+					errorCode: 'CONFLICT_SKU_IN_DUMMY_CART',
+				});
 			}
+
 		} else {
 			cartFlag = dummyFlag
 		}
