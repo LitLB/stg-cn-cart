@@ -18,3 +18,11 @@ export type HasChangedAction = {
 export type CustomLineItemHasChanged = LineItem & {
     hasChangedAction?: HasChangedAction
 }
+
+export type CustomLineItemVariantAttribute = {
+    name: string
+    value: {
+        key: string
+        label: string
+    }
+}

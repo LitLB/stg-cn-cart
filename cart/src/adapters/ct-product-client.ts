@@ -7,7 +7,7 @@ import { CT_PRODUCT_ACTIONS } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client'
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
-import { HasChangedAction } from '../types/custom.types';
+import { CustomLineItemVariantAttribute, HasChangedAction } from '../types/custom.types';
 
 class CommercetoolsProductClient {
 	private static instance: CommercetoolsProductClient;
@@ -280,7 +280,7 @@ class CommercetoolsProductClient {
 			});
 		}
 
-		const processedItems = lineItems.map((cartItem: any) => {
+		const processedItems = lineItems.map((cartItem: LineItem) => {
 			const parentQuantity = mainProductLineItems
                 .filter((item: LineItem) => item.productId === cartItem.productId)
                 .reduce((sum:any, item:any) => sum + item.quantity, 0);
@@ -310,22 +310,29 @@ class CommercetoolsProductClient {
             let quantityOverStock = quantity > stockAvailable
 
             // Check maximum stock allocation by journey
-            const journey = ctCart.custom?.fields.journey as CART_JOURNEYS
-            const journeyConfig = journeyConfigMap[journey];
+            // !!exclude dummy stock
+            const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
+            const productJourney = (cartItem.variant.attributes?.find((attr: CustomLineItemVariantAttribute) => attr.name === 'journey')?.value[0]?.key || CART_JOURNEYS.SINGLE_PRODUCT) as CART_JOURNEYS
+            const lineItemJourney = cartJourney === CART_JOURNEYS.SINGLE_PRODUCT && cartJourney !== productJourney ? productJourney : cartJourney
+            const journeyConfig = journeyConfigMap[lineItemJourney]
+            
             let maximumStockAllocation: number | undefined
             if (journeyConfig.inventory) {
-                maximumStockAllocation = matchedInventory.custom.fields[journeyConfig.inventory.maximumKey];
-                // use min value of stock
-                stockAvailable = maximumStockAllocation !== undefined ? Math.min(stockAvailable, maximumStockAllocation): stockAvailable
-
-                if ((maximumStockAllocation !== undefined && maximumStockAllocation !== 0) && quantity > stockAvailable) {
-                    // update quantity if stock allocation less than quantity
-                    quantityOverStock = true
-                    hasChangedAction.action = 'UPDATE_QUANTITY'
-                    hasChangedAction.updateValue = maximumStockAllocation
-                } else if (maximumStockAllocation === 0) {
-                    // remove if stock allocation is set to 0
-                    hasChangedAction.action = 'REMOVE_LINE_ITEM'
+                const dummyStock = matchedInventory.custom.fields[journeyConfig.inventory.dummyKey] || undefined
+                if (!dummyStock || dummyStock === 0) {
+                    maximumStockAllocation = matchedInventory.custom.fields[journeyConfig.inventory.maximumKey];
+                    // use min value of stock
+                    stockAvailable = maximumStockAllocation !== undefined ? Math.min(stockAvailable, maximumStockAllocation): stockAvailable
+    
+                    if ((maximumStockAllocation !== undefined && maximumStockAllocation !== 0) && quantity > stockAvailable) {
+                        // update quantity if stock allocation less than quantity
+                        quantityOverStock = true
+                        hasChangedAction.action = 'UPDATE_QUANTITY'
+                        hasChangedAction.updateValue = maximumStockAllocation
+                    } else if (maximumStockAllocation === 0) {
+                        // remove if stock allocation is set to 0
+                        hasChangedAction.action = 'REMOVE_LINE_ITEM'
+                    }
                 }
             }
 
