@@ -259,7 +259,7 @@ class CommercetoolsCartClient {
 			.withProjectKey({ projectKey: this.projectKey })
 			.carts()
 			.withId({ ID: cartId })
-			.post({ body: cartUpdate })
+			.post({ body: cartUpdate , queryArgs: { expand: 'custom.fields.couponsInfomation'} })
 			.execute();
 
 		return response.body;
