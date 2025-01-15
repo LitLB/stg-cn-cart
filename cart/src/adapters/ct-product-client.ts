@@ -310,7 +310,6 @@ class CommercetoolsProductClient {
             let quantityOverStock = quantity > stockAvailable
 
             // Check maximum stock allocation by journey
-            // !!exclude dummy stock
             const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
             const productJourney = (cartItem.variant.attributes?.find((attr: CustomLineItemVariantAttribute) => attr.name === 'journey')?.value[0]?.key || CART_JOURNEYS.SINGLE_PRODUCT) as CART_JOURNEYS
             const lineItemJourney = cartJourney === CART_JOURNEYS.SINGLE_PRODUCT && cartJourney !== productJourney ? productJourney : cartJourney
@@ -318,9 +317,11 @@ class CommercetoolsProductClient {
             
             let maximumStockAllocation: number | undefined
             if (journeyConfig.inventory) {
-                const dummyStock = matchedInventory.custom.fields[journeyConfig.inventory.dummyKey] || undefined
+                const dummyStock: number | undefined = matchedInventory.custom.fields[journeyConfig.inventory.dummyKey] || undefined
+                // !!exclude dummy stock
                 if (!dummyStock || dummyStock === 0) {
                     maximumStockAllocation = matchedInventory.custom.fields[journeyConfig.inventory.maximumKey];
+                    const totalPurchase: number = matchedInventory.custom.fields[journeyConfig.inventory.totalKey] || 0
                     // use min value of stock
                     stockAvailable = maximumStockAllocation !== undefined ? Math.min(stockAvailable, maximumStockAllocation): stockAvailable
     
@@ -329,9 +330,13 @@ class CommercetoolsProductClient {
                         quantityOverStock = true
                         hasChangedAction.action = 'UPDATE_QUANTITY'
                         hasChangedAction.updateValue = maximumStockAllocation
-                    } else if (maximumStockAllocation === 0) {
-                        // remove if stock allocation is set to 0
-                        hasChangedAction.action = 'REMOVE_LINE_ITEM'
+                    } else if (maximumStockAllocation !== undefined) {
+                        // remove if maximumStockAllocation is set to 0 or totalPurchase is less than or equal to maximumStockAllocation
+                        if (maximumStockAllocation === 0) {
+                            hasChangedAction.action = 'REMOVE_LINE_ITEM'
+                        } else if ((totalPurchase >= maximumStockAllocation)) {
+                            hasChangedAction.action = 'REMOVE_LINE_ITEM'
+                        }
                     }
                 }
             }
