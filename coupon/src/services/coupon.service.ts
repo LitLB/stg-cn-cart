@@ -4,12 +4,17 @@ import { ICart } from '../interfaces/cart';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
+import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit } from '../validators/coupon.validator';
 import { logger } from '../utils/logger.utils';
 import { createStandardizedError } from '../utils/error.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { COUPON_REJECTION_REASONS } from '../constants/talon-one.interface';
+import {
+    CartSetCustomFieldAction,
+    CartUpdateAction
+} from '@commercetools/platform-sdk';
 
 export class CouponService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -118,9 +123,16 @@ export class CouponService {
             // console.log('finalProcessedCouponEffects', finalProcessedCouponEffects);
 
             // 6) Build final cart update actions from the coupon effects
-            const updateActions = this.talonOneCouponAdapter.buildCouponActions(
+            const {updateActions, couponsInformation } = this.talonOneCouponAdapter.buildCouponActions(
                 ctCart,
                 finalProcessedCouponEffects
+            );
+
+            // Update CustomObject with coupon information
+            await this.addCouponInformation(
+                updateActions,
+                ctCart.id,
+                couponsInformation
             );
 
             // 7) Update the cart in Commercetools
@@ -141,7 +153,7 @@ export class CouponService {
 
             const uniqueRejectedByCode = Array.from(
                 new Map(finalRejected.map(rc => [rc.code, rc])).values()
-            );
+            );        
 
             // 9) Return final cart + coupon arrays
             return {
@@ -271,4 +283,48 @@ export class CouponService {
             ) || []
         );
     }
+
+    //Add "couponInformation" to cart or remove it if no info is provided. // Should be same function in cart app
+    public addCouponInformation = async (
+        updateActions: CartUpdateAction[],
+        cartId: string,
+        couponsInformation?: any[]
+    ) => {
+        try {
+            // Attempt to add "couponInformation" custom object
+            const addedCouponsInformation = await CommercetoolsCustomObjectClient.addCouponInformation(
+                cartId,
+                couponsInformation
+            );
+
+            // Only set or unset if we either have new info or had info before
+            if (addedCouponsInformation) {
+                const updateCustom: CartSetCustomFieldAction = {
+                    action: 'setCustomField',
+                    name: 'couponsInfomation',
+                    value: {
+                        typeId: 'key-value-document',
+                        id: addedCouponsInformation.id
+                    }
+                };
+                updateActions.push(updateCustom);
+            } else {
+                if (couponsInformation) {
+                    const removeCustom: CartSetCustomFieldAction = {
+                        action: 'setCustomField',
+                        name: 'couponsInfomation',
+                        value: null
+                    };
+                    updateActions.push(removeCustom);
+                }
+            }
+        } catch (error: any) {
+            logger.error('Failed to process coupons information', error);
+            throw {
+                statusCode: HTTP_STATUSES.INTERNAL_SERVER_ERROR,
+                errorCode: 'COUPONS_INFORMATION_PROCESSING_FAILED',
+                statusMessage: 'An error occurred while processing coupon information.'
+            };
+        }
+    };
 }

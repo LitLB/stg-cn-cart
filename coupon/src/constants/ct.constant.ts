@@ -15,3 +15,6 @@ export enum CT_PRODUCT_ACTIONS {
 
 export const PAYMENT_OMISE_CONTAINER = 'payment-omise';
 export const PAYMENT_OMISE_KEY_PREFIX = 'payment-omise-';
+
+export const ORDER_ADDITIONAL_INFO = 'orderAdditionalInfo';
+export const COUPON_INFO_CONTAINER = "couponsInfomation";

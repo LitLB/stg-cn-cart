@@ -222,19 +222,9 @@ export class CartService {
 
     private async handleAutoRemoveCoupons(ctCart: Cart, cartId: string): Promise<Cart> {
         // 1. Auto-remove invalid coupons
-        const { updatedCart, permanentlyInvalidRejectedCoupons } =
+        const { updatedCart } =
             await this.couponService.autoRemoveInvalidCouponsAndReturnOnceV2(ctCart);
         ctCart = updatedCart;
-        if (permanentlyInvalidRejectedCoupons.length > 0) {
-            throw createStandardizedError(
-                {
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'Some coupons were rejected during processing.',
-                    data: permanentlyInvalidRejectedCoupons,
-                },
-                'handleAutoRemoveCoupons'
-            );
-        }
 
         // 2. Grab coupon data
         const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
