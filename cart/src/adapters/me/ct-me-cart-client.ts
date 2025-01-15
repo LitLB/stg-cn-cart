@@ -136,10 +136,13 @@ export default class CommercetoolsMeCartClient {
 				.me()
 				.carts()
 				.withId({ ID: cartId })
-				.get()
+				.get({ queryArgs: { expand: 'custom.fields.couponsInfomation' } })
 				.execute();
 
+			// console.log(JSON.stringify(response.body, null, 2));
+
 			return response.body;
+
 		} catch (error: any) {
 			console.error(`Error fetching cart with ID ${cartId}:`, error);
 			return null;
@@ -717,7 +720,6 @@ export default class CommercetoolsMeCartClient {
 			lastModifiedAt,
 			deleteDaysAfterLastModification,
 		);
-
 
 		const iCart: ICart = {
 			cartId: ctCart.id,
@@ -1373,6 +1375,8 @@ export default class CommercetoolsMeCartClient {
 	}
 
 	async getCartWithBenefit(ctCart: any) {
+
+
 		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
 		const inventoryKey = skus.map((sku: any) => sku).join(',');
 		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);

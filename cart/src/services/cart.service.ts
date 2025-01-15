@@ -283,6 +283,7 @@ export class CartService {
                 };
             }
 
+            const { couponsInfomation } = ctCart.custom?.fields || {};
             const updateActions: CartUpdateAction[] = [];
 
             if (shippingAddress) {
@@ -327,7 +328,7 @@ export class CartService {
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
             const iCart = commercetoolsMeCartClient.mapCartToICart(cartWithUpdatedPrice);
 
-            return { ...iCart, hasChanged: compared };
+            return { ...iCart, hasChanged: compared, couponsInformation: couponsInfomation };
         } catch (error: any) {
             logger.error(`CartService.checkout.error`, error);
             if (error.status && error.message) {
@@ -355,7 +356,7 @@ export class CartService {
                     statusMessage: 'Cart not found or has expired'
                 });
             }
-
+            const { couponsInfomation } = ctCart.custom?.fields || {};
             const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cartWithCheckPublicPublish)
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
@@ -389,7 +390,8 @@ export class CartService {
                 ...iCartWithBenefit,
                 hasChanged: compared,
                 hasChangedNote: notice,
-                ...couponEffects
+                ...couponEffects,
+                couponsInformation: couponsInfomation ?? undefined
             };
 
             if (includeCoupons && permanentlyInvalidRejectedCoupons.length > 0) {

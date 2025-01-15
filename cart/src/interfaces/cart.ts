@@ -35,7 +35,9 @@ export interface ICart {
 	updatedAt: Date;
 	expiredAt: Date;
 	deleteDaysAfterLastModification?: number;
-	hasChanged?: any // TODO
+	hasChanged?: any, // TODO
+	couponInformation?: any;
+
 }
 
 export interface IItem {
@@ -64,6 +66,7 @@ export interface IItem {
 	image: IImage | null;
 	inventory?: any;
 	hasChanged?: any
+
 }
 
 export interface IImage {
