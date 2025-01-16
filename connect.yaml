@@ -217,14 +217,14 @@ deployAs:
       preUndeploy: npm install && npm run build && npm run connector:pre-undeploy
     configuration:
       standardConfiguration:
+        - key: APP_ENV
+          description: commercetools Composable Commerce API region
+          required: true
         - key: CTP_REGION
           description: commercetools Composable Commerce API region
           required: true
-        - key: TALON_ONE_URL
-          description: talon.one base url
-          required: true
-        - key: TALON_ONE_CATALOG_ID
-          description: talon.one catalog id for sync cart catalog item api
+        - key: AWS_REGION
+          description: AWS region
           required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
@@ -245,9 +245,9 @@ deployAs:
         - key: CONNECT_GCP_PROJECT_ID_KEY
           description: connect Pub/Sub project id
           required: true
-        - key: TALON_ONE_API_KEY
-          description: talon.one api key
+        - key: AWS_ACCESS_KEY_ID
+          description: AWS access key
           required: true
-        - key: TALON_ONE_API_KEY_PREFIX
-          description: talon.one api key prefix
+        - key: AWS_SECRET_ACCESS_KEY
+          description: AWS secret access key
           required: true

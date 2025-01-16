@@ -1,14 +1,8 @@
 import { ByProjectKeyRequestBuilder } from '@commercetools/platform-sdk/dist/declarations/src/generated/client/by-project-key-request-builder'
 
-// const PRODUCT_SUBSCRIPTION_KEY = 'connector-sync-t1-product'
 const ORDER_SUBSCRIPTION_KEY = 'connector-store-order-history'
 
-// TODO: Setup Subscription 
-export async function createOrderSubscription(
-    apiRoot: ByProjectKeyRequestBuilder,
-    topicName: string,
-    projectId: string
-): Promise<void> {
+export async function createOrderSubscription(apiRoot: ByProjectKeyRequestBuilder, topicName: string, projectId: string): Promise<void> {
     const {
         body: { results: subscriptions },
     } = await apiRoot
@@ -47,12 +41,7 @@ export async function createOrderSubscription(
                 messages: [
                     {
                         resourceTypeId: 'orders',
-                        types: [
-                            'OrderStateChanged',
-                            'OrderStateTransition',
-                            'OrderPaymentStateChanged',
-                            'OrderShipmentStateChanged',
-                        ],
+                        types: ['OrderStateChanged', 'OrderStateTransition', 'OrderPaymentStateChanged', 'OrderShipmentStateChanged'],
                     },
                 ],
             },
@@ -60,32 +49,29 @@ export async function createOrderSubscription(
         .execute()
 }
 
-export async function deleteProductSubscription(
-    apiRoot: ByProjectKeyRequestBuilder
-  ): Promise<void> {
+export async function deleteProductSubscription(apiRoot: ByProjectKeyRequestBuilder): Promise<void> {
     const {
-      body: { results: subscriptions },
+        body: { results: subscriptions },
     } = await apiRoot
-      .subscriptions()
-      .get({
-        queryArgs: {
-          where: `key = "${ORDER_SUBSCRIPTION_KEY}"`,
-        },
-      })
-      .execute();
-  
-    if (subscriptions.length > 0) {
-      const subscription = subscriptions[0];
-  
-      await apiRoot
         .subscriptions()
-        .withKey({ key: ORDER_SUBSCRIPTION_KEY })
-        .delete({
-          queryArgs: {
-            version: subscription.version,
-          },
+        .get({
+            queryArgs: {
+                where: `key = "${ORDER_SUBSCRIPTION_KEY}"`,
+            },
         })
-        .execute();
+        .execute()
+
+    if (subscriptions.length > 0) {
+        const subscription = subscriptions[0]
+
+        await apiRoot
+            .subscriptions()
+            .withKey({ key: ORDER_SUBSCRIPTION_KEY })
+            .delete({
+                queryArgs: {
+                    version: subscription.version,
+                },
+            })
+            .execute()
     }
-  }
-  
+}
