@@ -49,7 +49,6 @@ export const putItem = async ({ tableName, item }: PutItemInput): Promise<PutIte
             Item: item,
             ReturnConsumedCapacity: 'TOTAL',
         })
-
         const response = await client.send(putItemCommand)
         return response
     } catch (err: any) {
