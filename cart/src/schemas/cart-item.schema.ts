@@ -332,9 +332,6 @@ export function validateProductQuantity(
 		return;
 	}
 
-	// Retrieve ctpWholeCartLimit from runtime configuration
-	const ctpWholeCartLimit = readConfiguration().ctpWholeCartLimit ? Number(readConfiguration().ctpWholeCartLimit) : undefined;
-
 	// Filter line items with productType 'main_product'
 	const mainProductLineItems = cart.lineItems.filter(
 		(item: LineItem) => item.custom?.fields?.productType === 'main_product',
@@ -417,13 +414,6 @@ export function validateProductQuantity(
 		};
 	}
 
-	// Whole Cart Level Validation
-	if (ctpWholeCartLimit !== undefined && newTotalCartQuantity > ctpWholeCartLimit) {
-		throw {
-			statusCode: HTTP_STATUSES.BAD_REQUEST,
-			statusMessage: `Cannot have more than ${ctpWholeCartLimit} units in the cart.`,
-		};
-	}
 }
 
 export const validateJourneyCompatibility = (
