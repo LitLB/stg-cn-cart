@@ -210,8 +210,16 @@ export class CouponService {
 
             // 6) Build updateActions from new effects to remove discount line items, etc.
             const newProcessedEffects = this.talonOneCouponAdapter.processCouponEffects(reUpdatedSession.effects);
-            const { updateActions } =
+            const { updateActions, couponsInformation } =
                 this.talonOneCouponAdapter.buildCouponActions(ctCart, newProcessedEffects);
+            
+            // Update CustomObject with coupon information
+            await this.addCouponInformation(
+                updateActions,
+                ctCart.id,
+                couponsInformation
+            );    
+                
 
             if (updateActions.length === 0) {
                 // No cart changes needed
