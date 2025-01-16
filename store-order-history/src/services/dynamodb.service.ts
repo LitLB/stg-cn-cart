@@ -1,8 +1,4 @@
-import {
-    DynamoDBClient,
-    ScanCommand,
-    PutItemCommand,
-} from '@aws-sdk/client-dynamodb'
+import { DynamoDBClient, ScanCommand, PutItemCommand, PutItemCommandOutput } from '@aws-sdk/client-dynamodb'
 import { readConfiguration } from '../utils/config.utils'
 import { PutItemInput, ScanItemsInput } from '../types/services/dynamodb.type'
 import { logger } from '../utils/logger.utils'
@@ -12,8 +8,7 @@ const dynamodbClient = (): DynamoDBClient => {
         region: readConfiguration().dynamodb.region as string,
         credentials: {
             accessKeyId: readConfiguration().dynamodb.accessKeyId as string,
-            secretAccessKey: readConfiguration().dynamodb
-                .secretAccessKey as string,
+            secretAccessKey: readConfiguration().dynamodb.secretAccessKey as string,
         },
     })
 
@@ -47,19 +42,19 @@ export const scanItems = async <T>({
     }
 }
 
-export const putItem = async ({ tableName, item }: PutItemInput) => {
+export const putItem = async ({ tableName, item }: PutItemInput): Promise<PutItemCommandOutput> => {
     try {
         const putItemCommand = new PutItemCommand({
             TableName: tableName,
             Item: item,
             ReturnConsumedCapacity: 'TOTAL',
         })
-        
+
         const response = await client.send(putItemCommand)
         return response
     } catch (err: any) {
         logger.error(err)
-        return null
+        throw err
     }
 }
 

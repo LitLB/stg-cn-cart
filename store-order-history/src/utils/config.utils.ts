@@ -10,6 +10,7 @@ import { getValidateMessages } from '../validators/helpers.validators'
  */
 export const readConfiguration = () => {
     const envVars = {
+        appEnv: process.env.APP_ENV as string,
         clientId: process.env.CTP_CLIENT_ID as string,
         clientSecret: process.env.CTP_CLIENT_SECRET as string,
         projectKey: process.env.CTP_PROJECT_KEY as string,

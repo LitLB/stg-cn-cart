@@ -34,12 +34,16 @@ export const queryCustomerGroup = async (customerGroupID: string) => {
     return customerGroups[0]
 }
 
-export const queryOrderById = async (id: string): Promise<Order | null> => {
+export const queryOrderById = async (id: string, expandFields?: string[]): Promise<Order | null> => {
     try {
         const orderResponse = await apiRoot
             .orders()
             .withId({ ID: id })
-            .get()
+            .get({
+                queryArgs: {
+                    ...(expandFields && { expand: expandFields }),
+                },
+            })
             .execute()
 
         if (orderResponse.statusCode !== 200) {

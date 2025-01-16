@@ -1,17 +1,7 @@
 import { AttributeValue } from '@aws-sdk/client-dynamodb'
 
-export type POCTableItem = {
-    value: AttributeValue
-    active: AttributeValue
-    lastModified: AttributeValue
-    journey: AttributeValue
-    id: AttributeValue
-    modifiedBy: AttributeValue
-    type: AttributeValue
-}
-
 // TODO: change name if confirm name of event
-export type StoreOrderHistoryItem = {
+export type OrderHistoryItem = {
     id: AttributeValue
     orderId: AttributeValue
     event: AttributeValue

@@ -2,7 +2,7 @@
     "trailingComma": "es5",
     "singleQuote": true,
     "parser": "typescript",
-    "printWidth": 80,
+    "printWidth": 160,
     "semi": false,
     "tabWidth": 4,
     "overrides": [
