@@ -15,6 +15,8 @@ export const readConfiguration = () => {
         projectKey: process.env.CTP_PROJECT_KEY as string,
         scope: process.env.CTP_SCOPE,
         region: process.env.CTP_REGION as string,
+        ctpAuthUrl: process.env.CTP_AUTH_URL as string,
+        ctpApiUrl: process.env.CTP_API_URL as string,
         dynamodb: {
             region: process.env.AWS_REGION,
             accessKeyId: process.env.AWS_ACCESS_KEY_ID,
