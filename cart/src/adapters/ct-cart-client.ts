@@ -43,18 +43,17 @@ class CommercetoolsCartClient {
 				actions,
 			};
 
-
-
 			const response = await this.apiRoot
 				.withProjectKey({ projectKey: this.projectKey })
 				.carts()
 				.withId({ ID: cartId })
 				.post({
 					body: cartUpdate,
+					queryArgs: {
+						expand: ['custom.fields.couponsInformation'],
+					},
 				})
 				.execute();
-
-
 
 			return response.body;
 		} catch (error: any) {

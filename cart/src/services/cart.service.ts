@@ -283,7 +283,7 @@ export class CartService {
                 };
             }
 
-            const { couponsInfomation } = ctCart.custom?.fields || {};
+            const { couponsInfomation } = ctCart.custom?.fields ?? {};
             const updateActions: CartUpdateAction[] = [];
 
             if (shippingAddress) {
@@ -356,7 +356,7 @@ export class CartService {
                     statusMessage: 'Cart not found or has expired'
                 });
             }
-            const { couponsInfomation } = ctCart.custom?.fields || {};
+            
             const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cartWithCheckPublicPublish)
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
@@ -370,6 +370,8 @@ export class CartService {
                     rejectedCoupons: [],
                 },
             };
+
+            let couponsInformation
             if (includeCoupons) {
                 const {
                     updatedCart: _cartAfterAutoRemove,
@@ -378,10 +380,13 @@ export class CartService {
                 cartAfterAutoRemove = _cartAfterAutoRemove;
                 permanentlyInvalidRejectedCoupons = _permanentlyInvalidRejectedCoupons;
                 couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartAfterAutoRemove.id, cartAfterAutoRemove.lineItems);
+                const { couponsInfomation } = ctCart.custom?.fields ?? {};
+                couponsInformation = couponsInfomation
             }
 
             const selectedLineItems: LineItem[] = commercetoolsMeCartClient.filterSelectedLineItems(cartAfterAutoRemove.lineItems, selectedOnly);
             const cartWithFilteredItems: Cart = { ...cartAfterAutoRemove, lineItems: selectedLineItems };
+
 
             // 3) Map to ICart
             const iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartWithFilteredItems);
@@ -391,7 +396,7 @@ export class CartService {
                 hasChanged: compared,
                 hasChangedNote: notice,
                 ...couponEffects,
-                couponsInformation: couponsInfomation ?? undefined
+                couponsInformation
             };
 
             if (includeCoupons && permanentlyInvalidRejectedCoupons.length > 0) {
