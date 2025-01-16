@@ -284,6 +284,7 @@ export class CartService {
             }
 
             const { couponsInfomation } = ctCart.custom?.fields ?? {};
+            const couponsInformation = couponsInfomation?.obj.value ?? []
             const updateActions: CartUpdateAction[] = [];
 
             if (shippingAddress) {
@@ -328,7 +329,9 @@ export class CartService {
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
             const iCart = commercetoolsMeCartClient.mapCartToICart(cartWithUpdatedPrice);
 
-            return { ...iCart, hasChanged: compared, couponsInformation: couponsInfomation };
+
+
+            return { ...iCart, hasChanged: compared, couponsInformation };
         } catch (error: any) {
             logger.error(`CartService.checkout.error`, error);
             if (error.status && error.message) {
@@ -371,7 +374,7 @@ export class CartService {
                 },
             };
 
-            let couponsInformation
+            let couponsInformation = []
             if (includeCoupons) {
                 const {
                     updatedCart: _cartAfterAutoRemove,
@@ -381,7 +384,7 @@ export class CartService {
                 permanentlyInvalidRejectedCoupons = _permanentlyInvalidRejectedCoupons;
                 couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartAfterAutoRemove.id, cartAfterAutoRemove.lineItems);
                 const { couponsInfomation } = ctCart.custom?.fields ?? {};
-                couponsInformation = couponsInfomation
+                couponsInformation = couponsInfomation?.obj.value || []
             }
 
             const selectedLineItems: LineItem[] = commercetoolsMeCartClient.filterSelectedLineItems(cartAfterAutoRemove.lineItems, selectedOnly);

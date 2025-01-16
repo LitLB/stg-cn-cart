@@ -34,15 +34,13 @@ class CommercetoolsCartClient {
 				actions,
 			};
 
-			const expand = `custom.fields.couponsInfomation`;
-
 			const response = await this.apiRoot
 				.withProjectKey({ projectKey: this.projectKey })
 				.carts()
 				.withId({ ID: cartId })
 				.post({
 					body: cartUpdate,
-					queryArgs: { expand: expand }
+					queryArgs: { expand: 'custom.fields.couponsInfomation' }
 				})
 				.execute();
 

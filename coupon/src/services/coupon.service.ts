@@ -123,7 +123,7 @@ export class CouponService {
             // console.log('finalProcessedCouponEffects', finalProcessedCouponEffects);
 
             // 6) Build final cart update actions from the coupon effects
-            const {updateActions, couponsInformation } = this.talonOneCouponAdapter.buildCouponActions(
+            const { updateActions, couponsInformation } = this.talonOneCouponAdapter.buildCouponActions(
                 ctCart,
                 finalProcessedCouponEffects
             );
@@ -142,6 +142,7 @@ export class CouponService {
                 updateActions
             );
 
+
             // 8) Convert to ICart for the response
             const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
 
@@ -149,11 +150,13 @@ export class CouponService {
                 ...initiallyRejectedCoupons,
                 ...(finalProcessedCouponEffects.rejectedCoupons || []),
             ];
-            // console.log('finalRejected', finalRejected);
+
 
             const uniqueRejectedByCode = Array.from(
                 new Map(finalRejected.map(rc => [rc.code, rc])).values()
-            );        
+            );
+
+
 
             // 9) Return final cart + coupon arrays
             return {
@@ -162,6 +165,7 @@ export class CouponService {
                     acceptedCoupons: finalProcessedCouponEffects.applyCoupons,
                     rejectedCoupons: uniqueRejectedByCode,
                 },
+                couponsInformation
             };
         } catch (error: any) {
             if (error.status && error.message) {
@@ -296,6 +300,8 @@ export class CouponService {
                 cartId,
                 couponsInformation
             );
+
+
 
             // Only set or unset if we either have new info or had info before
             if (addedCouponsInformation) {
