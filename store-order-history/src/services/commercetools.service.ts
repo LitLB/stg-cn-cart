@@ -1,4 +1,4 @@
-import { Order } from '@commercetools/platform-sdk'
+import { Order, State } from '@commercetools/platform-sdk'
 import { createApiRoot } from '../client/create.client.js'
 import { logger } from '../utils/logger.utils.js'
 
@@ -36,7 +36,7 @@ export const queryCustomerGroup = async (customerGroupID: string) => {
 
 export const queryOrderById = async (id: string, expandFields?: string[]): Promise<Order | null> => {
     try {
-        const orderResponse = await apiRoot
+        const result = await apiRoot
             .orders()
             .withId({ ID: id })
             .get({
@@ -46,11 +46,30 @@ export const queryOrderById = async (id: string, expandFields?: string[]): Promi
             })
             .execute()
 
-        if (orderResponse.statusCode !== 200) {
+        if (result.statusCode !== 200) {
             return null
         }
 
-        return orderResponse.body
+        return result.body
+    } catch (err) {
+        logger.error(err)
+        return null
+    }
+}
+
+export const queryStateById = async (id: string): Promise<State | null> => {
+    try {
+        const result = await apiRoot
+            .states()
+            .withId({ ID: id })
+            .get()
+            .execute()
+
+        if (result.statusCode !== 200) {
+            return null
+        }
+
+        return result.body
     } catch (err) {
         logger.error(err)
         return null

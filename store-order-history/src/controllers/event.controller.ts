@@ -2,8 +2,6 @@ import { Request, Response } from 'express'
 import { logger } from '../utils/logger.utils'
 import * as eventService from '../services/event.service'
 
-const ORDER_EVENT_LIST = ['OrderStateChanged', 'OrderStateTransition', 'OrderPaymentStateChanged', 'OrderShipmentStateChanged']
-
 export const storeOrderHistoryController = async (req: Request, res: Response): Promise<void> => {
     try {
         if (!req.body?.message?.data) {
@@ -16,16 +14,12 @@ export const storeOrderHistoryController = async (req: Request, res: Response): 
 
         if (data.notificationType === 'Message') {
             if (data.resource.typeId === 'order') {
-                if (ORDER_EVENT_LIST.includes(data.type)) {
-                    const order = await eventService.getOrderById(data.resource.id)
+                const orderHistoryItem = await eventService.mapOrderHistoryItem(data)
 
-                    const orderHistoryItem = eventService.mapOrderHistoryItem(data, order)
+                const result = await eventService.saveOrderHistory(orderHistoryItem)
 
-                    const result = await eventService.saveOrderHistory(orderHistoryItem)
-
-                    res.status(200).json({ statusCode: 200, statusMessage: 'success', data: result })
-                    return
-                }
+                res.status(200).json({ statusCode: 200, statusMessage: 'success', data: result })
+                return
             }
         }
 
