@@ -64,7 +64,7 @@ export default class CommercetoolsMeCartClient {
 				.me()
 				.carts()
 				.withId({ ID: cartId })
-				.get()
+				.get({ queryArgs: { expand: 'custom.fields.couponsInfomation' } })
 				.execute();
 
 			return response.body;

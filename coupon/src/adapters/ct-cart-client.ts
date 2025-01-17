@@ -40,6 +40,7 @@ class CommercetoolsCartClient {
 				.withId({ ID: cartId })
 				.post({
 					body: cartUpdate,
+					queryArgs: { expand: 'custom.fields.couponsInfomation' }
 				})
 				.execute();
 

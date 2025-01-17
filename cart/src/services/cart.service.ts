@@ -283,6 +283,8 @@ export class CartService {
                 };
             }
 
+            const { couponsInfomation } = ctCart.custom?.fields ?? {};
+            const couponsInformation = couponsInfomation?.obj.value ?? []
             const updateActions: CartUpdateAction[] = [];
 
             if (shippingAddress) {
@@ -327,7 +329,9 @@ export class CartService {
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
             const iCart = commercetoolsMeCartClient.mapCartToICart(cartWithUpdatedPrice);
 
-            return { ...iCart, hasChanged: compared };
+
+
+            return { ...iCart, hasChanged: compared, couponsInformation };
         } catch (error: any) {
             logger.error(`CartService.checkout.error`, error);
             if (error.status && error.message) {
@@ -355,7 +359,7 @@ export class CartService {
                     statusMessage: 'Cart not found or has expired'
                 });
             }
-
+            
             const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cartWithCheckPublicPublish)
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
@@ -369,6 +373,8 @@ export class CartService {
                     rejectedCoupons: [],
                 },
             };
+
+            let couponsInformation = []
             if (includeCoupons) {
                 const {
                     updatedCart: _cartAfterAutoRemove,
@@ -377,10 +383,13 @@ export class CartService {
                 cartAfterAutoRemove = _cartAfterAutoRemove;
                 permanentlyInvalidRejectedCoupons = _permanentlyInvalidRejectedCoupons;
                 couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartAfterAutoRemove.id, cartAfterAutoRemove.lineItems);
+                const { couponsInfomation } = ctCart.custom?.fields ?? {};
+                couponsInformation = couponsInfomation?.obj.value || []
             }
 
             const selectedLineItems: LineItem[] = commercetoolsMeCartClient.filterSelectedLineItems(cartAfterAutoRemove.lineItems, selectedOnly);
             const cartWithFilteredItems: Cart = { ...cartAfterAutoRemove, lineItems: selectedLineItems };
+
 
             // 3) Map to ICart
             const iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartWithFilteredItems);
@@ -389,7 +398,8 @@ export class CartService {
                 ...iCartWithBenefit,
                 hasChanged: compared,
                 hasChangedNote: notice,
-                ...couponEffects
+                ...couponEffects,
+                couponsInformation
             };
 
             if (includeCoupons && permanentlyInvalidRejectedCoupons.length > 0) {
