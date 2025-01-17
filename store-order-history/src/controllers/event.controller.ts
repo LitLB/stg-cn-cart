@@ -12,6 +12,7 @@ export const storeOrderHistoryController = async (req: Request, res: Response): 
         }
 
         const data = eventService.parsePayload(req.body.message.data)
+        logger.info('payload:', JSON.stringify(data))
 
         if (data.notificationType === 'Message') {
             if (data.resource.typeId === 'order') {
