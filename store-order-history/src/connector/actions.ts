@@ -40,7 +40,7 @@ export async function createOrderSubscription(apiRoot: ByProjectKeyRequestBuilde
                 },
                 messages: [
                     {
-                        resourceTypeId: 'orders',
+                        resourceTypeId: 'order',
                         types: ['OrderStateChanged', 'OrderStateTransition', 'OrderPaymentStateChanged', 'OrderShipmentStateChanged'],
                     },
                 ],

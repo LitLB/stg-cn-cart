@@ -1,18 +1,27 @@
-import { Order } from '@commercetools/platform-sdk'
+import { Order, State } from '@commercetools/platform-sdk'
 import * as commerceToolsService from './commercetools.service'
 import * as dynamodbClient from './dynamodb.service'
-import { OrderHistoryItem } from '../types/controllers/event.type'
+import {
+    FieldChange,
+    MessageEventAttributes,
+    OrderHistoryItem,
+    OrderPaymentStateChangedEvent,
+    OrderShipmentStateChangedEvent,
+    OrderStateChangedEvent,
+    OrderStateTransitionEvent,
+} from '../types/controllers/event.type'
 import { PutItemCommandOutput } from '@aws-sdk/client-dynamodb'
 import { readConfiguration } from '../utils/config.utils'
+import { logger } from '../utils/logger.utils'
 
 const STORE_ORDER_HISTORY_TABLE = `true-ecommerce-order-history-${readConfiguration().appEnv}`
 
 // TODO: back to define type for result
-export const parsePayload = (payload: string): any => {
+export const parsePayload = (payload: string): MessageEventAttributes => {
     const payloadStr = JSON.stringify(payload)
     const result = JSON.parse(Buffer.from(payloadStr, 'base64').toString())
 
-    return result
+    return result as MessageEventAttributes
 }
 
 export const getOrderById = async (id: string): Promise<Order> => {
@@ -25,30 +34,65 @@ export const getOrderById = async (id: string): Promise<Order> => {
     return order
 }
 
-// TODO: back to define input data type
-export const mapOrderHistoryItem = (data: any, order: Order): OrderHistoryItem => {
-    const orderState = order.state?.obj?.key || 'UNKNOWN'
-    const orderStatus = order.orderState
-    const paymentStatus = order.paymentState || 'Pending'
-    const shipmentStatus = order.shipmentState || 'Pending'
+export const getOrderStateById = async (id: string): Promise<State> => {
+    const state = await commerceToolsService.queryStateById(id)
+    if (!state) {
+        logger.error(`state not found: ${id}`)
+        throw new Error('State not found')
+    }
+
+    return state
+}
+
+export const mapOrderHistoryItem = async (
+    data: MessageEventAttributes
+): Promise<OrderHistoryItem> => {
+    const fieldChanged = FieldChange[data.type]
+    let orderState = 'none'
+    let stateId = 'none'
+    let status = 'none'
+
+    if (data.type === 'OrderStateTransition') {
+        const _data = data as OrderStateTransitionEvent
+        const state = await commerceToolsService.queryStateById(_data.state.id)
+        orderState = state?.key ?? 'none'
+        stateId = _data.state.id
+    } else if (data.type === 'OrderStateChanged') {
+        const _data = data as OrderStateChangedEvent
+        status = _data.orderState
+    } else if (data.type === 'OrderPaymentStateChanged') {
+        const _data = data as OrderPaymentStateChangedEvent
+        status = _data.paymentState
+    } else if (data.type === 'OrderShipmentStateChanged') {
+        const _data = data as OrderShipmentStateChangedEvent
+        status = _data.shipmentState
+    } else {
+        const errorMessage = `Unknown event type: ${data.type}`
+        logger.error(errorMessage)
+        throw new Error(errorMessage)
+    }
 
     const storeItem: OrderHistoryItem = {
         id: { S: data.id },
-        orderId: { S: order.id },
         event: { S: data.type },
+        orderId: { S: data.resource.id },
+        orderNumber: { S: data.resourceUserProvidedIdentifiers.orderNumber },
+        sequenceNumber: { N: `${data.sequenceNumber}` },
+        fieldChanged: { S: fieldChanged },
+        status: { S: status },
         orderState: { S: orderState },
-        orderStatus: { S: orderStatus },
-        paymentStatus: { S: paymentStatus },
-        shipmentStatus: { S: shipmentStatus },
-        createdAt: { S: order.createdAt },
-        lastModified: { S: order.lastModifiedAt },
-        data: { S: JSON.stringify(order) },
+        stateId: { S: stateId },
+        createdAt: { S: data.createdAt },
+        lastModified: { S: data.lastModifiedAt },
+        data: { S: JSON.stringify(data) },
     }
 
     return storeItem
 }
 
-export const saveOrderHistory = async (orderData: OrderHistoryItem): Promise<PutItemCommandOutput | null> => {
+export const saveOrderHistory = async (
+    orderData: OrderHistoryItem
+): Promise<PutItemCommandOutput | null> => {
     const storedOrder = await dynamodbClient.putItem({
         tableName: STORE_ORDER_HISTORY_TABLE,
         item: orderData,

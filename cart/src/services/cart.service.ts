@@ -383,7 +383,16 @@ export class CartService {
                 cartAfterAutoRemove = _cartAfterAutoRemove;
                 permanentlyInvalidRejectedCoupons = _permanentlyInvalidRejectedCoupons;
                 couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartAfterAutoRemove.id, cartAfterAutoRemove.lineItems);
-                const { couponsInfomation } = ctCart.custom?.fields ?? {};
+                
+                // * I pushed expend (couponsInfomation) to update method in CT but CT return only object id without object value
+                const ctCartWithUpdateCouponEffect = await commercetoolsMeCartClient.getCartById(id);
+                if (!ctCartWithUpdateCouponEffect) {
+                    throw createStandardizedError({
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: 'Cart not found or has expired'
+                    });
+                }
+                const { couponsInfomation } = ctCartWithUpdateCouponEffect.custom?.fields ?? {};
                 couponsInformation = couponsInfomation?.obj.value || []
             }
 
