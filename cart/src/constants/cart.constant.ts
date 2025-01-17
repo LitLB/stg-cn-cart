@@ -27,3 +27,7 @@ export const journeyConfigMap: Record<CART_JOURNEYS, any> = {
     },
 }
 
+export enum CART_OPERATOS {
+    DTAC = 'DTAC',
+    TRUE = 'TRUE',
+}

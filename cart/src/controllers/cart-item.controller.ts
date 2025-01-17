@@ -7,6 +7,7 @@ import { CartItemService } from '../services/cart-item.service';
 import { logger } from '../utils/logger.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { validateAddItemCartBody } from '../schemas/cart-item.schema';
+import { CART_OPERATOS } from '../constants/cart.constant';
 
 export class CartItemController {
     private cartItemService: CartItemService;
@@ -19,7 +20,10 @@ export class CartItemController {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
-
+            // TODO remove when integrate
+            if (!req.body.operator) {
+                req.body.operator = CART_OPERATOS.TRUE;
+            }
             const { error, value } = validateAddItemCartBody(req.body);
             if (error) {
                 throw {

@@ -202,7 +202,8 @@ export class CartItemService {
 
             const ctCartWithChanged: Cart = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
-            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
+            const updateCartWithOperator = await CommercetoolsCartClient.updateCartWithOperator(cartWithUpdatedPrice, payload.operator)
+            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(updateCartWithOperator);
 
             return { ...iCartWithBenefit, hasChanged: compared };
         } catch (error: any) {

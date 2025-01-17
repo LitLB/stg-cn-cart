@@ -746,6 +746,7 @@ export default class CommercetoolsMeCartClient {
 			updatedAt: new Date(ctCart.lastModifiedAt),
 			deleteDaysAfterLastModification: ctCart.deleteDaysAfterLastModification || 30,
 			expiredAt,
+			operator: ctCart.custom?.fields?.operator,
 		};
 
 		return iCart;

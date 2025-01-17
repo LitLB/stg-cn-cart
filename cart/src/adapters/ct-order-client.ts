@@ -340,6 +340,7 @@ class CommercetoolsOrderClient {
 			appliedEffects: [],
 			createdAt: new Date(ctOrder.createdAt),
 			updatedAt: new Date(ctOrder.lastModifiedAt),
+			operator: ctOrder.custom?.fields?.operator,
 		};
 
 		return iOrder;
