@@ -185,7 +185,7 @@ export class CouponService {
             );
             if (permanentlyInvalid.length === 0) {
                 return {
-                    updatedCart: ctCart,
+                    updatedCart: await this.syncCustomObjectCouponInformation(ctCart, processedCouponEffects),
                     permanentlyInvalidRejectedCoupons: []
                 };
             }
@@ -391,5 +391,26 @@ export class CouponService {
 
             throw createStandardizedError(error, 'clearAllCoupons');
         }
+    }
+
+    private async syncCustomObjectCouponInformation(ctCart: any, processedCouponEffects: any) : Promise<Cart> {
+        const { updateActions, couponsInformation } = this.talonOneCouponAdapter.buildCouponActions(ctCart, processedCouponEffects);
+        
+        // Update CustomObject with coupon information
+        await this.addCouponInformation(updateActions, ctCart.id, couponsInformation);
+        
+        if (updateActions.length === 0) {
+            // No cart changes needed
+            return ctCart
+        }
+    
+        // Update the cart in CT
+        const cartAfterUpdateCustomObject = await CommercetoolsCartClient.updateCart(
+            ctCart.id,
+            ctCart.version,
+            updateActions
+        );
+    
+        return cartAfterUpdateCustomObject;
     }
 }
