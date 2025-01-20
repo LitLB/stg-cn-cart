@@ -327,11 +327,9 @@ export class CartService {
             const updatedCart = await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, updateActions);
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
-            const iCart = commercetoolsMeCartClient.mapCartToICart(cartWithUpdatedPrice);
+            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-
-
-            return { ...iCart, hasChanged: compared, couponsInformation };
+            return { ...iCartWithBenefit, hasChanged: compared, couponsInformation };
         } catch (error: any) {
             logger.error(`CartService.checkout.error`, error);
             if (error.status && error.message) {
