@@ -1,25 +1,36 @@
 // coupon/src/validators/coupon.validator.ts
 
-import { readConfiguration } from '../utils/config.utils';
 import { ApiResponse } from '../types/response.type';
 import { logger } from '../utils/logger.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
 
-export function validateCouponLimit(
+import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
+
+export async function validateCouponLimit(
 	applyCouponsQuantity: number,
-): void | ApiResponse {
+): Promise<void | ApiResponse> {
 
-	// Read configuration for coupon limit
-    const config = readConfiguration();
-    const ctpDefaultCouponLimit = config.ctpDefaultCouponLimit ? Number(config.ctpDefaultCouponLimit) : undefined;
 
-	// Validate coupon limit
-	if (ctpDefaultCouponLimit !== undefined && applyCouponsQuantity > ctpDefaultCouponLimit) {
-		logger.info(`'Config limit ${ctpDefaultCouponLimit} error : exceeded limit`);
+	// Get Config form CT Custom object client
+	const couponLimitConfig = await CommercetoolsCustomObjectClient.getCouponLimit()
+	// Validate coupon limit undefined
+	if (couponLimitConfig.limitCoupon === undefined) {
+		logger.info(`Config limit coupon error : undefined limit coupon`);
 		throw {
 			statusCode: HTTP_STATUSES.BAD_REQUEST,
-            errorCode: "EXCEEDED_MAX_APPLIYED_COUPON",
-			statusMessage: 'exceeded limit',
+			errorCode: "UNDEFINED_LIMIT_COUPON",
+			statusMessage: 'undefined limit coupon',
 		};
 	}
+
+    // Validate coupon limit < applyCouponQuantity
+    if (couponLimitConfig.limitCoupon < applyCouponsQuantity) {
+        logger.info(`'Coupon limit ${couponLimitConfig.limitCoupon} error : exceeded limit`);
+        throw {
+            statusCode: HTTP_STATUSES.BAD_REQUEST,
+            errorCode: "EXCEEDED_MAX_APPLIYED_COUPON",
+            statusMessage: 'exceeded limit',
+        };
+    }
+	
 }

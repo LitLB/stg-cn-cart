@@ -2,7 +2,7 @@
 
 import type { ApiRoot, CustomObject, CustomObjectDraft } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
-import { PAYMENT_OMISE_CONTAINER, PAYMENT_OMISE_KEY_PREFIX, ORDER_ADDITIONAL_INFO, COUPON_INFO_CONTAINER } from '../constants/ct.constant';
+import { PAYMENT_OMISE_CONTAINER, PAYMENT_OMISE_KEY_PREFIX, ORDER_ADDITIONAL_INFO, COUPON_INFO_CONTAINER, CONFIGURATION_CONTAINER, COUPON_LIMIT_KEY } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
 import { IOrderAdditional } from '../interfaces/order-additional.interface';
 import { logger } from '../utils/logger.utils';
@@ -210,7 +210,7 @@ class CommercetoolsCustomObjectClient {
 	async addCouponInformation(cartId: string, couponInformation: any): Promise<CustomObject | void> {
 		const container = COUPON_INFO_CONTAINER;
 		const key = cartId;
-	
+
 		try {
 			// หาก couponInformation เป็น undefined ให้ลบ CustomObject
 			if (couponInformation === undefined) {
@@ -221,12 +221,12 @@ class CommercetoolsCustomObjectClient {
 				}
 				return;
 			}
-	
+
 			// หาก couponInformation มีค่า ให้ดำเนินการ merge และอัปเดต
 			const existingObject = await this.getCustomObjectByContainerAndKey(container, key);
 			const updatedValue = this.mergeCouponInformation(existingObject?.value, couponInformation);
 			return await this.createOrUpdateCustomObject({ container, key, value: updatedValue });
-	
+
 		} catch (error: any) {
 			if (error.statusCode === 404) {
 				if (couponInformation === undefined) {
@@ -256,6 +256,23 @@ class CommercetoolsCustomObjectClient {
 			return [...newCouponInformation];
 		}
 		return [...newCouponInformation];
+	}
+
+	async getCouponLimit(): Promise<{ limitCoupon: number }> {
+		const container = CONFIGURATION_CONTAINER;
+		const key = COUPON_LIMIT_KEY;
+
+		try {
+			const existingObject = await this.getCustomObjectByContainerAndKey(container, key);
+			if (existingObject && existingObject.value) {
+				return existingObject.value;
+			} else {
+				return { limitCoupon: 0 }
+			}
+		} catch (error: any) {
+			logger.error('Error getting coupon limit:', error);
+			throw error;
+		}
 	}
 }
 
