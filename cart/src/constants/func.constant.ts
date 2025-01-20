@@ -1,0 +1,1 @@
+export const FUNC_CHECKOUT = 'checkout';
