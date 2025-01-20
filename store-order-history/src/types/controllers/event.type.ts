@@ -64,13 +64,13 @@ export type OrderHistoryItem = {
     orderId: AttributeValue
     orderNumber: AttributeValue
     sequenceNumber: AttributeValue
-    fieldChanged: AttributeValue    
-    status: AttributeValue
-    orderState: AttributeValue
-    stateId: AttributeValue
+    fieldChanged: AttributeValue
+    prevStatus: AttributeValue
+    currentStatus: AttributeValue
+    prevStateId: AttributeValue
+    currentStateId: AttributeValue
     createdAt: AttributeValue
     lastModified: AttributeValue
-    data: AttributeValue
 }
 
 export enum FieldChange {

@@ -8,21 +8,20 @@ export const storeOrderHistoryController = async (req: Request, res: Response): 
             logger.error('Missing request body')
             throw new Error('Missing request body')
         }
-
+        
         const data = eventService.parsePayload(req.body.message.data)
-        logger.info(`payload: ${JSON.stringify(data)}`)
+        logger.info(`storeOrderHistory:start:${data.id}`)
+        logger.info(`storeOrderHistory:payload: ${JSON.stringify(data)}`)
 
         if (data.notificationType === 'Message') {
             if (data.resource.typeId === 'order') {
                 const orderHistoryItem = await eventService.mapOrderHistoryItem(data)
 
-                const result = await eventService.saveOrderHistory(orderHistoryItem)
-
-                res.status(200).json({ statusCode: 200, statusMessage: 'success', data: result })
-                return
+                await eventService.saveOrderHistory(orderHistoryItem)
             }
         }
 
+        logger.info(`storeOrderHistory:done:${data.id}`)
         res.status(200).send({ status: 'success' })
     } catch (error) {
         logger.error(`Bad request: ${error}`)

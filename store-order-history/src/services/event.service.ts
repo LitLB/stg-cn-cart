@@ -16,7 +16,6 @@ import { logger } from '../utils/logger.utils'
 
 const STORE_ORDER_HISTORY_TABLE = `true-ecommerce-order-history-${readConfiguration().appEnv}`
 
-// TODO: back to define type for result
 export const parsePayload = (payload: string): MessageEventAttributes => {
     const payloadStr = JSON.stringify(payload)
     const result = JSON.parse(Buffer.from(payloadStr, 'base64').toString())
@@ -48,24 +47,34 @@ export const mapOrderHistoryItem = async (
     data: MessageEventAttributes
 ): Promise<OrderHistoryItem> => {
     const fieldChanged = FieldChange[data.type]
-    let orderState = 'none'
-    let stateId = 'none'
-    let status = 'none'
+    let prevStatus: string
+    let currentStatus: string
+    let prevStateId = 'none'
+    let currentStateId = 'none'
 
     if (data.type === 'OrderStateTransition') {
         const _data = data as OrderStateTransitionEvent
-        const state = await commerceToolsService.queryStateById(_data.state.id)
-        orderState = state?.key ?? 'none'
-        stateId = _data.state.id
+        const [prevState, currentState] = await Promise.all([
+            commerceToolsService.queryStateById(_data.oldState.id),
+            commerceToolsService.queryStateById(_data.state.id),
+        ])
+
+        prevStatus = prevState?.key ?? 'none'
+        currentStatus = currentState?.key ?? 'none'
+        prevStateId = _data.state.id
+        currentStateId = _data.oldState.id
     } else if (data.type === 'OrderStateChanged') {
         const _data = data as OrderStateChangedEvent
-        status = _data.orderState
+        prevStatus = _data.oldOrderState
+        currentStatus = _data.orderState
     } else if (data.type === 'OrderPaymentStateChanged') {
         const _data = data as OrderPaymentStateChangedEvent
-        status = _data.paymentState
+        prevStatus = _data.oldPaymentState
+        currentStatus = _data.paymentState
     } else if (data.type === 'OrderShipmentStateChanged') {
         const _data = data as OrderShipmentStateChangedEvent
-        status = _data.shipmentState
+        prevStatus = _data.oldShipmentState
+        currentStatus = _data.shipmentState
     } else {
         const errorMessage = `Unknown event type: ${data.type}`
         logger.error(errorMessage)
@@ -79,12 +88,12 @@ export const mapOrderHistoryItem = async (
         orderNumber: { S: data.resourceUserProvidedIdentifiers.orderNumber },
         sequenceNumber: { N: `${data.sequenceNumber}` },
         fieldChanged: { S: fieldChanged },
-        status: { S: status },
-        orderState: { S: orderState },
-        stateId: { S: stateId },
+        prevStatus: { S: prevStatus },
+        currentStatus: { S: currentStatus },
+        prevStateId: { S: prevStateId },
+        currentStateId: { S: currentStateId },
         createdAt: { S: data.createdAt },
         lastModified: { S: data.lastModifiedAt },
-        data: { S: JSON.stringify(data) },
     }
 
     return storeItem
