@@ -32,6 +32,7 @@ export interface IOrder {
     appliedEffects?: any[];
     createdAt: Date;
     updatedAt: Date;
+    operator: string;
 }
 
 export interface IOrderItem {

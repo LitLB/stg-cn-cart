@@ -522,6 +522,19 @@ class CommercetoolsCartClient {
 		return response.body
 
 	}
+
+	public async updateCartWithOperator(oldCart: Cart, operator : string): Promise<Cart> {
+		const { id: cartId, version: cartVersion } = oldCart
+		const updateActions: CartUpdateAction[] = [];
+		const updateCustomField: CartSetCustomFieldAction = {
+			action: 'setCustomField',
+			name: 'operator',
+			value: operator
+		};
+		updateActions.push(updateCustomField);
+
+		return await this.updateCart(cartId, cartVersion, updateActions);
+	}
 }
 
 export default CommercetoolsCartClient.getInstance();

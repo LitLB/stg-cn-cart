@@ -37,6 +37,7 @@ export interface ICart {
 	deleteDaysAfterLastModification?: number;
 	hasChanged?: any, // TODO
 	couponInformation?: any;
+	operator: string;
 
 }
 

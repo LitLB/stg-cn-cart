@@ -6,6 +6,7 @@ import { getAttributeValue } from '../utils/product-utils';
 import { readConfiguration } from '../utils/config.utils';
 import { ApiResponse } from '../interfaces/response.interface';
 import { HTTP_STATUSES } from '../constants/http.constant';
+import { CART_OPERATOS } from '../constants/cart.constant';
 
 export function validateSelectCartItemBody(body: any) {
 	return Joi.object({
@@ -144,7 +145,15 @@ export function validateAddItemCartBody(body: any) {
 					value: Joi.required()
 				})
 			)
-			.optional()
+			.optional(),
+		operator : Joi.string()
+			.valid(CART_OPERATOS.TRUE, CART_OPERATOS.DTAC)
+			.required()
+			.messages({
+				'string.base': 'operator must be a string',
+				'any.only': 'operator must be "TRUE" or "DTAC"',
+				'any.required': 'operator is required',
+		})	
 	}).validate(body, { abortEarly: false });
 }
 
