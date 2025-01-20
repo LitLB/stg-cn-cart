@@ -59,10 +59,13 @@ export default class TsmOrderModel {
             }, '')
         
             const {
-                campaignCode = '',
-                campaignName = '',
                 promotionSetCode = '',
                 promotionSetProposition = 999, //999,
+            } = privilege || {};
+
+            let {
+                campaignCode = '',
+                campaignName = '',
             } = privilege || {};
 
             const price = lineItem.price.value.centAmount
@@ -79,6 +82,10 @@ export default class TsmOrderModel {
             return Array.from({ length: noOfItem }, (_, quantityIndex) => {
                 const sequence = `${(lineItemIndex + 1) + quantityIndex}`.toString()
 
+                if (sequence !== '1') {
+                    campaignCode = ''
+                    campaignName = ''
+                }
 
                 if (productType === 'free_gift') {
                     return {
