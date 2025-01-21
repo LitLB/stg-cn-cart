@@ -106,8 +106,9 @@ export class OrderController {
         try {
             const lang = req.get('Accept-Language');
             const { orderNumber } = req.params;
+            const sort =  req.query.sort as 'asc' | 'desc' | 'ASC' | 'DESC'
 
-            const orderHistories = await this.orderService.getOrderTrackingByOrderNumber(orderNumber, lang);
+            const orderHistories = await this.orderService.getOrderTrackingByOrderNumber(orderNumber, sort, lang);
 
             const response: ApiResponse<OrderHistoryResult[]> = {
                 statusCode: HTTP_STATUSES.OK,
