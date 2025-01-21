@@ -61,8 +61,8 @@ export const mapOrderHistoryItem = async (
 
         prevStatus = prevState?.key ?? 'none'
         currentStatus = currentState?.key ?? 'none'
-        prevStateId = _data.state.id
-        currentStateId = _data.oldState.id
+        prevStateId = _data.oldState.id
+        currentStateId = _data.state.id
     } else if (data.type === 'OrderStateChanged') {
         const _data = data as OrderStateChangedEvent
         prevStatus = _data.oldOrderState
