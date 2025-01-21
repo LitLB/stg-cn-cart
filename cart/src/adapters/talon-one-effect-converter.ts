@@ -89,7 +89,7 @@ class TalonOneEffectConverter {
 	}
 
 	checkPlaceholderContainsValue(value: any) {
-		return value !== null && value !== undefined && value !== 'null';
+		return value !== '' && value !== null && value !== undefined && value !== 'null';
 	}
 
 	filter(effects: any[]) {
