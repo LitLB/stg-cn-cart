@@ -104,8 +104,8 @@ export class OrderController {
 
     public getOrderTracking = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            const { orderNumber } = req.params;
             const lang = req.get('Accept-Language');
+            const { orderNumber } = req.params;
 
             const orderHistories = await this.orderService.getOrderTrackingByOrderNumber(orderNumber, lang);
 
