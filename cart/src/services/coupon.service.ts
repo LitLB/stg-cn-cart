@@ -139,7 +139,7 @@ export class CouponService {
         }
     }
 
-    public async autoRemoveInvalidCouponsAndReturnOnce(ctCart: Cart): Promise<{
+    public async autoRemoveInvalidCouponsAndReturnOnce(ctCart: Cart,isRemoveAllCoupon?: boolean): Promise<{
         updatedCart: Cart;
         permanentlyInvalidRejectedCoupons: Coupon[];
     }> {
@@ -165,7 +165,7 @@ export class CouponService {
             const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
                 profileId: ctCart.id,
                 ctCartData: ctCart,
-                couponCodes: currentCouponCodes,
+                couponCodes: isRemoveAllCoupon ? [] : currentCouponCodes,
             });
             const updatedSession = await talonOneIntegrationAdapter.updateCustomerSession(
                 ctCart.id,

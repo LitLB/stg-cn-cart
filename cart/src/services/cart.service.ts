@@ -38,6 +38,8 @@ import { InventoryService } from './inventory.service';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { validateInventory } from '../utils/cart.utils';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
+import { validateCouponLimit } from '../validators/coupon.validator';
+import { FUNC_CHECKOUT } from '../constants/func.constant';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -285,6 +287,24 @@ export class CartService {
 
             const { couponsInfomation } = ctCart.custom?.fields ?? {};
             const couponsInformation = couponsInfomation?.obj.value ?? []
+
+            const validatedCoupon = await validateCouponLimit(couponsInformation.length, FUNC_CHECKOUT)
+
+            if(validatedCoupon) {
+
+                await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(ctCart,true)
+
+                throw createStandardizedError(
+                    {
+                        statusCode: validatedCoupon.statusCode,
+                        statusMessage: validatedCoupon.statusMessage,
+                        errorCode: validatedCoupon.errorCode
+                    },
+                    'checkout'
+                );
+            }
+
+
             const updateActions: CartUpdateAction[] = [];
 
             if (shippingAddress) {

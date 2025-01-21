@@ -46,7 +46,8 @@ export default class TsmOrderModel {
         }
 
         // TODO filter lineItems by selected 
-        const sequenceItems = lineItems.flatMap((lineItem: any, lineItemIndex: number) => {
+        let sequenceCounter = 1
+        const sequenceItems = lineItems.flatMap((lineItem: any) => {
             const productCode = lineItem.variant.sku
             const productGroup = lineItem.custom?.fields?.productGroup
             const productType = lineItem.custom?.fields?.productType
@@ -79,8 +80,8 @@ export default class TsmOrderModel {
             //! items.totalAmount = ค่า price * quantity
             const totalAmount = price * quantity
 
-            return Array.from({ length: noOfItem }, (_, quantityIndex) => {
-                const sequence = `${(lineItemIndex + 1) + quantityIndex}`.toString()
+            return Array.from({ length: noOfItem }, () => {
+                const sequence = `${sequenceCounter++}`.toString()
 
                 if (sequence !== '1') {
                     campaignCode = ''
