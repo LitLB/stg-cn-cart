@@ -7,7 +7,7 @@ import { ApiResponse } from '../interfaces/response.interface';
 import { logger } from '../utils/logger.utils';
 import { IOrder } from '../interfaces/order.interface';
 import { HTTP_STATUSES } from '../constants/http.constant';
-import { commercetoolsOrderClient }  from '../adapters/ct-order-client';
+import { commercetoolsOrderClient } from '../adapters/ct-order-client';
 import { createStandardizedError } from '../utils/error.utils';
 import Joi from 'joi';
 import { OrderHistoryResult } from '../types/services/order.type';
@@ -71,7 +71,7 @@ export class OrderController {
                     data: payload
                 });
             }
- 
+
             if (!order?.custom?.fields?.termAndCondition?.id) {
                 const customObjId = resultCustomObj?.id;
                 const payload = this.orderService.wrapCustomFieldTnc(order.version, customObjId);
@@ -113,7 +113,7 @@ export class OrderController {
                 statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.SUCCESS,
                 data: orderHistories,
-            };            
+            };
 
             res.status(200).json(response);
             return

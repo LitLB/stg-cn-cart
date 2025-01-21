@@ -103,8 +103,8 @@ export class OrderService {
         const result = records
             .map((item: Record<string, AttributeValue>) => unmarshall(item) as OrderHistoryItem)
             .sort((i1: OrderHistoryItem, i2: OrderHistoryItem) => i1.sequenceNumber - i2.sequenceNumber)
-            .map((item: OrderHistoryItem):OrderHistoryResult => {
-                let previousState: OrderHistoryResult['current']['state']  = null
+            .map((item: OrderHistoryItem): OrderHistoryResult => {
+                let previousState: OrderHistoryResult['current']['state'] = null
                 let currentState: OrderHistoryResult['current']['state'] = null
 
                 if (item.fieldChanged === 'order_state_transition') {
@@ -125,7 +125,7 @@ export class OrderService {
                         [LOCALES.EN_US]: _currentState.name ? _currentState.name['en'] : 'UNKNOWN',
                     }
                 }
-                
+
                 return {
                     id: item.id,
                     orderId: item.orderId,
@@ -155,6 +155,7 @@ export class OrderService {
                 }, 'getOrderTrackingByOrderNumber');
             }
 
+            // TODO: table name suffix by env
             const records = await dynamoClient.scanItem({
                 tableName: 'true-ecommerce-order-history-dev',
                 filterExpression: 'orderNumber = :orderNumber',
@@ -173,7 +174,7 @@ export class OrderService {
             const statesProcessing: OrderHistoryItem[] = []
             records.Items.forEach((item) => {
                 const _item = unmarshall(item) as OrderHistoryItem
-                if (_item.fieldChanged === 'order_state_transition' && _item.currentStateId)  {
+                if (_item.fieldChanged === 'order_state_transition' && _item.currentStateId) {
                     statesProcessing.push(_item)
                 }
             })
