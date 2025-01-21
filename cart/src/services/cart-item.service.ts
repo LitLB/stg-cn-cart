@@ -173,7 +173,11 @@ export class CartItemService {
                 throw createStandardizedError({
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: validateResult?.errorMessage,
+                    errorCode: 'CAMPAIGN_VERIFY_KEY_IS_REQUIRED',
                     data: {
+                        requestBody: {
+                            ...payload
+                        },
                         campaignVerifyKeys: (validateResult as any)?.campaignVerifyKeys,
                     }
                 }, 'addItem');

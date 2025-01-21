@@ -836,8 +836,8 @@ class TalonOneEffectConverter {
 
 		// ! Validate Main Product
 		const cartItemCampaignCodes = newCartItems
-		.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
-		.map((cartItem: any) => cartItem.campaignCode)
+			.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
+			.map((cartItem: any) => cartItem.campaignCode)
 
 		const uniqueCampaginCodes = [...new Set(cartItemCampaignCodes)];
 		if (uniqueCampaginCodes.length > 1) {
@@ -847,11 +847,35 @@ class TalonOneEffectConverter {
 			}
 		}
 
+		const MAXIMUM_MAIN_PRODUCT_QUANTITY_PER_CAMPAIGN = 1
+
+		const exceedQuantityLimitCartItem = newCartItems
+			.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
+			.filter((cartItem: any) => cartItem?.campaignCode)
+			.find((cartItem: any) => cartItem?.quantity > MAXIMUM_MAIN_PRODUCT_QUANTITY_PER_CAMPAIGN)
+
+		if (exceedQuantityLimitCartItem) {
+			return {
+				isValid: false,
+				errorMessage: 'Exceed maximum quantity per campaign.'
+			}
+		}
+
+		const allowCampaignVerifyKeys: any[] = []
+
 		if (action === 'add_product') {
 			const changedItems = changes
 			for (const newCartItem of newCartItems) {
 				const { sku, attributes, campaignVerifyKeys } = newCartItem
 				const { product_group: productGroup, product_type: productType } = attributes || {}
+
+				allowCampaignVerifyKeys.push({
+					sku: sku,
+					productGroup: attributes.product_group,
+					productType: attributes.product_type,
+					campaignVerifyKeys: campaignVerifyKeys ?? [],
+				})
+
 				if (!campaignVerifyKeys.length) {
 					continue
 				}	
@@ -867,17 +891,32 @@ class TalonOneEffectConverter {
 				}
 
 				const { campaignVerifyValues = [] } = changedItem
+				// TODO: Get campaign verify values from CT LineItem
+				const { lineItems } = ctCart
+				const existingLineItem = (lineItems || []).find((item: any) => {
+					return item.variant.sku === changedItem.sku
+						&& item.custom?.fields?.productGroup === changedItem.productGroup
+						&& item.custom?.fields?.productType === changedItem.productType
+					;
+				});
+
+				const existingCampaignVerifyValues = (existingLineItem?.custom?.fields?.campaignVerifyValues || []).map((campaignVerifyValue:any) => JSON.parse(campaignVerifyValue))
 
 				for (const campaignVerifyKey of campaignVerifyKeys) {
 					const { name } = campaignVerifyKey
+					
 					const matchedCampaignVerifyValue = campaignVerifyValues.find((campaignVerifyValue: any) => campaignVerifyValue.name === name && campaignVerifyValue.value)
-
+					
 					if (!matchedCampaignVerifyValue) {
-						return {
-							isValid: false,
-							isRequireCampaignVerify: true,
-							errorMessage: `Campaign Verify Key '${name}' is required`,
-							campaignVerifyKeys
+						const matchedExistingCampaignVerifyValue = existingCampaignVerifyValues.find((campaignVerifyValue: any) => campaignVerifyValue.name === name && campaignVerifyValue.value)
+
+						if (!matchedExistingCampaignVerifyValue) {
+							return {
+								isValid: false,
+								isRequireCampaignVerify: true,
+								errorMessage: `Campaign Verify Key '${name}' is required`,
+								campaignVerifyKeys
+							}
 						}
 					}
 				}
@@ -946,7 +985,12 @@ class TalonOneEffectConverter {
 
 		let validateResult = {
 			isValid: true,
-			errorMessage: ''
+			errorMessage: '',
+			allowCampaignVerifyKeys,
+		} as {
+			isValid: boolean
+			errorMessage: string
+			allowCampaignVerifyKeys?: any[]
 		}
 
 		Object.entries(validateObject as Record<string, any>).forEach(([productGroup, limit]) => {
