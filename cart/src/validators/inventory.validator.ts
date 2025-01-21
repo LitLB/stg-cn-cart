@@ -114,7 +114,6 @@ export class InventoryValidator {
     }
 
     public static async validateSafetyStock(cart: Cart): Promise<void> {
-
         console.log(' ============== START SAFETY STOCK ============== ');
         const supplyChannelId = readConfiguration().ctpSupplyChannel;
 
@@ -132,7 +131,6 @@ export class InventoryValidator {
 
             const availableQuantity = inventoryEntry.availableQuantity
             const safetyStock = customFields?.safetyStock || 0
-
             const realQuantity = availableQuantity - safetyStock
 
             if (realQuantity < lineItemQuantity) {

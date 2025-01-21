@@ -213,10 +213,10 @@ export class CartService {
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
-            // await this.inventoryService.commitCartStock(ctCart);
-            // const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
-            // await this.createOrderAdditional(order, client);
-            // return { ...order, hasChanged: compared };
+            await this.inventoryService.commitCartStock(ctCart);
+            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            await this.createOrderAdditional(order, client);
+            return { ...order, hasChanged: compared };
             return
         } catch (error: any) {
             logger.error(`CartService.createOrder.error`, error);
