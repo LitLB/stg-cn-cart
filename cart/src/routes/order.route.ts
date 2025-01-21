@@ -8,5 +8,6 @@ const orderController = new OrderController();
 
 orderRouter.get('/v1/orders/:id', orderController.getOrderById);
 orderRouter.post('/v1/orders/:orderId/tnc', orderController.setTncOrder);
+orderRouter.get('/v1/tracking/:orderNumber', orderController.getOrderTracking);
 
 export default orderRouter;

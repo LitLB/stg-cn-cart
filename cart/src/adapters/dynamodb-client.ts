@@ -3,9 +3,11 @@ import {
     GetItemCommand, 
     GetItemCommandInput, 
     QueryCommand,
-    ScanCommand } from "@aws-sdk/client-dynamodb";
+    ScanCommand, 
+    ScanCommandOutput} from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { readConfiguration } from '../utils/config.utils';
+import { logger } from "../utils/logger.utils";
 
 export interface ScanCommandInput {
     tableName: string;
@@ -33,7 +35,7 @@ export class dynamoDB {
         })
     ) {}
 
-    public async findByKey(table: string = '', key: object): Promise<null | any> {
+    public async findByKey(table = '', key: object): Promise<null | any> {
         try {
             if (!table) return null
 
@@ -49,7 +51,7 @@ export class dynamoDB {
 
             return unmarshall(response?.Item)
         } catch (err) {
-            console.log(err)
+            logger.error(err)
             return null
         }
     }
@@ -59,7 +61,7 @@ export class dynamoDB {
         filterExpression,
         expressionAttributeNames,
         expressionAttributeValues,
-      }: ScanCommandInput): Promise<null | any> {
+      }: ScanCommandInput): Promise<null | ScanCommandOutput> {
         try {
             const params = {
                 TableName: tableName,

@@ -1,4 +1,4 @@
-import type { ApiRoot, Cart, CustomLineItem, LineItem, Order, OrderFromCartDraft } from '@commercetools/platform-sdk';
+import type { ApiRoot, Cart, CustomLineItem, LineItem, Order, OrderFromCartDraft, State } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from './ct-base-client';
 import { readConfiguration } from '../utils/config.utils';
 import { STATE_ORDER_KEYS } from '../constants/state.constant';
@@ -345,6 +345,25 @@ class CommercetoolsOrderClient {
 
 		return iOrder;
 	}
+    
+    public async getStates(stateIds: string[]): Promise<State[]> {
+        try {
+            const responses = await this.apiRoot
+                .withProjectKey({ projectKey: this.projectKey })
+                .states()
+                .get({
+                    queryArgs: {
+                        where: `id in ("${stateIds.join('","')}")`,
+                    }
+                })
+                .execute();
+
+            return responses.body.results;
+        } catch (error: any) {
+            logger.error('Error fetching states:', error);
+            return [];
+        }
+    }
 }
 
 export const commercetoolsOrderClient = new CommercetoolsOrderClient();

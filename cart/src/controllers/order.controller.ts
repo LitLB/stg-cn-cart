@@ -10,6 +10,7 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { commercetoolsOrderClient }  from '../adapters/ct-order-client';
 import { createStandardizedError } from '../utils/error.utils';
 import Joi from 'joi';
+import { OrderHistoryResult } from '../types/services/order.type';
 
 export class OrderController {
     private orderService: OrderService;
@@ -96,6 +97,28 @@ export class OrderController {
             res.status(200).json(response);
         } catch (error: any) {
             logger.error(`OrderController.setTncOrder.error`, error);
+            next(error);
+        }
+    }
+
+
+    public getOrderTracking = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const { orderNumber } = req.params;
+            const lang = req.get('Accept-Language');
+
+            const orderHistories = await this.orderService.getOrderTrackingByOrderNumber(orderNumber, lang);
+
+            const response: ApiResponse<OrderHistoryResult[]> = {
+                statusCode: HTTP_STATUSES.OK,
+                statusMessage: RESPONSE_MESSAGES.SUCCESS,
+                data: orderHistories,
+            };            
+
+            res.status(200).json(response);
+            return
+        } catch (error: any) {
+            logger.error(`OrderController.getOrderHistory.error`, error);
             next(error);
         }
     }
