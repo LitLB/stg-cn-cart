@@ -198,6 +198,11 @@ export class CartService {
                 // //! THEN continue
                 // //! ELSE 
                 // //! THEN throw error
+
+                if (!success) {
+                    await InventoryValidator.validateSafetyStock(ctCart)
+                }
+
                 tsmSaveOrder = {
                     tsmOrderIsSaved: success,
                     tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
@@ -212,6 +217,7 @@ export class CartService {
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
             return { ...order, hasChanged: compared };
+            return
         } catch (error: any) {
             logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -290,9 +296,9 @@ export class CartService {
 
             const validatedCoupon = await validateCouponLimit(couponsInformation.length, FUNC_CHECKOUT)
 
-            if(validatedCoupon) {
+            if (validatedCoupon) {
 
-                await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(ctCart,true)
+                await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(ctCart, true)
 
                 throw createStandardizedError(
                     {
@@ -377,7 +383,7 @@ export class CartService {
                     statusMessage: 'Cart not found or has expired'
                 });
             }
-            
+
             const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cartWithCheckPublicPublish)
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
@@ -401,7 +407,7 @@ export class CartService {
                 cartAfterAutoRemove = _cartAfterAutoRemove;
                 permanentlyInvalidRejectedCoupons = _permanentlyInvalidRejectedCoupons;
                 couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartAfterAutoRemove.id, cartAfterAutoRemove.lineItems);
-                
+
                 // * I pushed expend (couponsInfomation) to update method in CT but CT return only object id without object value
                 const ctCartWithUpdateCouponEffect = await commercetoolsMeCartClient.getCartById(id);
                 if (!ctCartWithUpdateCouponEffect) {
@@ -439,7 +445,7 @@ export class CartService {
             return response;
         } catch (error: any) {
             console.log('error', error);
-            
+
             if (error.status && error.message) {
                 throw error;
             }
@@ -565,6 +571,7 @@ export class CartService {
             //     response: { message: 'this is mock response' }
             // }
             const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
+
             const { code } = response || {}
 
             // if (code !== '0') {

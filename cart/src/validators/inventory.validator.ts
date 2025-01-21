@@ -4,6 +4,8 @@ import type { Cart } from '@commercetools/platform-sdk';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { readConfiguration } from '../utils/config.utils';
 import { InventoryUtils } from '../utils/inventory.utils';
+import { createStandardizedError } from '../utils/error.utils';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class InventoryValidator {
     /**
@@ -110,4 +112,43 @@ export class InventoryValidator {
             );
         }
     }
+
+    public static async validateSafetyStock(cart: Cart): Promise<void> {
+        console.log(' ============== START SAFETY STOCK ============== ');
+        const supplyChannelId = readConfiguration().ctpSupplyChannel;
+
+        for (const lineItem of cart.lineItems) {
+            if (!lineItem.variant?.sku) continue;
+
+            const sku = lineItem.variant.sku
+            const existingLineItem = InventoryUtils.findLineItem(cart, sku, supplyChannelId);
+            const lineItemQuantity = existingLineItem?.quantity ?? 0
+
+            const inventoryKey = InventoryUtils.buildInventoryKey(sku);
+            const inventoryEntry = await InventoryUtils.fetchInventoryByKeyOrThrow(inventoryKey);
+
+            const customFields = inventoryEntry.custom?.fields
+
+            const availableQuantity = inventoryEntry.availableQuantity
+            const safetyStock = customFields?.safetyStock || 0
+            const realQuantity = availableQuantity - safetyStock
+
+            if (realQuantity < lineItemQuantity) {
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    errorCode: 'INVENTORY_ERROR',
+                    data: {
+                        message: `Safety stock exceeded for SKU: ${sku}`,
+                        availableQuantity,
+                        safetyStock,
+                        quantityAfterCheckSafetyStock: realQuantity,
+                        itemQuantity: lineItemQuantity
+                    }
+                })
+            }
+        }
+
+        console.log(' ============== END SAFETY STOCK ============== ');
+    }
+
 }
