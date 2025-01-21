@@ -99,10 +99,16 @@ export class OrderService {
         return result
     }
 
-    private formatOrderHistory = (records: Record<string, AttributeValue>[], lang: string, states: GetAllOrderStatesResult): OrderHistoryResult[] => {
+    private formatOrderHistory = (records: Record<string, AttributeValue>[], states: GetAllOrderStatesResult, sort: string, lang?: string): OrderHistoryResult[] => {
         const result = records
             .map((item: Record<string, AttributeValue>) => unmarshall(item) as OrderHistoryItem)
-            .sort((i1: OrderHistoryItem, i2: OrderHistoryItem) => i1.sequenceNumber - i2.sequenceNumber)
+            .sort((i1: OrderHistoryItem, i2: OrderHistoryItem) => {
+                if (sort.toLocaleLowerCase() === 'asc') {
+                    return i1.sequenceNumber - i2.sequenceNumber
+                } else {
+                    return i2.sequenceNumber - i1.sequenceNumber
+                }
+            })
             .map((item: OrderHistoryItem): OrderHistoryResult => {
                 let previousState: OrderHistoryResult['current']['state'] = null
                 let currentState: OrderHistoryResult['current']['state'] = null
@@ -146,7 +152,7 @@ export class OrderService {
         return result
     }
 
-    public getOrderTrackingByOrderNumber = async (orderNumber: string, lang = 'en-US'): Promise<OrderHistoryResult[]> => {
+    public getOrderTrackingByOrderNumber = async (orderNumber: string, sort = 'desc', lang = 'en-US'): Promise<OrderHistoryResult[]> => {
         try {
             if (!orderNumber) {
                 throw createStandardizedError({
@@ -180,7 +186,7 @@ export class OrderService {
             })
             const states = await this.getAllOrderStates(statesProcessing)
 
-            const results = this.formatOrderHistory(records.Items, lang, states)
+            const results = this.formatOrderHistory(records.Items, states, sort, lang)
             return results
         } catch (error: any) {
             // TODO: Handle more error
