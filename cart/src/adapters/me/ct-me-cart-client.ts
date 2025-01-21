@@ -284,6 +284,7 @@ export default class CommercetoolsMeCartClient {
 
 	findLineItem({
 		cart,
+		productId,
 		variantId,
 		productGroup,
 		productType,
@@ -291,6 +292,7 @@ export default class CommercetoolsMeCartClient {
 		freeGiftGroup,
 	}: {
 		cart: Cart;
+		productId: string;
 		variantId: number;
 		productGroup: number;
 		productType: string;
@@ -298,7 +300,8 @@ export default class CommercetoolsMeCartClient {
 		freeGiftGroup: string;
 	}) {
 		const lineItem = cart.lineItems.find((item) => {
-			return item.variant.id === variantId &&
+			return  item.productId === productId &&
+				item.variant.id === variantId &&
 				item.custom?.fields?.productType === productType &&
 				item.custom?.fields?.productGroup === productGroup &&
 				(!addOnGroup || item.custom?.fields?.addOnGroup === addOnGroup) &&
@@ -315,6 +318,7 @@ export default class CommercetoolsMeCartClient {
 	 */
 	private findLineItemId({
 		cart,
+		productId,
 		variantId,
 		productGroup,
 		productType,
@@ -322,6 +326,7 @@ export default class CommercetoolsMeCartClient {
 		freeGiftGroup,
 	}: {
 		cart: Cart
+		productId: string
 		variantId: number
 		productGroup: number
 		productType: string
@@ -330,6 +335,7 @@ export default class CommercetoolsMeCartClient {
 	}): string {
 		const lineItem = this.findLineItem({
 			cart,
+			productId,
 			variantId,
 			productGroup,
 			productType,
@@ -364,9 +370,10 @@ export default class CommercetoolsMeCartClient {
 
 
 		lineItemKeys.forEach((lineItemKey) => {
-			const { variantId, productGroup, productType, addOnGroup, freeGiftGroup } = lineItemKey
+			const { productId, variantId, productGroup, productType, addOnGroup, freeGiftGroup } = lineItemKey
 			const lineItem = lineItems.find((item) => {
-				return item.variant.id === variantId &&
+				return item.productId === productId &&
+					item.variant.id === variantId &&
 					item.custom?.fields?.productGroup === productGroup &&
 					item.custom?.fields?.productType === productType &&
 					(!addOnGroup || item.custom?.fields?.addOnGroup === addOnGroup) &&
@@ -403,6 +410,7 @@ export default class CommercetoolsMeCartClient {
 	 */
 	public async updateItemQuantityInCart({
 		cart,
+		productId,
 		variantId,
 		productGroup,
 		productType,
@@ -411,6 +419,7 @@ export default class CommercetoolsMeCartClient {
 		quantity,
 	}: {
 		cart: Cart
+		productId: string;
 		variantId: number
 		productGroup: number
 		productType: string
@@ -425,6 +434,7 @@ export default class CommercetoolsMeCartClient {
 				action: 'changeLineItemQuantity',
 				lineItemId: this.findLineItemId({
 					cart,
+					productId,
 					variantId,
 					productGroup,
 					productType,
@@ -435,6 +445,7 @@ export default class CommercetoolsMeCartClient {
 			});
 		} else {
 			const lineItemIds = this.findLineItemIds(cart, [{
+				productId,
 				variantId,
 				productGroup,
 				productType,
@@ -467,6 +478,7 @@ export default class CommercetoolsMeCartClient {
 	 */
 	public async removeItemFromCart({
 		cart,
+		productId,
 		variantId,
 		productType,
 		productGroup,
@@ -474,6 +486,7 @@ export default class CommercetoolsMeCartClient {
 		freeGiftGroup,
 	}: {
 		cart: Cart,
+		productId: string
 		variantId: number,
 		productType: string
 		productGroup: number,
@@ -481,6 +494,7 @@ export default class CommercetoolsMeCartClient {
 		freeGiftGroup: string
 	}): Promise<Cart> {
 		const lineItemIds = this.findLineItemIds(cart, [{
+			productId,
 			variantId,
 			productType,
 			productGroup,

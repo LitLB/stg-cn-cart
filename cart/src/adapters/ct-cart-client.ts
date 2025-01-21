@@ -158,7 +158,7 @@ class CommercetoolsCartClient {
 
 		const existingLineItem = lineItems.find((item: any) => {
 			return (
-				item.productId === productId // TODO: Free Gift Changes
+				item.productId === productId
 				&& item.variant.id === variantId
 				&& item.custom?.fields?.productGroup === productGroup
 				&& item.custom?.fields?.productType === productType

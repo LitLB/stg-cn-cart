@@ -190,6 +190,16 @@ export class CartItemService {
                 }, 'addItem');
             }
 
+            // TODO: filter out campaignVerifyValues that does not allow
+            const allowCampaignVerifyKeys = (validateResult as { allowCampaignVerifyKeys?: any[] }).allowCampaignVerifyKeys ?? [];
+            const { campaignVerifyKeys: allowCampaignVerifyKeysForCurrentItem = [] } = allowCampaignVerifyKeys.find((item: any) => item.sku === sku &&
+                item.productType === productType &&
+                item.productGroup === newProductGroup) || {}
+            
+            const filteredCampaignVerifyValues = campaignVerifyValues.filter((campaignVerifyValue: any) => {
+                return allowCampaignVerifyKeysForCurrentItem.find((allowCampaignVerifyKey: any) => allowCampaignVerifyKey.name === campaignVerifyValue.name)
+            })
+
             const updatedCart = await CommercetoolsCartClient.addItemToCart({
                 cart,
                 productId,
@@ -201,7 +211,7 @@ export class CartItemService {
                 freeGiftGroup,
                 externalPrice: validPrice.value,
                 dummyFlag: isDummyStock,
-                campaignVerifyValues,
+                campaignVerifyValues: filteredCampaignVerifyValues,
             });
 
             const ctCartWithChanged: Cart = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
@@ -301,7 +311,7 @@ export class CartItemService {
                 };
             }
 
-            const existingLineItem = commercetoolsMeCartClient.findLineItem({ cart, variantId: variant.id, productGroup, productType, addOnGroup, freeGiftGroup });
+            const existingLineItem = commercetoolsMeCartClient.findLineItem({ cart, productId, variantId: variant.id, productGroup, productType, addOnGroup, freeGiftGroup });
             if (!existingLineItem) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -338,6 +348,7 @@ export class CartItemService {
 
             let updatedCart = await commercetoolsMeCartClient.updateItemQuantityInCart({
                 cart,
+                productId,
                 variantId: variant.id,
                 productGroup,
                 productType,
@@ -408,6 +419,7 @@ export class CartItemService {
 
             let updatedCart = await commercetoolsMeCartClient.removeItemFromCart({
                 cart,
+                productId,
                 variantId: variant.id,
                 productType,
                 productGroup,
@@ -479,6 +491,7 @@ export class CartItemService {
                 }
 
                 lineItemKeys.push({
+                    productId,
                     variantId: variant.id,
                     productGroup,
                     productType,
