@@ -837,6 +837,7 @@ class TalonOneEffectConverter {
 		// ! Validate Main Product
 		const cartItemCampaignCodes = newCartItems
 			.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
+			.filter((cartItem: any) => cartItem?.campaignCode)
 			.map((cartItem: any) => cartItem.campaignCode)
 
 		const uniqueCampaginCodes = [...new Set(cartItemCampaignCodes)];
