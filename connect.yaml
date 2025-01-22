@@ -10,6 +10,9 @@ deployAs:
         - key: APP_PORT
           description: App port
           required: true
+        - key: APP_ENV
+          description: commercetools Composable Commerce API region
+          required: true
         - key: SHUTDOWN_ON_FATAL_ERROR
           description: Shutdown on fatal error
           required: true

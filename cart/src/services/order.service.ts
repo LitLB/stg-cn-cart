@@ -9,6 +9,7 @@ import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { GetAllOrderStatesResult, OrderHistoryItem, OrderHistoryResult } from '../types/services/order.type';
 import { AttributeValue } from '@aws-sdk/client-dynamodb';
 import { LOCALES } from '../constants/locale.constant';
+import { readConfiguration } from '../utils/config.utils';
 
 export class OrderService {
     public getOrderById = async (id: string): Promise<IOrder> => {
@@ -161,9 +162,9 @@ export class OrderService {
                 }, 'getOrderTrackingByOrderNumber');
             }
 
-            // TODO: table name suffix by env
+            const tableName = `true-ecommerce-order-history-${readConfiguration().appEnv}`
             const records = await dynamoClient.scanItem({
-                tableName: 'true-ecommerce-order-history-dev',
+                tableName: tableName,
                 filterExpression: 'orderNumber = :orderNumber',
                 expressionAttributeValues: {
                     ':orderNumber': marshall(orderNumber)
