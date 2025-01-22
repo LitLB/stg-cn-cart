@@ -11,7 +11,7 @@ import { getValidateMessages } from '../validators/helpers.validators';
 export const readConfiguration = () => {
   const envVars = {
     appPort: process.env.APP_PORT as string,
-    
+    appEnv: process.env.APP_ENV as string,
     shutdownOnFatalError: process.env.SHUTDOWN_ON_FATAL_ERROR as string,
 
     clientId: process.env.CTP_CLIENT_ID as string,
