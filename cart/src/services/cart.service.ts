@@ -194,6 +194,7 @@ export class CartService {
 
                 // * STEP #5 - Create Order On TSM Sale
                 const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+
                 // //! IF available > x
                 // //! THEN continue
                 // //! ELSE 
@@ -217,7 +218,6 @@ export class CartService {
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
             return { ...order, hasChanged: compared };
-            return
         } catch (error: any) {
             logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -572,7 +572,18 @@ export class CartService {
             // }
             const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
 
+            if (!response) {
+                return {
+                    success: false,
+                    response: { message: 'Internal Server Error' }
+                }
+            }
+
             const { code } = response || {}
+            return {
+                success: code === '0',
+                response
+            }
 
             // if (code !== '0') {
             //     throw {
@@ -581,11 +592,6 @@ export class CartService {
             //         errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
             //     };
             // }
-
-            return {
-                success: code === '0',
-                response
-            }
 
         } catch (error: any) {
             logger.info(`createTSMSaleOrder-error: ${JSON.stringify(error)}`)
