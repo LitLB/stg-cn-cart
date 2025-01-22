@@ -848,19 +848,19 @@ class TalonOneEffectConverter {
 			}
 		}
 
-		const MAXIMUM_MAIN_PRODUCT_QUANTITY_PER_CAMPAIGN = 1
+		// const MAXIMUM_MAIN_PRODUCT_QUANTITY_PER_CAMPAIGN = 1
 
-		const exceedQuantityLimitCartItem = newCartItems
-			.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
-			.filter((cartItem: any) => cartItem?.campaignCode)
-			.find((cartItem: any) => cartItem?.quantity > MAXIMUM_MAIN_PRODUCT_QUANTITY_PER_CAMPAIGN)
+		// const exceedQuantityLimitCartItem = newCartItems
+		// 	.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
+		// 	.filter((cartItem: any) => cartItem?.campaignCode)
+		// 	.find((cartItem: any) => cartItem?.quantity > MAXIMUM_MAIN_PRODUCT_QUANTITY_PER_CAMPAIGN)
 
-		if (exceedQuantityLimitCartItem) {
-			return {
-				isValid: false,
-				errorMessage: 'Exceed maximum quantity per campaign.'
-			}
-		}
+		// if (exceedQuantityLimitCartItem) {
+		// 	return {
+		// 		isValid: false,
+		// 		errorMessage: 'Exceed maximum quantity per campaign.'
+		// 	}
+		// }
 
 		const allowCampaignVerifyKeys: any[] = []
 
