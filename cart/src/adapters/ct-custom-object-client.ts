@@ -6,6 +6,7 @@ import { PAYMENT_OMISE_CONTAINER, PAYMENT_OMISE_KEY_PREFIX, ORDER_ADDITIONAL_INF
 import { readConfiguration } from '../utils/config.utils';
 import { IOrderAdditional } from '../interfaces/order-additional.interface';
 import { logger } from '../utils/logger.utils';
+import { Coupon } from '../interfaces/coupon.interface';
 
 class CommercetoolsCustomObjectClient {
 	private static instance: CommercetoolsCustomObjectClient;
@@ -223,7 +224,7 @@ class CommercetoolsCustomObjectClient {
 			}
 
 			// หาก couponInformation มีค่า ให้ดำเนินการ merge และอัปเดต
-			const existingObject = await this.getCustomObjectByContainerAndKey(container, key);
+			const existingObject = await this.getCustomObjectByContainerAndKey(container, key);	
 			const updatedValue = this.mergeCouponInformation(existingObject?.value, couponInformation);
 			return await this.createOrUpdateCustomObject({ container, key, value: updatedValue });
 
@@ -241,6 +242,20 @@ class CommercetoolsCustomObjectClient {
 			}
 			logger.error('Error adding coupon information:', error);
 			throw error;
+		}
+	}
+
+	async checkCouponPriceChange(cartId: string, couponInformation: any): Promise<Coupon[]> {
+		const container = COUPON_INFO_CONTAINER;
+		const key = cartId;
+		try {
+			const existingObject = await this.getCustomObjectByContainerAndKey(container, key);
+			if (!existingObject) {
+				return [];
+			}
+			return this.compareCoupons(existingObject?.value, couponInformation);
+		} catch (error: any) {
+			return [];
 		}
 	}
 
@@ -273,6 +288,22 @@ class CommercetoolsCustomObjectClient {
 			logger.error('Error getting coupon limit:', error);
 			throw error;
 		}
+	}
+
+	private compareCoupons(original: any[], updated: any[]): Coupon[] {
+		const changes: Coupon[] = [];
+		original.forEach(orig => {
+			const updatedItem = updated.find(u => u.couponCode === orig.couponCode);
+			if (updatedItem) {
+				if (
+					orig.discountPrice !== updatedItem.discountPrice ||
+					orig.discountPercentage !== updatedItem.discountPercentage
+				) {
+					changes.push({ code: orig.couponCode, reason: 'CouponPriceChange' });
+				}
+			}
+		});
+		return changes;
 	}
 }
 

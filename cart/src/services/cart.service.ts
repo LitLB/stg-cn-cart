@@ -253,6 +253,24 @@ export class CartService {
             updateActions.push(...talonOneUpdateActions.updateActions);
         }
 
+        // Check coupon price change
+        const couponPriceChange = await CommercetoolsCustomObjectClient.checkCouponPriceChange(
+            ctCart.id,
+            talonOneUpdateActions?.couponsInformation
+        );
+        if(couponPriceChange.length > 0) {
+            // Update customObject coupon information
+            await this.couponService.addCouponInformation(updateActions, ctCart.id, talonOneUpdateActions?.couponsInformation);
+            throw createStandardizedError(
+                {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Some coupons experienced a price change during processing.',
+                    data: couponPriceChange,
+                },
+                'handleAutoRemoveCoupons'
+            );
+        }
+
         // 4. Possibly add coupon info
         await this.couponService.addCouponInformation(
             updateActions,
