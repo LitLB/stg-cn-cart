@@ -576,7 +576,7 @@ export class CartService {
     // TODO: final step
     private createTSMSaleOrder = async (orderNumber: string, cart: any) => {
         try {
-            const apigeeClientAdapter = new ApigeeClientAdapter
+            // const apigeeClientAdapter = new ApigeeClientAdapter
             const config = readConfiguration()
             // Get coupon information
             const couponDiscounts = await this.getCouponInformation(orderNumber, COUPON_INFO_CONTAINER, cart.id)
@@ -584,24 +584,24 @@ export class CartService {
             const tsmOrderPayload = tsmOrder.toPayload()
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
-            // return {
-            //     success: false,
-            //     response: { message: 'this is mock response' }
-            // }
-            const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
-
-            if (!response) {
-                return {
-                    success: false,
-                    response: { message: 'Internal Server Error' }
-                }
-            }
-
-            const { code } = response || {}
             return {
-                success: code === '0',
-                response
+                success: false,
+                response: { message: 'this is mock response' }
             }
+            // const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
+
+            // if (!response) {
+            //     return {
+            //         success: false,
+            //         response: { message: 'Internal Server Error' }
+            //     }
+            // }
+
+            // const { code } = response || {}
+            // return {
+            //     success: code === '0',
+            //     response
+            // }
 
             // if (code !== '0') {
             //     throw {
