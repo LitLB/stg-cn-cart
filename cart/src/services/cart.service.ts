@@ -184,7 +184,8 @@ export class CartService {
 
             await InventoryValidator.validateCart(ctCart);
 
-            const orderNumber = await this.generateOrderNumber(`TRUE`)
+            const operator = ctCart.custom?.fields.operator
+            const orderNumber = await this.generateOrderNumber(operator)
 
             let tsmSaveOrder = {
 
@@ -954,7 +955,7 @@ export class CartService {
         dayjs.extend(timezone);
         const currentDate = dayjs().tz('Asia/Bangkok');
 
-        const companyAbbr = company === 'DTAC' ? 'D' : 'T';
+        const companyAbbr = `${company}`.toUpperCase() === 'DTAC' ? 'D' : 'T';
 
         const key = `${companyAbbr}${currentDate.format('YYMM')}`;
 
