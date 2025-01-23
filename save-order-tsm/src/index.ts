@@ -22,14 +22,14 @@ const app: Express = express();
 app.disable('x-powered-by');
 
 // Define routes
-app.use('/notification', JobRoutes);
+app.use('/jobs', JobRoutes);
 
 // Global error handler
 app.use(errorMiddleware);
 
 // Listen the application
 const server = app.listen(PORT, () => {
-  logger.info(`⚡️ Job application listening on port ${PORT}`);
+    logger.info(`⚡️ Job application listening on port ${PORT}`);
 });
 
 export default server;

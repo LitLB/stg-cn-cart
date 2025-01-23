@@ -273,6 +273,26 @@ deployAs:
         - key: DISABLE_CRON
           description: The cron job is temporarily will not perform its scheduled tasks if value = true
           default: 'false'
+        - key: TSM_ORDER_SHOP_CODE
+          description: Tsm order shop code
+          required: true
+        - key: TSM_ORDER_SALE_CODE
+          description: Tsm order sale code
+          required: true
+        - key: TSM_ORDER_SALE_NAME
+          description: Tsm order sale name
+        - key: CTP_AUTH_URL
+          description: Commercetools authentication URL (e.g., 'https://auth.commercetools.com')
+          required: true
+        - key: CTP_API_URL
+          description: Commercetools API base URL (e.g., 'https://api.commercetools.com')
+          required: true
+        - key: CTP_SUPPLY_CHANNEL_ID
+          description: Commercetools inventory channel id identifier
+          required: true
+        - key: CTP_TAX_CATEGORY_ID
+          description: Commercetools Tax Category Id
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: commercetools Composable Commerce project key
@@ -297,4 +317,10 @@ deployAs:
           required: true
         - key: AWS_SECRET_ACCESS_KEY
           description: AWS secret access key
+          required: true
+        - key: BFF_CTP_CLIENT_ID
+          description: Commercetools client ID for managing Anonymous Sessions
+          required: true
+        - key: BFF_CTP_CLIENT_SECRET
+          description: Commercetools client secret for managing Anonymous Sessions
           required: true

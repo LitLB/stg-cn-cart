@@ -1,3 +1,4 @@
+import { Order } from '@commercetools/platform-sdk'
 import { createApiRoot } from '../client/create.client.js'
 import { logger } from '../utils/logger.utils.js'
 
@@ -29,5 +30,24 @@ export const updateOrder = async (orderID: string, actions: any) => {
     } catch (error: any) {
         logger.error(`Update order ID ${orderID} ${error}`)
         return null
+    }
+}
+
+export const getBulkOrderNotSaveOnTSM = async (): Promise<Order[]> => {
+    try {
+        const { body } = await apiRoot
+            .orders()
+            .get({
+                queryArgs: {
+                    where: `custom(fields(tsmOrderIsSaved=false)) and paymentState="Paid"`,
+                    expand: "custom.fields.couponsInformation"
+                }
+            })
+            .execute()
+
+        return body.results
+    } catch (error) {
+        logger.error(`Get orders ${error}`)
+        return []
     }
 }
