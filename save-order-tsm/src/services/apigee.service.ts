@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
+import axios, { AxiosError, AxiosInstance } from "axios";
 import { logger } from "../utils/logger.utils";
 import { readConfiguration } from "../utils/config.utils";
 import { SaveOrderTSMParams } from "../types/services/apigee.type";
@@ -43,28 +43,17 @@ export const saveOrderTSM = async ({
     accessToken
 }: SaveOrderTSMParams): Promise<any> => {
     return {}
-    try {
-        const endpoint = 'productOrdering/v3/saveOrder'
-        const headers = {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken || (await getToken())}`,
-        };
-        const apiInstant = getApiGeeInstance()
-        const response = await apiInstant.post(endpoint, {
-            ...data
-        }, {
-            headers
-        })
+    const endpoint = 'productOrdering/v3/saveOrder'
+    const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken || (await getToken())}`,
+    };
+    const apiInstant = getApiGeeInstance()
+    const response = await apiInstant.post(endpoint, {
+        ...data
+    }, {
+        headers
+    })
 
-        return response.data
-    } catch (error: any) {
-        if (axios.isAxiosError(error)) {
-            const _error = error as AxiosError
-            const message = _error.message
-            logger.error(`saveOrderTSM:message:${message}`)
-            throw _error.message
-        }
-
-        throw error
-    }
+    return response.data
 }

@@ -293,6 +293,9 @@ deployAs:
         - key: CTP_TAX_CATEGORY_ID
           description: Commercetools Tax Category Id
           required: true
+        - key: APIGW_BASE_URL
+          description: Apigee base url
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: commercetools Composable Commerce project key
@@ -323,4 +326,10 @@ deployAs:
           required: true
         - key: BFF_CTP_CLIENT_SECRET
           description: Commercetools client secret for managing Anonymous Sessions
+          required: true
+        - key: APIGW_CLIENT_ID
+          description: Apigee client ID
+          required: true
+        - key: APIGW_CLIENT_SECRET
+          description: Apigee client secret
           required: true

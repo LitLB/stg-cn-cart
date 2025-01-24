@@ -42,19 +42,22 @@ export const scanItems = async <T>({
     }
 }
 
-export const putItem = async ({ tableName, item }: PutItemInput): Promise<PutItemCommandOutput> => {
-    try {
-        const putItemCommand = new PutItemCommand({
-            TableName: tableName,
-            Item: item,
-            ReturnConsumedCapacity: 'TOTAL',
-        })
-        const response = await client.send(putItemCommand)
-        return response
-    } catch (err: any) {
-        logger.error(err)
-        throw err
-    }
+// export const putItem = async ({ tableName, item }: PutItemInput): Promise<PutItemCommandOutput> => {
+export const putItem = async ({ tableName, item }: PutItemInput): Promise<any> => {
+    // try {
+    //     const putItemCommand = new PutItemCommand({
+    //         TableName: tableName,
+    //         Item: item,
+    //         ReturnConsumedCapacity: 'TOTAL',
+    //     })
+    //     const response = await client.send(putItemCommand)
+    //     return response
+    // } catch (err: any) {
+    //     logger.error(err)
+    //     throw err
+    // }
+
+    return {}
 }
 
 export const client = dynamodbClient()
