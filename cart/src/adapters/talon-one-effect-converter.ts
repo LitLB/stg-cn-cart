@@ -835,13 +835,12 @@ class TalonOneEffectConverter {
 		})
 
 		// ! Validate Main Product
-		const cartItemCampaignCodes = newCartItems
+		const cartItemWithCampaignCodes = newCartItems
 			.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
-			.filter((cartItem: any) => cartItem?.campaignCode)
-			.map((cartItem: any) => cartItem.campaignCode)
+			.map((cartItem: any) => cartItem.campaignCode || null)
+			.filter((campaignCode: any) => campaignCode);
 
-		const uniqueCampaginCodes = [...new Set(cartItemCampaignCodes)];
-		if (uniqueCampaginCodes.length > 1) {
+		if (cartItemWithCampaignCodes.length > 1) {
 			return {
 				isValid: false,
 				errorMessage: 'Multiple campaigns in a single cart are not supported.'
