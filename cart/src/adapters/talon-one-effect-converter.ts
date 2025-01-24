@@ -835,15 +835,32 @@ class TalonOneEffectConverter {
 		})
 
 		// ! Validate Main Product
-		const cartItemWithCampaignCodes = newCartItems
-			.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
-			.map((cartItem: any) => cartItem.campaignCode || null)
-			.filter((campaignCode: any) => campaignCode);
+		const mainCartItems = newCartItems.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
+		const campaignMap:any = {}
+		let noCampaign = 0
+		mainCartItems.forEach((mainCartItem:any) => {
+			if (mainCartItem?.campaignCode) {
+				campaignMap[mainCartItem.campaignCode] = (campaignMap?.[mainCartItem?.campaignCode] ?? 0) + mainCartItem.quantity;
+			} else {
+				noCampaign++
+			}
+		})
 
-		if (cartItemWithCampaignCodes.length > 1) {
+		const isHaveMultipleCampaignInCart = Object.keys(campaignMap).length > 1
+		const isHaveCampaignInCart = Object.keys(campaignMap).length >= 1
+		const isHaveNoCampaignInCart = noCampaign >= 1
+
+		if (isHaveMultipleCampaignInCart) {
 			return {
 				isValid: false,
 				errorMessage: 'Multiple campaigns in a single cart are not supported.'
+			}
+		}
+
+		if (isHaveCampaignInCart && isHaveNoCampaignInCart) {
+			return {
+				isValid: false,
+				errorMessage: 'A mix of campaign and non-campaign items in the cart is not supported.'
 			}
 		}
 
