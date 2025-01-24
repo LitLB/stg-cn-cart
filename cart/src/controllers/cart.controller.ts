@@ -90,7 +90,7 @@ export class CartController {
                 statusMessage: RESPONSE_MESSAGES.SUCCESS,
                 data: cart,
             };
-            
+
             res.status(200).json(response);
         } catch (error: any) {
             logger.error(`CartController.getCartById.error`, error);
@@ -150,23 +150,3 @@ export class CartController {
         }
     }
 }
-
-
-const checkPrices = (dataSku: any) => {
-    const currentDate: any = new Date().getTime();
-    let centAmount: number = 0;
-    for (const value of $_.get(dataSku, '0.prices', [])) {
-      const validFrom = new Date($_.get(value, 'validFrom'));
-      const validUntil = new Date($_.get(value, 'validUntil'));
-      const dateValidFrom = new Date(validFrom)
-      const _validFrom = dateValidFrom.getTime();
-      const dateValidUntil = (new Date(validUntil))
-      const _validUntil = dateValidUntil.getTime();
-      currentDate >= _validFrom && currentDate <= _validUntil ? console.log(true) : console.log(false)
-      if (currentDate >= _validFrom && currentDate <= _validUntil) {
-        centAmount = $_.get(value, 'value.centAmount');
-        break;
-      }
-    }
-    return centAmount
-  };
