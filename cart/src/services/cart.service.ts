@@ -184,7 +184,8 @@ export class CartService {
 
             await InventoryValidator.validateCart(ctCart);
 
-            const orderNumber = await this.generateOrderNumber(`TRUE`)
+            const operator = ctCart.custom?.fields.operator
+            const orderNumber = await this.generateOrderNumber(operator)
 
             let tsmSaveOrder = {
 
@@ -251,6 +252,24 @@ export class CartService {
 
         if (talonOneUpdateActions?.updateActions) {
             updateActions.push(...talonOneUpdateActions.updateActions);
+        }
+
+        // Check coupon price change
+        const couponPriceChange = await CommercetoolsCustomObjectClient.checkCouponPriceChange(
+            ctCart.id,
+            talonOneUpdateActions?.couponsInformation
+        );
+        if(couponPriceChange.length > 0) {
+            // Update customObject coupon information
+            await this.couponService.addCouponInformation(updateActions, ctCart.id, talonOneUpdateActions?.couponsInformation);
+            throw createStandardizedError(
+                {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Some coupons experienced a price change during processing.',
+                    data: couponPriceChange,
+                },
+                'handleAutoRemoveCoupons'
+            );
         }
 
         // 4. Possibly add coupon info
@@ -558,7 +577,7 @@ export class CartService {
     // TODO: final step
     private createTSMSaleOrder = async (orderNumber: string, cart: any) => {
         try {
-            // const apigeeClientAdapter = new ApigeeClientAdapter
+            const apigeeClientAdapter = new ApigeeClientAdapter
             const config = readConfiguration()
             // Get coupon information
             const couponDiscounts = await this.getCouponInformation(orderNumber, COUPON_INFO_CONTAINER, cart.id)
@@ -566,24 +585,24 @@ export class CartService {
             const tsmOrderPayload = tsmOrder.toPayload()
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
-            return {
-                success: false,
-                response: { message: 'this is mock response' }
-            }
-            // const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
-
-            // if (!response) {
-            //     return {
-            //         success: false,
-            //         response: { message: 'Internal Server Error' }
-            //     }
-            // }
-
-            // const { code } = response || {}
             // return {
-            //     success: code === '0',
-            //     response
+            //     success: false,
+            //     response: { message: 'this is mock response' }
             // }
+            const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
+
+            if (!response) {
+                return {
+                    success: false,
+                    response: { message: 'Internal Server Error' }
+                }
+            }
+
+            const { code } = response || {}
+            return {
+                success: code === '0',
+                response
+            }
 
             // if (code !== '0') {
             //     throw {
@@ -936,7 +955,7 @@ export class CartService {
         dayjs.extend(timezone);
         const currentDate = dayjs().tz('Asia/Bangkok');
 
-        const companyAbbr = company === 'DTAC' ? 'D' : 'T';
+        const companyAbbr = `${company}`.toUpperCase() === 'DTAC' ? 'D' : 'T';
 
         const key = `${companyAbbr}${currentDate.format('YYMM')}`;
 
