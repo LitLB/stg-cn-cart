@@ -1,5 +1,6 @@
+import { OrderPayload } from "../models/tsm-order.type"
+
 export type SaveOrderTSMParams = {
-    // TODO: Change data type to real type
-    data: any
+    data: OrderPayload
     accessToken?: string
 }

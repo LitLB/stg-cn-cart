@@ -42,6 +42,7 @@ export const saveOrderTSM = async ({
     data,
     accessToken
 }: SaveOrderTSMParams): Promise<any> => {
+    return {}
     try {
         const endpoint = 'productOrdering/v3/saveOrder'
         const headers = {

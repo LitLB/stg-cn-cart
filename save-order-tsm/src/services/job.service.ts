@@ -3,6 +3,7 @@ import { logger } from '../utils/logger.utils'
 import { calculateExponentialBackoffTime } from '../utils/time.utils'
 import * as commercetoolsServices from './commercetools.service'
 import * as apigeeService from './apigee.service'
+import * as tsmService  from './tsm.service'
 
 export const saveOrderTSMService = async (): Promise<void> => {
     const orders = await getOrdersNotSaveOnTSM()
@@ -29,7 +30,7 @@ export const getOrdersNotSaveOnTSM = async (): Promise<Order[]> => {
 // TODO: wait for flow retry process
 // NOTE add logic retry save 5 time and include exponential backoff
 export const saveOrderOnTSM = async (order: Order): Promise<boolean> => {
-    let attempt = 1
+    let attempt = 0
     let backoffTime = 0
     const apigeeAccessToken = await apigeeService.getToken()
 
@@ -44,7 +45,7 @@ export const saveOrderOnTSM = async (order: Order): Promise<boolean> => {
 
             //TODO: save on TSM
             //NOTE - Question ????? ---> how many error case on TSM  
-            await apigeeService.saveOrderTSM({ accessToken: apigeeAccessToken, data: order })
+            await tsmService.createTSMSaleOrder(order.orderNumber, order, apigeeAccessToken)
             break
         } catch (error) {
             logger.error(`saveOrderOnTSM:attempt:${attempt}:message:${JSON.stringify(error)}`)
@@ -53,6 +54,7 @@ export const saveOrderOnTSM = async (order: Order): Promise<boolean> => {
         }
     }
 
+    // NOTE - if not success 5 time return false
     if (attempt === 5) {
         return false
     } else {
