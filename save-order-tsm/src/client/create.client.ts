@@ -9,15 +9,18 @@ import { ByProjectKeyRequestBuilder } from '@commercetools/platform-sdk/dist/dec
  * apiRoot can now be used to build requests to de Composable Commerce API
  */
 export const createApiRoot = ((root?: ByProjectKeyRequestBuilder) => () => {
-  if (root) {
+    if (root) {
+        return root;
+    }
+
+    const client = createClient()
+    const baseURI = readConfiguration().ctpApiUrl
+
+    root = createApiBuilderFromCtpClient(client, baseURI).withProjectKey({
+        projectKey: readConfiguration().projectKey,
+    });
+
     return root;
-  }
-
-  root = createApiBuilderFromCtpClient(createClient()).withProjectKey({
-    projectKey: readConfiguration().projectKey,
-  });
-
-  return root;
 })();
 
 /**
@@ -28,5 +31,5 @@ export const createApiRoot = ((root?: ByProjectKeyRequestBuilder) => () => {
  * @returns {Promise<ClientResponse<Project>>} apiRoot
  */
 export const getProject = async () => {
-  return await createApiRoot().get().execute();
+    return await createApiRoot().get().execute();
 };

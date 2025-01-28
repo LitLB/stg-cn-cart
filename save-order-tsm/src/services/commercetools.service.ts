@@ -1,6 +1,8 @@
-import { Cart, CustomObject, Order } from '@commercetools/platform-sdk'
+import { Cart, CustomObject, Order, OrderUpdateAction } from '@commercetools/platform-sdk'
 import { createApiRoot } from '../client/create.client.js'
 import { logger } from '../utils/logger.utils.js'
+import { CouponInformationAttributes, GetCouponInformationResult } from '../types/services/commercetools.type.js'
+import { CreateTSMSaleOrderResponse } from '../types/services/tsm.type.js'
 
 const apiRoot = createApiRoot()
 
@@ -42,7 +44,6 @@ export const getBulkOrderNotSaveOnTSM = async (): Promise<Order[]> => {
                     where: `custom(fields(tsmOrderIsSaved=false)) and paymentState="Paid"`,
                     expand: [
                         "custom.fields.couponsInfomation",
-                        "cart"
                     ],
                 }
             })
@@ -68,12 +69,12 @@ export const getCustomObjectByContainerAndKey = async (
 
         return body
     } catch (error) {
-        logger.error(`getCustomObjectByContainerAndKey ${error}`)
+        logger.error(`getCustomObjectByContainerAndKey:${error}`)
         return null
     }
 }
 
-export const getCouponInformation = async (orderNumber: string, container: string, cartId: string) => {
+export const getCouponInformation = async (orderNumber: string, container: string, cartId: string): Promise<GetCouponInformationResult> => {
     let couponResult: any[] = []
     try {
         const customObjectCouponInformation = await getCustomObjectByContainerAndKey(container, cartId)
@@ -81,17 +82,19 @@ export const getCouponInformation = async (orderNumber: string, container: strin
             couponResult = customObjectCouponInformation.value
         }
     } catch (error: any) {
-        logger.error(`CartService.createOrder.getCouponInformation.error`, error);
-        return { discounts: [], otherPayments: [] }
+        logger.error(`getCouponInformation:error:${error}`);
+        return {
+            discounts: [],
+            otherPayments: []
+        }
     }
 
-    const discounts: { id: string; no: string; code: string; amount: string; serial: string }[] = [];
-    const otherPayments: { id: string; no: string; code: string; amount: string; serial: string }[] = [];
+    const discounts: CouponInformationAttributes[] = [];
+    const otherPayments: CouponInformationAttributes[] = [];
     let discountNo = 1;
     let otherPaymentNo = 1;
 
     couponResult.forEach((item: any) => {
-
         if (item.discountCode.toUpperCase() !== "NULL") {
             discounts.push({
                 id: orderNumber,
@@ -100,6 +103,7 @@ export const getCouponInformation = async (orderNumber: string, container: strin
                 amount: item.discountPrice.toString(),
                 serial: "",
             });
+
             discountNo++;
         }
 
@@ -111,6 +115,7 @@ export const getCouponInformation = async (orderNumber: string, container: strin
                 amount: item.discountPrice.toString(),
                 serial: "",
             });
+
             otherPaymentNo++;
         }
     });
@@ -118,24 +123,34 @@ export const getCouponInformation = async (orderNumber: string, container: strin
     return { discounts, otherPayments };
 }
 
-export const bulkUpdateOrderIsSavedOnTSM = async (orderIds: string[]) => {
+export const updateOrderIsSavedOnTSM = async (order: Order, isSuccess: boolean, tsmResponse?: CreateTSMSaleOrderResponse) => {
     try {
+        const actions: OrderUpdateAction[] = [
+            {
+                action: "setCustomField",
+                name: "tsmOrderIsSaved",
+                value: isSuccess,
+            }, {
+                action: "setCustomField",
+                name: "tsmOrderResponse",
+                value: JSON.stringify(tsmResponse?.response || { message: 'unknown error' }),
+            },
+        ]
+
+        if (isSuccess) {
+            actions.push({
+                action: "changeShipmentState",
+                "shipmentState": "Pending"
+            })
+        }
+
         const { body } = await apiRoot
             .orders()
+            .withId({ ID: order.id })
             .post({
-                queryArgs: {
-                    where: `id in ("${orderIds.join('","')}")`,
-                },
                 body: {
-                    custom: {
-                        type: {
-                            typeId: "custom",
-                            id: "order"
-                        },
-                        fields: {
-                            tsmOrderIsSaved: true
-                        }
-                    }
+                    version: order.version,
+                    actions: actions,
                 }
             })
             .execute()

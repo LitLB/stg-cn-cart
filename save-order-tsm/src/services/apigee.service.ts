@@ -24,8 +24,11 @@ export const getToken = async (): Promise<string> => {
             headers
         })
 
-        // TODO: check response
-        return response.data.token ?? response.data
+        if (!response.data.accessToken) {
+            throw new Error('Failed to get token')
+        }
+        
+        return response.data.accessToken
     } catch (error: any) {
         if (axios.isAxiosError(error)) {
             const _error = error as AxiosError
@@ -42,7 +45,6 @@ export const saveOrderTSM = async ({
     data,
     accessToken
 }: SaveOrderTSMParams): Promise<any> => {
-    return {}
     const endpoint = 'productOrdering/v3/saveOrder'
     const headers = {
         'Content-Type': 'application/json',
