@@ -1,4 +1,6 @@
+import { randomUUID } from 'crypto';
 import { dynamoClient } from '../adapters/dynamodb-client';
+import { readConfiguration } from '../utils/config.utils';
 
 interface ShippingAddress {
   city: string;
@@ -29,6 +31,20 @@ interface BlacklistResponse {
   statusMessage?: string;
   type?: string;
 }
+
+// Helper function to create a blacklist item
+const createBlacklistItem = (journey: string, type: string, value: string) => ({
+  id: randomUUID(),
+  journey,
+  blacklistType: type,
+  blacklistValue: value,
+  createdAt: new Date().toISOString(),
+});
+
+// Helper function to insert a blacklist item into DynamoDB
+const insertBlacklistItemHistory = async (blacklistItem: any) => {
+  await dynamoClient.insertData(`true-ecommerce-blacklist-history-${readConfiguration().appEnv}`, blacklistItem);
+};
 
 export class BlacklistService {
   public checkBlacklist = async (
@@ -90,7 +106,7 @@ export class BlacklistService {
 
     // Set up DynamoDB query parameters
     const params = {
-      tableName: 'true-ecommerce-blacklist-dev',
+      tableName: `true-ecommerce-blacklist-${readConfiguration().appEnv}`,
       indexName: 'active-journey-index',
       keyConditionExpression: '#active = :active',
       expressionAttributeNames: {
@@ -130,6 +146,8 @@ export class BlacklistService {
             body.shippingAddress.postcode === itemShippingAddress.postcode &&
             body.shippingAddress.subDistrict === itemShippingAddress.subDistrict
           ) {
+            const blacklistItem = createBlacklistItem(body.journey, 'shippingAddress', `${body.shippingAddress.city},${body.shippingAddress.district},${body.shippingAddress.postcode},${body.shippingAddress.subDistrict}`);
+            await insertBlacklistItemHistory(blacklistItem);
             return {
               status: false,
               type: item.type.S,
@@ -145,6 +163,8 @@ export class BlacklistService {
           const formattedCardNumber = `${body.paymentCreditCardNumber.firstDigits}xxxx${body.paymentCreditCardNumber.lastDigits}`;
           const itemPaymentCreditCardNumber = item.value?.S?.toLowerCase();
           if (formattedCardNumber === itemPaymentCreditCardNumber) {
+            const blacklistItem = createBlacklistItem(body.journey, 'paymentCreditCardNumber', itemPaymentCreditCardNumber);
+            await insertBlacklistItemHistory(blacklistItem);
             return {
               status: false,
               type: item.type.S,
@@ -158,6 +178,8 @@ export class BlacklistService {
           if (key === 'shippingAddress') continue;
 
           if (body[key as keyof BodyType] === item.value?.S) {
+            const blacklistItem = createBlacklistItem(body.journey, key, item.value?.S);
+            await insertBlacklistItemHistory(blacklistItem);
             return {
               status: false,
               type: item.type?.S,

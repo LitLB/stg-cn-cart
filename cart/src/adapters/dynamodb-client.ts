@@ -2,6 +2,8 @@ import {
     DynamoDBClient, 
     GetItemCommand, 
     GetItemCommandInput, 
+    PutItemCommand, 
+    PutItemCommandInput, 
     QueryCommand,
     ScanCommand, 
     ScanCommandOutput} from "@aws-sdk/client-dynamodb";
@@ -107,6 +109,24 @@ export class dynamoDB {
             return null
         }
     }
+
+    public async insertData(tableName: string, item: Record<string, any>): Promise<void> {
+        const params: PutItemCommandInput = {
+            TableName: tableName,
+            Item: marshall(item),
+        };
+
+        try {
+            const command = new PutItemCommand(params);
+            await this.dynamoDBClient.send(command);
+            logger.info(`Successfully inserted item into ${tableName}`);
+        } catch (error) {
+            logger.error(`Failed to insert item into ${tableName}`, error);
+            throw error;
+        }
+    }
+
+
 }
 
 export const dynamoClient = new dynamoDB()
