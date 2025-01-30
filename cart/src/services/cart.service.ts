@@ -259,7 +259,7 @@ export class CartService {
             ctCart.id,
             talonOneUpdateActions?.couponsInformation
         );
-        if(couponPriceChange.length > 0) {
+        if (couponPriceChange.length > 0) {
             // Update customObject coupon information
             await this.couponService.addCouponInformation(updateActions, ctCart.id, talonOneUpdateActions?.couponsInformation);
             throw createStandardizedError(
@@ -309,15 +309,16 @@ export class CartService {
                     statusMessage: 'Cart not found or has expired',
                 };
             }
-
-            const { couponsInfomation } = ctCart.custom?.fields ?? {};
-            const couponsInformation = couponsInfomation?.obj.value ?? []
+            const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
+            const { couponsInfomation } = cartWithCheckPublicPublish.custom?.fields ?? {};
+            const couponsInformation = couponsInfomation?.obj?.value ?? []
 
             const validatedCoupon = await validateCouponLimit(couponsInformation.length, FUNC_CHECKOUT)
 
             if (validatedCoupon) {
+                const removeFlag = notice !== '' || cartWithCheckPublicPublish.lineItems.length === 0
 
-                await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(ctCart, true)
+                await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithCheckPublicPublish, removeFlag)
 
                 throw createStandardizedError(
                     {
@@ -329,6 +330,17 @@ export class CartService {
                 );
             }
 
+            if (notice !== '') {
+                await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithCheckPublicPublish, true)
+                throw createStandardizedError(
+                    {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: notice,
+                        errorCode: 'CART_HAS_CHANGED'
+                    },
+                    'checkout'
+                );
+            }
 
             const updateActions: CartUpdateAction[] = [];
 
@@ -366,15 +378,15 @@ export class CartService {
                     createdAt: new Date().toISOString(),
                 };
 
-                await CommercetoolsCustomObjectClient.addPaymentTransaction(ctCart.id, paymentTransaction);
+                await CommercetoolsCustomObjectClient.addPaymentTransaction(cartWithCheckPublicPublish.id, paymentTransaction);
             }
 
-            const updatedCart = await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, updateActions);
+            const updatedCart = await CommercetoolsCartClient.updateCart(cartWithCheckPublicPublish.id, cartWithCheckPublicPublish.version, updateActions);
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return { ...iCartWithBenefit, hasChanged: compared, couponsInformation };
+            return { ...iCartWithBenefit, hasChanged: compared, couponsInformation, notice };
         } catch (error: any) {
             logger.error(`CartService.checkout.error`, error);
             if (error.status && error.message) {
@@ -423,6 +435,19 @@ export class CartService {
                     updatedCart: _cartAfterAutoRemove,
                     permanentlyInvalidRejectedCoupons: _permanentlyInvalidRejectedCoupons
                 } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithUpdatedPrice);
+
+                if (notice !== '') {
+                    await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithUpdatedPrice, true);
+                    throw createStandardizedError(
+                        {
+                            statusCode: HTTP_STATUSES.BAD_REQUEST,
+                            statusMessage: notice,
+                            errorCode: 'CART_HAS_CHANGED'
+                        },
+                        'getCartById'
+                    );
+                }
+
                 cartAfterAutoRemove = _cartAfterAutoRemove;
                 permanentlyInvalidRejectedCoupons = _permanentlyInvalidRejectedCoupons;
                 couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartAfterAutoRemove.id, cartAfterAutoRemove.lineItems);

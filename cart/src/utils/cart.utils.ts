@@ -25,12 +25,14 @@ export const validateInventory = (inventory: any) => {
 
     if(dummyStock === undefined){ 
         return {
+            available,
             isOutOfStock: available <= 0,
             isDummyStock: available <= 0 && dummyStock === undefined
         }
     } 
 
     return {
+        available,
         isOutOfStock: available <= 0,
         isDummyStock: available <= 0 && totalAvailableDummyStock > 0 && quantityGTtotalAvailableDummyPurchaseStock || false,
     }
