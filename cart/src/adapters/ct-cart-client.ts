@@ -8,9 +8,12 @@ import { getAttributeValue } from '../utils/product-utils';
 import { UpdateAction } from '@commercetools/sdk-client-v2';
 import { LINE_ITEM_INVENTORY_MODES } from '../constants/lineItem.constant';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
+import CommercetoolsInventoryClient from '../adapters/ct-inventory-client'
 import { CustomCartWithCompared, CustomCartWithNotice, CustomLineItemHasChanged, HasChangedAction } from '../types/custom.types';
 import { createStandardizedError } from '../utils/error.utils';
 import { HttpStatusCode } from 'axios';
+import CommercetoolsMeCartClient from './me/ct-me-cart-client';
+import { validateInventory } from '../utils/cart.utils';
 
 
 
@@ -123,7 +126,7 @@ class CommercetoolsCartClient {
 			const isDifferentSkuConflict =
 				productId === existingId && variant.id !== variantId;
 			const isDifferentProductConflict =
-				productId !== existingId 
+				productId !== existingId
 
 			// Check conflicts in a clear sequence
 			if (isDummyToPhysicalCartConflict) {
@@ -144,7 +147,7 @@ class CommercetoolsCartClient {
 					statusMessage: 'Cannot add a different SKU to the dummy cart.',
 					errorCode: 'CONFLICT_SKU_IN_DUMMY_CART',
 				});
-			}else if((isProductPreOrder && isDifferentProductConflict)) {
+			} else if ((isProductPreOrder && isDifferentProductConflict)) {
 				throw createStandardizedError({
 					statusCode: HttpStatusCode.BadRequest,
 					statusMessage: 'Cannot add a different SKU to the dummy cart.',
@@ -191,7 +194,7 @@ class CommercetoolsCartClient {
 		};
 
 		const cartWithDummyFlag = await this.updateCart(cart.id, cart.version, [updateCustom])
-		const transformedCampaignVerifyValues = campaignVerifyValues.map((item:any) => JSON.stringify(item))
+		const transformedCampaignVerifyValues = campaignVerifyValues.map((item: any) => JSON.stringify(item))
 		const lineItemDraft: LineItemDraft = {
 			productId,
 			variantId,
@@ -258,7 +261,7 @@ class CommercetoolsCartClient {
 			.withProjectKey({ projectKey: this.projectKey })
 			.carts()
 			.withId({ ID: cartId })
-			.post({ body: cartUpdate , queryArgs: { expand: 'custom.fields.couponsInfomation'} })
+			.post({ body: cartUpdate, queryArgs: { expand: 'custom.fields.couponsInfomation' } })
 			.execute();
 
 		return response.body;
@@ -266,25 +269,25 @@ class CommercetoolsCartClient {
 
 	public async updateCartWithNewValue(oldCart: Cart): Promise<CustomCartWithCompared> {
 		const { id: cartId, version: cartVersion } = oldCart
-        const lineItems = oldCart.lineItems as CustomLineItemHasChanged[]
-        const lineItemHasChanged: Record<string, HasChangedAction> = {}
-        const updateLineItemQuantityPayload: CartChangeLineItemQuantityAction[] = []
+		const lineItems = oldCart.lineItems as CustomLineItemHasChanged[]
+		const lineItemHasChanged: Record<string, HasChangedAction> = {}
+		const updateLineItemQuantityPayload: CartChangeLineItemQuantityAction[] = []
 
 		const updateActions: CartUpdateAction[] = lineItems.map((lineItem: CustomLineItemHasChanged) => {
 			const { id, price, hasChangedAction } = lineItem
 
-            // check if line item has changed
-            if (hasChangedAction?.action === 'UPDATE_QUANTITY') {
-                const externalPrice = lineItem.price.value;
-                updateLineItemQuantityPayload.push({
-                    action: 'changeLineItemQuantity',
-                    lineItemId: id,
-                    quantity: hasChangedAction.updateValue,
-                    externalPrice,
-                })
-            } else if (hasChangedAction?.action === 'REMOVE_LINE_ITEM') {
-                lineItemHasChanged[id] = hasChangedAction
-            }
+			// check if line item has changed
+			if (hasChangedAction?.action === 'UPDATE_QUANTITY') {
+				const externalPrice = lineItem.price.value;
+				updateLineItemQuantityPayload.push({
+					action: 'changeLineItemQuantity',
+					lineItemId: id,
+					quantity: hasChangedAction.updateValue,
+					externalPrice,
+				})
+			} else if (hasChangedAction?.action === 'REMOVE_LINE_ITEM') {
+				lineItemHasChanged[id] = hasChangedAction
+			}
 
 			return {
 				action: 'setLineItemPrice',
@@ -301,11 +304,11 @@ class CommercetoolsCartClient {
 			actions: updateActions
 		};
 
-        let updatedCart: Cart = await this.updatePrice(cartId, cartUpdate)
+		let updatedCart: Cart = await this.updatePrice(cartId, cartUpdate)
 
-        if (updateLineItemQuantityPayload.length > 0) {
-            updatedCart = await this.updateCart(updatedCart.id, updatedCart.version, updateLineItemQuantityPayload)
-        }
+		if (updateLineItemQuantityPayload.length > 0) {
+			updatedCart = await this.updateCart(updatedCart.id, updatedCart.version, updateLineItemQuantityPayload)
+		}
 
 		const recalculatedCart = await this.recalculateCart(updatedCart.id, updatedCart.version)
 		const validateProduct = await this.validateDateItems(recalculatedCart, lineItemHasChanged)
@@ -383,14 +386,14 @@ class CommercetoolsCartClient {
 
 			if (!isValidPeriod || status.key === 'disabled') {
 				itemForRemove.push(lineItem)
-			} 
+			}
 
-            if (lineItemHasChanged[lineItem.id]) {
-                const hasChanged = lineItemHasChanged[lineItem.id]
-                if (hasChanged.action === 'REMOVE_LINE_ITEM') {
-                    itemForRemove.push(lineItem)
-                }
-            }
+			if (lineItemHasChanged[lineItem.id]) {
+				const hasChanged = lineItemHasChanged[lineItem.id]
+				if (hasChanged.action === 'REMOVE_LINE_ITEM') {
+					itemForRemove.push(lineItem)
+				}
+			}
 
 			return {
 				...lineItem, parentQuantity, hasChanged: {
@@ -398,7 +401,7 @@ class CommercetoolsCartClient {
 				}
 			}
 		})
-        
+
 		if (itemForRemove.length > 0) {
 			const removeActions: UpdateAction[] = itemForRemove.map(item => {
 				return {
@@ -414,64 +417,121 @@ class CommercetoolsCartClient {
 	}
 
 	public async validateProductIsPublished(ctCart: Cart): Promise<CustomCartWithNotice> {
-
 		const { lineItems, version, id } = ctCart;
+		let notice = "";
 
-		// If no line items, return early or handle accordingly
+		// 1. Early exit if no line items
 		if (!lineItems || lineItems.length === 0) {
-			return { ctCart, notice: '' }
+			return { ctCart, notice };
 		}
 
-		// Extract productIds from lineItems and remove duplicates
-		const productIds = [...new Set(lineItems.map((lineItem: LineItem) => lineItem.productId))];
+		// 2. Fetch products from Commercetools
+		const productIds = [...new Set(lineItems.map((lineItem) => lineItem.productId))];
+		const productResponse = await CommercetoolsProductClient.getProductsByIds(productIds);
 
-		// Fetch products from Commercetools
-		const response = await CommercetoolsProductClient.getProductsByIds(productIds);
 
-		if (!response) {
-			throw new Error('Products not found in Commercetools response.');
+		if (!productResponse) {
+			throw new Error("Products not found in Commercetools response.");
 		}
 
-		const products = response.body.results || [];
-
-		// Create a Map for faster lookups: productId -> product
+		const products = productResponse.body.results || [];
 		const productMap = new Map(products.map((p) => [p.id, p]));
 
-		// Map over line items and set isPublished
-		// Throw an error (or handle as needed) if product is missing
-		const updatedLineItems = lineItems.map((lineItem: LineItem) => {
+		// 3. Fetch and map inventory
+		const skus = lineItems.map((lineItem) => lineItem.variant.sku);
+		const inventoryKey = skus.join(",");
+		const inventories = await CommercetoolsInventoryClient.getInventory(inventoryKey);
+
+		// 4. Prepare arrays for actions
+		const itemsForRemoval: LineItem[] = [];
+		const itemsForUpdate: LineItem[] = [];
+
+		// 5. Check each line item
+		for (const lineItem of lineItems) {
 			const product = productMap.get(lineItem.productId);
+			const isProductPublished = product?.priceMode ?? false;
+			const isPreOrder = lineItem.custom?.fields.isPreOrder;
 
-			return {
-				...lineItem,
-				isPublished: product ? product.published : false,
-			};
-		});
+			const matchedInventory = inventories.find((inv: any) => inv.sku === lineItem.variant.sku);
+			const { isDummyStock, isOutOfStock, available } = validateInventory(matchedInventory);
 
-		// Identify items that are NOT published (including when isPublished is undefined)
-		const itemsForRemoval = updatedLineItems.filter((item) => !(item.isPublished ?? false));
 
-		// If there are no items to remove, return as is
-		if (itemsForRemoval.length === 0) {
-			return { ctCart, notice: '' };
+
+			// A. Not published ⇒ remove
+			if (!isProductPublished) {
+				notice = "The cart items have changed; some items have been removed, and the course items have been unpublished.";
+				itemsForRemoval.push(lineItem);
+				continue;
+			}
+
+			// B. Not preOrder but dummy/out-of-stock ⇒ remove
+			if (!isPreOrder && isDummyStock && isOutOfStock) {
+				notice = "The items in the cart have changed; some have been removed, and the stock type has been updated.";
+				itemsForRemoval.push(lineItem);
+				continue;
+			}
+
+			// C. Is preOrder but not out-of-stock or dummy ⇒ update
+			if (isPreOrder && !isOutOfStock && !isDummyStock) {
+
+				// D. Is out-of-stock or quantity more than available
+				if (lineItem.quantity > available) {
+					itemsForRemoval.push(lineItem);
+					notice = "The items in the cart have changed; some have been removed, and insufficient stock item in cart > available";
+					continue;
+				}
+
+				itemsForUpdate.push(lineItem);
+				notice = "Cart change type from Dummy to physical.";
+			}
+
+
 		}
 
-		// Build the remove actions
-		const removeActions: UpdateAction[] = itemsForRemoval.map((item) => ({
-			action: 'removeLineItem',
-			lineItemId: item.id,
-		}));
+		// 6. If there are items to remove, remove them
+		if (itemsForRemoval.length > 0) {
+			const removeActions: UpdateAction[] = itemsForRemoval.map((item) => ({
+				action: "removeLineItem",
+				lineItemId: item.id,
+			}));
 
-		// Execute removals and update the cart
-		const updatedCart = await this.removeItem(version, id, removeActions);
+			const updatedCart = await this.removeItem(version, id, removeActions);
+			return { ctCart: updatedCart, notice };
+		}
 
-		// Add a user-facing notice
-		const notice = 'Cart items have changed; some items removed due to unavailability.';
+		// 7. If there are items to update, update them
+		if (itemsForUpdate.length > 0) {
 
-		// Return the updated cart along with a notice
-		return { ctCart: updatedCart, notice };
+			const updateActions: MyCartUpdateAction[] = [];
 
+			itemsForUpdate.forEach(lineItem => {
+				const action: MyCartUpdateAction = {
+					action: 'setLineItemCustomField',
+					lineItemId: lineItem.id,
+					name: 'isPreOrder',
+					value: false,
+				};
+
+				updateActions.push(action)
+			})
+
+			const updateCustom: CartSetCustomFieldAction = {
+				action: "setCustomField",
+				name: "preOrder",
+				value: false,
+			};
+
+			updateActions.push(updateCustom)
+
+			const cartWithDummyFlag = await this.updateCart(id, version, updateActions);
+
+			return { ctCart: cartWithDummyFlag, notice };
+		}
+
+		// 8. Otherwise, return original cart with no notice
+		return { ctCart, notice: "" };
 	}
+
 
 	public async validateAndRemoveSku(ctCart: Cart): Promise<Cart> {
 
@@ -523,7 +583,7 @@ class CommercetoolsCartClient {
 
 	}
 
-	public async updateCartWithOperator(oldCart: Cart, operator : string): Promise<Cart> {
+	public async updateCartWithOperator(oldCart: Cart, operator: string): Promise<Cart> {
 		const { id: cartId, version: cartVersion } = oldCart
 		const updateActions: CartUpdateAction[] = [];
 		const updateCustomField: CartSetCustomFieldAction = {
@@ -535,6 +595,8 @@ class CommercetoolsCartClient {
 
 		return await this.updateCart(cartId, cartVersion, updateActions);
 	}
+
+
 }
 
 export default CommercetoolsCartClient.getInstance();

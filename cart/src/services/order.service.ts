@@ -163,15 +163,36 @@ export class OrderService {
             }
 
             const tableName = `true-ecommerce-order-history-${readConfiguration().appEnv}`
-            const records = await dynamoClient.scanItem({
-                tableName: tableName,
-                filterExpression: 'orderNumber = :orderNumber',
-                expressionAttributeValues: {
-                    ':orderNumber': marshall(orderNumber)
-                }
-            })
+            let evaluate: Record<string, AttributeValue> | undefined = undefined
+            const items = []
 
-            if (!records || !records.Items || records.Items.length === 0) {
+            // NOTE - loop until lastEvaluatedKey is null (dynamodb pagination) 
+            do {
+                const records = await dynamoClient.scanItem({
+                    tableName: tableName,
+                    filterExpression: '#orderNumber = :orderNumber',
+                    expressionAttributeNames: {
+                        '#orderNumber': 'orderNumber',
+                    },
+                    expressionAttributeValues: { 
+                        ':orderNumber': marshall(orderNumber)
+                    },
+                    exclusiveStartKey: evaluate
+                })
+
+                if (!records) {
+                    throw createStandardizedError({
+                        statusCode: HTTP_STATUSES.NOT_FOUND,
+                        statusMessage: 'Order history not found.',
+                    }, 'getOrderHistory');
+                }
+                items.push(...records?.Items || [])
+
+                evaluate = records?.LastEvaluatedKey
+            } while(evaluate) 
+
+
+            if (!items|| items.length === 0) {
                 throw createStandardizedError({
                     statusCode: HTTP_STATUSES.NOT_FOUND,
                     statusMessage: 'Order history not found.',
@@ -179,7 +200,7 @@ export class OrderService {
             }
 
             const statesProcessing: OrderHistoryItem[] = []
-            records.Items.forEach((item) => {
+            items.forEach((item) => {
                 const _item = unmarshall(item) as OrderHistoryItem
                 if (_item.fieldChanged === 'order_state_transition' && _item.currentStateId) {
                     statesProcessing.push(_item)
@@ -187,7 +208,7 @@ export class OrderService {
             })
             const states = await this.getAllOrderStates(statesProcessing)
 
-            const results = this.formatOrderHistory(records.Items, states, sort, lang)
+            const results = this.formatOrderHistory(items, states, sort, lang)
             return results
         } catch (error: any) {
             // TODO: Handle more error
