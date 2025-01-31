@@ -994,7 +994,7 @@ class TalonOneEffectConverter {
 					...remainingMaxItem,
 					[productType]: {
 						...remainingMaxItem[productType],
-						[benefitGroup]: remainingMaxItem[productType][benefitGroup] - quantity,
+						[benefitGroup]: (remainingMaxItem[productType][benefitGroup] || 0) - quantity,
 					}
 				}
 			}
