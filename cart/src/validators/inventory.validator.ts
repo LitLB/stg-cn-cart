@@ -16,7 +16,7 @@ export class InventoryValidator {
         sku: string,
         finalDesiredQty: number,
         journey: CART_JOURNEYS,
-        existingQtyInCart?: number
+        existingQtyInCart?: number,
     ): Promise<void> {
         // 1) If no inventory config, skip
         const journeyConfig = journeyConfigMap[journey];
@@ -71,15 +71,28 @@ export class InventoryValidator {
         cart: Cart,
         sku: string,
         requestedQty: number,
-        journey: CART_JOURNEYS
+        journey: CART_JOURNEYS,
+        isCampaignFlow?: boolean
     ) {
         let existingQty = 0;
         const supplyChannelId = readConfiguration().ctpSupplyChannel;
         const lineItem = InventoryUtils.findLineItem(cart, sku, supplyChannelId);
         if (lineItem) existingQty = lineItem.quantity;
 
-        const finalDesiredQty = existingQty + requestedQty;
-        await InventoryValidator.validateLineItemStock(cart, sku, finalDesiredQty, journey, existingQty);
+        
+        try {
+            const finalDesiredQty = existingQty + requestedQty;
+            await InventoryValidator.validateLineItemStock(cart, sku, finalDesiredQty, journey, existingQty);
+        } catch (error: any) {
+            if (isCampaignFlow) {
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: error.message,
+                }, 'Campaign.InventoryValidator.validateLineItemStock');
+            }
+
+            throw error;
+        } 
     }
 
     /**
