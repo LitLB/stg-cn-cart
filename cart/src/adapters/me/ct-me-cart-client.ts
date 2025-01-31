@@ -628,10 +628,9 @@ export default class CommercetoolsMeCartClient {
  * @returns The total price of custom line items.
  */
 	private calculateCustomLineItemsTotalPrice(customLineItems: CustomLineItem[]): number {
-		return customLineItems.reduce(
-			(total, cli) => total + cli.totalPrice.centAmount,
-			0
-		);
+		return customLineItems
+			.filter((item:any) => !item.slug.includes(this.ctpAddCustomOtherPaymentLineItemPrefix))
+			.reduce((total, cli) => total + cli.totalPrice.centAmount, 0);
 	}
 
 	/**
@@ -639,6 +638,9 @@ export default class CommercetoolsMeCartClient {
 	 * @param ctCart - The Commercetools Cart object.
 	 */
 	mapCartToICart(ctCart: Cart): ICart {
+		// Process customLineItems (e.g., cart-level discounts)
+		const customLineItems = ctCart.customLineItems || [];
+
 		const items: IItem[] = [...ctCart.lineItems]
 			.sort((a: LineItem, b: LineItem) => {
 				const productGroupA = a.custom?.fields?.productGroup || 0;
@@ -665,7 +667,8 @@ export default class CommercetoolsMeCartClient {
 				const image = this.getVariantImage(lineItem);
 				const totalUnitPrice = lineItem.price.value.centAmount * lineItem.quantity;
 				const discountAmount = this.calculateTotalDiscountAmount(lineItem);
-				const priceAfterDiscount = lineItem.totalPrice.centAmount;
+				const otherPaymentAmount = this.calculateLineItemOtherPaymentAmount(lineItem, customLineItems);
+				const priceAfterDiscount = lineItem.totalPrice.centAmount - otherPaymentAmount;
 
 				const item: IItem = {
 					productId: lineItem.productId,
@@ -684,6 +687,7 @@ export default class CommercetoolsMeCartClient {
 					unitPrice: lineItem.price.value.centAmount,
 					totalUnitPrice,
 					discountAmount,
+					otherPaymentAmount,
 					priceAfterDiscount,
 					finalPrice: priceAfterDiscount,
 					appliedEffects: [],
@@ -707,9 +711,6 @@ export default class CommercetoolsMeCartClient {
 			(total, item) => total + item.priceAfterDiscount,
 			0
 		);
-
-		// Process customLineItems (e.g., cart-level discounts)
-		const customLineItems = ctCart.customLineItems || [];
 
 		// Use the new function to calculate the total price of custom line items
 		const customLineItemsTotalPrice = this.calculateCustomLineItemsTotalPrice(customLineItems);
@@ -788,6 +789,19 @@ export default class CommercetoolsMeCartClient {
 			);
 			return totalDiscount + unitDiscount * quantity.quantity;
 		}, 0);
+	}
+
+	calculateLineItemOtherPaymentAmount(lineItem: any, customLineItems: any[]) {
+		const lineItemId = lineItem.id
+		this.ctpAddCustomOtherPaymentLineItemPrefix
+		const otherPaymentCustomLineItems = 
+			customLineItems.filter((item:any) => item.slug.startsWith(`${lineItemId}-${this.ctpAddCustomOtherPaymentLineItemPrefix}`))
+		
+		const lineItemOtherPaymentAmount = otherPaymentCustomLineItems.reduce((acc: number, current: any) => {
+			return acc + Math.abs(current?.money?.centAmount)
+		}, 0)
+
+		return lineItemOtherPaymentAmount
 	}
 
 	async resetCartItemProductGroup(ctCart: Cart) {

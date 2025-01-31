@@ -57,10 +57,11 @@ export interface IItem {
 	unitPrice: number;
 	totalUnitPrice: number;
 	discountAmount: number;
-	priceAfterDiscount: number;
+	otherPaymentAmount: number;
+	priceAfterDiscount: number; // 245 + 5 (tax)
 	// vatRate: string;
 	// vatAmount: number;
-	finalPrice: number;
+	finalPrice: number; // 250 (included tax)
 	appliedEffects?: any[];
 	attributes: Attribute[];
 	selected: boolean;
