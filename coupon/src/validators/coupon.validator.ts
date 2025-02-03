@@ -8,6 +8,7 @@ import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client
 
 export async function validateCouponLimit(
 	applyCouponsQuantity: number,
+	removeCoupnsQuantity = 0 
 ): Promise<void | ApiResponse> {
 
 
@@ -24,7 +25,7 @@ export async function validateCouponLimit(
 	}
 
     // Validate coupon limit < applyCouponQuantity
-    if (couponLimitConfig.limitCoupon < applyCouponsQuantity) {
+    if (couponLimitConfig.limitCoupon < applyCouponsQuantity && removeCoupnsQuantity === 0) {
         logger.info(`'Coupon limit ${couponLimitConfig.limitCoupon} error : exceeded limit`);
         throw {
             statusCode: HTTP_STATUSES.BAD_REQUEST,

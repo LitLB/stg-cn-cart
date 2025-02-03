@@ -34,7 +34,7 @@ export class CouponService {
             const removeCouponCodes = body.removeCouponCodes || [];
 
             // Validate coupon limit
-            const validateError = await validateCouponLimit(couponCodes.length);
+            const validateError = await validateCouponLimit(couponCodes.length, removeCouponCodes.length);
 
             if (validateError) {
                 throw validateError;
