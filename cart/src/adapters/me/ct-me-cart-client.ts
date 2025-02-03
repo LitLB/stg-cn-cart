@@ -796,9 +796,8 @@ export default class CommercetoolsMeCartClient {
 		this.ctpAddCustomOtherPaymentLineItemPrefix
 		const otherPaymentCustomLineItems = 
 			customLineItems.filter((item:any) => item.slug.startsWith(`${lineItemId}-${this.ctpAddCustomOtherPaymentLineItemPrefix}`))
-		
 		const lineItemOtherPaymentAmount = otherPaymentCustomLineItems.reduce((acc: number, current: any) => {
-			return acc + Math.abs(current?.money?.centAmount)
+			return acc + Math.abs(current?.totalPrice?.centAmount)
 		}, 0)
 
 		return lineItemOtherPaymentAmount
@@ -1004,28 +1003,24 @@ export default class CommercetoolsMeCartClient {
 					const existingOtherPaymentCustomLineItem = otherPaymentCustomLineItems.find((item: any) => item.slug.startsWith(slug))
 	
 					if (existingOtherPaymentCustomLineItem) {
-						const existingOtherPaymentAmount = existingOtherPaymentCustomLineItem.money.centAmount;
-	
-						if (existingOtherPaymentAmount !== otherPaymentAmt) {
-							const changeCustomLineItemMoney: CartChangeCustomLineItemMoneyAction = {
-								action: 'changeCustomLineItemMoney',
-								customLineItemId: existingOtherPaymentCustomLineItem.id,
-								money: {
-									centAmount: -1 * otherPaymentAmt,
-									currencyCode,
-								},
-							};
-	
-							const changeCustomLineItemQuantity: CartChangeCustomLineItemQuantityAction = {
-								action: 'changeCustomLineItemQuantity',
-								customLineItemId: existingOtherPaymentCustomLineItem.id,
-								quantity
-							};
-							cartUpdateActions.push(...[
-								changeCustomLineItemMoney,
-								changeCustomLineItemQuantity
-							]);
-						}
+						const changeCustomLineItemMoney: CartChangeCustomLineItemMoneyAction = {
+							action: 'changeCustomLineItemMoney',
+							customLineItemId: existingOtherPaymentCustomLineItem.id,
+							money: {
+								centAmount: -1 * otherPaymentAmt,
+								currencyCode,
+							},
+						};
+						const changeCustomLineItemQuantity: CartChangeCustomLineItemQuantityAction = {
+							action: 'changeCustomLineItemQuantity',
+							customLineItemId: existingOtherPaymentCustomLineItem.id,
+							quantity
+						};
+
+						cartUpdateActions.push(...[
+							changeCustomLineItemMoney,
+							changeCustomLineItemQuantity
+						]);
 					} else {
 						const customLineItem: CartAddCustomLineItemAction = {
 							action: 'addCustomLineItem',
