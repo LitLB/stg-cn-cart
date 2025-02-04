@@ -35,7 +35,6 @@ import { CartValidator } from '../validators/cart.validator';
 import { COUPON_INFO_CONTAINER } from '../constants/ct.constant';
 import { InventoryValidator } from '../validators/inventory.validator';
 import { InventoryService } from './inventory.service';
-import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { validateInventory } from '../utils/cart.utils';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit } from '../validators/coupon.validator';
@@ -54,26 +53,43 @@ export class CartService {
         this.inventoryService = new InventoryService()
     }
 
-    async test(accessToken: string, id: string, body: any): Promise<any> {
+    async getCurrentAndUpdatedCouponEffects(accessToken: string, id: string, body: any): Promise<any> {
         try {
             const { cartId } = body;
-            const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(cartId);
+            
+            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
-            const processCouponEffectsV2 = this.talonOneCouponAdapter.processCouponEffectsV2(talonEffects);
-            // console.log('processCouponEffects', processCouponEffects);
+            const ctCart = await commercetoolsMeCartClient.getCartById(cartId);
+            const customerSession = await talonOneIntegrationAdapter.getCustomerSession(cartId);
 
-            return processCouponEffectsV2;
+            // Get Current Effects
+            const currentProcessedCouponEffects = this.talonOneCouponAdapter.processCouponEffectsV2(customerSession.effects);
+            console.log('currentProcessedCouponEffects', currentProcessedCouponEffects);
+
+            // Get Updated Effects
+            const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
+                profileId: cartId,
+                ctCartData: ctCart,
+                couponCodes: currentProcessedCouponEffects.couponCodes,
+            });
+            const updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(
+                cartId,
+                customerSessionPayload
+            );
+            const updatedProcessedCouponEffects = this.talonOneCouponAdapter.processCouponEffectsV2(updatedCustomerSession.effects);
+            console.log('updatedProcessedCouponEffects', updatedProcessedCouponEffects);
+
+            return { currentProcessedCouponEffects, updatedProcessedCouponEffects };
         } catch (error: any) {
+            console.log('error', error);
+
             if (error.status && error.message) {
                 throw error;
             }
 
             throw createStandardizedError(
-                {
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'Some coupons were rejected during processing.',
-                },
-                'removeUnselectedItems'
+                error,
+                'getCurrentAndUpdatedCouponEffects'
             );
         }
     }

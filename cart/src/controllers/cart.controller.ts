@@ -24,12 +24,12 @@ export class CartController {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
 
-            const updatedCart = await this.cartService.test(accessToken, id, req.body);
+            const test = await this.cartService.getCurrentAndUpdatedCouponEffects(accessToken, id, req.body);
 
             const response: ApiResponse = {
                 statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.SUCCESS,
-                data: updatedCart,
+                data: test,
             };
 
             res.status(200).json(response);
