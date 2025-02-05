@@ -395,10 +395,10 @@ export class CartService {
                 };
 
                 await CommercetoolsCustomObjectClient.addPaymentTransaction(cartWithCheckPublicPublish.id, paymentTransaction);
-            } else if (ctCart?.totalPrice?.centAmount == 0){
+            } else if (!payment?.key && ctCart?.totalPrice?.centAmount <= 0){
                 const paymentTransaction = {
                     paymentOptionContainer: 'paymentOptions',
-                    paymentOptionKey: '', // e.g., 'installment', 'ccw', etc.
+                    paymentOptionKey: 'nopayment', // e.g., 'installment', 'ccw', etc.
                     source: null,
                     token: null,
                     additionalData: null,
