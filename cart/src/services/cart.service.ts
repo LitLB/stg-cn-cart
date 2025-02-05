@@ -383,14 +383,25 @@ export class CartService {
                     },
                 });
             }
-
-            if (payment && payment?.key) {
+            
+            if (payment && payment?.key) { // no payment
                 const paymentTransaction = {
                     paymentOptionContainer: 'paymentOptions',
                     paymentOptionKey: payment.key, // e.g., 'installment', 'ccw', etc.
                     source: payment?.source || null,
                     token: payment?.token || null,
                     additionalData: payment?.additionalData || null,
+                    createdAt: new Date().toISOString(),
+                };
+
+                await CommercetoolsCustomObjectClient.addPaymentTransaction(cartWithCheckPublicPublish.id, paymentTransaction);
+            } else if (ctCart?.totalPrice?.centAmount == 0){
+                const paymentTransaction = {
+                    paymentOptionContainer: 'paymentOptions',
+                    paymentOptionKey: '', // e.g., 'installment', 'ccw', etc.
+                    source: null,
+                    token: null,
+                    additionalData: null,
                     createdAt: new Date().toISOString(),
                 };
 
