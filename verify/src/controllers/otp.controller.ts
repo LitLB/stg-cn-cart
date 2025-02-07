@@ -1,0 +1,49 @@
+import { NextFunction, Request, Response } from "express";
+import { OtpService } from "../services/otp.service";
+import { logger } from "../utils/logger.utils";
+import { HTTP_MESSAGE, HTTP_STATUSES } from "../constants/http.constant";
+
+export class OtpController {
+    private readonly otpService: OtpService;
+
+    constructor() {
+        this.otpService = new OtpService();
+        this.requestOtp = this.requestOtp.bind(this);
+        this.verifyOtp = this.verifyOtp.bind(this);
+    }
+
+    public async requestOtp(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { mobileNumber } = req.query;
+
+            if (!mobileNumber || typeof mobileNumber !== "string") {
+                return res.status(400).send({
+                    statusCode: "400",
+                    statusMessage: "Mobile number is required and must be a string",
+                });
+            }
+
+            const responseBody = await this.otpService.requestOtp(mobileNumber);
+
+            res.status(200).send({
+                statusCode: HTTP_STATUSES.OK,
+                statusMessage: HTTP_MESSAGE.OK,
+                data: responseBody
+            });
+
+        } catch (err) {
+            logger.error(`OtpController.requestOtp.error`, JSON.stringify(err, null, 2));
+            next(err);
+        }
+    }
+
+    public async verifyOtp(req: Request, res: Response, next: NextFunction) {
+        try {
+            // Your OTP verification logic here
+            res.status(200).send({ message: "Verify OTP" });
+        } catch (err) {
+            logger.error(`OtpController.verifyOtp.error`, err);
+            next(err);
+        }
+    }
+}
