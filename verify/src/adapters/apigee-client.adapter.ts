@@ -2,14 +2,18 @@ import axios, { AxiosResponse } from 'axios'
 import { readConfiguration } from "../utils/config.utils";
 import { generateTransactionId } from '../utils/date.utils';
 import moment from 'moment';
+import * as crypto from 'crypto';
+
 
 class ApigeeClientAdapter {
     private readonly client: any
     private readonly apigeeConfig: any
     private accessToken: any
+    private readonly config: any
     constructor() {
         this.apigeeConfig = readConfiguration().apigee
         this.client = axios.create({ baseURL: this.apigeeConfig.baseUrl })
+        this.config = readConfiguration()
     }
 
     async init() {
@@ -41,31 +45,72 @@ class ApigeeClientAdapter {
 
     }
 
+    async apigeeDecrypt(encryptedInput: string) {
+        const ivSize = 16; // IV size in bytes
+        const key = this.config.apigee.privateKeyEncryption;
 
-    async saveOrderOnline(body: any) {
-        await this.init()
-        const headers = {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.accessToken}`,
-        };
 
-        const url = 'productOrdering/v3/saveOrder';
-        const response: AxiosResponse = await this.client.post(
-            `${url}`,
-            body,
-            { headers }
-        );
+        // Decode the Base64 input to get the combined IV and encrypted text
+        const encryptedIvAndText = Buffer.from(encryptedInput, 'base64');
 
-        return response.data;
+        // Extract the IV from the first 16 bytes
+        const iv = encryptedIvAndText.slice(0, ivSize);
+
+        // Extract the encrypted text (everything after the IV)
+        const encryptedText = encryptedIvAndText.slice(ivSize);
+
+        // Derive the same truncated key used for encryption.
+        // Note: The encryption function uses the length of the key string as the key size.
+
+
+        const keySize = key.length;
+        const keyHash = crypto.createHash('sha256').update(key).digest();
+        const truncatedKey = keyHash.slice(0, keySize);
+
+        // Create the decipher using the same algorithm, key, and IV
+        const decipher = crypto.createDecipheriv('aes-256-cbc', truncatedKey, iv);
+
+        // Decrypt the data and concatenate any remaining buffered bytes
+        const decryptedBuffer = Buffer.concat([
+            decipher.update(encryptedText),
+            decipher.final(),
+        ]);
+
+        // Return the decrypted text as a UTF-8 string
+        return decryptedBuffer.toString('utf-8');
+    }
+
+    async apigeeEncrypt(input: string) {
+        const ivSize = 16; // Size of IV
+        const key = this.config.apigee.privateKeyEncryption;
+        const keySize = key.length;
+
+        // Generate a random IV
+        const iv = crypto.randomBytes(ivSize);
+
+        // Hash the key using SHA-256 and truncate to the key size
+        const keyHash = crypto.createHash('sha256').update(key).digest();
+        const truncatedKey = keyHash.slice(0, keySize);
+
+        // Create the cipher
+        const cipher = crypto.createCipheriv('aes-256-cbc', truncatedKey, iv);
+
+        // Encrypt the input and concatenate with the IV
+        const encrypted = Buffer.concat([cipher.update(input, 'utf-8'), cipher.final()]);
+
+        // Combine IV and encrypted data
+        const encryptedIvAndText = Buffer.concat([iv, encrypted]);
+
+        // Return the Base64 encoded result
+        return encryptedIvAndText.toString('base64');
     }
 
     async requestOTP(phoneNumber: string) {
         await this.init()
-
         const transactionId = generateTransactionId()
-
         const sendTime = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
 
+        const decryptedMobile = await this.apigeeDecrypt(phoneNumber)
 
         const headers = {
             'Content-Type': 'application/json',
@@ -75,25 +120,21 @@ class ApigeeClientAdapter {
 
         const url = '/communicationMessage/v1/generateOTP';
 
-
-
         const response: AxiosResponse = await this.client.post(`${url}`, {
             id: transactionId,
             sendTime: sendTime,
-            description: "TH",
-            channel: "true",
-            code: "220594",
+            description: "TH", // * FIX
+            channel: "true", // * FIX
+            code: "220594", // * PENDING TO CONFIRM
             receiver: [
                 {
-                    phoneNumber: "phoneNumber",
+                    phoneNumber: decryptedMobile,
                     relatedParty: {
-                        id: "VC-ECOM"
+                        id: "VC-ECOM" // * CONFIRM ??
                     }
                 }
             ]
         }, { headers });
-
-
         return response.data;
     }
 
