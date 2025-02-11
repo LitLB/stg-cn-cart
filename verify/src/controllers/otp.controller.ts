@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { OtpService } from "../services/otp.service";
-import { logger } from "../utils/logger.utils";
+import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
 import { HTTP_MESSAGE, HTTP_STATUSES } from "../constants/http.constant";
+import { LOG_APPS } from "../constants/log.constant";
 
 export class OtpController {
     private readonly otpService: OtpService;
@@ -13,7 +14,13 @@ export class OtpController {
     }
 
     public async requestOtp(req: Request, res: Response, next: NextFunction) {
+        const logModel = createLogModel(LOG_APPS.VERIFY);
+        logModel.start_date = new Date().toISOString();
+
         try {
+
+            LogModel.initialize(logModel);
+
             const { mobileNumber } = req.query;
 
             if (!mobileNumber || typeof mobileNumber !== "string") {
@@ -25,14 +32,17 @@ export class OtpController {
 
             const responseBody = await this.otpService.requestOtp(mobileNumber);
 
+
             res.status(200).send({
                 statusCode: HTTP_STATUSES.OK,
                 statusMessage: HTTP_MESSAGE.OK,
                 data: responseBody
             });
 
+
+
         } catch (err) {
-            logger.error(`OtpController.requestOtp.error`, JSON.stringify(err, null, 2));
+            logService(req, err, logModel);
             next(err);
         }
     }

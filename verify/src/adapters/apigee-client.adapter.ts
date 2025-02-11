@@ -3,6 +3,8 @@ import { readConfiguration } from "../utils/config.utils";
 import { generateTransactionId } from '../utils/date.utils';
 import moment from 'moment';
 import * as crypto from 'crypto';
+import { logger } from '../utils/logger.utils';
+import { Transaction } from '../interfaces/otp.interface';
 
 
 class ApigeeClientAdapter {
@@ -105,13 +107,8 @@ class ApigeeClientAdapter {
         return encryptedIvAndText.toString('base64');
     }
 
-    async requestOTP(phoneNumber: string) {
+    async requestOTP(body: Transaction) {
         await this.init()
-        const transactionId = generateTransactionId()
-        const sendTime = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
-
-        const decryptedMobile = await this.apigeeDecrypt(phoneNumber)
-
         const headers = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${this.accessToken}`,
@@ -120,21 +117,8 @@ class ApigeeClientAdapter {
 
         const url = '/communicationMessage/v1/generateOTP';
 
-        const response: AxiosResponse = await this.client.post(`${url}`, {
-            id: transactionId,
-            sendTime: sendTime,
-            description: "TH", // * FIX
-            channel: "true", // * FIX
-            code: "220594", // * PENDING TO CONFIRM
-            receiver: [
-                {
-                    phoneNumber: decryptedMobile,
-                    relatedParty: {
-                        id: "VC-ECOM" // * CONFIRM ??
-                    }
-                }
-            ]
-        }, { headers });
+        const response: AxiosResponse = await this.client.post(`${url}`, body, { headers });
+
         return response.data;
     }
 

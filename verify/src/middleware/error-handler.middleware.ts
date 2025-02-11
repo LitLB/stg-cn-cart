@@ -29,8 +29,9 @@ export const errorHandler = (
         data: err.data,
     });
 
+
     // Set default values if not provided
-    const statusCode = err.statusCode || 500;
+    const statusCode = err.statusCode  || 500;
     const statusMessage = err.message;
     const errorCode = err.errorCode || 'UNKNOWN_ERROR_CODE';
     const data = err.data || null;
