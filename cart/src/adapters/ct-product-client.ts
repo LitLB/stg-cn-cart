@@ -326,21 +326,27 @@ class CommercetoolsProductClient {
                     maximumStockAllocation = matchedInventory.custom.fields[journeyConfig.inventory.maximumKey];
                     const totalPurchase: number = matchedInventory.custom.fields[journeyConfig.inventory.totalKey] || 0
                     // use min value of stock
-                    stockAvailable = maximumStockAllocation !== undefined ? Math.min(stockAvailable, maximumStockAllocation): stockAvailable
-    
+                    if (maximumStockAllocation !== undefined && maximumStockAllocation > 0) {
+                        const maximumStockAllocationAvailable = maximumStockAllocation - totalPurchase
+                        stockAvailable = Math.min(maximumStockAllocationAvailable, stockAvailable)
+                    }
+
                     if (stockAvailable <= 0) {
                         hasChangedAction.action = 'REMOVE_LINE_ITEM'
+                        quantityOverStock = true
                     } else if ((maximumStockAllocation !== undefined && maximumStockAllocation !== 0) && quantity > stockAvailable) {
                         // update quantity if stock allocation less than quantity
-                        quantityOverStock = true
                         hasChangedAction.action = 'UPDATE_QUANTITY'
-                        hasChangedAction.updateValue = maximumStockAllocation
+                        hasChangedAction.updateValue = stockAvailable
+                        quantityOverStock = true
                     } else if (maximumStockAllocation !== undefined) {
                         // remove if maximumStockAllocation is set to 0 or totalPurchase is less than or equal to maximumStockAllocation
                         if (maximumStockAllocation === 0) {
                             hasChangedAction.action = 'REMOVE_LINE_ITEM'
+                            quantityOverStock = true
                         } else if ((totalPurchase >= maximumStockAllocation)) {
                             hasChangedAction.action = 'REMOVE_LINE_ITEM'
+                            quantityOverStock = true
                         }
                     }
                 }
