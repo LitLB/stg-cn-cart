@@ -5,6 +5,10 @@ import * as path from 'path';
 import ApigeeClientAdapter from "../adapters/apigee-client.adapter";
 import { readConfiguration } from "../utils/config.utils";
 import { getOTPReferenceCodeFromArray } from "../utils/array.utils";
+import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
+import { error } from "console";
+import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
+import { generateTransactionId } from "../utils/date.utils";
 
 export class OtpService {
 
@@ -15,16 +19,42 @@ export class OtpService {
     }
 
     public async requestOtp(phoneNumber: string) {
+        const logModel = LogModel.getInstance();
+        logModel.start_date = moment().toISOString();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_REQUEST_OTP, logModel);
         try {
-
             const apigeeClientAdapter = new ApigeeClientAdapter
-            const apigeeResponse = await apigeeClientAdapter.requestOTP(phoneNumber)
+
+            const transactionId = generateTransactionId()
+            const sendTime = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
+
+            const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
+
+            const body = {
+                id: transactionId,
+                sendTime: sendTime,
+                description: "TH", // * FIX
+                channel: "true", // * FIX
+                code: "220594", // * PENDING TO CONFIRM
+                receiver: [
+                    {
+                        phoneNumber: decryptedMobile,
+                        relatedParty: {
+                            id: "VC-ECOM" // * CONFIRM ??
+                        }
+                    }
+                ]
+            }
+
+            const response = await apigeeClientAdapter.requestOTP(body)
+
+            logService(body, response, logStepModel);
 
             const otpNumberMinuteExpire = parseInt(this.config.otp.expireTime)
             const otpNumberSecondResend = parseInt(this.config.otp.resendTime)
 
-            const expireAt = moment(apigeeResponse.sendCompleteTime).add(otpNumberMinuteExpire, 'minutes').format('YYYY-MM-DDTHH:MM:SS+07:00')
-            const refCode = getOTPReferenceCodeFromArray(apigeeResponse.characteristic) ?? "Invalid"
+            const expireAt = moment(response.sendCompleteTime).add(otpNumberMinuteExpire, 'minutes').format('YYYY-MM-DDTHH:MM:SS+07:00')
+            const refCode = getOTPReferenceCodeFromArray(response.characteristic) ?? "Invalid"
 
             const data = {
                 otp: {
@@ -37,13 +67,14 @@ export class OtpService {
                 }
             }
 
+            // ? INFO :: Might not add this code 
             this.createLogFile(phoneNumber, refCode, moment().format('YYYY-MM-DD HH:mm:ss'));
 
 
             return data
         } catch (e: any) {
-
-            throw new Error(`Failed to request OTP: ${e.message}`)
+            logService(phoneNumber, error, logStepModel);
+            throw e
         }
     }
 
@@ -71,13 +102,13 @@ export class OtpService {
 
         // Create the logs directory if it doesn't exist
         if (!fs.existsSync(logDirectory)) {
-          fs.mkdirSync(logDirectory, { recursive: true });
+            fs.mkdirSync(logDirectory, { recursive: true });
         }
-    
+
         // Create a timestamp for the filename
         const timestamp = moment().format('YYYYMMDDHHmmss');
         const filename = path.join(logDirectory, `${timestamp}.log`);
-    
+
 
         // Prepare the log content
         const content = [decodePhoneNumber, refCode, dateTime].join('|');
