@@ -78,8 +78,7 @@ class CommercetoolsInventoryClient {
 		if (stockActiveDate > now) {
 			return { totalAvailableDummyStock, totalAvailableDummyPurchaseStock };
 		}
-
-		let dummyStockAfterSafetyStock = inventory?.custom?.fields?.dummyStock - (inventory?.custom?.fields?.safetyStock || 0);
+		let dummyStockAfterSafetyStock = (inventory?.custom?.fields?.dummyStock || 0) - (inventory?.custom?.fields?.safetyStock || 0);
 		if (dummyStockAfterSafetyStock <= 0) {
 			return { totalAvailableDummyStock, totalAvailableDummyPurchaseStock };
 		}

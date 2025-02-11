@@ -311,21 +311,26 @@ class CommercetoolsProductClient {
 
             // Check maximum stock allocation by journey
             const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
+            const isPreOrder = ctCart.custom?.fields.preOrder as boolean || false
             const productJourney = (cartItem.variant.attributes?.find((attr: CustomLineItemVariantAttribute) => attr.name === 'journey')?.value[0]?.key || CART_JOURNEYS.SINGLE_PRODUCT) as CART_JOURNEYS
             const lineItemJourney = cartJourney === CART_JOURNEYS.SINGLE_PRODUCT && cartJourney !== productJourney ? productJourney : cartJourney
             const journeyConfig = journeyConfigMap[lineItemJourney]
             
             let maximumStockAllocation: number | undefined
             if (journeyConfig.inventory) {
-                const dummyStock: number | undefined = matchedInventory.custom.fields[journeyConfig.inventory.dummyKey] || undefined
                 // !!exclude dummy stock
-                if (!dummyStock || dummyStock === 0) {
+                // NOTE - stock physical when dummy stock is 0, null, undefined, blank text.
+                const dummyStock: number = matchedInventory.custom.fields[journeyConfig.inventory.dummyKey] || 0
+                const isDummyStock: boolean = isPreOrder && dummyStock > 0    
+                if (!isDummyStock) {
                     maximumStockAllocation = matchedInventory.custom.fields[journeyConfig.inventory.maximumKey];
                     const totalPurchase: number = matchedInventory.custom.fields[journeyConfig.inventory.totalKey] || 0
                     // use min value of stock
                     stockAvailable = maximumStockAllocation !== undefined ? Math.min(stockAvailable, maximumStockAllocation): stockAvailable
     
-                    if ((maximumStockAllocation !== undefined && maximumStockAllocation !== 0) && quantity > stockAvailable) {
+                    if (stockAvailable <= 0) {
+                        hasChangedAction.action = 'REMOVE_LINE_ITEM'
+                    } else if ((maximumStockAllocation !== undefined && maximumStockAllocation !== 0) && quantity > stockAvailable) {
                         // update quantity if stock allocation less than quantity
                         quantityOverStock = true
                         hasChangedAction.action = 'UPDATE_QUANTITY'

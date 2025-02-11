@@ -106,6 +106,7 @@ export class CartController {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
             const { inventorys } = req.body;
+
             if (inventorys) {
                 const cart: ICart = await this.cartService.getCartById(accessToken, id, true, false) || []
                 cart?.items.forEach(item => {
