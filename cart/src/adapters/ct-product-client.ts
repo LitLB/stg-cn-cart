@@ -259,7 +259,7 @@ class CommercetoolsProductClient {
 
 	async checkCartHasChanged(ctCart: Cart): Promise<Cart> {
 		const { lineItems } = ctCart;
-		if (lineItems.length === 0) return {...ctCart, lineItems: []}
+		if (lineItems.length === 0) return { ...ctCart, lineItems: [] }
 
 		const mainProductLineItems = lineItems.filter(
 			(item: LineItem) => item.custom?.fields?.productType === 'main_product',
@@ -282,16 +282,16 @@ class CommercetoolsProductClient {
 
 		const processedItems = lineItems.map((cartItem: LineItem) => {
 			const parentQuantity = mainProductLineItems
-                .filter((item: LineItem) => item.productId === cartItem.productId)
-                .reduce((sum:any, item:any) => sum + item.quantity, 0);
+				.filter((item: LineItem) => item.productId === cartItem.productId)
+				.reduce((sum: any, item: any) => sum + item.quantity, 0);
 
 			const matchingSkuItem = skuItems.find(
 				(skuItem: any) => cartItem.productId === skuItem.id
 			);
 
 			const matchedInventory = inventories.find(
-                (invItem: any) => invItem.sku === cartItem.variant.sku
-            );
+				(invItem: any) => invItem.sku === cartItem.variant.sku
+			);
 
 			if (!matchingSkuItem) return cartItem;
 
@@ -303,11 +303,12 @@ class CommercetoolsProductClient {
 				matchingSkuItem.variants
 			);
 
-			const validPrice = findValidPrice(matchedVariant);
-            let stockAvailable: number = matchedInventory.stock.available
 
-            const hasChangedAction: HasChangedAction = { action: 'NONE', updateValue: 0 }
-            let quantityOverStock = quantity > stockAvailable
+			const validPrice = findValidPrice(matchedVariant);
+			let stockAvailable: number = matchedInventory.stock.available
+
+			const hasChangedAction: HasChangedAction = { action: 'NONE', updateValue: 0 }
+			let quantityOverStock = quantity > stockAvailable
 
             // Check maximum stock allocation by journey
             const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
@@ -353,7 +354,7 @@ class CommercetoolsProductClient {
             }
 
 			const hasChanged = {
-                quantity_over_stock: quantityOverStock,
+				quantity_over_stock: quantityOverStock,
 			};
 
 			const updatedItem = {
@@ -365,7 +366,7 @@ class CommercetoolsProductClient {
 				},
 				parentQuantity,
 				hasChanged,
-                hasChangedAction,
+				hasChangedAction,
 			}
 
 			return updatedItem;
