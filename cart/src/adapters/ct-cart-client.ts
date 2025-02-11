@@ -273,6 +273,8 @@ class CommercetoolsCartClient {
 		const lineItemHasChanged: Record<string, HasChangedAction> = {}
 		const updateLineItemQuantityPayload: CartChangeLineItemQuantityAction[] = []
 
+
+
 		const updateActions: CartUpdateAction[] = lineItems.map((lineItem: CustomLineItemHasChanged) => {
 			const { id, price, hasChangedAction } = lineItem
 
@@ -304,6 +306,7 @@ class CommercetoolsCartClient {
 			actions: updateActions
 		};
 
+
 		let updatedCart: Cart = await this.updatePrice(cartId, cartUpdate)
 
 		if (updateLineItemQuantityPayload.length > 0) {
@@ -311,8 +314,12 @@ class CommercetoolsCartClient {
 		}
 
 		const recalculatedCart = await this.recalculateCart(updatedCart.id, updatedCart.version)
+
+		// console.log(JSON.stringify(recalculatedCart.lineItems, null, 2))
 		const validateProduct = await this.validateDateItems(recalculatedCart, lineItemHasChanged)
 		const compared = compareLineItemsArrays(oldCart.lineItems, validateProduct.lineItems)
+
+
 
 		return { ctCart: validateProduct, compared }
 	}
@@ -358,49 +365,63 @@ class CommercetoolsCartClient {
 
 		const itemForRemove: LineItem[] = []
 
-		const itemsWithCheckedCondition = lineItems.map(lineItem => {
+		// Helper to check if the release period is valid
+		const isValidPeriod = (releaseDate: Partial<string>, endDate: Partial<string>, now = today) => {
+			const validFrom = releaseDate ? new Date(releaseDate) <= now : true;
+			const validTo = endDate ? new Date(endDate) >= now : true;
+			return validFrom && validTo;
+		};
+
+		// Process each line item and return the updated item
+		const itemsWithCheckedCondition = lineItems.map((lineItem) => {
+			// Calculate the parent quantity based on main product line items.
 			const parentQuantity = mainProductLineItems
-				.filter((item: LineItem) => item.productId === lineItem.productId)
-				.reduce((sum: any, item: any) => sum + item.quantity, 0);
+				.filter((item) => item.productId === lineItem.productId)
+				.reduce((sum, item) => sum + item.quantity, 0);
 
-			const { variant } = lineItem
-			const { attributes } = variant
+			const { id, quantity, variant } = lineItem;
+			// Ensure attributes exists (defaulting to an empty array).
+			const { attributes = [], prices } = variant;
 
-			const itemAttr = attributes ?? []
+			// Get the valid price using the commerce tools client.
+			const price = CommercetoolsProductClient.findValidPrice({
+				prices: prices || [],
+				customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
+				date: new Date(),
+			});
 
-			const releaseDate = getAttributeValue(itemAttr, 'release_start_date')
-			const endDate = getAttributeValue(itemAttr, 'release_end_date')
-			const status = getAttributeValue(itemAttr, 'status')
+			// Retrieve attribute values.
+			const releaseDate = getAttributeValue(attributes, 'release_start_date');
+			const endDate = getAttributeValue(attributes, 'release_end_date');
+			const status = getAttributeValue(attributes, 'status');
 
-			const validForm = new Date(releaseDate) <= today
-			const validTo = new Date(endDate) >= today
+			// Determine if the current date falls within the valid period.
+			const periodIsValid = isValidPeriod(releaseDate, endDate);
 
-			let isValidPeriod = true
-			if (releaseDate && endDate) {
-				isValidPeriod = validForm && validTo
-			} else if (releaseDate && !endDate) {
-				isValidPeriod = validForm
-			} else if (!releaseDate && endDate) {
-				isValidPeriod = validTo
+			// If the period is invalid or the status is disabled, mark the line item for removal.
+			if (!periodIsValid || (status && status.key === 'disabled')) {
+				itemForRemove.push(lineItem);
 			}
 
-			if (!isValidPeriod || status.key === 'disabled') {
-				itemForRemove.push(lineItem)
+			// Check if the line item has a recorded change that indicates removal.
+			if (lineItemHasChanged[lineItem.id]?.action === 'REMOVE_LINE_ITEM') {
+				itemForRemove.push(lineItem);
 			}
 
-			if (lineItemHasChanged[lineItem.id]) {
-				const hasChanged = lineItemHasChanged[lineItem.id]
-				if (hasChanged.action === 'REMOVE_LINE_ITEM') {
-					itemForRemove.push(lineItem)
-				}
-			}
-
+			// Return the updated line item including computed fields.
 			return {
-				...lineItem, parentQuantity, hasChanged: {
-					lineItemId: lineItem.id,
-				}
-			}
-		})
+				...lineItem,
+				parentQuantity,
+				price,
+				totalPrice: {
+					...price.value,
+					centAmount: price.value.centAmount * quantity,
+				},
+				hasChanged: {
+					lineItemId: id,
+				},
+			};
+		});
 
 		if (itemForRemove.length > 0) {
 			const removeActions: UpdateAction[] = itemForRemove.map(item => {
