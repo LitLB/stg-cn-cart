@@ -273,12 +273,8 @@ class CommercetoolsCartClient {
 		const lineItemHasChanged: Record<string, HasChangedAction> = {}
 		const updateLineItemQuantityPayload: CartChangeLineItemQuantityAction[] = []
 
-
-
 		const updateActions: CartUpdateAction[] = lineItems.map((lineItem: CustomLineItemHasChanged) => {
 			const { id, price, hasChangedAction } = lineItem
-
-			// check if line item has changed
 			if (hasChangedAction?.action === 'UPDATE_QUANTITY') {
 				const externalPrice = lineItem.price.value;
 				updateLineItemQuantityPayload.push({
@@ -306,7 +302,6 @@ class CommercetoolsCartClient {
 			actions: updateActions
 		};
 
-
 		let updatedCart: Cart = await this.updatePrice(cartId, cartUpdate)
 
 		if (updateLineItemQuantityPayload.length > 0) {
@@ -314,12 +309,28 @@ class CommercetoolsCartClient {
 		}
 
 		const recalculatedCart = await this.recalculateCart(updatedCart.id, updatedCart.version)
+		const updateActionAfterRecalculated: CartUpdateAction[] = []
+
+		recalculatedCart.lineItems.map((lineItem: LineItem) => {
+			const validPrice = CommercetoolsProductClient.findValidPrice({
+				prices: lineItem.variant.prices || [],
+				customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
+				date: new Date(),
+			});
+
+			const externalPrice = validPrice.value;
+			updateActionAfterRecalculated.push({
+				action: 'setLineItemPrice',
+				lineItemId: lineItem.id,
+				externalPrice,
+			})
+		})
+
+		const newCart = await this.updateCart(recalculatedCart.id, recalculatedCart.version, updateActionAfterRecalculated)
 
 		// console.log(JSON.stringify(recalculatedCart.lineItems, null, 2))
-		const validateProduct = await this.validateDateItems(recalculatedCart, lineItemHasChanged)
+		const validateProduct = await this.validateDateItems(newCart, lineItemHasChanged)
 		const compared = compareLineItemsArrays(oldCart.lineItems, validateProduct.lineItems)
-
-
 
 		return { ctCart: validateProduct, compared }
 	}
@@ -383,12 +394,6 @@ class CommercetoolsCartClient {
 			// Ensure attributes exists (defaulting to an empty array).
 			const { attributes = [], prices } = variant;
 
-			// Get the valid price using the commerce tools client.
-			const price = CommercetoolsProductClient.findValidPrice({
-				prices: prices || [],
-				customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
-				date: new Date(),
-			});
 
 			// Retrieve attribute values.
 			const releaseDate = getAttributeValue(attributes, 'release_start_date');
@@ -408,19 +413,17 @@ class CommercetoolsCartClient {
 				itemForRemove.push(lineItem);
 			}
 
+
 			// Return the updated line item including computed fields.
 			return {
 				...lineItem,
 				parentQuantity,
-				price,
-				totalPrice: {
-					...price.value,
-					centAmount: price.value.centAmount * quantity,
-				},
 				hasChanged: {
 					lineItemId: id,
 				},
 			};
+
+
 		});
 
 		if (itemForRemove.length > 0) {
@@ -564,9 +567,6 @@ class CommercetoolsCartClient {
 			const skuStatus = getAttributeValue(attributes ?? [], 'status')
 			return skuStatus.key === 'disabled'
 		});
-
-		console.log(`itemsForRemove`)
-		console.log({ itemsForRemoval })
 
 		// If there are no items to remove, return as is
 		if (itemsForRemoval.length === 0) {
