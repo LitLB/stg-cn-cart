@@ -62,8 +62,7 @@ export class OtpController {
                 statusMessage: HTTP_MESSAGE.OK,
                 data: responseBody
             });
-        } catch (err) {
-            logger.error(`OtpController.verifyOtp.error`, err);
+        } catch (err: any) {
             next(err);
         }
     }

@@ -19,26 +19,17 @@ export const errorHandler = (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     next: NextFunction,
 ): void => {
-    // Log the error details for debugging
-    logger.error('Unhandled Error:', {
-        message: err.message || 'Unknown error',
-        stack: err.stack || 'No stack trace available',
-        status: err.status,
-        statusCode: err.statusCode,
-        statusMessage: err.statusMessage,
-        errorCode: err.errorCode,
-        data: err.data,
-    });
-
 
     // Set default values if not provided
-    const statusCode = err.statusCode  || 500;
-    const statusMessage = err.message || err.statusMessage;
-    const errorCode = err.errorCode || 'UNKNOWN_ERROR_CODE';
+    const status = err.status || 500
+    const statusCode: string = err.statusCode || err.response.data.code || "500.9999";
+    const statusMessage = err.statusMessage || err.response.data.message || err.message;
+    const errorCode = err.errorCode || err.response.data.description || 'UNKNOWN_ERROR_CODE';
     const data = err.data || null;
 
     // Prepare the error response
     const response: ApiResponse = {
+        status,
         statusCode,
         statusMessage,
         errorCode,
@@ -46,5 +37,5 @@ export const errorHandler = (
     };
 
     // Send the error response
-    res.status(statusCode).json(response);
+    res.status(status).json(response);
 };

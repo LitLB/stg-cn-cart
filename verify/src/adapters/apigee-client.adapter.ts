@@ -127,6 +127,18 @@ class ApigeeClientAdapter {
         const response: AxiosResponse = await this.client.post(`${url}`, body, { headers });
         return response.data;
     }
+
+    async checkOperator(mobileNumber: string){
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/operator/v1/check?id=1tS2ZXeig70Qi9JD3HTjCPdPFKJGOw/gnrdxKlTGgk4=&txid=1234567`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response.data;
+    }
 }
 
 export default ApigeeClientAdapter
