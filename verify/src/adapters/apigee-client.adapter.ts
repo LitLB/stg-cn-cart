@@ -1,10 +1,7 @@
 import axios, { AxiosResponse } from 'axios'
 import { readConfiguration } from "../utils/config.utils";
-import { generateTransactionId } from '../utils/date.utils';
-import moment from 'moment';
 import * as crypto from 'crypto';
-import { logger } from '../utils/logger.utils';
-import { Transaction } from '../interfaces/otp.interface';
+import { RequestOTPToApigee, VerifyOTPToApigee } from '../interfaces/otp.interface';
 
 
 class ApigeeClientAdapter {
@@ -107,35 +104,27 @@ class ApigeeClientAdapter {
         return encryptedIvAndText.toString('base64');
     }
 
-    async requestOTP(body: Transaction) {
+    async requestOTP(body: RequestOTPToApigee) {
         await this.init()
         const headers = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${this.accessToken}`,
             'Cookies': 'ROUTEID=.'
         };
-
         const url = '/communicationMessage/v1/generateOTP';
-
         const response: AxiosResponse = await this.client.post(`${url}`, body, { headers });
-
         return response.data;
     }
 
-    async verifyOTP(refCode: string, phoneNumber: number) {
+    async verifyOTP(body: VerifyOTPToApigee) {
         await this.init()
         const headers = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
         };
-
-        const url = 'otp/v1/verify';
-        const response: AxiosResponse = await this.client.post(
-            `${url}`,
-            { refCode, phoneNumber },
-            { headers }
-        );
-
+        const url = `/communicationMessage/v1/verifyOTP`;
+        const response: AxiosResponse = await this.client.post(`${url}`, body, { headers });
         return response.data;
     }
 }

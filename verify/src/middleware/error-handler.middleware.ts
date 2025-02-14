@@ -25,6 +25,7 @@ export const errorHandler = (
         stack: err.stack || 'No stack trace available',
         status: err.status,
         statusCode: err.statusCode,
+        statusMessage: err.statusMessage,
         errorCode: err.errorCode,
         data: err.data,
     });
@@ -32,7 +33,7 @@ export const errorHandler = (
 
     // Set default values if not provided
     const statusCode = err.statusCode  || 500;
-    const statusMessage = err.message;
+    const statusMessage = err.message || err.statusMessage;
     const errorCode = err.errorCode || 'UNKNOWN_ERROR_CODE';
     const data = err.data || null;
 

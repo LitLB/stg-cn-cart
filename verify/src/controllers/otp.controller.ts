@@ -48,9 +48,20 @@ export class OtpController {
     }
 
     public async verifyOtp(req: Request, res: Response, next: NextFunction) {
+        const logModel = createLogModel(LOG_APPS.VERIFY);
+        logModel.start_date = new Date().toISOString();
         try {
-            // Your OTP verification logic here
-            res.status(200).send({ message: "Verify OTP" });
+
+            LogModel.initialize(logModel);
+            const { mobileNumber, refCode, pin } = req.query;
+
+            const responseBody = await this.otpService.verifyOtp(mobileNumber as string, refCode as string, pin as string);
+
+            res.status(200).send({
+                statusCode: HTTP_STATUSES.OK,
+                statusMessage: HTTP_MESSAGE.OK,
+                data: responseBody
+            });
         } catch (err) {
             logger.error(`OtpController.verifyOtp.error`, err);
             next(err);

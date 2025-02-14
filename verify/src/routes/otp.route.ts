@@ -8,7 +8,7 @@ const otpController = new OtpController();
 
 
 otpRouter.get('/v1/preverify/otp/request', otpController.requestOtp)
-otpRouter.post('/v1/preverify/otp/verify', otpController.verifyOtp)
+otpRouter.get('/v1/preverify/otp/verify', otpController.verifyOtp)
 
 
 export default otpRouter;
