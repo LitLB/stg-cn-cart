@@ -56,7 +56,7 @@ export class CartService {
     async getCurrentAndUpdatedCouponEffects(accessToken: string, id: string, body: any): Promise<any> {
         try {
             const { cartId } = body;
-            
+
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
             const ctCart = await commercetoolsMeCartClient.getCartById(cartId);
@@ -383,7 +383,7 @@ export class CartService {
                     },
                 });
             }
-            
+
             if (payment && payment?.key) { // no payment
                 const paymentTransaction = {
                     paymentOptionContainer: 'paymentOptions',
@@ -395,7 +395,7 @@ export class CartService {
                 };
 
                 await CommercetoolsCustomObjectClient.addPaymentTransaction(cartWithCheckPublicPublish.id, paymentTransaction);
-            } else if (!payment?.key && ctCart?.totalPrice?.centAmount <= 0){
+            } else if (!payment?.key && ctCart?.totalPrice?.centAmount <= 0) {
                 const paymentTransaction = {
                     paymentOptionContainer: 'paymentOptions',
                     paymentOptionKey: 'nopayment', // e.g., 'installment', 'ccw', etc.
@@ -489,6 +489,17 @@ export class CartService {
                 }
                 const { couponsInfomation } = ctCartWithUpdateCouponEffect.custom?.fields ?? {};
                 couponsInformation = couponsInfomation?.obj.value || []
+            }
+
+            if (notice !== '') {
+                throw createStandardizedError(
+                    {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: notice,
+                        errorCode: 'CART_HAS_CHANGED'
+                    },
+                    'getCartById'
+                );
             }
 
             const selectedLineItems: LineItem[] = commercetoolsMeCartClient.filterSelectedLineItems(cartAfterAutoRemove.lineItems, selectedOnly);
