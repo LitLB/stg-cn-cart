@@ -15,9 +15,6 @@ export class OtpController {
     }
 
     public async requestOtp(req: Request, res: Response, next: NextFunction) {
-        const logModel = createLogModel(LOG_APPS.VERIFY);
-        logModel.start_date = new Date().toISOString();
-        LogModel.initialize(logModel);
 
         try {
             const { mobileNumber } = req.query;
@@ -40,22 +37,16 @@ export class OtpController {
 
 
         } catch (err: any) {
-            logService(req, err, logModel);
             next(err);
         }
     }
 
     public async verifyOtp(req: Request, res: Response, next: NextFunction) {
-        const logModel = createLogModel(LOG_APPS.VERIFY);
-        logModel.start_date = new Date().toISOString();
-        LogModel.initialize(logModel);
         try {
 
             const { mobileNumber, refCode, pin, journey }: verifyOtpRequest = req.query as unknown as verifyOtpRequest;
 
             const responseBody = await this.otpService.verifyOtp(mobileNumber, refCode, pin, journey);
-
-            logService(req, responseBody, logModel)
 
             res.status(200).send({
                 statusCode: HTTP_STATUSES.OK,
