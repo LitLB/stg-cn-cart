@@ -135,7 +135,7 @@ class ApigeeClientAdapter {
             Authorization: `Bearer ${this.accessToken}`,
             'Cookies': 'ROUTEID=.'
         };
-        const url = `/operator/v1/check?id=1tS2ZXeig70Qi9JD3HTjCPdPFKJGOw/gnrdxKlTGgk4=&txid=1234567`;
+        const url = `/operator/v1/check?id=${mobileNumber}&txid=1234567`;
         const response: AxiosResponse = await this.client.get(`${url}`, { headers });
         return response.data;
     }

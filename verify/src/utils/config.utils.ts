@@ -23,6 +23,12 @@ export const readConfiguration = () => {
     bffCtpClientId: process.env.BFF_CTP_CLIENT_ID as string,
     bffCtpClientSecret: process.env.BFF_CTP_CLIENT_SECRET as string,
 
+    ctpProjectKey: process.env.CTP_PROJECT_KEY as string,
+    ctpAuthUrl: process.env.CTP_AUTH_URL as string,
+    ctpApiUrl: process.env.CTP_API_URL as string,
+    ctpClientId: process.env.CTP_CLIENT_ID as string,
+    ctpClientSecret: process.env.CTP_CLIENT_SECRET as string,
+
     apigee: {
       baseUrl: process.env.APIGW_BASE_URL as string,
       clientId: process.env.APIGW_CLIENT_ID as string,

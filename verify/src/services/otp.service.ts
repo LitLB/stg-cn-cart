@@ -9,6 +9,8 @@ import { createLogModel, logger, LogModel, logService } from "../utils/logger.ut
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { generateTransactionId } from "../utils/date.utils";
 import { VerifyOTPToApigee } from "../interfaces/otp.interface";
+import { convertToThailandMobile } from "../utils/formatter.utils";
+import { validateOperator } from "../utils/operator.utils";
 
 export class OtpService {
 
@@ -85,6 +87,8 @@ export class OtpService {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const sendTime = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
             const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
+
+            const thailandMobile = convertToThailandMobile(decryptedMobile)
             const body: VerifyOTPToApigee = {
                 id: refCode,
                 sendTime: sendTime,
@@ -94,7 +98,7 @@ export class OtpService {
                 content: pin,
                 receiver: [
                     {
-                        phoneNumber: decryptedMobile,
+                        phoneNumber: thailandMobile,
                         relatedParty: {
                             id: "VC-ECOM" // * CONFIRM ??
                         }
@@ -210,59 +214,60 @@ export class OtpService {
                     throw otpErrorMap[pin];
                 }
 
-                return {
-                    packageList: [
-                        {
-                            packageInfo: {
-                                packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
-                                packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
-                                priceplanRc: "899",
-                                contractTerm: "12",
-                                netInfo: "net 40 GB unlimited 100 Mbps",
-                                voiceInfo: [
-                                    "call Unlimit True networks",
-                                    "call 400 mins all networks"
-                                ],
-                                wifiInfo: "wifi Unlimit @TRUE-WIFI",
-                                additionalPackage: [
-                                    "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
-                                ]
-                            },
-                            campaignInfo: {
-                                campaignName: "เฉพาะลูกค้า True Black Card",
-                                customerTier: "BLACK",
-                                price: "13599",
-                                advanceService: "2000",
-                                seq: 1
-                            }
-                        },
-                        {
-                            packageInfo: {
-                                packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
-                                packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
-                                priceplanRc: "899",
-                                contractTerm: "12",
-                                netInfo: "net 40 GB unlimited 100 Mbps",
-                                voiceInfo: [
-                                    "call Unlimit True networks",
-                                    "call 400 mins all networks"
-                                ],
-                                wifiInfo: "wifi Unlimit @TRUE-WIFI",
-                                additionalPackage: [
-                                    "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
-                                ]
-                            },
-                            campaignInfo: {
-                                campaignName: "เฉพาะลูกค้า True Red Card",
-                                customerTier: "RED",
-                                price: "15599",
-                                advanceService: "3000",
-                                seq: 2
-                            }
-                        }
-                    ]
-                }
+                // return {
+                //     packageList: [
+                //         {
+                //             packageInfo: {
+                //                 packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
+                //                 packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
+                //                 priceplanRc: "899",
+                //                 contractTerm: "12",
+                //                 netInfo: "net 40 GB unlimited 100 Mbps",
+                //                 voiceInfo: [
+                //                     "call Unlimit True networks",
+                //                     "call 400 mins all networks"
+                //                 ],
+                //                 wifiInfo: "wifi Unlimit @TRUE-WIFI",
+                //                 additionalPackage: [
+                //                     "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
+                //                 ]
+                //             },
+                //             campaignInfo: {
+                //                 campaignName: "เฉพาะลูกค้า True Black Card",
+                //                 customerTier: "BLACK",
+                //                 price: "13599",
+                //                 advanceService: "2000",
+                //                 seq: 1
+                //             }
+                //         },
+                //         {
+                //             packageInfo: {
+                //                 packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
+                //                 packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
+                //                 priceplanRc: "899",
+                //                 contractTerm: "12",
+                //                 netInfo: "net 40 GB unlimited 100 Mbps",
+                //                 voiceInfo: [
+                //                     "call Unlimit True networks",
+                //                     "call 400 mins all networks"
+                //                 ],
+                //                 wifiInfo: "wifi Unlimit @TRUE-WIFI",
+                //                 additionalPackage: [
+                //                     "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
+                //                 ]
+                //             },
+                //             campaignInfo: {
+                //                 campaignName: "เฉพาะลูกค้า True Red Card",
+                //                 customerTier: "RED",
+                //                 price: "15599",
+                //                 advanceService: "3000",
+                //                 seq: 2
+                //             }
+                //         }
+                //     ]
+                // }
 
+                return await this.checkOperator(phoneNumber)
 
             } else {
                 const response = await apigeeClientAdapter.verifyOTP(body)
@@ -289,7 +294,9 @@ export class OtpService {
 
             const response = await apigeeClientAdapter.checkOperator(phoneNumber)
 
-            logService("", response, logStepModel);
+            validateOperator(response.operator)
+
+            logService(phoneNumber, response, logStepModel);
 
             return response
         } catch (e: any) {
