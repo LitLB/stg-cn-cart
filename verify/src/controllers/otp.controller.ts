@@ -32,8 +32,6 @@ export class OtpController {
 
             const responseBody = await this.otpService.requestOtp(mobileNumber);
 
-            logService(req, responseBody, logModel)
-
             res.status(200).send({
                 statusCode: HTTP_STATUSES.OK,
                 statusMessage: HTTP_MESSAGE.OK,

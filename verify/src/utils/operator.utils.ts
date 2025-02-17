@@ -16,6 +16,6 @@ export const validateOperator = (operatorNumber: string) => {
         }
     }
 
+    return isTrue ? 'true' : 'dtac'
 
-    return operatorNumber
 }

@@ -105,6 +105,7 @@ class ApigeeClientAdapter {
     }
 
     async requestOTP(body: RequestOTPToApigee) {
+
         await this.init()
         const headers = {
             'Content-Type': 'application/json',
@@ -130,7 +131,6 @@ class ApigeeClientAdapter {
 
     async checkOperator(mobileNumber: string, txid: string) {
         await this.init()
-
         const headers = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${this.accessToken}`,

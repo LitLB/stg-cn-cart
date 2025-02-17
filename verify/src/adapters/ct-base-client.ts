@@ -3,10 +3,9 @@ import {
 	createApiBuilderFromCtpClient,
 } from '@commercetools/platform-sdk';
 import { ClientBuilder } from '@commercetools/sdk-client-v2';
+import { createAuthMiddlewareForClientCredentialsFlow } from '@commercetools/sdk-middleware-auth';
+import { createHttpMiddleware } from '@commercetools/sdk-middleware-http';
 import { readConfiguration } from '../utils/config.utils';
-import createHttpMiddleware from '@commercetools/sdk-client-v2/dist/declarations/src/sdk-middleware-http/http';
-import createAuthMiddlewareForClientCredentialsFlow from '@commercetools/sdk-client-v2/dist/declarations/src/sdk-middleware-auth/client-credentials-flow';
-
 
 class CommercetoolsBaseClient {
 	private static instance: CommercetoolsBaseClient;

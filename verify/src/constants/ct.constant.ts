@@ -1,1 +1,2 @@
-export const COUPON_LIMIT_KEY = 'limitMaxCoupon'
+export const CONFIGURATION_KEY = 'journeyActivationByOperator'
+export const CONFIGURATION_CONTAINER = 'configuration';
