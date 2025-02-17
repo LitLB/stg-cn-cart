@@ -16,22 +16,22 @@ export class OtpController {
     public async requestOtp(req: Request, res: Response, next: NextFunction) {
         const logModel = createLogModel(LOG_APPS.VERIFY);
         logModel.start_date = new Date().toISOString();
+        LogModel.initialize(logModel);
 
         try {
-
-            LogModel.initialize(logModel);
-
             const { mobileNumber } = req.query;
 
-            if (!mobileNumber || typeof mobileNumber !== "string") {
+            if (!mobileNumber || typeof mobileNumber !== 'string') {
                 return res.status(400).send({
-                    statusCode: "400",
-                    statusMessage: "Mobile number is required and must be a string",
-                });
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Invalid mobile number',
+                    errorCode: 'INVALID_MOBILE_NUMBER',
+                })
             }
 
             const responseBody = await this.otpService.requestOtp(mobileNumber);
 
+            logService(req, responseBody, logModel)
 
             res.status(200).send({
                 statusCode: HTTP_STATUSES.OK,
@@ -40,8 +40,7 @@ export class OtpController {
             });
 
 
-
-        } catch (err) {
+        } catch (err: any) {
             logService(req, err, logModel);
             next(err);
         }
@@ -53,7 +52,15 @@ export class OtpController {
         try {
 
             LogModel.initialize(logModel);
-            const { mobileNumber, refCode, pin } = req.query;
+            const { mobileNumber, refCode, pin, journey } = req.query;
+
+            if (!mobileNumber || !refCode || !pin || !journey) {
+                res.status(400).send({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Missing required parameters eg. mobileNumber, ref code, pin, journey',
+                    errorCode: 'REQUIRED_PARAMETERS_MISSING',
+                })
+            }
 
             const responseBody = await this.otpService.verifyOtp(mobileNumber as string, refCode as string, pin as string);
 

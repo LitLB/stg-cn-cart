@@ -2,13 +2,16 @@
 
 import { Router } from 'express';
 import { OtpController } from '../controllers/otp.controller';
+import { handleValidationErrors, validateVerifyOtp } from '../validators/otp.validators';
 
 const otpRouter = Router();
 const otpController = new OtpController();
 
 
+
+
 otpRouter.get('/v1/preverify/otp/request', otpController.requestOtp)
-otpRouter.get('/v1/preverify/otp/verify', otpController.verifyOtp)
+otpRouter.get('/v1/preverify/otp/verify', validateVerifyOtp, handleValidationErrors, otpController.verifyOtp)
 
 
 export default otpRouter;

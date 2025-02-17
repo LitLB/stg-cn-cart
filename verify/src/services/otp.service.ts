@@ -30,6 +30,7 @@ export class OtpService {
             const transactionId = generateTransactionId()
             const sendTime = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
             const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
+            const thailandMobile = convertToThailandMobile(decryptedMobile)
 
             const body = {
                 id: transactionId,
@@ -39,7 +40,7 @@ export class OtpService {
                 code: "220594", // * PENDING TO CONFIRM
                 receiver: [
                     {
-                        phoneNumber: decryptedMobile,
+                        phoneNumber: thailandMobile,
                         relatedParty: {
                             id: "VC-ECOM" // * CONFIRM ??
                         }
@@ -51,8 +52,8 @@ export class OtpService {
 
             logService(body, response, logStepModel);
 
-            const otpNumberMinuteExpire = parseInt(this.config.otp.expireTime)
-            const otpNumberSecondResend = parseInt(this.config.otp.resendTime)
+            const otpNumberMinuteExpire = this.config.otp.expireTime as number
+            const otpNumberSecondResend = this.config.otp.resendTime as number
 
             const expireAt = moment(response.sendCompleteTime).add(otpNumberMinuteExpire, 'minutes').format('YYYY-MM-DDTHH:MM:SS+07:00')
             const refCode = getOTPReferenceCodeFromArray(response.characteristic) ?? "Invalid"

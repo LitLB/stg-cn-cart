@@ -79,7 +79,7 @@ export class LogModel {
     logSuccess(req: any, res: any, level?: string) {
         const status = _.get(res, 'status', null);
         const statusCode = _.get(res, 'statusCode', null);
-        this.level = level || LOG_LEVELS.INFO;;
+        this.level = level || LOG_LEVELS.INFO;
         this.result_indicator = LOG_RESULT_INDICATOR.SUCCESS;
         this.request = req;
         this.response = res;
@@ -87,7 +87,7 @@ export class LogModel {
         this.timestamp = new Date().toISOString();
         this.elapsed_time = (Date.now() - new Date(this.start_date).getTime());
 
-        logger.info(JSON.stringify(this));
+        logger.info(safeStringify(this));
     }
 
     logFailure(req: any, res: any) {
@@ -102,7 +102,7 @@ export class LogModel {
         this.timestamp = new Date().toISOString();
         this.elapsed_time = (Date.now() - new Date(this.start_date).getTime());
 
-        logger.error(JSON.stringify(this));
+        logger.error(safeStringify(this));
     }
 }
 
@@ -118,7 +118,6 @@ export function logService(req: any, res: any, l: LogModel) {
             l.logSuccess(req, res, l.level || LOG_LEVELS.INFO);
         } else {
             const errResp = res?.response?.data || res;
-
             l.logFailure(req, errResp);
         }
     } catch (error: any) {
@@ -155,3 +154,17 @@ export function createLogModel(app: string, msg: string = "", instLogModel?: Log
 
     return new LogModel(logRequest);
 }
+
+function safeStringify(obj: any): string {
+    const seen = new WeakSet();
+    return JSON.stringify(obj, (key, value) => {
+        if (typeof value === 'object' && value !== null) {
+            if (seen.has(value)) {
+                return '[Circular]';
+            }
+            seen.add(value);
+        }
+        return value;
+    });
+}
+

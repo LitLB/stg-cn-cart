@@ -21,19 +21,21 @@ export const errorHandler = (
 ): void => {
 
     // Set default values if not provided
-    const status = err.status || 500
+    const status = err.status || err.statusCode || 500
     const statusCode: string = err.statusCode || err.response.data.code || "500.9999";
     const statusMessage = err.statusMessage || err.response.data.message || err.message;
     const errorCode = err.errorCode || err.response.data.description || 'UNKNOWN_ERROR_CODE';
-    const data = err.data || null;
+
+
+    // const data = err.data || null;
+
 
     // Prepare the error response
     const response: ApiResponse = {
-        status,
         statusCode,
         statusMessage,
         errorCode,
-        data,
+        // data,
     };
 
     // Send the error response
