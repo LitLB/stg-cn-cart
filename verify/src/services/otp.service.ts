@@ -25,7 +25,6 @@ export class OtpService {
         logModel.start_date = moment().toISOString();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_REQUEST_OTP, logModel);
         try {
-
             const apigeeClientAdapter = new ApigeeClientAdapter
             const transactionId = generateTransactionId()
             const sendTime = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
@@ -80,7 +79,7 @@ export class OtpService {
         }
     }
 
-    public async verifyOtp(phoneNumber: string, refCode: string, pin: string) {
+    public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string) {
         const logModel = LogModel.getInstance();
         logModel.start_date = moment().toISOString();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
@@ -215,6 +214,8 @@ export class OtpService {
                     throw otpErrorMap[pin];
                 }
 
+
+                // ? INFO :: This is mock response from the server APIGEE
                 // return {
                 //     packageList: [
                 //         {
@@ -268,6 +269,8 @@ export class OtpService {
                 //     ]
                 // }
 
+                console.log('journey ', journey)
+
                 return await this.checkOperator(phoneNumber)
 
             } else {
@@ -293,7 +296,11 @@ export class OtpService {
 
             const apigeeClientAdapter = new ApigeeClientAdapter
 
-            const response = await apigeeClientAdapter.checkOperator(phoneNumber)
+            const isMockOtp = this.config.otp.isMock as boolean
+
+            const txid = isMockOtp ? '1234567' : Math.floor(100000 + Math.random() * 900000).toString()
+
+            const response = await apigeeClientAdapter.checkOperator(phoneNumber, txid)
 
             validateOperator(response.operator)
 
@@ -302,6 +309,7 @@ export class OtpService {
             return response
         } catch (e: any) {
             logger.error(LOG_MSG.APIGEE_CHECK_OPERATOR)
+            logService(phoneNumber, e, logStepModel)
             throw e
         }
     }

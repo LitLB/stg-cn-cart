@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import { OtpService } from "../services/otp.service";
-import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
+import { createLogModel, LogModel, logService } from "../utils/logger.utils";
 import { HTTP_MESSAGE, HTTP_STATUSES } from "../constants/http.constant";
 import { LOG_APPS } from "../constants/log.constant";
+import { verifyOtpRequest } from "../interfaces/otp.interface";
 
 export class OtpController {
     private readonly otpService: OtpService;
@@ -49,20 +50,14 @@ export class OtpController {
     public async verifyOtp(req: Request, res: Response, next: NextFunction) {
         const logModel = createLogModel(LOG_APPS.VERIFY);
         logModel.start_date = new Date().toISOString();
+        LogModel.initialize(logModel);
         try {
 
-            LogModel.initialize(logModel);
-            const { mobileNumber, refCode, pin, journey } = req.query;
+            const { mobileNumber, refCode, pin, journey }: verifyOtpRequest = req.query as unknown as verifyOtpRequest;
 
-            if (!mobileNumber || !refCode || !pin || !journey) {
-                res.status(400).send({
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'Missing required parameters eg. mobileNumber, ref code, pin, journey',
-                    errorCode: 'REQUIRED_PARAMETERS_MISSING',
-                })
-            }
+            const responseBody = await this.otpService.verifyOtp(mobileNumber, refCode, pin, journey);
 
-            const responseBody = await this.otpService.verifyOtp(mobileNumber as string, refCode as string, pin as string);
+            logService(req, responseBody, logModel)
 
             res.status(200).send({
                 statusCode: HTTP_STATUSES.OK,

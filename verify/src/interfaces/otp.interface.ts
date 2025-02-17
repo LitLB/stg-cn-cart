@@ -25,3 +25,10 @@ export interface VerifyOTPToApigee {
   content: string;
   receiver: Receiver[];
 }
+
+export interface verifyOtpRequest {
+  mobileNumber: string;
+  refCode: string;
+  pin: string;
+  journey: string;
+}

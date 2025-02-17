@@ -128,14 +128,15 @@ class ApigeeClientAdapter {
         return response.data;
     }
 
-    async checkOperator(mobileNumber: string){
+    async checkOperator(mobileNumber: string, txid: string) {
         await this.init()
+
         const headers = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${this.accessToken}`,
             'Cookies': 'ROUTEID=.'
         };
-        const url = `/operator/v1/check?id=${mobileNumber}&txid=1234567`;
+        const url = `/operator/v1/check?id=${mobileNumber}&txid=${txid}`;
         const response: AxiosResponse = await this.client.get(`${url}`, { headers });
         return response.data;
     }
