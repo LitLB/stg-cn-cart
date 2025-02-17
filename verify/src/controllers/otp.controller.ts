@@ -1,8 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { OtpService } from "../services/otp.service";
-import { createLogModel, LogModel, logService } from "../utils/logger.utils";
 import { HTTP_MESSAGE, HTTP_STATUSES } from "../constants/http.constant";
-import { LOG_APPS } from "../constants/log.constant";
 import { verifyOtpRequest } from "../interfaces/otp.interface";
 
 export class OtpController {

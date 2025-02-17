@@ -5,14 +5,13 @@ import * as path from 'path';
 import ApigeeClientAdapter from "../adapters/apigee-client.adapter";
 import { readConfiguration } from "../utils/config.utils";
 import { getOTPReferenceCodeFromArray } from "../utils/array.utils";
-import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
-import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { generateTransactionId } from "../utils/date.utils";
 import { VerifyOTPToApigee } from "../interfaces/otp.interface";
 import { convertToThailandMobile } from "../utils/formatter.utils";
 import { validateOperator } from "../utils/operator.utils";
 import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client"
 import { getValueByKey } from "../utils/object.utils";
+import { logger } from "../utils/logger.utils";
 
 export class OtpService {
 
@@ -201,7 +200,6 @@ export class OtpService {
                     throw otpErrorMap[pin];
                 }
 
-
                 // ? INFO :: This is mock response from the server APIGEE
                 // return {
                 //     packageList: [
@@ -257,15 +255,12 @@ export class OtpService {
                 // }
 
                 const operator = await this.checkOperator(phoneNumber)
-
                 const customerOperatorIsActive = await this.checkActive(operator, journey)
 
                 return {
                     customerOperator: operator,
                     isOperatorIsActive: customerOperatorIsActive
                 }
-
-
 
             } else {
 
@@ -279,7 +274,7 @@ export class OtpService {
             }
 
         } catch (e: any) {
-            logger.error(LOG_MSG.APIGEE_VERIFY_OTP)
+            logger.error(`VERIFY_OTP`, e)
             throw e
         }
     }
@@ -289,17 +284,13 @@ export class OtpService {
         const txid = isMockOtp ? '1234567' : Math.floor(100000 + Math.random() * 900000).toString()
 
         try {
-
             const apigeeClientAdapter = new ApigeeClientAdapter
-
             const response = await apigeeClientAdapter.checkOperator(phoneNumber, txid)
-
             const result = validateOperator(response.operator)
-
 
             return result
         } catch (e: any) {
-            logger.error(LOG_MSG.APIGEE_CHECK_OPERATOR, e)
+            logger.error('Error checkOperator')
             throw e
         }
     }
@@ -323,7 +314,6 @@ export class OtpService {
             return isActive
         } catch (e: any) {
             logger.error('Error validate journeyActive')
-            // console.log(e.message)
             throw e
         }
     }
