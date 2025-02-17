@@ -292,27 +292,28 @@ export class OtpService {
         const logModel = LogModel.getInstance();
         logModel.start_date = moment().toISOString();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_OPERATOR, logModel);
+        const isMockOtp = this.config.otp.isMock as boolean
+        const txid = isMockOtp ? '1234567' : Math.floor(100000 + Math.random() * 900000).toString()
+
         try {
 
             const apigeeClientAdapter = new ApigeeClientAdapter
-
-            const isMockOtp = this.config.otp.isMock as boolean
-
-            const txid = isMockOtp ? '1234567' : Math.floor(100000 + Math.random() * 900000).toString()
 
             const response = await apigeeClientAdapter.checkOperator(phoneNumber, txid)
 
             validateOperator(response.operator)
 
-            logService(phoneNumber, response, logStepModel);
+            logService({ phoneNumber, txid }, response, logStepModel);
 
             return response
         } catch (e: any) {
             logger.error(LOG_MSG.APIGEE_CHECK_OPERATOR)
-            logService(phoneNumber, e, logStepModel)
+            logService({ phoneNumber, txid }, e, logStepModel)
             throw e
         }
     }
+
+    private async 
 
     private async createLogFile(phoneNumber: string, refCode: string, dateTime: string): Promise<void> {
         // Create a timestamp for the filename
