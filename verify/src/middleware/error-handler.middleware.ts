@@ -1,7 +1,6 @@
 // src/middleware/error-handler.middleware.ts
 
 import { Request, Response, NextFunction } from 'express';
-import { logger } from '../utils/logger.utils';
 import { ApiResponse } from '../types/response.type';
 
 /**
@@ -26,18 +25,12 @@ export const errorHandler = (
     const statusMessage = err.statusMessage || err.response.data.message || err.message;
     const errorCode = err.errorCode || err.response.data.description || 'UNKNOWN_ERROR_CODE';
 
-
-    // const data = err.data || null;
-
-
-    // Prepare the error response
     const response: ApiResponse = {
         statusCode,
         statusMessage,
         errorCode,
-        // data,
+        data: err.data ? err.response.data : null,
     };
 
-    // Send the error response
     res.status(status).json(response);
 };

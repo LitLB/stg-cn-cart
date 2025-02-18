@@ -11,7 +11,8 @@ import { convertToThailandMobile } from "../utils/formatter.utils";
 import { validateOperator } from "../utils/operator.utils";
 import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client"
 import { getValueByKey } from "../utils/object.utils";
-import { logger } from "../utils/logger.utils";
+import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
+import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 
 export class OtpService {
 
@@ -22,6 +23,11 @@ export class OtpService {
     }
 
     public async requestOtp(phoneNumber: string) {
+
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_REQUEST_OTP, logModel);
+        let requestOtpPayload
+
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const transactionId = generateTransactionId()
@@ -29,7 +35,7 @@ export class OtpService {
             const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
             const thailandMobile = convertToThailandMobile(decryptedMobile)
 
-            const body = {
+            requestOtpPayload = {
                 id: transactionId,
                 sendTime: sendTime,
                 description: "TH", // * FIX
@@ -45,13 +51,18 @@ export class OtpService {
                 ]
             }
 
-            const response = await apigeeClientAdapter.requestOTP(body)
+
+            const response = await apigeeClientAdapter.requestOTP(requestOtpPayload)
+
+            const { data } = response
+
+            logService(requestOtpPayload, response, logStepModel)
             const otpNumberMinuteExpire = this.config.otp.expireTime as number
             const otpNumberSecondResend = this.config.otp.resendTime as number
-            const expireAt = moment(response.sendCompleteTime).add(otpNumberMinuteExpire, 'minutes').format('YYYY-MM-DDTHH:MM:SS+07:00')
-            const refCode = getOTPReferenceCodeFromArray(response.characteristic) ?? "Invalid"
+            const expireAt = moment(data.sendCompleteTime).add(otpNumberMinuteExpire, 'minutes').format('YYYY-MM-DDTHH:MM:SS+07:00')
+            const refCode = getOTPReferenceCodeFromArray(data.characteristic) ?? "Invalid"
 
-            const data = {
+            return {
                 otp: {
                     expireAt,
                     refCode
@@ -62,21 +73,23 @@ export class OtpService {
                 }
             }
 
-            return data
         } catch (e: any) {
-            console.log(e)
+            logService(requestOtpPayload, e, logModel)
             throw e
         }
     }
 
     public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
+        let verifyOtpPayload
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const sendTime = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
             const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
 
             const thailandMobile = convertToThailandMobile(decryptedMobile)
-            const body: VerifyOTPToApigee = {
+            verifyOtpPayload = {
                 id: refCode,
                 sendTime: sendTime,
                 description: "TH", // * FIX
@@ -197,62 +210,68 @@ export class OtpService {
 
                 // Somewhere in your verifyOtp logic, check for error conditions:
                 if (otpErrorMap[pin]) {
+                    logService(verifyOtpPayload, otpErrorMap[pin], logStepModel)
                     throw otpErrorMap[pin];
                 }
 
                 // ? INFO :: This is mock response from the server APIGEE
-                // return {
-                //     packageList: [
-                //         {
-                //             packageInfo: {
-                //                 packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
-                //                 packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
-                //                 priceplanRc: "899",
-                //                 contractTerm: "12",
-                //                 netInfo: "net 40 GB unlimited 100 Mbps",
-                //                 voiceInfo: [
-                //                     "call Unlimit True networks",
-                //                     "call 400 mins all networks"
-                //                 ],
-                //                 wifiInfo: "wifi Unlimit @TRUE-WIFI",
-                //                 additionalPackage: [
-                //                     "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
-                //                 ]
-                //             },
-                //             campaignInfo: {
-                //                 campaignName: "เฉพาะลูกค้า True Black Card",
-                //                 customerTier: "BLACK",
-                //                 price: "13599",
-                //                 advanceService: "2000",
-                //                 seq: 1
-                //             }
-                //         },
-                //         {
-                //             packageInfo: {
-                //                 packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
-                //                 packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
-                //                 priceplanRc: "899",
-                //                 contractTerm: "12",
-                //                 netInfo: "net 40 GB unlimited 100 Mbps",
-                //                 voiceInfo: [
-                //                     "call Unlimit True networks",
-                //                     "call 400 mins all networks"
-                //                 ],
-                //                 wifiInfo: "wifi Unlimit @TRUE-WIFI",
-                //                 additionalPackage: [
-                //                     "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
-                //                 ]
-                //             },
-                //             campaignInfo: {
-                //                 campaignName: "เฉพาะลูกค้า True Red Card",
-                //                 customerTier: "RED",
-                //                 price: "15599",
-                //                 advanceService: "3000",
-                //                 seq: 2
-                //             }
-                //         }
-                //     ]
-                // }
+                const response = {
+                    status: 200,
+                    data: {
+                        packageList: [
+                            {
+                                packageInfo: {
+                                    packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
+                                    packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
+                                    priceplanRc: "899",
+                                    contractTerm: "12",
+                                    netInfo: "net 40 GB unlimited 100 Mbps",
+                                    voiceInfo: [
+                                        "call Unlimit True networks",
+                                        "call 400 mins all networks"
+                                    ],
+                                    wifiInfo: "wifi Unlimit @TRUE-WIFI",
+                                    additionalPackage: [
+                                        "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
+                                    ]
+                                },
+                                campaignInfo: {
+                                    campaignName: "เฉพาะลูกค้า True Black Card",
+                                    customerTier: "BLACK",
+                                    price: "13599",
+                                    advanceService: "2000",
+                                    seq: 1
+                                }
+                            },
+                            {
+                                packageInfo: {
+                                    packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
+                                    packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
+                                    priceplanRc: "899",
+                                    contractTerm: "12",
+                                    netInfo: "net 40 GB unlimited 100 Mbps",
+                                    voiceInfo: [
+                                        "call Unlimit True networks",
+                                        "call 400 mins all networks"
+                                    ],
+                                    wifiInfo: "wifi Unlimit @TRUE-WIFI",
+                                    additionalPackage: [
+                                        "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
+                                    ]
+                                },
+                                campaignInfo: {
+                                    campaignName: "เฉพาะลูกค้า True Red Card",
+                                    customerTier: "RED",
+                                    price: "15599",
+                                    advanceService: "3000",
+                                    seq: 2
+                                }
+                            }
+                        ]
+                    }
+                }
+
+                logService(verifyOtpPayload, response, logStepModel)
 
                 const operator = await this.checkOperator(phoneNumber)
                 const customerOperatorIsActive = await this.checkActive(operator, journey)
@@ -264,7 +283,8 @@ export class OtpService {
 
             } else {
 
-                const response = await apigeeClientAdapter.verifyOTP(body)
+                const response = await apigeeClientAdapter.verifyOTP(verifyOtpPayload)
+                logService(verifyOtpPayload, response, logStepModel)
                 const operator = await this.checkOperator(phoneNumber)
                 const customerOperatorIsActive = await this.checkActive(operator, journey)
                 return {
@@ -274,33 +294,51 @@ export class OtpService {
             }
 
         } catch (e: any) {
+            logService(verifyOtpPayload, e, logStepModel)
             logger.error(`VERIFY_OTP`, e)
             throw e
         }
     }
 
     private async checkOperator(phoneNumber: string) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_OPERATOR, logModel);
+        let checkOperatorPayload
         const isMockOtp = this.config.otp.isMock as boolean
         const txid = isMockOtp ? '1234567' : Math.floor(100000 + Math.random() * 900000).toString()
 
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
+            checkOperatorPayload = {
+                phoneNumber,
+                txid
+            }
             const response = await apigeeClientAdapter.checkOperator(phoneNumber, txid)
-            const result = validateOperator(response.operator)
+            logService(checkOperatorPayload, response, logStepModel)
+            const result = validateOperator(response.data.operator)
 
             return result
         } catch (e: any) {
+            logService(checkOperatorPayload, e, logStepModel)
             logger.error('Error checkOperator')
             throw e
         }
     }
 
     private async checkActive(operator: string, journey: string) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.CT_CHECK_OPERATOR_JOURNEY_ACTIVATION, logModel);
+        let checkJourneyActivationPayload
         try {
-            const journeyActive = await CommercetoolsCustomObjectClient.getJourneyActivationByOperator()
+            checkJourneyActivationPayload = {
+                operator,
+                journey,
+            }
+            const response = await CommercetoolsCustomObjectClient.getJourneyActivationByOperator()
 
-            const journeyItem = journeyActive.find(journeyActive => journeyActive.journey === journey)
-
+            logModel.logSuccess(checkJourneyActivationPayload, response)
+            const journeyItem = response.find(journeyActive => journeyActive.journey === journey)
+            
             if (!journeyItem) {
                 throw {
                     statusCode: 400,
@@ -308,12 +346,12 @@ export class OtpService {
                     errorCode: 'INVALID_JOURNEY'
                 }
             }
-
+            
             const isActive = getValueByKey(journeyItem?.operators, operator)
-
+            
             return isActive
         } catch (e: any) {
-            logger.error('Error validate journeyActive')
+            logService(checkJourneyActivationPayload, e, logStepModel)
             throw e
         }
     }

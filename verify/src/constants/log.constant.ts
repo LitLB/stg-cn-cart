@@ -19,8 +19,8 @@ export enum LOG_RESULT_INDICATOR {
 }
 
 export enum LOG_MSG {
-    APIGEE_REQUEST_OTP = '[APIGEE] Request OTP',
-    APIGEE_VERIFY_OTP = '[APIGEE] Verify OTP',
-    APIGEE_CHECK_OPERATOR = '[APIGEE] Check operator',
-    CT_CHECK_ACTIVE_OPERATOR = '[CT_CHECK_ACTIVE_OPERATOR] Check active operator in commercetools.',
+    APIGEE_REQUEST_OTP = '[APIGEE] - Request OTP.',
+    APIGEE_VERIFY_OTP = '[APIGEE] - Verify OTP.',
+    APIGEE_CHECK_OPERATOR = '[APIGEE] - Check operator.',
+    CT_CHECK_OPERATOR_JOURNEY_ACTIVATION = '[CommerceTools] Check operator journey activation.',
 }

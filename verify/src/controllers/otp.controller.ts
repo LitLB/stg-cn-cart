@@ -2,6 +2,10 @@ import { NextFunction, Request, Response } from "express";
 import { OtpService } from "../services/otp.service";
 import { HTTP_MESSAGE, HTTP_STATUSES } from "../constants/http.constant";
 import { verifyOtpRequest } from "../interfaces/otp.interface";
+import { createLogModel, LogModel, logService } from "../utils/logger.utils";
+import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
+import moment from "moment";
+import { EXCEPTION_MESSAGES } from "../constants/messages.constant";
 
 export class OtpController {
     private readonly otpService: OtpService;
@@ -13,7 +17,9 @@ export class OtpController {
     }
 
     public async requestOtp(req: Request, res: Response, next: NextFunction) {
-
+        const logModel = createLogModel(LOG_APPS.STORE_WEB, "");
+        logModel.start_date = moment().toISOString()
+        LogModel.initialize(logModel);
         try {
             const { mobileNumber } = req.query;
 
@@ -27,6 +33,7 @@ export class OtpController {
 
             const responseBody = await this.otpService.requestOtp(mobileNumber);
 
+
             res.status(200).send({
                 statusCode: HTTP_STATUSES.OK,
                 statusMessage: HTTP_MESSAGE.OK,
@@ -34,12 +41,26 @@ export class OtpController {
             });
 
 
-        } catch (err: any) {
-            next(err);
+        } catch (error: any) {
+
+            const statusCode = error.statusCode || 500;
+            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
+            const data = error.data || null
+
+            const response = {
+                statusCode,
+                statusMessage,
+                data
+            };
+
+            next(response);
         }
     }
 
     public async verifyOtp(req: Request, res: Response, next: NextFunction) {
+        const logModel = createLogModel(LOG_APPS.STORE_WEB, "");
+        logModel.start_date = moment().toISOString()
+        LogModel.initialize(logModel);
         try {
 
             const { mobileNumber, refCode, pin, journey }: verifyOtpRequest = req.query as unknown as verifyOtpRequest;

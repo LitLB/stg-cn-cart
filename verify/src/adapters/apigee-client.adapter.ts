@@ -114,7 +114,7 @@ class ApigeeClientAdapter {
         };
         const url = '/communicationMessage/v1/generateOTP';
         const response: AxiosResponse = await this.client.post(`${url}`, body, { headers });
-        return response.data;
+        return response;
     }
 
     async verifyOTP(body: VerifyOTPToApigee) {
@@ -126,7 +126,7 @@ class ApigeeClientAdapter {
         };
         const url = `/communicationMessage/v1/verifyOTP`;
         const response: AxiosResponse = await this.client.post(`${url}`, body, { headers });
-        return response.data;
+        return response;
     }
 
     async checkOperator(mobileNumber: string, txid: string) {
@@ -138,7 +138,7 @@ class ApigeeClientAdapter {
         };
         const url = `/operator/v1/check?id=${mobileNumber}&txid=${txid}`;
         const response: AxiosResponse = await this.client.get(`${url}`, { headers });
-        return response.data;
+        return response;
     }
 }
 
