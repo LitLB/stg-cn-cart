@@ -45,38 +45,47 @@ class ApigeeClientAdapter {
     }
 
     async apigeeDecrypt(encryptedInput: string) {
-        const ivSize = 16; // IV size in bytes
-        const key = this.config.apigee.privateKeyEncryption;
+        try {
+            const ivSize = 16; // IV size in bytes
+            const key = this.config.apigee.privateKeyEncryption;
 
 
-        // Decode the Base64 input to get the combined IV and encrypted text
-        const encryptedIvAndText = Buffer.from(encryptedInput, 'base64');
+            // Decode the Base64 input to get the combined IV and encrypted text
+            const encryptedIvAndText = Buffer.from(encryptedInput, 'base64');
 
-        // Extract the IV from the first 16 bytes
-        const iv = encryptedIvAndText.slice(0, ivSize);
+            // Extract the IV from the first 16 bytes
+            const iv = encryptedIvAndText.slice(0, ivSize);
 
-        // Extract the encrypted text (everything after the IV)
-        const encryptedText = encryptedIvAndText.slice(ivSize);
+            // Extract the encrypted text (everything after the IV)
+            const encryptedText = encryptedIvAndText.slice(ivSize);
 
-        // Derive the same truncated key used for encryption.
-        // Note: The encryption function uses the length of the key string as the key size.
+            // Derive the same truncated key used for encryption.
+            // Note: The encryption function uses the length of the key string as the key size.
 
+            const keySize = key.length;
+            const keyHash = crypto.createHash('sha256').update(key).digest();
+            const truncatedKey = keyHash.slice(0, keySize);
 
-        const keySize = key.length;
-        const keyHash = crypto.createHash('sha256').update(key).digest();
-        const truncatedKey = keyHash.slice(0, keySize);
+            // Create the decipher using the same algorithm, key, and IV
+            const decipher = crypto.createDecipheriv('aes-256-cbc', truncatedKey, iv);
 
-        // Create the decipher using the same algorithm, key, and IV
-        const decipher = crypto.createDecipheriv('aes-256-cbc', truncatedKey, iv);
+            // Decrypt the data and concatenate any remaining buffered bytes
+            const decryptedBuffer = Buffer.concat([
+                decipher.update(encryptedText),
+                decipher.final(),
+            ]);
 
-        // Decrypt the data and concatenate any remaining buffered bytes
-        const decryptedBuffer = Buffer.concat([
-            decipher.update(encryptedText),
-            decipher.final(),
-        ]);
+            // Return the decrypted text as a UTF-8 string
+            return decryptedBuffer.toString('utf-8');
+        } catch (error: any) {
 
-        // Return the decrypted text as a UTF-8 string
-        return decryptedBuffer.toString('utf-8');
+            const normalizedError = {
+                statusCode: 400,
+                statusMessage:  error.message,
+                errorCode: "FAILED_TO_DECRYPT_DATA"
+            }
+            throw normalizedError
+        }
     }
 
     async apigeeEncrypt(input: string) {

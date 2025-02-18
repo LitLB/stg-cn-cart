@@ -43,17 +43,7 @@ export class OtpController {
 
         } catch (error: any) {
 
-            const statusCode = error.statusCode || 500;
-            const statusMessage = error.statusMessage || EXCEPTION_MESSAGES.SERVER_ERROR;
-            const data = error.data || null
-
-            const response = {
-                statusCode,
-                statusMessage,
-                data
-            };
-
-            next(response);
+            next(error);
         }
     }
 
