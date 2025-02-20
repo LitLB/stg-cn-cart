@@ -29,6 +29,14 @@ export const validateVerifyOtp: ValidationChain[] = [
         .withMessage('journey must be a string'),
 ];
 
+export const validateRequestOtp: ValidationChain[] = [
+    query('mobileNumber')
+        .exists({ checkFalsy: true })
+        .withMessage('mobileNumber is required')
+        .isString()
+        .withMessage('mobileNumber must be a string'),
+]
+
 // Middleware to check for errors from express-validator
 export const handleValidationErrors = (
     req: Request,

@@ -81,7 +81,7 @@ class ApigeeClientAdapter {
 
             const normalizedError = {
                 statusCode: 400,
-                statusMessage:  error.message,
+                statusMessage:  "Invalid format",
                 errorCode: "FAILED_TO_DECRYPT_DATA"
             }
             throw normalizedError
