@@ -6,7 +6,6 @@ import ApigeeClientAdapter from "../adapters/apigee-client.adapter";
 import { readConfiguration } from "../utils/config.utils";
 import { getOTPReferenceCodeFromArray } from "../utils/array.utils";
 import { generateTransactionId } from "../utils/date.utils";
-import { VerifyOTPToApigee } from "../interfaces/otp.interface";
 import { convertToThailandMobile } from "../utils/formatter.utils";
 import { validateOperator } from "../utils/operator.utils";
 import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client"
@@ -62,6 +61,8 @@ export class OtpService {
             const expireAt = moment(data.sendCompleteTime).add(otpNumberMinuteExpire, 'minutes').format('YYYY-MM-DDTHH:MM:SS+07:00')
             const refCode = getOTPReferenceCodeFromArray(data.characteristic) ?? "Invalid"
 
+            logger.info(JSON.stringify({ phoneNumber, refCode, date: moment() }))
+
             return {
                 otp: {
                     expireAt,
@@ -83,6 +84,14 @@ export class OtpService {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
         let verifyOtpPayload
+        let logInformation = {
+            otpNumber: "",
+            refCode: "",
+            journey: "",
+            status: "",
+            reason: "",
+            date_time: moment().toISOString()
+        }
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const sendTime = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
@@ -276,10 +285,22 @@ export class OtpService {
                 const operator = await this.checkOperator(phoneNumber)
                 const customerOperatorIsActive = await this.checkActive(operator, journey)
 
+
+                logInformation.journey = journey
+                logInformation.otpNumber = pin
+                logInformation.refCode = refCode
+                logInformation.status = "Pass"
+                logInformation.reason = "Verify OTP successfully"
+
+                logger.info(JSON.stringify(logInformation))
+
+
                 return {
                     customerOperator: operator,
                     isOperatorIsActive: customerOperatorIsActive
                 }
+
+
 
             } else {
 
@@ -287,6 +308,15 @@ export class OtpService {
                 logService(verifyOtpPayload, response, logStepModel)
                 const operator = await this.checkOperator(phoneNumber)
                 const customerOperatorIsActive = await this.checkActive(operator, journey)
+
+                logInformation.journey = journey
+                logInformation.otpNumber = pin
+                logInformation.refCode = refCode
+                logInformation.status = "Pass"
+                logInformation.reason = "Verify OTP successfully"
+
+                logger.info(JSON.stringify(logInformation))
+
                 return {
                     customerOperator: operator,
                     isOperatorIsActive: customerOperatorIsActive
@@ -295,6 +325,13 @@ export class OtpService {
 
         } catch (e: any) {
             logService(verifyOtpPayload, e, logStepModel)
+            logInformation.journey = journey
+            logInformation.otpNumber = pin
+            logInformation.refCode = refCode
+            logInformation.status = "Failed"
+            logInformation.reason = e.statusMessage || e.response.data.message || e.message || "Internal Server Error";
+
+            logger.error(JSON.stringify(logInformation))
             logger.error(`VERIFY_OTP`, e)
             throw e
         }
@@ -338,7 +375,7 @@ export class OtpService {
 
             logModel.logSuccess(checkJourneyActivationPayload, response)
             const journeyItem = response.find(journeyActive => journeyActive.journey === journey)
-            
+
             if (!journeyItem) {
                 throw {
                     statusCode: 400,
@@ -346,9 +383,17 @@ export class OtpService {
                     errorCode: 'INVALID_JOURNEY'
                 }
             }
-            
+
             const isActive = getValueByKey(journeyItem?.operators, operator)
-            
+
+            if (!isActive) {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'Journey not active by operator',
+                    errorCode: 'JOURNAL_NOT_ACTIVE_BY_OPERATOR'
+                }
+            }
+
             return isActive
         } catch (e: any) {
             logService(checkJourneyActivationPayload, e, logStepModel)

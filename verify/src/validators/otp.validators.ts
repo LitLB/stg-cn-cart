@@ -12,13 +12,15 @@ export const validateVerifyOtp: ValidationChain[] = [
         .exists({ checkFalsy: true })
         .withMessage('refCode is required')
         .isString()
-        .withMessage('refCode must be a string'),
+        .isLength({ min: 6, max: 6 })
+        .withMessage('refCode must be a string and correct format'),
 
     query('pin')
         .exists({ checkFalsy: true })
         .withMessage('pin is required')
         .isString()
-        .withMessage('pin must be a string'),
+        .isLength({ min: 6, max: 6 })
+        .withMessage('pin must be a string and length must equal 6 characters'),
 
     query('journey')
         .exists({ checkFalsy: true })

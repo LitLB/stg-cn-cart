@@ -1,3 +1,3 @@
-export const getValueByKey = (object: any, row: string) => {
+export const getValueByKey = (object: any, row: string):boolean => {
     return object[row];
 }
