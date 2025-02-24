@@ -75,6 +75,7 @@ export class OtpService {
             }
 
         } catch (e: any) {
+            logger.info(JSON.stringify({ phoneNumber, refCode: null, date: moment() }))
             logService(requestOtpPayload, e, logModel)
             throw e
         }
