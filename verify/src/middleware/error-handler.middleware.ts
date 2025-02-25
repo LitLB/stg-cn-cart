@@ -23,7 +23,9 @@ export const errorHandler = (
     const status = err.status || err.statusCode || 500
     const statusCode: string = err.statusCode || err.response.data.code || "500.9999";
     const statusMessage = err.statusMessage || err.response.data.message || err.message;
-    const errorCode = err.errorCode || err.response.data.description || 'UNKNOWN_ERROR_CODE';
+    const errorCodeMessage = err.errorCode || err.statusMessage ||  err.response.data?.description || err.response.data?.message || 'UNKNOWN_ERROR_CODE'
+    const errorCode = errorCodeMessage.split(" ").join("_").toUpperCase();
+
 
     const response: ApiResponse = {
         statusCode,

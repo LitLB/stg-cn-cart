@@ -119,12 +119,11 @@ export class OtpService {
             const isMockOtp = this.config.otp.isMock as boolean
 
             if (isMockOtp) {
-                const otpErrorMap: Record<string, { status: number; statusCode: string; statusMessage: string; errorCode: string }> = {
+                const otpErrorMap: Record<string, { status: number; statusCode: string; statusMessage: string; errorCode?: string }> = {
                     '100001': {
                         status: 400,
                         statusCode: '400.4002',
-                        statusMessage: 'OTP is not match',
-                        errorCode: 'OTP_IS_NOT_MATCH'
+                        statusMessage: 'OTP is not match'
                     },
                     '100002': {
                         status: 400,
