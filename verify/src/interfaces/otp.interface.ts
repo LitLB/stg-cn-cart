@@ -46,7 +46,6 @@ export interface IGetProfileTrueRequest {
   channel: string;
   limit: string;
   page: string;
-  subscriberId: string;
   relatedParty: RelatedParty;
   characteristic: Characteristic[];
 }
