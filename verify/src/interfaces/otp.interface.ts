@@ -13,7 +13,8 @@ export interface Receiver {
 }
 
 export interface RelatedParty {
-  id: string; // CONFIRM ?? Currently "VC-ECOM"
+  id: string;
+  type?: string
 }
 
 export interface VerifyOTPToApigee {
@@ -31,4 +32,26 @@ export interface verifyOtpRequest {
   refCode: string;
   pin: string;
   journey: string;
+}
+
+export interface IGetProfileDtacRequest {
+  id: string;
+  channel: string;
+  category: string;
+  relatedParty: RelatedParty;
+}
+
+export interface IGetProfileTrueRequest {
+  id: string;
+  channel: string;
+  limit: string;
+  page: string;
+  subscriberId: string;
+  relatedParty: RelatedParty;
+  characteristic: Characteristic[];
+}
+
+export interface Characteristic {
+  name: string;
+  value: string;
 }

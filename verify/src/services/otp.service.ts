@@ -12,6 +12,7 @@ import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client
 import { getValueByKey } from "../utils/object.utils";
 import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
+import { Characteristic, IGetProfileDtacRequest, IGetProfileTrueRequest } from "../interfaces/otp.interface";
 
 export class OtpService {
 
@@ -81,7 +82,7 @@ export class OtpService {
         }
     }
 
-    public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string) {
+    public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string, id: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
         let verifyOtpPayload
@@ -270,41 +271,98 @@ export class OtpService {
                         }
                     }
 
-                    logService(verifyOtpPayload, response, logStepModel)
-
-                    const operator = await this.checkOperator(phoneNumber)
-                    const customerOperatorIsActive = await this.checkActive(operator, journey)
-
-
-                    logInformation.journey = journey
-                    logInformation.otpNumber = pin
-                    logInformation.refCode = refCode
-                    logInformation.status = "Pass"
-                    logInformation.reason = "Verify OTP successfully"
-
-                    logger.info(JSON.stringify(logInformation))
-
-
-                    return {
-                        customerOperator: operator,
-                        isOperatorIsActive: customerOperatorIsActive
-                    }
-                } else {
-                    // Somewhere in your verifyOtp logic, check for error conditions:
-                    if (otpErrorMap[pin]) {
-                        logService(verifyOtpPayload, otpErrorMap[pin], logStepModel)
-                        throw otpErrorMap[pin];
-                    } else {
-                        throw {
-                            status: 400,
-                            statusCode: '400.4002',
-                            statusMessage: 'OTP is not match',
-                            errorCode: 'OTP_IS_NOT_MATCH'
-                        }
+                // * STEP 1 :: Verify OTP
+                // ? INFO :: This is mock response from the server APIGEE
+                const response = {
+                    status: 200,
+                    data: {
+                        packageList: [
+                            {
+                                packageInfo: {
+                                    packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
+                                    packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
+                                    priceplanRc: "899",
+                                    contractTerm: "12",
+                                    netInfo: "net 40 GB unlimited 100 Mbps",
+                                    voiceInfo: [
+                                        "call Unlimit True networks",
+                                        "call 400 mins all networks"
+                                    ],
+                                    wifiInfo: "wifi Unlimit @TRUE-WIFI",
+                                    additionalPackage: [
+                                        "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
+                                    ]
+                                },
+                                campaignInfo: {
+                                    campaignName: "เฉพาะลูกค้า True Black Card",
+                                    customerTier: "BLACK",
+                                    price: "13599",
+                                    advanceService: "2000",
+                                    seq: 1
+                                }
+                            },
+                            {
+                                packageInfo: {
+                                    packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
+                                    packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
+                                    priceplanRc: "899",
+                                    contractTerm: "12",
+                                    netInfo: "net 40 GB unlimited 100 Mbps",
+                                    voiceInfo: [
+                                        "call Unlimit True networks",
+                                        "call 400 mins all networks"
+                                    ],
+                                    wifiInfo: "wifi Unlimit @TRUE-WIFI",
+                                    additionalPackage: [
+                                        "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
+                                    ]
+                                },
+                                campaignInfo: {
+                                    campaignName: "เฉพาะลูกค้า True Red Card",
+                                    customerTier: "RED",
+                                    price: "15599",
+                                    advanceService: "3000",
+                                    seq: 2
+                                }
+                            }
+                        ]
                     }
                 }
 
 
+                // * STEP 2 :: Check operator
+                const operator = await this.checkOperator(phoneNumber)
+
+
+                // * STEP 3 :: Check operator active
+                const customerOperatorIsActive = await this.checkActive(operator, journey)
+
+
+
+                // * STEP 4 :: Get profile
+
+                if (operator !== 'true') {
+                    await this.getTrueProfile(phoneNumber, id)
+                } else {
+                    await this.getDtacProfile(phoneNumber, id)
+                }
+
+                // * STEP 5 :: Check backlist
+
+
+
+                logInformation.journey = journey
+                logInformation.otpNumber = pin
+                logInformation.refCode = refCode
+                logInformation.status = "Pass"
+                logInformation.reason = "Verify OTP successfully"
+
+                logger.info(JSON.stringify(logInformation))
+
+                return {
+                    customerOperator: operator,
+                    isOperatorIsActive: customerOperatorIsActive
+                }
 
             } else {
 
@@ -333,7 +391,7 @@ export class OtpService {
             logInformation.otpNumber = pin
             logInformation.refCode = refCode
             logInformation.status = "Failed"
-            logInformation.reason = e.statusMessage || e.response.data.message || e.message || "Internal Server Error";
+            logInformation.reason = e.statusMessage || e.response.data?.message || e.message || "Internal Server Error";
 
             logger.error(JSON.stringify(logInformation))
             logger.error(`VERIFY_OTP`, e)
@@ -403,6 +461,121 @@ export class OtpService {
             logService(checkJourneyActivationPayload, e, logStepModel)
             throw e
         }
+    }
+
+    private async getTrueProfile(phoneNumber: string, id: string) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.CT_CHECK_OPERATOR_JOURNEY_ACTIVATION, logModel);
+        const getProfilePayload: IGetProfileTrueRequest = {
+            id,
+            channel: "true", // ? FIX
+            limit: "50", // ? FIX
+            page: "1", // ? FIX
+            subscriberId: "287", // ! TBC
+            relatedParty: {
+                id: phoneNumber,
+                type: "MOBILE"
+            },
+            characteristic: [
+                {
+                    name: "agingIndicator",
+                    value: "Y"
+                }
+            ]
+        }
+
+        try {
+
+            const apigeeClientAdapter = new ApigeeClientAdapter
+            const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
+            logService(getProfilePayload, response, logStepModel)
+            const { data, code } = response.data
+            if (code === '0') {
+                if (data.subscriberInfo.telType !== 'T') {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Subscriber type is not postpaid',
+                        errorCode: 'SUBSCRIBER_TYPE_NOT_POST_POSTPAID'
+                    }
+                }
+
+                const thaiId = data.engagedParty.id
+                const aging = data.aging
+
+                return {
+                    thaiId,
+                    aging
+                    // Get current package price plan (RC)
+                    // ! TBC about RC Current Price
+                }
+            } else {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'Get profile fail',
+                    errorCode: 'GET_PROFILE_FAIL'
+                }
+            }
+
+
+        } catch (e: any) {
+            logService(getProfilePayload, e, logStepModel)
+            throw e
+        }
+    }
+
+    private async getDtacProfile(phoneNumber: string, id: string) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.CT_CHECK_OPERATOR_JOURNEY_ACTIVATION, logModel);
+        const getProfilePayload: IGetProfileDtacRequest = {
+            id,
+            channel: "dtac",
+            category: "1",
+            relatedParty: {
+                id: phoneNumber,
+            }
+        }
+        try {
+
+            const apigeeClientAdapter = new ApigeeClientAdapter
+            const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
+            logService(getProfilePayload, response, logStepModel)
+            const { data, code } = response.data
+            if (code === '0') {
+                if (data.subscriberInfo.telType !== 'T') {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Subscriber type is not postpaid',
+                        errorCode: 'SUBSCRIBER_TYPE_NOT_POST_POSTPAID'
+                    }
+                }
+
+                const thaiId = data.engagedParty.id
+                // const decryptedThaiId = await apigeeClientAdapter.apigeeDecrypt(thaiId)
+                const aging: Characteristic = data.characteristic.find((c: Characteristic) => c.name === 'TOTL_DAYS')
+
+                return {
+                    thaiId,
+                    aging: aging.value
+                    // Get current package price plan (RC)
+                    // ! TBC about RC Current Price
+                }
+            } else {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'Get profile fail',
+                    errorCode: 'GET_PROFILE_FAIL'
+                }
+            }
+
+
+        } catch (e: any) {
+            logService(getProfilePayload, e, logStepModel)
+            throw e
+        }
+    }
+
+    private async checkBacklist(phoneNumber: string, company: string) {
+        return
     }
 
     private async createLogFile(phoneNumber: string, refCode: string, dateTime: string): Promise<void> {
