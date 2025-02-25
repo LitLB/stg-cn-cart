@@ -1,6 +1,8 @@
 export function convertToThailandMobile(mobile: string): string {
 
-  if (mobile.length < 10 || mobile.length > 10) {
+  const sanitized = mobile.replace(/\D/g, '');
+  
+  if (sanitized.startsWith('0') && (sanitized.length < 10 || sanitized.length > 10)) {
     throw {
       status: 400,
       statusCode: '409',
@@ -9,13 +11,11 @@ export function convertToThailandMobile(mobile: string): string {
     }
   }
 
-  const sanitized = mobile.replace(/\D/g, '');
-
   if (sanitized.startsWith('0')) {
     return '66' + sanitized.substring(1);
   }
 
-  if (sanitized.length === 11 && sanitized.startsWith('6')) {
+  if (sanitized.startsWith('66') && sanitized.length === 11) {
     return sanitized
   }
 

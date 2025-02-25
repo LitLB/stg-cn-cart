@@ -291,8 +291,6 @@ export class OtpService {
                 // * STEP 3 :: Check operator active
                 const customerOperatorIsActive = await this.checkActive(operator, journey)
 
-
-
                 // * STEP 4 :: Get profile
 
                 if (operator !== 'true') {
@@ -419,13 +417,12 @@ export class OtpService {
 
     private async getTrueProfile(phoneNumber: string, id: string) {
         const logModel = LogModel.getInstance();
-        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.CT_CHECK_OPERATOR_JOURNEY_ACTIVATION, logModel);
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_GET_PROFILE_AND_PACKAGE, logModel);
         const getProfilePayload: IGetProfileTrueRequest = {
             id,
             channel: "true", // ? FIX
             limit: "50", // ? FIX
             page: "1", // ? FIX
-            subscriberId: "287", // ! TBC
             relatedParty: {
                 id: phoneNumber,
                 type: "MOBILE"
@@ -439,12 +436,14 @@ export class OtpService {
         }
 
         try {
-
+            // TODO :: Block TCB case
+            // TODO :: When K'Kor fullfil coda IMPLEMENT THIS
             const apigeeClientAdapter = new ApigeeClientAdapter
             const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
             logService(getProfilePayload, response, logStepModel)
             const { data, code } = response.data
             if (code === '0') {
+
                 if (data.subscriberInfo.telType !== 'T') {
                     throw {
                         statusCode: 400,
@@ -479,7 +478,7 @@ export class OtpService {
 
     private async getDtacProfile(phoneNumber: string, id: string) {
         const logModel = LogModel.getInstance();
-        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.CT_CHECK_OPERATOR_JOURNEY_ACTIVATION, logModel);
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_GET_PROFILE_AND_PACKAGE, logModel);
         const getProfilePayload: IGetProfileDtacRequest = {
             id,
             channel: "dtac",
@@ -489,7 +488,8 @@ export class OtpService {
             }
         }
         try {
-
+            // TODO :: Block TCB case
+            // TODO :: When K'Kor fullfil coda IMPLEMENT THIS
             const apigeeClientAdapter = new ApigeeClientAdapter
             const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
             logService(getProfilePayload, response, logStepModel)
@@ -505,7 +505,7 @@ export class OtpService {
 
                 const thaiId = data.engagedParty.id
                 // const decryptedThaiId = await apigeeClientAdapter.apigeeDecrypt(thaiId)
-                const aging: Characteristic = data.characteristic.find((c: Characteristic) => c.name === 'TOTL_DAYS')
+                const aging: Characteristic = data.characteristic.find((c: Characteristic) => c.name === "CS_CUST__OCCP_CODE")
 
                 return {
                     thaiId,
@@ -530,37 +530,6 @@ export class OtpService {
 
     private async checkBacklist(phoneNumber: string, company: string) {
         return
-    }
-
-    private async createLogFile(phoneNumber: string, refCode: string, dateTime: string): Promise<void> {
-        // Create a timestamp for the filename
-
-        const apigeeClientAdapter = new ApigeeClientAdapter
-        const decodePhoneNumber = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
-
-        const logDirectory = path.resolve(__dirname, 'logs');
-
-        // Create the logs directory if it doesn't exist
-        if (!fs.existsSync(logDirectory)) {
-            fs.mkdirSync(logDirectory, { recursive: true });
-        }
-
-        // Create a timestamp for the filename
-        const timestamp = moment().format('YYYYMMDDHHmmss');
-        const filename = path.join(logDirectory, `${timestamp}.log`);
-
-
-        // Prepare the log content
-        const content = [decodePhoneNumber, refCode, dateTime].join('|');
-
-        // Write the log file asynchronously
-        fs.writeFile(filename, content, (err) => {
-            if (err) {
-                console.error(`Error writing log file ${filename}:`, err);
-            } else {
-                console.log(`Log file ${filename} created successfully.`);
-            }
-        });
     }
 
 }
