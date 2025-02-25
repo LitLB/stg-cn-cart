@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from 'axios'
 import { readConfiguration } from "../utils/config.utils";
 import * as crypto from 'crypto';
-import { RequestOTPToApigee, VerifyOTPToApigee } from '../interfaces/otp.interface';
+import { IGetProfileDtacRequest, IGetProfileTrueRequest, RequestOTPToApigee, VerifyOTPToApigee } from '../interfaces/otp.interface';
 
 
 class ApigeeClientAdapter {
@@ -81,7 +81,7 @@ class ApigeeClientAdapter {
 
             const normalizedError = {
                 statusCode: 400,
-                statusMessage:  "Invalid format",
+                statusMessage: "Invalid format",
                 errorCode: "FAILED_TO_DECRYPT_DATA"
             }
             throw normalizedError
@@ -147,6 +147,18 @@ class ApigeeClientAdapter {
         };
         const url = `/operator/v1/check?id=${mobileNumber}&txid=${txid}`;
         const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
+    }
+
+    async getProfileAndPackage(body: Partial<IGetProfileDtacRequest | IGetProfileTrueRequest>) {
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/customerProfile/v2/profileAndPackage`;
+        const response: AxiosResponse = await this.client.post(`${url}`, body, { headers });
         return response;
     }
 }
