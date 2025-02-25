@@ -1,4 +1,14 @@
 export function convertToThailandMobile(mobile: string): string {
+
+  if (mobile.length < 10 || mobile.length > 10) {
+    throw {
+      status: 400,
+      statusCode: '409',
+      statusMessage: 'Invalid mobile number',
+      errorCode: 'INVALID_MOBILE_NUMBER'
+    }
+  }
+
   const sanitized = mobile.replace(/\D/g, '');
 
   if (sanitized.startsWith('0')) {

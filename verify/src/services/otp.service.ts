@@ -301,8 +301,6 @@ export class OtpService {
                     isOperatorIsActive: customerOperatorIsActive
                 }
 
-
-
             } else {
 
                 const response = await apigeeClientAdapter.verifyOTP(verifyOtpPayload)
