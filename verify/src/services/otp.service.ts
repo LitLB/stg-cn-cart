@@ -528,8 +528,38 @@ export class OtpService {
         }
     }
 
-    private async checkBacklist(phoneNumber: string, company: string) {
-        return
+    private async checkBacklist(id: string, cardId: string, company: string, custValue?: string) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_BACKLIST, logModel);
+        try {
+            const apigeeClientAdapter = new ApigeeClientAdapter
+
+            if (company === 'true') {
+                const response = await apigeeClientAdapter.checkBacklistTrue(id, cardId)
+                logService({ id, cardId, company }, response, logStepModel)
+                const { data, code } = response.data
+            }
+
+            if (company === 'dtac') {
+
+                if (!custValue) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Customer value is required',
+                        errorCode: 'CUSTOMER_VALUE_REQUIRED'
+                    }
+                }
+
+                const response = await apigeeClientAdapter.checkBacklistDtac(id, cardId, custValue)
+                logService({ id, cardId, company }, response, logStepModel)
+                const { data, code } = response.data
+            }
+
+
+        } catch (e: any) {
+            logService({ id, cardId, company, custValue }, e, logStepModel)
+            throw e
+        }
     }
 
 }

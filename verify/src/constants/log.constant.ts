@@ -23,5 +23,6 @@ export enum LOG_MSG {
     APIGEE_VERIFY_OTP = '[APIGEE] - Verify OTP.',
     APIGEE_CHECK_OPERATOR = '[APIGEE] - Check operator.',
     APIGEE_GET_PROFILE_AND_PACKAGE = '[APIGEE] - Get profile and package',
+    APIGEE_CHECK_BACKLIST = '[APIGEE] - Check backlist.',
     CT_CHECK_OPERATOR_JOURNEY_ACTIVATION = '[CommerceTools] Check operator journey activation.',
 }
