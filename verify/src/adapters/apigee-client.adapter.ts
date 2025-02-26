@@ -161,6 +161,30 @@ class ApigeeClientAdapter {
         const response: AxiosResponse = await this.client.post(`${url}`, body, { headers });
         return response;
     }
+
+    async checkBacklistDtac(id: string, cardId: string, custValue: string) {
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/customerProfile/v2/profileAndPackage?channelName=ECP&transactionId=${id}&idType=IDCard&idValue=${cardId}&funcID=2&channel=dtac&custValue=${custValue}`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
+    }
+
+    async checkBacklistTrue(id: string, cardId: string) {
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/customerProfile/v2/profileAndPackage??channelName=ECP&transactionId=${id}&idType=IDCard&idValue=${cardId}&channel=true&companyCode=AL&verifyType=AL&accountCat=I&activityFunction=EXISTING&activityFunctionType=null`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
+    }
 }
 
 export default ApigeeClientAdapter
