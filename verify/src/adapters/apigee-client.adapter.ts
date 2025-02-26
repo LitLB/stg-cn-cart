@@ -49,7 +49,6 @@ class ApigeeClientAdapter {
             const ivSize = 16; // IV size in bytes
             const key = this.config.apigee.privateKeyEncryption;
 
-
             // Decode the Base64 input to get the combined IV and encrypted text
             const encryptedIvAndText = Buffer.from(encryptedInput, 'base64');
 
@@ -184,6 +183,22 @@ class ApigeeClientAdapter {
         const url = `/customerProfile/v2/profileAndPackage??channelName=ECP&transactionId=${id}&idType=IDCard&idValue=${cardId}&channel=true&companyCode=AL&verifyType=AL&accountCat=I&activityFunction=EXISTING&activityFunctionType=null`;
         const response: AxiosResponse = await this.client.get(`${url}`, { headers });
         return response;
+    }
+
+    async getContractAndQuotaDtac() {
+        return
+    }
+
+    async getContractAndQuotaTrue() {
+        return
+    }
+
+    async getCustomerTierDtac() {
+        return
+    }
+
+    async getCustomerTierTrue() {
+        return
     }
 }
 

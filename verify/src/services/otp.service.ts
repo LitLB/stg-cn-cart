@@ -1,6 +1,4 @@
 import moment from "moment";
-import * as fs from 'fs';
-import * as path from 'path';
 
 import ApigeeClientAdapter from "../adapters/apigee-client.adapter";
 import { readConfiguration } from "../utils/config.utils";
@@ -82,11 +80,11 @@ export class OtpService {
         }
     }
 
-    public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string, id: string) {
+    public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
         let verifyOtpPayload
-        let logInformation = {
+        const logInformation = {
             otpNumber: "",
             refCode: "",
             journey: "",
@@ -95,11 +93,13 @@ export class OtpService {
             date_time: moment().toISOString()
         }
         try {
+
             const apigeeClientAdapter = new ApigeeClientAdapter
             const sendTime = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
             const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
 
             const thailandMobile = convertToThailandMobile(decryptedMobile)
+
             verifyOtpPayload = {
                 id: refCode,
                 sendTime: sendTime,
@@ -333,20 +333,27 @@ export class OtpService {
                 // * STEP 2 :: Check operator
                 const operator = await this.checkOperator(phoneNumber)
 
-
                 // * STEP 3 :: Check operator active
                 const customerOperatorIsActive = await this.checkActive(operator, journey)
 
+                const mockId = 'xxxxxxxxx'
+
                 // * STEP 4 :: Get profile
+                // if (operator === 'true') {
+                //     const trueProfile = await this.getTrueProfile(phoneNumber, mockId)
 
-                if (operator !== 'true') {
-                    await this.getTrueProfile(phoneNumber, id)
-                } else {
-                    await this.getDtacProfile(phoneNumber, id)
-                }
+                //     // * STEP 5 :: Check backlist
+                //     await this.checkBacklist(mockId, trueProfile.thaiId, phoneNumber, operator)
+                // }
 
+                // if (operator === 'dtac') {
+                const dtacProfile = await this.getDtacProfile(phoneNumber, mockId)
+                console.log({ dtacProfile })
+
+                await this.checkBacklist(mockId, phoneNumber, operator, dtacProfile.custValue)
                 // * STEP 5 :: Check backlist
 
+                // }
 
 
                 logInformation.journey = journey
@@ -485,6 +492,8 @@ export class OtpService {
             // TODO :: Block TCB case
             // TODO :: When K'Kor fullfil coda IMPLEMENT THIS
             const apigeeClientAdapter = new ApigeeClientAdapter
+
+            console.log('payload : ', getProfilePayload)
             const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
             logService(getProfilePayload, response, logStepModel)
             const { data, code } = response.data
@@ -550,14 +559,13 @@ export class OtpService {
                 }
 
                 const thaiId = data.engagedParty.id
-                // const decryptedThaiId = await apigeeClientAdapter.apigeeDecrypt(thaiId)
+                const custValue = data.relatedParty.href
                 const aging: Characteristic = data.characteristic.find((c: Characteristic) => c.name === "CS_CUST__OCCP_CODE")
 
                 return {
                     thaiId,
-                    aging: aging.value
-                    // Get current package price plan (RC)
-                    // ! TBC about RC Current Price
+                    aging: aging.value,
+                    custValue
                 }
             } else {
                 throw {
@@ -583,11 +591,18 @@ export class OtpService {
             if (company === 'true') {
                 const response = await apigeeClientAdapter.checkBacklistTrue(id, cardId)
                 logService({ id, cardId, company }, response, logStepModel)
-                const { data, code } = response.data
+                const { data } = response.data
+
+                if (data.mobileRelaxBlacklist === 'Y') {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Black Listed Customer is not allowed',
+                        errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
+                    }
+                }
             }
 
             if (company === 'dtac') {
-
                 if (!custValue) {
                     throw {
                         statusCode: 400,
@@ -598,7 +613,15 @@ export class OtpService {
 
                 const response = await apigeeClientAdapter.checkBacklistDtac(id, cardId, custValue)
                 logService({ id, cardId, company }, response, logStepModel)
-                const { data, code } = response.data
+                const { status } = response.data
+
+                if (status === "FALSE") {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Black Listed Customer is not allowed',
+                        errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
+                    }
+                }
             }
 
 
