@@ -120,11 +120,6 @@ export class OtpService {
 
             if (isMockOtp) {
                 const otpErrorMap: Record<string, { status: number; statusCode: string; statusMessage: string; errorCode?: string }> = {
-                    '100001': {
-                        status: 400,
-                        statusCode: '400.4002',
-                        statusMessage: 'OTP is not match'
-                    },
                     '100002': {
                         status: 400,
                         statusCode: '400.4003',
@@ -217,88 +212,99 @@ export class OtpService {
                     }
                 };
 
-                // Somewhere in your verifyOtp logic, check for error conditions:
-                if (otpErrorMap[pin]) {
-                    logService(verifyOtpPayload, otpErrorMap[pin], logStepModel)
-                    throw otpErrorMap[pin];
-                }
+                if (pin === '888888') {
+                    // ? INFO :: This is mock response from the server APIGEE
+                    const response = {
+                        status: 200,
+                        data: {
+                            packageList: [
+                                {
+                                    packageInfo: {
+                                        packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
+                                        packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
+                                        priceplanRc: "899",
+                                        contractTerm: "12",
+                                        netInfo: "net 40 GB unlimited 100 Mbps",
+                                        voiceInfo: [
+                                            "call Unlimit True networks",
+                                            "call 400 mins all networks"
+                                        ],
+                                        wifiInfo: "wifi Unlimit @TRUE-WIFI",
+                                        additionalPackage: [
+                                            "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
+                                        ]
+                                    },
+                                    campaignInfo: {
+                                        campaignName: "เฉพาะลูกค้า True Black Card",
+                                        customerTier: "BLACK",
+                                        price: "13599",
+                                        advanceService: "2000",
+                                        seq: 1
+                                    }
+                                },
+                                {
+                                    packageInfo: {
+                                        packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
+                                        packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
+                                        priceplanRc: "899",
+                                        contractTerm: "12",
+                                        netInfo: "net 40 GB unlimited 100 Mbps",
+                                        voiceInfo: [
+                                            "call Unlimit True networks",
+                                            "call 400 mins all networks"
+                                        ],
+                                        wifiInfo: "wifi Unlimit @TRUE-WIFI",
+                                        additionalPackage: [
+                                            "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
+                                        ]
+                                    },
+                                    campaignInfo: {
+                                        campaignName: "เฉพาะลูกค้า True Red Card",
+                                        customerTier: "RED",
+                                        price: "15599",
+                                        advanceService: "3000",
+                                        seq: 2
+                                    }
+                                }
+                            ]
+                        }
+                    }
 
-                // ? INFO :: This is mock response from the server APIGEE
-                const response = {
-                    status: 200,
-                    data: {
-                        packageList: [
-                            {
-                                packageInfo: {
-                                    packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
-                                    packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
-                                    priceplanRc: "899",
-                                    contractTerm: "12",
-                                    netInfo: "net 40 GB unlimited 100 Mbps",
-                                    voiceInfo: [
-                                        "call Unlimit True networks",
-                                        "call 400 mins all networks"
-                                    ],
-                                    wifiInfo: "wifi Unlimit @TRUE-WIFI",
-                                    additionalPackage: [
-                                        "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
-                                    ]
-                                },
-                                campaignInfo: {
-                                    campaignName: "เฉพาะลูกค้า True Black Card",
-                                    customerTier: "BLACK",
-                                    price: "13599",
-                                    advanceService: "2000",
-                                    seq: 1
-                                }
-                            },
-                            {
-                                packageInfo: {
-                                    packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
-                                    packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
-                                    priceplanRc: "899",
-                                    contractTerm: "12",
-                                    netInfo: "net 40 GB unlimited 100 Mbps",
-                                    voiceInfo: [
-                                        "call Unlimit True networks",
-                                        "call 400 mins all networks"
-                                    ],
-                                    wifiInfo: "wifi Unlimit @TRUE-WIFI",
-                                    additionalPackage: [
-                                        "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
-                                    ]
-                                },
-                                campaignInfo: {
-                                    campaignName: "เฉพาะลูกค้า True Red Card",
-                                    customerTier: "RED",
-                                    price: "15599",
-                                    advanceService: "3000",
-                                    seq: 2
-                                }
-                            }
-                        ]
+                    logService(verifyOtpPayload, response, logStepModel)
+
+                    const operator = await this.checkOperator(phoneNumber)
+                    const customerOperatorIsActive = await this.checkActive(operator, journey)
+
+
+                    logInformation.journey = journey
+                    logInformation.otpNumber = pin
+                    logInformation.refCode = refCode
+                    logInformation.status = "Pass"
+                    logInformation.reason = "Verify OTP successfully"
+
+                    logger.info(JSON.stringify(logInformation))
+
+
+                    return {
+                        customerOperator: operator,
+                        isOperatorIsActive: customerOperatorIsActive
+                    }
+                } else {
+                    // Somewhere in your verifyOtp logic, check for error conditions:
+                    if (otpErrorMap[pin]) {
+                        logService(verifyOtpPayload, otpErrorMap[pin], logStepModel)
+                        throw otpErrorMap[pin];
+                    } else {
+                        throw {
+                            status: 400,
+                            statusCode: '400.4002',
+                            statusMessage: 'OTP is not match',
+                            errorCode: 'OTP_IS_NOT_MATCH'
+                        }
                     }
                 }
 
-                logService(verifyOtpPayload, response, logStepModel)
 
-                const operator = await this.checkOperator(phoneNumber)
-                const customerOperatorIsActive = await this.checkActive(operator, journey)
-
-
-                logInformation.journey = journey
-                logInformation.otpNumber = pin
-                logInformation.refCode = refCode
-                logInformation.status = "Pass"
-                logInformation.reason = "Verify OTP successfully"
-
-                logger.info(JSON.stringify(logInformation))
-
-
-                return {
-                    customerOperator: operator,
-                    isOperatorIsActive: customerOperatorIsActive
-                }
 
             } else {
 
