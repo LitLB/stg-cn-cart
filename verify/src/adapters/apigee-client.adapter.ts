@@ -185,12 +185,28 @@ class ApigeeClientAdapter {
         return response;
     }
 
-    async getContractAndQuotaDtac() {
-        return
+    async getContractAndQuotaDtac(id: string, thaiId: string) {
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/agreementManagement/v1/agreement?id=${id}&type=Quota&agreementType=1&engagedParty.id=${thaiId}`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
     }
 
-    async getContractAndQuotaTrue() {
-        return
+    async getContractAndQuotaTrue(id: string, agreementId: string) {
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/agreementManagement/v1/agreement?channel=true&id=${id}&agreementId=${agreementId}&entityType=SUBSCRIBER`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
     }
 
     async getCustomerTierDtac() {

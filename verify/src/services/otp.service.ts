@@ -293,21 +293,22 @@ export class OtpService {
                 const mockId = 'xxxxxxxxx'
 
                 // * STEP 4 :: Get profile
-                // if (operator === 'true') {
-                //     const trueProfile = await this.getTrueProfile(phoneNumber, mockId)
+                if (operator === 'true') {
+                    const trueProfile = await this.getTrueProfile(phoneNumber, mockId)
 
-                //     // * STEP 5 :: Check backlist
-                //     await this.checkBacklist(mockId, trueProfile.thaiId, phoneNumber, operator)
-                // }
+                    // * STEP 5 :: Check backlist
+                    await this.checkBacklist(mockId, trueProfile.thaiId, phoneNumber, operator)
+                }
 
-                // if (operator === 'dtac') {
-                const dtacProfile = await this.getDtacProfile(phoneNumber, mockId)
-                console.log({ dtacProfile })
+                if (operator === 'dtac') {
+                    const dtacProfile = await this.getDtacProfile(phoneNumber, mockId)
 
-                await this.checkBacklist(mockId, phoneNumber, operator, dtacProfile.custValue)
-                // * STEP 5 :: Check backlist
+                    await this.checkBacklist(mockId, phoneNumber, operator, dtacProfile.custValue)
+                    // * STEP 5 :: Check backlist
 
-                // }
+                    await this.checkContractAndQuota(mockId, dtacProfile.aging, operator, dtacProfile.thaiId)
+
+                }
 
 
                 logInformation.journey = journey
@@ -581,6 +582,55 @@ export class OtpService {
 
         } catch (e: any) {
             logService({ id, cardId, company, custValue }, e, logStepModel)
+            throw e
+        }
+    }
+
+    private async checkContractAndQuota(id: string, agreementId: string, company: string, thaiId?: string,) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_BACKLIST, logModel);
+        try {
+            const apigeeClientAdapter = new ApigeeClientAdapter
+
+            if (company === 'true') {
+                const response = await apigeeClientAdapter.getContractAndQuotaTrue(id, agreementId)
+                logService({ id, agreementId }, response, logStepModel)
+                const { data } = response.data
+
+                if (data.mobileRelaxBlacklist === 'Y') {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Black Listed Customer is not allowed',
+                        errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
+                    }
+                }
+            }
+
+            if (company === 'dtac') {
+                if (!thaiId) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Thai ID not found',
+                        errorCode: 'THAI_ID_NOT_FOUND'
+                    }
+                }
+
+                const response = await apigeeClientAdapter.getContractAndQuotaDtac(id, thaiId)
+                logService({ id, company, thaiId }, response, logStepModel)
+                const { status } = response.data
+
+                if (status === "FALSE") {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Black Listed Customer is not allowed',
+                        errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
+                    }
+                }
+            }
+
+
+        } catch (e: any) {
+            logService({ id, company, thaiId }, e, logStepModel)
             throw e
         }
     }
