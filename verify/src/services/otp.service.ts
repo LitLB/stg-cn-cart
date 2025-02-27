@@ -339,22 +339,25 @@ export class OtpService {
                 const mockId = 'xxxxxxxxx'
 
                 // * STEP 4 :: Get profile
-                if (operator === 'true') {
-                    const trueProfile = await this.getTrueProfile(phoneNumber, mockId)
+                // if (operator === 'true') {
+                //     const trueProfile = await this.getTrueProfile(phoneNumber, mockId)
 
-                    // * STEP 5 :: Check backlist
-                    await this.checkBacklist(mockId, trueProfile.thaiId, phoneNumber, operator)
-                }
+                //     // * STEP 5 :: Check backlist
+                //     await this.checkBacklist(mockId, trueProfile.thaiId, phoneNumber, operator)
+                //     await this.checkContractAndQuota(mockId, trueProfile.aging, operator)
+                    await this.getCustomerTier(mockId, phoneNumber, operator)
+                // }
 
-                if (operator === 'dtac') {
-                    const dtacProfile = await this.getDtacProfile(phoneNumber, mockId)
+                // if (operator === 'dtac') {
+                //     const dtacProfile = await this.getDtacProfile(phoneNumber, mockId)
 
-                    await this.checkBacklist(mockId, phoneNumber, operator, dtacProfile.custValue)
-                    // * STEP 5 :: Check backlist
+                //     // * STEP 5 :: Check backlist
 
-                    await this.checkContractAndQuota(mockId, dtacProfile.aging, operator, dtacProfile.thaiId)
+                //     await this.checkBacklist(mockId, phoneNumber, operator, dtacProfile.custValue)
+                //     await this.checkContractAndQuota(mockId, dtacProfile.aging, operator, dtacProfile.thaiId)
+                //     await this.getCustomerTire(mockId, phoneNumber, operator)
 
-                }
+                // }
 
 
                 logInformation.journey = journey
@@ -677,6 +680,68 @@ export class OtpService {
 
         } catch (e: any) {
             logService({ id, company, thaiId }, e, logStepModel)
+            throw e
+        }
+    }
+
+    private async getCustomerTier(id: string, mobileNumber: string, operator: string) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_GET_CUSTOMER_TIER, logModel);
+        try {
+            const apigeeClientAdapter = new ApigeeClientAdapter
+
+            if (!id) {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'id is required',
+                    errorCode: 'ID_IS_REQUIRED'
+                }
+            }
+
+            if (!mobileNumber) {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'Mobile Number is required',
+                    errorCode: 'MOBILE_NUMBER_IS_REQUIRED'
+                }
+            }
+
+            if (!operator) {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'Operator is required',
+                    errorCode: 'OPERATOR_IS_REQUIRED'
+                }
+            }
+
+            // if (operator === 'true') {
+            //     const response = await apigeeClientAdapter.getCustomerTierTrue(mobileNumber)
+            //     logService({ mobileNumber }, response, logStepModel)
+            //     const { data } = response.data
+
+            // }
+
+            // if (operator === 'dtac') {
+
+                const mobileDecrypt = await apigeeClientAdapter.apigeeDecrypt(mobileNumber)
+
+                console.log({mobileDecrypt})
+
+
+                const response = await apigeeClientAdapter.getCustomerTierDtac(id, mobileDecrypt)
+                logService({ id, mobileDecrypt, operator }, response, logStepModel)
+                const res = response.data
+
+                console.log({res})
+
+
+            // }
+
+            
+
+
+        } catch (e: any) {
+            logService({ id, operator, mobileNumber }, e, logStepModel)
             throw e
         }
     }

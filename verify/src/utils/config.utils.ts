@@ -38,7 +38,9 @@ export const readConfiguration = () => {
     otp: {
       expireTime: process.env.OTP_NUMBER_MINUTE_EXPIRE as string,
       resendTime: process.env.OTP_NUMBER_SECOND_RESEND as string,
-      isMock: process.env.OTP_IS_MOCK as string
+      isMock: process.env.OTP_IS_MOCK as string,
+      relatedPartyId: process.env.OTP_RELATED_PARTY_ID as string,
+      relatedPartyHref: process.env.OTP_RELATED_PARTY_HREF as string,
     }
   };
 
