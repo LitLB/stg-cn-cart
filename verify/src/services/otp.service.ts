@@ -213,167 +213,6 @@ export class OtpService {
                     }
                 };
 
-                if (pin === '888888') {
-                    // ? INFO :: This is mock response from the server APIGEE
-                    const response = {
-                        status: 200,
-                        data: {
-                            packageList: [
-                                {
-                                    packageInfo: {
-                                        packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
-                                        packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
-                                        priceplanRc: "899",
-                                        contractTerm: "12",
-                                        netInfo: "net 40 GB unlimited 100 Mbps",
-                                        voiceInfo: [
-                                            "call Unlimit True networks",
-                                            "call 400 mins all networks"
-                                        ],
-                                        wifiInfo: "wifi Unlimit @TRUE-WIFI",
-                                        additionalPackage: [
-                                            "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
-                                        ]
-                                    },
-                                    campaignInfo: {
-                                        campaignName: "เฉพาะลูกค้า True Black Card",
-                                        customerTier: "BLACK",
-                                        price: "13599",
-                                        advanceService: "2000",
-                                        seq: 1
-                                    }
-                                },
-                                {
-                                    packageInfo: {
-                                        packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
-                                        packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
-                                        priceplanRc: "899",
-                                        contractTerm: "12",
-                                        netInfo: "net 40 GB unlimited 100 Mbps",
-                                        voiceInfo: [
-                                            "call Unlimit True networks",
-                                            "call 400 mins all networks"
-                                        ],
-                                        wifiInfo: "wifi Unlimit @TRUE-WIFI",
-                                        additionalPackage: [
-                                            "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
-                                        ]
-                                    },
-                                    campaignInfo: {
-                                        campaignName: "เฉพาะลูกค้า True Red Card",
-                                        customerTier: "RED",
-                                        price: "15599",
-                                        advanceService: "3000",
-                                        seq: 2
-                                    }
-                                }
-                            ]
-                        }
-                    }
-
-                // * STEP 1 :: Verify OTP
-                // ? INFO :: This is mock response from the server APIGEE
-                const response = {
-                    status: 200,
-                    data: {
-                        packageList: [
-                            {
-                                packageInfo: {
-                                    packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
-                                    packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
-                                    priceplanRc: "899",
-                                    contractTerm: "12",
-                                    netInfo: "net 40 GB unlimited 100 Mbps",
-                                    voiceInfo: [
-                                        "call Unlimit True networks",
-                                        "call 400 mins all networks"
-                                    ],
-                                    wifiInfo: "wifi Unlimit @TRUE-WIFI",
-                                    additionalPackage: [
-                                        "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
-                                    ]
-                                },
-                                campaignInfo: {
-                                    campaignName: "เฉพาะลูกค้า True Black Card",
-                                    customerTier: "BLACK",
-                                    price: "13599",
-                                    advanceService: "2000",
-                                    seq: 1
-                                }
-                            },
-                            {
-                                packageInfo: {
-                                    packageId: "4fa2c291-1fce-4389-a171-0369a33addb0",
-                                    packageName: "5G Together Device 1199_Voice 250min_Net Unltd",
-                                    priceplanRc: "899",
-                                    contractTerm: "12",
-                                    netInfo: "net 40 GB unlimited 100 Mbps",
-                                    voiceInfo: [
-                                        "call Unlimit True networks",
-                                        "call 400 mins all networks"
-                                    ],
-                                    wifiInfo: "wifi Unlimit @TRUE-WIFI",
-                                    additionalPackage: [
-                                        "รับชม ฟุตบอลพรีเมียร์ลีก ตลอดฤดูกาล 2023/24"
-                                    ]
-                                },
-                                campaignInfo: {
-                                    campaignName: "เฉพาะลูกค้า True Red Card",
-                                    customerTier: "RED",
-                                    price: "15599",
-                                    advanceService: "3000",
-                                    seq: 2
-                                }
-                            }
-                        ]
-                    }
-                }
-
-
-                // * STEP 2 :: Check operator
-                const operator = await this.checkOperator(phoneNumber)
-
-                // * STEP 3 :: Check operator active
-                const customerOperatorIsActive = await this.checkActive(operator, journey)
-
-                const mockId = 'xxxxxxxxx'
-
-                // * STEP 4 :: Get profile
-                if (operator === 'true') {
-                    const trueProfile = await this.getTrueProfile(phoneNumber, mockId)
-
-                //     // * STEP 5 :: Check backlist
-                //     await this.checkBacklist(mockId, trueProfile.thaiId, phoneNumber, operator)
-                //     await this.checkContractAndQuota(mockId, trueProfile.aging, operator)
-                    await this.getCustomerTier(mockId, phoneNumber, operator)
-                // }
-
-                // if (operator === 'dtac') {
-                //     const dtacProfile = await this.getDtacProfile(phoneNumber, mockId)
-
-                //     // * STEP 5 :: Check backlist
-
-                //     await this.checkBacklist(mockId, phoneNumber, operator, dtacProfile.custValue)
-                //     await this.checkContractAndQuota(mockId, dtacProfile.aging, operator, dtacProfile.thaiId)
-                //     await this.getCustomerTire(mockId, phoneNumber, operator)
-
-                    await this.checkContractAndQuota(mockId, dtacProfile.aging, operator, dtacProfile.thaiId)
-
-                }
-
-
-                logInformation.journey = journey
-                logInformation.otpNumber = pin
-                logInformation.refCode = refCode
-                logInformation.status = "Pass"
-                logInformation.reason = "Verify OTP successfully"
-
-                logger.info(JSON.stringify(logInformation))
-
-                return {
-                    customerOperator: operator,
-                    isOperatorIsActive: customerOperatorIsActive
-                }
 
             } else {
 
@@ -498,8 +337,6 @@ export class OtpService {
             // TODO :: Block TCB case
             // TODO :: When K'Kor fullfil coda IMPLEMENT THIS
             const apigeeClientAdapter = new ApigeeClientAdapter
-
-            console.log('payload : ', getProfilePayload)
             const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
             logService(getProfilePayload, response, logStepModel)
             const { data, code } = response.data
@@ -725,21 +562,21 @@ export class OtpService {
 
             // if (operator === 'dtac') {
 
-                const mobileDecrypt = await apigeeClientAdapter.apigeeDecrypt(mobileNumber)
+            const mobileDecrypt = await apigeeClientAdapter.apigeeDecrypt(mobileNumber)
 
-                console.log({mobileDecrypt})
+            console.log({ mobileDecrypt })
 
 
-                const response = await apigeeClientAdapter.getCustomerTierDtac(id, mobileDecrypt)
-                logService({ id, mobileDecrypt, operator }, response, logStepModel)
-                const res = response.data
+            const response = await apigeeClientAdapter.getCustomerTierDtac(id, mobileDecrypt)
+            logService({ id, mobileDecrypt, operator }, response, logStepModel)
+            const res = response.data
 
-                console.log({res})
+            console.log({ res })
 
 
             // }
 
-            
+
 
 
         } catch (e: any) {
