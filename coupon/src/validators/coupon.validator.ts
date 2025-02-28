@@ -35,3 +35,31 @@ export async function validateCouponLimit(
     }
 	
 }
+
+export async function validateCouponDiscount(
+	couponsInformation: any[],
+	amount: number
+  ): Promise<boolean> {
+	if (couponsInformation.length === 0) return true;
+  
+	// Grouping the coupons by their discount type
+	const discountTypes: string[] = couponsInformation.map(coupon => coupon.discountCode ? 'discountCode' : 'otherPaymentCode');
+	const discounts: number[] = couponsInformation.map(coupon => coupon.discountPrice);
+
+	// Early exit if there are no discounts
+	if (discounts.length === 0) return true;
+  
+	// Calculate total discount sum
+	const sumDiscount = discounts.reduce((acc, curr) => acc + curr, 0);
+	let isValid: boolean = true;
+  
+	if (!discountTypes.includes('discountCode')) {
+	  isValid = (sumDiscount*100) <= amount; // No discountCode: Validate that the sum is not greater than the amount
+	} else if (!discountTypes.includes('otherPaymentCode')) { 
+	  isValid = (sumDiscount*100) < amount; // No otherPaymentCode: Validate that the sum is less than the amount
+	} else {
+	  isValid = (sumDiscount*100) <= amount; // Both discountCode and otherPaymentCode are included: Validate that the sum is not greater than the amount
+	}
+
+  	return isValid
+  }

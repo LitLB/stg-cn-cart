@@ -6,7 +6,7 @@ import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
-import { validateCouponLimit } from '../validators/coupon.validator';
+import { validateCouponLimit, validateCouponDiscount } from '../validators/coupon.validator';
 import { logger } from '../utils/logger.utils';
 import { createStandardizedError } from '../utils/error.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
@@ -32,6 +32,11 @@ export class CouponService {
             // 1) Grab new codes from the request body
             const couponCodes = body.couponCodes || [];
             const removeCouponCodes = body.removeCouponCodes || [];
+
+            const customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
+
+            // Get Current Effects
+            const { acceptedCoupons } = this.talonOneCouponAdapter.processCouponEffects(customerSession.effects);
 
             // Validate coupon limit
             const validateError = await validateCouponLimit(couponCodes.length, removeCouponCodes.length);
@@ -166,7 +171,8 @@ export class CouponService {
                     acceptedCoupons: finalProcessedCouponEffects.applyCoupons,
                     rejectedCoupons: uniqueRejectedByCode,
                 },
-                couponsInformation
+                couponsInformation,
+                acceptedCouponsOld: acceptedCoupons
             };
         } catch (error: any) {
             if (error.status && error.message) {
@@ -332,6 +338,69 @@ export class CouponService {
                 errorCode: 'COUPONS_INFORMATION_PROCESSING_FAILED',
                 statusMessage: 'An error occurred while processing coupon information.'
             };
+        }
+    };
+
+    //Get Price and Coupon information then validate excessed discount
+    public checkCouponDiscount = async (
+        accessToken: string,
+        id: string,
+        cart: any,
+        body: any
+    ): Promise<any> => {
+        try {
+            const { couponsInformation, subtotalPrice, acceptedCouponsOld } = cart;
+
+            const validateDiscount = await validateCouponDiscount(couponsInformation, subtotalPrice);
+
+            if (!validateDiscount) {
+                const couponCodes = acceptedCouponsOld;
+                const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+                const ctCart = await commercetoolsMeCartClient.getCartById(id);
+            
+                if (!ctCart) {
+                    logger.info('Commercetools getCartById error');
+                    throw {
+                        statusCode: HTTP_STATUSES.NOT_FOUND,
+                        errorCode: 'APPLY_COUPON_CT_FAILED',
+                        statusMessage: 'Cart not found or has expired',
+                    };
+                }
+
+                const clearCouponsPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
+                    profileId: ctCart.id,
+                    ctCartData: ctCart,
+                    couponCodes: couponCodes,
+                });
+                const clearCouponsUpdatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(
+                    ctCart.id,
+                    clearCouponsPayload
+                );
+
+                const clearCouponsEffects = this.talonOneCouponAdapter.processCouponEffects(clearCouponsUpdatedCustomerSession.effects);
+                const { updateActions } = this.talonOneCouponAdapter.buildCouponActions(ctCart, clearCouponsEffects);
+
+                if (updateActions.length > 0) {
+                    await CommercetoolsCartClient.updateCart(
+                        ctCart.id,
+                        ctCart.version,
+                        updateActions
+                    );
+                }
+
+                logger.info('Coupon discount error: exceeded discount');
+                throw {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    errorCode: 'EXCEEDED_MAX_APPLIED_COUPON_DISCOUNT',
+                    statusMessage: 'Exceeded discount',
+                };
+            }
+            return cart;
+        } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+            throw createStandardizedError(error, 'checkCouponDiscount');
         }
     };
 }
