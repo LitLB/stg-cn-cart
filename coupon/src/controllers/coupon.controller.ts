@@ -18,8 +18,9 @@ export class CouponController {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
-
-            const cart = await this.couponService.applyCoupons(accessToken, id, req.body);
+            const cart = await this.couponService.applyCoupons(accessToken, id, req.body).then(async (cart: any) => {
+                return await this.couponService.checkCouponDiscount(accessToken, id, cart, req.body)
+            });
 
             const response: ApiResponse = {
                 statusCode: HTTP_STATUSES.OK,
