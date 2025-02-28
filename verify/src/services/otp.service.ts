@@ -339,8 +339,8 @@ export class OtpService {
                 const mockId = 'xxxxxxxxx'
 
                 // * STEP 4 :: Get profile
-                // if (operator === 'true') {
-                //     const trueProfile = await this.getTrueProfile(phoneNumber, mockId)
+                if (operator === 'true') {
+                    const trueProfile = await this.getTrueProfile(phoneNumber, mockId)
 
                 //     // * STEP 5 :: Check backlist
                 //     await this.checkBacklist(mockId, trueProfile.thaiId, phoneNumber, operator)
@@ -357,7 +357,9 @@ export class OtpService {
                 //     await this.checkContractAndQuota(mockId, dtacProfile.aging, operator, dtacProfile.thaiId)
                 //     await this.getCustomerTire(mockId, phoneNumber, operator)
 
-                // }
+                    await this.checkContractAndQuota(mockId, dtacProfile.aging, operator, dtacProfile.thaiId)
+
+                }
 
 
                 logInformation.journey = journey
