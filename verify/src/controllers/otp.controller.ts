@@ -33,13 +33,11 @@ export class OtpController {
 
             const responseBody = await this.otpService.requestOtp(mobileNumber);
 
-
             res.status(200).send({
                 statusCode: HTTP_STATUSES.OK,
                 statusMessage: HTTP_MESSAGE.OK,
                 data: responseBody
             });
-
 
         } catch (error: any) {
 
