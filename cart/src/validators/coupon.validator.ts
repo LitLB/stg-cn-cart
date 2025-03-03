@@ -42,3 +42,41 @@ export async function validateCouponLimit(
     }
 	
 }
+
+export async function validateCouponDiscount(
+	ctCart: any,
+	couponsInformation: any,
+	func?: string
+): Promise<void | ApiResponse> {
+	console.log('couponsInformation :', couponsInformation)
+	const totalPrice: any = ctCart.lineItems.map((item: any) => {return item.totalPrice})
+	const totalAmount: number = totalPrice.reduce((sum: number, price: any) => sum + price.centAmount, 0);
+	const sumDiscount: number = couponsInformation.reduce((acc: number, curr: any) => acc + curr.discountPrice, 0);
+	const discountTypes: string[] = couponsInformation.map((coupon: any) => coupon.discountCode ? 'discountCode' : 'otherPaymentCode');
+	console.log('totalPrice :', totalPrice)
+	console.log('totalAmount :', totalAmount)
+	console.log('sumDiscount :', sumDiscount)
+
+	let isValid: boolean = true;
+  
+	if (!discountTypes.includes('discountCode')) {
+	  isValid = (sumDiscount*100) <= totalAmount; // No discountCode: Validate that the sum is not greater than the amount
+	} else if (!discountTypes.includes('otherPaymentCode')) { 
+	  isValid = (sumDiscount*100) < totalAmount; // No otherPaymentCode: Validate that the sum is less than the amount
+	} else {
+	  isValid = (sumDiscount*100) <= totalAmount; // Both discountCode and otherPaymentCode are included: Validate that the sum is not greater than the amount
+	}
+	console.log('isValid : ', isValid)
+    if (!isValid) {
+        logger.info(`'Coupon discount error : exceeded discount`);
+
+		if(func === FUNC_CHECKOUT){
+			return {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                errorCode: "EXCEEDED_MAX_APPLIYED_COUPON_DISCOUNT_CHECKOUT",
+                statusMessage: 'coupon has changed',
+            };
+		}
+    }
+	
+}

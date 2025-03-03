@@ -37,7 +37,7 @@ import { InventoryValidator } from '../validators/inventory.validator';
 import { InventoryService } from './inventory.service';
 import { validateInventory } from '../utils/cart.utils';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
-import { validateCouponLimit } from '../validators/coupon.validator';
+import { validateCouponLimit, validateCouponDiscount } from '../validators/coupon.validator';
 import { FUNC_CHECKOUT } from '../constants/func.constant';
 
 export class CartService {
@@ -325,12 +325,31 @@ export class CartService {
                     statusMessage: 'Cart not found or has expired',
                 };
             }
+
+            const customerSession = await talonOneIntegrationAdapter.getCustomerSession(ctCart.id);
+
+            // Get Current Effects
+            const currentProcessedCouponEffects = this.talonOneCouponAdapter.processCouponEffectsV2(customerSession.effects);
+            console.log('currentProcessedCouponEffects :', currentProcessedCouponEffects);
+
+            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
+                ctCart.id,
+                ctCart.lineItems
+            );
+
+            const { talonOneUpdateActions } =
+            await this.talonOneCouponAdapter.fetchCouponEffectsAndUpdateActionsById(
+                ctCart.id,
+                ctCart,
+                couponEffects.coupons
+            );
+
             const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
             const { couponsInfomation } = cartWithCheckPublicPublish.custom?.fields ?? {};
             const couponsInformation = couponsInfomation?.obj?.value ?? []
 
             const validatedCoupon = await validateCouponLimit(couponsInformation.length, FUNC_CHECKOUT)
-
+            const validatedCouponDiscount = await validateCouponDiscount(ctCart, talonOneUpdateActions?.couponsInformation, FUNC_CHECKOUT)
             if (validatedCoupon) {
                 const removeFlag = notice !== '' || cartWithCheckPublicPublish.lineItems.length === 0
 
@@ -341,6 +360,20 @@ export class CartService {
                         statusCode: validatedCoupon.statusCode,
                         statusMessage: validatedCoupon.statusMessage,
                         errorCode: validatedCoupon.errorCode
+                    },
+                    'checkout'
+                );
+            }
+
+            if (validatedCouponDiscount) {
+                const removeFlag = notice !== '' || cartWithCheckPublicPublish.lineItems.length === 0
+
+                await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithCheckPublicPublish, removeFlag)
+                throw createStandardizedError(
+                    {
+                        statusCode: validatedCouponDiscount.statusCode,
+                        statusMessage: validatedCouponDiscount.statusMessage,
+                        errorCode: validatedCouponDiscount.errorCode
                     },
                     'checkout'
                 );
