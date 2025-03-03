@@ -37,14 +37,14 @@ export class OtpService {
             requestOtpPayload = {
                 id: transactionId,
                 sendTime: sendTime,
-                description: "TH", // * FIX
-                channel: "true", // * FIX
-                code: "220594", // * PENDING TO CONFIRM
+                description: "TH",
+                channel: "true",
+                code: "230187",
                 receiver: [
                     {
                         phoneNumber: thailandMobile,
                         relatedParty: {
-                            id: "VC-ECOM" // * CONFIRM ??
+                            id: "ECP"
                         }
                     }
                 ]
@@ -85,7 +85,7 @@ export class OtpService {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
         let verifyOtpPayload
-        let logInformation = {
+        const logInformation = {
             otpNumber: "",
             refCode: "",
             journey: "",
@@ -95,22 +95,20 @@ export class OtpService {
         }
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
-            const sendTime = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
             const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
 
             const thailandMobile = convertToThailandMobile(decryptedMobile)
             verifyOtpPayload = {
                 id: refCode,
-                sendTime: sendTime,
-                description: "TH", // * FIX
-                channel: "true", // * FIX
-                code: "220594", // * PENDING TO CONFIRM ??
+                description: "TH",
+                channel: "true",
+                code: "230187",
                 content: pin,
                 receiver: [
                     {
                         phoneNumber: thailandMobile,
                         relatedParty: {
-                            id: "VC-ECOM" // * CONFIRM ??
+                            id: "ECP"
                         }
                     }
                 ]
@@ -291,7 +289,6 @@ export class OtpService {
                         isOperatorIsActive: customerOperatorIsActive
                     }
                 } else {
-                    // Somewhere in your verifyOtp logic, check for error conditions:
                     if (otpErrorMap[pin]) {
                         logService(verifyOtpPayload, otpErrorMap[pin], logStepModel)
                         throw otpErrorMap[pin];
@@ -403,37 +400,6 @@ export class OtpService {
             logService(checkJourneyActivationPayload, e, logStepModel)
             throw e
         }
-    }
-
-    private async createLogFile(phoneNumber: string, refCode: string, dateTime: string): Promise<void> {
-        // Create a timestamp for the filename
-
-        const apigeeClientAdapter = new ApigeeClientAdapter
-        const decodePhoneNumber = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
-
-        const logDirectory = path.resolve(__dirname, 'logs');
-
-        // Create the logs directory if it doesn't exist
-        if (!fs.existsSync(logDirectory)) {
-            fs.mkdirSync(logDirectory, { recursive: true });
-        }
-
-        // Create a timestamp for the filename
-        const timestamp = moment().format('YYYYMMDDHHmmss');
-        const filename = path.join(logDirectory, `${timestamp}.log`);
-
-
-        // Prepare the log content
-        const content = [decodePhoneNumber, refCode, dateTime].join('|');
-
-        // Write the log file asynchronously
-        fs.writeFile(filename, content, (err) => {
-            if (err) {
-                console.error(`Error writing log file ${filename}:`, err);
-            } else {
-                console.log(`Log file ${filename} created successfully.`);
-            }
-        });
     }
 
 }
