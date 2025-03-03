@@ -43,7 +43,7 @@ export async function validateCouponDiscount(
 	if (couponsInformation.length === 0) return true;
   
 	// Grouping the coupons by their discount type
-	const discountTypes: string[] = couponsInformation.map(coupon => coupon.discountCode ? 'discountCode' : 'otherPaymentCode');
+	const discountTypes: string[] = couponsInformation.map(coupon => coupon.discountCode != 'null'  ? 'discountCode' : 'otherPaymentCode');
 	const discounts: number[] = couponsInformation.map(coupon => coupon.discountPrice);
 
 	// Early exit if there are no discounts
@@ -52,7 +52,6 @@ export async function validateCouponDiscount(
 	// Calculate total discount sum
 	const sumDiscount = discounts.reduce((acc, curr) => acc + curr, 0);
 	let isValid: boolean = true;
-  
 	if (!discountTypes.includes('discountCode')) {
 	  isValid = (sumDiscount*100) <= amount; // No discountCode: Validate that the sum is not greater than the amount
 	} else if (!discountTypes.includes('otherPaymentCode')) { 

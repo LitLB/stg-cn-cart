@@ -48,14 +48,10 @@ export async function validateCouponDiscount(
 	couponsInformation: any,
 	func?: string
 ): Promise<void | ApiResponse> {
-	console.log('couponsInformation :', couponsInformation)
 	const totalPrice: any = ctCart.lineItems.map((item: any) => {return item.totalPrice})
 	const totalAmount: number = totalPrice.reduce((sum: number, price: any) => sum + price.centAmount, 0);
 	const sumDiscount: number = couponsInformation.reduce((acc: number, curr: any) => acc + curr.discountPrice, 0);
-	const discountTypes: string[] = couponsInformation.map((coupon: any) => coupon.discountCode ? 'discountCode' : 'otherPaymentCode');
-	console.log('totalPrice :', totalPrice)
-	console.log('totalAmount :', totalAmount)
-	console.log('sumDiscount :', sumDiscount)
+	const discountTypes: string[] = couponsInformation.map((coupon: any) => coupon.discountCode != 'null' ? 'discountCode' : 'otherPaymentCode');
 
 	let isValid: boolean = true;
   
@@ -66,7 +62,7 @@ export async function validateCouponDiscount(
 	} else {
 	  isValid = (sumDiscount*100) <= totalAmount; // Both discountCode and otherPaymentCode are included: Validate that the sum is not greater than the amount
 	}
-	console.log('isValid : ', isValid)
+
     if (!isValid) {
         logger.info(`'Coupon discount error : exceeded discount`);
 

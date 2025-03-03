@@ -326,12 +326,6 @@ export class CartService {
                 };
             }
 
-            const customerSession = await talonOneIntegrationAdapter.getCustomerSession(ctCart.id);
-
-            // Get Current Effects
-            const currentProcessedCouponEffects = this.talonOneCouponAdapter.processCouponEffectsV2(customerSession.effects);
-            console.log('currentProcessedCouponEffects :', currentProcessedCouponEffects);
-
             const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
                 ctCart.id,
                 ctCart.lineItems
