@@ -85,7 +85,7 @@ export class OtpService {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
         let verifyOtpPayload
-        let logInformation = {
+        const logInformation = {
             otpNumber: "",
             refCode: "",
             journey: "",
@@ -95,22 +95,20 @@ export class OtpService {
         }
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
-            const sendTime = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
             const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
 
             const thailandMobile = convertToThailandMobile(decryptedMobile)
             verifyOtpPayload = {
                 id: refCode,
-                sendTime: sendTime,
-                description: "TH", // * FIX
-                channel: "true", // * FIX
-                code: "220594", // * PENDING TO CONFIRM ??
+                description: "TH",
+                channel: "true",
+                code: "230187",
                 content: pin,
                 receiver: [
                     {
                         phoneNumber: thailandMobile,
                         relatedParty: {
-                            id: "VC-ECOM" // * CONFIRM ??
+                            id: "ECP"
                         }
                     }
                 ]
