@@ -116,9 +116,10 @@ export class OtpService {
                 ]
             }
 
-            const isMockOtp = this.config.otp.isMock as boolean
+            const isMockOtp = this.config.otp.isMock as string
 
-            if (isMockOtp) {
+            if (isMockOtp === 'true') {
+
                 const otpErrorMap: Record<string, { status: number; statusCode: string; statusMessage: string; errorCode?: string }> = {
                     '100002': {
                         status: 400,
@@ -307,7 +308,6 @@ export class OtpService {
 
 
             } else {
-
                 const response = await apigeeClientAdapter.verifyOTP(verifyOtpPayload)
                 logService(verifyOtpPayload, response, logStepModel)
                 const operator = await this.checkOperator(phoneNumber)
