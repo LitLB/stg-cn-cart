@@ -51,7 +51,7 @@ export async function validateCouponDiscount(
 	const totalPrice: any = ctCart.lineItems.map((item: any) => {return item.totalPrice})
 	const totalAmount: number = totalPrice.reduce((sum: number, price: any) => sum + price.centAmount, 0);
 	const sumDiscount: number = couponsInformation.reduce((acc: number, curr: any) => acc + curr.discountPrice, 0);
-	const discountTypes: string[] = couponsInformation.map((coupon: any) => coupon.discountCode != 'null' ? 'discountCode' : 'otherPaymentCode');
+	const discountTypes: string[] = couponsInformation.map((coupon: any) => coupon.discountCode?.toLowerCase() !== 'null' ? 'discountCode' : 'otherPaymentCode');
 
 	let isValid: boolean = true;
   
