@@ -289,7 +289,6 @@ export class OtpService {
                         isOperatorIsActive: customerOperatorIsActive
                     }
                 } else {
-                    // Somewhere in your verifyOtp logic, check for error conditions:
                     if (otpErrorMap[pin]) {
                         logService(verifyOtpPayload, otpErrorMap[pin], logStepModel)
                         throw otpErrorMap[pin];
