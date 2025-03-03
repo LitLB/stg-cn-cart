@@ -1,7 +1,7 @@
 export const validateOperator = (operatorNumber: string) => {
 
-    const operatorTrue = ['05', '08'];
-    const operatorDtac = ['02', '06'];
+    const operatorTrue = ['02', '06'];
+    const operatorDtac = ['05', '08'];
 
     const userOperator = operatorNumber.substring(3, 5)
 
