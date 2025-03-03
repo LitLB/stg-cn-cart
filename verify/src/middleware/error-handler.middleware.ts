@@ -20,17 +20,21 @@ export const errorHandler = (
 ): void => {
 
     const status = err.status || err.statusCode || 500
-    const statusCode: string = err.response.data.code || err.statusCode || "500.9999";
-    const statusMessage = err.response.data.message || err.statusMessage || err.message;
-    const errorCodeMessage = err.errorCode || err.statusMessage || err.response.data?.description || err.response.data?.message;
+    const statusCode: string = err.response?.data.code || err.statusCode || "500.9999";
+    const statusMessage = err.response?.data.message || err.statusMessage || err.message;
+    const errorCodeMessage = err.errorCode || err.statusMessage || err.response?.data.description || err.response?.data.message;
     const errorCode = errorCodeMessage.split(" ").join("_").toUpperCase();
 
     const response: ApiResponse = {
         statusCode,
         statusMessage,
         errorCode: errorCode || 'UNKNOWN_ERROR_CODE',
-        data: err.data ? err.response.data : null,
+        data: err.data ? err.response?.data : null,
     };
 
     res.status(status).json(response);
 };
+
+const normalizeError = (err: any) => {
+    
+}
