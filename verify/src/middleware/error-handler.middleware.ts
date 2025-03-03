@@ -32,9 +32,23 @@ export const errorHandler = (
         data: err.data ? err.response?.data : null,
     };
 
-    res.status(status).json(response);
+    const newResponse = normalizeError(response)
+
+
+    res.status(status).json(newResponse);
 };
 
-const normalizeError = (err: any) => {
-    
-}
+const normalizeError = (response: ApiResponse) => {
+    const statusMessages: Record<string, string> = {
+        '400.010.0015': 'OTP is not match',
+        '400.010.0016': 'OTP is not match for 5 times',
+        '400.010.0014': 'OTP has expired',
+    };
+
+    if (statusMessages[response.statusCode]) {
+        response.statusMessage = statusMessages[response.statusCode];
+        response.errorCode = statusMessages[response.statusCode].split(" ").join("_").toUpperCase();
+    }
+
+    return response;
+};
