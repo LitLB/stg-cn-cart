@@ -2,10 +2,9 @@ import { NextFunction, Request, Response } from "express";
 import { OtpService } from "../services/otp.service";
 import { HTTP_MESSAGE, HTTP_STATUSES } from "../constants/http.constant";
 import { verifyOtpRequest } from "../interfaces/otp.interface";
-import { createLogModel, LogModel, logService } from "../utils/logger.utils";
-import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
+import { createLogModel, LogModel } from "../utils/logger.utils";
+import { LOG_APPS } from "../constants/log.constant";
 import moment from "moment";
-import { EXCEPTION_MESSAGES } from "../constants/messages.constant";
 
 export class OtpController {
     private readonly otpService: OtpService;

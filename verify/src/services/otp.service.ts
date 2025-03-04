@@ -54,6 +54,7 @@ export class OtpService {
             const { data } = response
 
             logService(requestOtpPayload, response, logStepModel)
+
             const otpNumberMinuteExpire = this.config.otp.expireTime as number
             const otpNumberSecondResend = this.config.otp.resendTime as number
 
@@ -83,6 +84,7 @@ export class OtpService {
     public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
+
         let verifyOtpPayload
         const logInformation = {
             otpNumber: "",
@@ -270,9 +272,6 @@ export class OtpService {
 
                     logService(verifyOtpPayload, response, logStepModel)
 
-                    const operator = await this.checkOperator(phoneNumber)
-                    const customerOperatorIsActive = await this.checkActive(operator, journey)
-
 
                     logInformation.journey = journey
                     logInformation.otpNumber = pin
@@ -283,10 +282,7 @@ export class OtpService {
                     logger.info(JSON.stringify(logInformation))
 
 
-                    return {
-                        customerOperator: operator,
-                        isOperatorIsActive: customerOperatorIsActive
-                    }
+                    return 
                 } else {
                     if (otpErrorMap[pin]) {
                         logService(verifyOtpPayload, otpErrorMap[pin], logStepModel)
@@ -301,13 +297,9 @@ export class OtpService {
                     }
                 }
 
-
-
             } else {
                 const response = await apigeeClientAdapter.verifyOTP(verifyOtpPayload)
                 logService(verifyOtpPayload, response, logStepModel)
-                const operator = await this.checkOperator(phoneNumber)
-                const customerOperatorIsActive = await this.checkActive(operator, journey)
 
                 logInformation.journey = journey
                 logInformation.otpNumber = pin
@@ -316,10 +308,7 @@ export class OtpService {
                 logInformation.reason = "Verify OTP successfully"
                 logger.info(JSON.stringify(logInformation))
 
-                return {
-                    customerOperator: operator,
-                    isOperatorIsActive: customerOperatorIsActive
-                }
+                return 
             }
 
         } catch (e: any) {
@@ -339,7 +328,7 @@ export class OtpService {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_OPERATOR, logModel);
         let checkOperatorPayload
-        const isMockOtp = this.config.otp.isMock as boolean
+        const isMockOtp = this.config.otp.isMock as string
         const txid = isMockOtp ? '1234567' : Math.floor(100000 + Math.random() * 900000).toString()
 
         try {
