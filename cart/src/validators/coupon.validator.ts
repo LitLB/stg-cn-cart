@@ -48,6 +48,7 @@ export async function validateCouponDiscount(
 	couponsInformation: any,
 	func?: string
 ): Promise<void | ApiResponse> {
+	if (!couponsInformation || couponsInformation.length === 0) return;
 	const totalPrice: any = ctCart.lineItems.map((item: any) => {return item.totalPrice})
 	const totalAmount: number = totalPrice.reduce((sum: number, price: any) => sum + price.centAmount, 0);
 	const sumDiscount: number = couponsInformation.reduce((acc: number, curr: any) => acc + curr.discountPrice, 0);

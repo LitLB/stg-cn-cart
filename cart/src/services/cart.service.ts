@@ -343,7 +343,6 @@ export class CartService {
             const couponsInformation = couponsInfomation?.obj?.value ?? []
 
             const validatedCoupon = await validateCouponLimit(couponsInformation.length, FUNC_CHECKOUT)
-            const validatedCouponDiscount = await validateCouponDiscount(ctCart, talonOneUpdateActions?.couponsInformation, FUNC_CHECKOUT)
             if (validatedCoupon) {
                 const removeFlag = notice !== '' || cartWithCheckPublicPublish.lineItems.length === 0
 
@@ -359,6 +358,7 @@ export class CartService {
                 );
             }
 
+            const validatedCouponDiscount = await validateCouponDiscount(ctCart, talonOneUpdateActions?.couponsInformation, FUNC_CHECKOUT)
             if (validatedCouponDiscount) {
                 const removeFlag = notice !== '' || cartWithCheckPublicPublish.lineItems.length === 0
 
