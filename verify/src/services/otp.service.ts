@@ -1,6 +1,4 @@
 import moment from "moment";
-import * as fs from 'fs';
-import * as path from 'path';
 
 import ApigeeClientAdapter from "../adapters/apigee-client.adapter";
 import { readConfiguration } from "../utils/config.utils";
@@ -59,10 +57,10 @@ export class OtpService {
             const otpNumberMinuteExpire = this.config.otp.expireTime as number
             const otpNumberSecondResend = this.config.otp.resendTime as number
 
-            const expireAt = moment(data.sendCompleteTime).add(otpNumberMinuteExpire, 'minute')
+            const expireAt = moment(data.sendCompleteTime).add(otpNumberMinuteExpire, 'minute').utc(true).parseZone()
             const refCode = getOTPReferenceCodeFromArray(data.characteristic) ?? "Invalid"
 
-            logger.info(JSON.stringify({ phoneNumber, refCode, date: moment() }))
+            logger.info(JSON.stringify({ phoneNumber, refCode, date: moment() })) 
 
             return {
                 otp: {
@@ -77,7 +75,6 @@ export class OtpService {
 
         } catch (e: any) {
             logger.info(JSON.stringify({ phoneNumber, refCode: null, date: moment() }))
-            // logService(requestOtpPayload, e, logModel)
             throw e
         }
     }
