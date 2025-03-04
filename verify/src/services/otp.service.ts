@@ -58,7 +58,8 @@ export class OtpService {
             logService(requestOtpPayload, response, logStepModel)
             const otpNumberMinuteExpire = this.config.otp.expireTime as number
             const otpNumberSecondResend = this.config.otp.resendTime as number
-            const expireAt = moment(data.sendCompleteTime).add(otpNumberMinuteExpire, 'minutes').format('YYYY-MM-DDTHH:MM:SS+07:00')
+
+            const expireAt = moment(data.sendCompleteTime).add(otpNumberMinuteExpire, 'minute')
             const refCode = getOTPReferenceCodeFromArray(data.characteristic) ?? "Invalid"
 
             logger.info(JSON.stringify({ phoneNumber, refCode, date: moment() }))
@@ -76,7 +77,7 @@ export class OtpService {
 
         } catch (e: any) {
             logger.info(JSON.stringify({ phoneNumber, refCode: null, date: moment() }))
-            logService(requestOtpPayload, e, logModel)
+            // logService(requestOtpPayload, e, logModel)
             throw e
         }
     }
@@ -315,7 +316,6 @@ export class OtpService {
                 logInformation.refCode = refCode
                 logInformation.status = "Pass"
                 logInformation.reason = "Verify OTP successfully"
-
                 logger.info(JSON.stringify(logInformation))
 
                 return {
@@ -330,10 +330,9 @@ export class OtpService {
             logInformation.otpNumber = pin
             logInformation.refCode = refCode
             logInformation.status = "Failed"
-            logInformation.reason = e.statusMessage || e.response.data.message || e.message || "Internal Server Error";
-
+            logInformation.reason = e.response?.data.message || e.errorCode || e.statusMessage || e.message || "Internal Server Error";
             logger.error(JSON.stringify(logInformation))
-            logger.error(`VERIFY_OTP`, e)
+
             throw e
         }
     }
