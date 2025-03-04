@@ -11,6 +11,9 @@ import { getValueByKey } from "../utils/object.utils";
 import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { Characteristic, IGetProfileDtacRequest, IGetProfileTrueRequest } from "../interfaces/otp.interface";
+import { OPERATOR } from "../constants/operator.constant";
+import { validateCustomerDtacProfile } from "../validators/operator.validators";
+import { date } from "joi";
 
 export class OtpService {
 
@@ -393,12 +396,14 @@ export class OtpService {
 
         let getProfilePayload: Partial<IGetProfileDtacRequest | IGetProfileTrueRequest> = {}
 
+        const date = new Date
+
         const basePayload = {
             id,
             channel: operator,
         };
 
-        if (operator === 'ture') {
+        if (operator === OPERATOR.TRUE) {
             getProfilePayload = {
                 ...basePayload,
                 limit: "50",
@@ -417,7 +422,7 @@ export class OtpService {
         } else {
             getProfilePayload = {
                 ...basePayload,
-                category: "1",
+                category: "2",
                 relatedParty: {
                     id: mobileNumber
                 }
@@ -429,34 +434,38 @@ export class OtpService {
 
             const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
 
-            // logService(getProfilePayload, response, logStepModel)
-            // const { data, code } = response.data
-            // if (code === '0') {
+            logService(getProfilePayload, response, logStepModel)
+            const { data, code } = response.data
+            if (code === '0') {
 
-            //     if (data.subscriberInfo.telType !== 'T') {
-            //         throw {
-            //             statusCode: 400,
-            //             statusMessage: 'Subscriber type is not postpaid',
-            //             errorCode: 'SUBSCRIBER_TYPE_NOT_POST_POSTPAID'
-            //         }
-            //     }
+                if (operator === OPERATOR.TRUE) {
+                    console.log('true')
+                } else {
 
-            //     const thaiId = data.engagedParty.id
-            //     const aging = data.aging
+                    validateCustomerDtacProfile(data)
 
-            //     return {
-            //         thaiId,
-            //         aging
-            //         // Get current package price plan (RC)
-            //         // ! TBC about RC Current Price
-            //     }
-            // } else {
-            //     throw {
-            //         statusCode: 400,
-            //         statusMessage: 'Get profile fail',
-            //         errorCode: 'GET_PROFILE_FAIL'
-            //     }
-            // }
+                    const aging = data.characteristic.find((row: Characteristic) => row.name === "TOTL_DAYS").value
+                    const pricePlan = data.productOfferingQualificationItem.find((element: any) => {
+                        return element.productItem.find((item: any) => item.type === "10" && (item.validFor.endDateTime === null || item.validFor.endDateTime > date) && item.itemPrice.value > 0)
+                    });
+
+                    const dtacProfile = {
+                        thaiId: data.engagedParty.id,
+                        customerNo: data.relatedParty.href,
+                        aging,
+                        pricePlan: pricePlan ?? null
+                    }
+
+                    return dtacProfile
+                }
+
+            } else {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'Get profile fail',
+                    errorCode: 'GET_PROFILE_FAIL'
+                }
+            }
 
 
         } catch (e: any) {
