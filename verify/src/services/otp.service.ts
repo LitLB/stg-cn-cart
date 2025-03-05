@@ -10,10 +10,10 @@ import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client
 import { getValueByKey } from "../utils/object.utils";
 import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
-import { Characteristic, IGetProfileDtacRequest, IGetProfileTrueRequest } from "../interfaces/otp.interface";
+import { IGetProfileDtacRequest, IGetProfileTrueRequest } from "../interfaces/otp.interface";
 import { OPERATOR } from "../constants/operator.constant";
 import { validateCustomerDtacProfile, validateCustomerTrueProfile } from "../validators/operator.validators";
-import { date } from "joi";
+import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
 
 export class OtpService {
 
@@ -401,8 +401,6 @@ export class OtpService {
             channel: operator,
         };
 
-
-
         if (operator === OPERATOR.TRUE) {
             getProfilePayload = {
                 ...basePayload,
@@ -438,20 +436,11 @@ export class OtpService {
             logService(getProfilePayload, response, logStepModel)
             const { data, code } = response.data
 
+            let customerProfile: ICheckCustomerProfileResponse
+
             if (code === '0') {
 
-                if (operator === OPERATOR.TRUE) {
-
-                    const trueProfile = validateCustomerTrueProfile(data)
-
-                    return trueProfile
-
-                } else {
-
-                    const dtacProfile = validateCustomerDtacProfile(data)
-
-                    return dtacProfile
-                }
+                customerProfile = operator === OPERATOR.TRUE ? validateCustomerTrueProfile(data) : validateCustomerDtacProfile(data)
 
             } else {
                 throw {
@@ -461,21 +450,26 @@ export class OtpService {
                 }
             }
 
+            await this.checkBacklist(id, customerProfile.thaiId, operator, customerProfile.customerNo);
+
+            return customerProfile
+
         } catch (e: any) {
             logService(getProfilePayload, e, logStepModel)
             throw e
         }
     }
 
-    private async checkBacklist(id: string, cardId: string, company: string, custValue?: string) {
+    private async checkBacklist(id: string, thaiId: string, operator: string, custValue?: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_BACKLIST, logModel);
+
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
 
-            if (company === 'true') {
-                const response = await apigeeClientAdapter.checkBacklistTrue(id, cardId)
-                logService({ id, cardId, company }, response, logStepModel)
+            if (operator === OPERATOR.TRUE) {
+                const response = await apigeeClientAdapter.checkBacklistTrue(id, thaiId)
+                logService({ id, thaiId, operator }, response, logStepModel)
                 const { data } = response.data
 
                 if (data.mobileRelaxBlacklist === 'Y') {
@@ -487,7 +481,7 @@ export class OtpService {
                 }
             }
 
-            if (company === 'dtac') {
+            if (operator === OPERATOR.DTAC) {
                 if (!custValue) {
                     throw {
                         statusCode: 400,
@@ -496,8 +490,9 @@ export class OtpService {
                     }
                 }
 
-                const response = await apigeeClientAdapter.checkBacklistDtac(id, cardId, custValue)
-                logService({ id, cardId, company }, response, logStepModel)
+                const response = await apigeeClientAdapter.checkBacklistDtac(id, thaiId, custValue)
+
+                logService({ id, thaiId, operator }, response, logStepModel)
                 const { status } = response.data
 
                 if (status === "FALSE") {
@@ -511,7 +506,7 @@ export class OtpService {
 
 
         } catch (e: any) {
-            logService({ id, cardId, company, custValue }, e, logStepModel)
+            logService({ id, thaiId, operator, custValue }, e, logStepModel)
             throw e
         }
     }

@@ -1,9 +1,8 @@
 import { Characteristic } from "../interfaces/otp.interface";
-import { ApiResponse } from "../interfaces/response.interface"
 import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
 
 
-export const validateCustomerDtacProfile = (data: any): Partial<ICheckCustomerProfileResponse | ApiResponse> => {
+export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileResponse => {
 
     const date = new Date()
 
@@ -23,21 +22,21 @@ export const validateCustomerDtacProfile = (data: any): Partial<ICheckCustomerPr
         }
     }
 
-    if (data.subscriberInfo.status.code === "S") {
-        throw {
-            statusCode: 400,
-            statusMessage: 'Customer is suspended',
-            errorCode: 'CUSTOMER_IS_SUSPENDED'
-        }
-    }
+    // if (data.subscriberInfo.status.code === "S") {
+    //     throw {
+    //         statusCode: 400,
+    //         statusMessage: 'Customer is suspended',
+    //         errorCode: 'CUSTOMER_IS_SUSPENDED'
+    //     }
+    // }
 
-    if (data.subscriberInfo.status.code !== "A") {
-        throw {
-            statusCode: 400,
-            statusMessage: 'Customer status is not active',
-            errorCode: 'CUSTOMER_STATUS_IS_NOT_ACTIVE'
-        }
-    }
+    // if (data.subscriberInfo.status.code !== "A") {
+    //     throw {
+    //         statusCode: 400,
+    //         statusMessage: 'Customer status is not active',
+    //         errorCode: 'CUSTOMER_STATUS_IS_NOT_ACTIVE'
+    //     }
+    // }
 
     //todo: share plan 
     //! implement this after have solution
@@ -71,10 +70,10 @@ export const validateCustomerDtacProfile = (data: any): Partial<ICheckCustomerPr
 
 }
 
-export const validateCustomerTrueProfile = (data: any): Partial<ICheckCustomerProfileResponse | ApiResponse> => {
+export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileResponse => {
 
 
-    if (!data.relatedParty.customer.type.include(["I", "X", "P"])) {
+    if (!["I", "X", "P"].includes(data.relatedParty.customer.type)) {
         throw {
             statusCode: 400,
             statusMessage: 'Customer type is not eligible',
@@ -82,13 +81,13 @@ export const validateCustomerTrueProfile = (data: any): Partial<ICheckCustomerPr
         }
     }
 
-    if ((data.subscriberInfo.status.code === "A" && data.subscriberInfo.status.description === "Soft Suspend") || (data.subscriberInfo.status.code == "S")) {
-        throw {
-            statusCode: 400,
-            statusMessage: 'Customer is suspended',
-            errorCode: 'CUSTOMER_IS_SUSPENDED'
-        }
-    }
+    // if ((data.subscriberInfo.status.code === "A" && data.subscriberInfo.status.description === "Soft Suspend") || (data.subscriberInfo.status.code == "S")) {
+    //     throw {
+    //         statusCode: 400,
+    //         statusMessage: 'Customer is suspended',
+    //         errorCode: 'CUSTOMER_IS_SUSPENDED'
+    //     }
+    // }
 
     if (data.subscriberInfo.status.code !== "A") {
         throw {
@@ -123,16 +122,16 @@ export const validateCustomerTrueProfile = (data: any): Partial<ICheckCustomerPr
         return {
             thaiId: data.engagedParty.id,
             agreementId: data.subscriberInfo.id,
-            customerNo: data.relatedParty.href,
             aging: data.aging,
             pricePlan: pricePlan ?? null
         }
 
+    } else {
+        throw {
+            statusCode: 400,
+            statusMessage: 'Get profile info fail',
+            errorCode: 'GET_PROFILE_INFO_FAIL'
+        }
     }
 
-    throw {
-        statusCode: 400,
-        statusMessage: 'Get profile info fail',
-        errorCode: 'GET_PROFILE_INFO_FAIL'
-    }
 }
