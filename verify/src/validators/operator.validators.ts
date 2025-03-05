@@ -135,3 +135,12 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
     }
 
 }
+
+export const validateContractAndQuotaTrue = (data: any) => {
+
+    return
+}
+
+export const validateContractAndQuotaDtac = (data: any) => {
+    return
+}

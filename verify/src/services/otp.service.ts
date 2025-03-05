@@ -12,7 +12,7 @@ import { createLogModel, logger, LogModel, logService } from "../utils/logger.ut
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { IGetProfileDtacRequest, IGetProfileTrueRequest } from "../interfaces/otp.interface";
 import { OPERATOR } from "../constants/operator.constant";
-import { validateCustomerDtacProfile, validateCustomerTrueProfile } from "../validators/operator.validators";
+import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile } from "../validators/operator.validators";
 import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
 
 export class OtpService {
@@ -451,6 +451,8 @@ export class OtpService {
             }
 
             await this.checkBacklist(id, customerProfile.thaiId, operator, customerProfile.customerNo);
+            await this.checkContractAndQuota(id, operator, customerProfile.thaiId, customerProfile.agreementId);
+
 
             return customerProfile
 
@@ -472,13 +474,15 @@ export class OtpService {
                 logService({ id, thaiId, operator }, response, logStepModel)
                 const { data } = response.data
 
-                if (data.mobileRelaxBlacklist === 'Y') {
-                    throw {
-                        statusCode: 400,
-                        statusMessage: 'Black Listed Customer is not allowed',
-                        errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
-                    }
-                }
+
+                // todo :: uncomment this before deploy
+                // if (data.mobileRelaxBlacklist === 'Y') {
+                //     throw {
+                //         statusCode: 400,
+                //         statusMessage: 'Black Listed Customer is not allowed',
+                //         errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
+                //     }
+                // }
             }
 
             if (operator === OPERATOR.DTAC) {
@@ -495,13 +499,14 @@ export class OtpService {
                 logService({ id, thaiId, operator }, response, logStepModel)
                 const { status } = response.data
 
-                if (status === "FALSE") {
-                    throw {
-                        statusCode: 400,
-                        statusMessage: 'Black Listed Customer is not allowed',
-                        errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
-                    }
-                }
+                // todo :: uncomment this before deploy
+                // if (status === "FALSE") {
+                //     throw {
+                //         statusCode: 400,
+                //         statusMessage: 'Black Listed Customer is not allowed',
+                //         errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
+                //     }
+                // }
             }
 
 
@@ -511,27 +516,30 @@ export class OtpService {
         }
     }
 
-    private async checkContractAndQuota(id: string, agreementId: string, company: string, thaiId?: string,) {
+    private async checkContractAndQuota(id: string, operator: string, thaiId?: string, agreementId?: string) {
         const logModel = LogModel.getInstance();
-        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_BACKLIST, logModel);
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_CONTRACT_AND_QUOTA, logModel);
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
 
-            if (company === 'true') {
+            if (operator === OPERATOR.TRUE) {
+
+                if (!agreementId || agreementId === undefined) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Agreement ID not found',
+                        errorCode: 'AGREEMENT_ID_NOT_FOUND'
+                    }
+                }
+
                 const response = await apigeeClientAdapter.getContractAndQuotaTrue(id, agreementId)
                 logService({ id, agreementId }, response, logStepModel)
                 const { data } = response.data
 
-                if (data.mobileRelaxBlacklist === 'Y') {
-                    throw {
-                        statusCode: 400,
-                        statusMessage: 'Black Listed Customer is not allowed',
-                        errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
-                    }
-                }
+                validateContractAndQuotaTrue(data)
             }
 
-            if (company === 'dtac') {
+            if (operator === OPERATOR.DTAC) {
                 if (!thaiId) {
                     throw {
                         statusCode: 400,
@@ -541,21 +549,14 @@ export class OtpService {
                 }
 
                 const response = await apigeeClientAdapter.getContractAndQuotaDtac(id, thaiId)
-                logService({ id, company, thaiId }, response, logStepModel)
-                const { status } = response.data
+                logService({ id, operator, thaiId }, response, logStepModel)
+                const { data } = response.data
 
-                if (status === "FALSE") {
-                    throw {
-                        statusCode: 400,
-                        statusMessage: 'Black Listed Customer is not allowed',
-                        errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
-                    }
-                }
+                validateContractAndQuotaDtac(data)
             }
 
-
         } catch (e: any) {
-            logService({ id, company, thaiId }, e, logStepModel)
+            logService({ id, operator, thaiId }, e, logStepModel)
             throw e
         }
     }
