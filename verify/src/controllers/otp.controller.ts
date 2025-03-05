@@ -79,7 +79,9 @@ export class OtpController {
 
         try {
             const { mobileNumber, id, operator, journey } = req.query as unknown as checkCustomerProfileRequest;
-            const responseBody = await this.otpService.getCustomerProfile(id, mobileNumber, operator, journey);
+
+            // todo: change it after deploy 
+            const responseBody = await this.otpService.getCustomerProfile(id, 'yWiqOFncX5ZRgmbr+2qn/cfeaEuDtc6IbS8KW7mLg6Q=', operator, journey);
 
             res.status(200).json({
                 statusCode: HTTP_STATUSES.OK,

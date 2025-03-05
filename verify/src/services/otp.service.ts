@@ -12,7 +12,7 @@ import { createLogModel, logger, LogModel, logService } from "../utils/logger.ut
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { Characteristic, IGetProfileDtacRequest, IGetProfileTrueRequest } from "../interfaces/otp.interface";
 import { OPERATOR } from "../constants/operator.constant";
-import { validateCustomerDtacProfile } from "../validators/operator.validators";
+import { validateCustomerDtacProfile, validateCustomerTrueProfile } from "../validators/operator.validators";
 import { date } from "joi";
 
 export class OtpService {
@@ -396,12 +396,12 @@ export class OtpService {
 
         let getProfilePayload: Partial<IGetProfileDtacRequest | IGetProfileTrueRequest> = {}
 
-        const date = new Date
-
         const basePayload = {
             id,
             channel: operator,
         };
+
+
 
         if (operator === OPERATOR.TRUE) {
             getProfilePayload = {
@@ -419,6 +419,7 @@ export class OtpService {
                     }
                 ]
             };
+
         } else {
             getProfilePayload = {
                 ...basePayload,
@@ -436,25 +437,18 @@ export class OtpService {
 
             logService(getProfilePayload, response, logStepModel)
             const { data, code } = response.data
+
             if (code === '0') {
 
                 if (operator === OPERATOR.TRUE) {
-                    console.log('true')
+
+                    const trueProfile = validateCustomerTrueProfile(data)
+
+                    return trueProfile
+
                 } else {
 
-                    validateCustomerDtacProfile(data)
-
-                    const aging = data.characteristic.find((row: Characteristic) => row.name === "TOTL_DAYS").value
-                    const pricePlan = data.productOfferingQualificationItem.find((element: any) => {
-                        return element.productItem.find((item: any) => item.type === "10" && (item.validFor.endDateTime === null || item.validFor.endDateTime > date) && item.itemPrice.value > 0)
-                    });
-
-                    const dtacProfile = {
-                        thaiId: data.engagedParty.id,
-                        customerNo: data.relatedParty.href,
-                        aging,
-                        pricePlan: pricePlan ?? null
-                    }
+                    const dtacProfile = validateCustomerDtacProfile(data)
 
                     return dtacProfile
                 }
@@ -466,121 +460,6 @@ export class OtpService {
                     errorCode: 'GET_PROFILE_FAIL'
                 }
             }
-
-
-        } catch (e: any) {
-            logService(getProfilePayload, e, logStepModel)
-            throw e
-        }
-    }
-
-    private async getTrueProfile(phoneNumber: string, id: string) {
-        const logModel = LogModel.getInstance();
-        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_GET_PROFILE_AND_PACKAGE, logModel);
-        const getProfilePayload: IGetProfileTrueRequest = {
-            id,
-            channel: "true", // ? FIX
-            limit: "50", // ? FIX
-            page: "1", // ? FIX
-            relatedParty: {
-                id: phoneNumber,
-                type: "MOBILE"
-            },
-            characteristic: [
-                {
-                    name: "agingIndicator",
-                    value: "Y"
-                }
-            ]
-        }
-
-        try {
-            // TODO :: Block TCB case
-            // TODO :: When K'Kor fullfil coda IMPLEMENT THIS
-            const apigeeClientAdapter = new ApigeeClientAdapter
-
-            console.log('payload : ', getProfilePayload)
-            const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
-            logService(getProfilePayload, response, logStepModel)
-            const { data, code } = response.data
-            if (code === '0') {
-
-                if (data.subscriberInfo.telType !== 'T') {
-                    throw {
-                        statusCode: 400,
-                        statusMessage: 'Subscriber type is not postpaid',
-                        errorCode: 'SUBSCRIBER_TYPE_NOT_POST_POSTPAID'
-                    }
-                }
-
-                const thaiId = data.engagedParty.id
-                const aging = data.aging
-
-                return {
-                    thaiId,
-                    aging
-                    // Get current package price plan (RC)
-                    // ! TBC about RC Current Price
-                }
-            } else {
-                throw {
-                    statusCode: 400,
-                    statusMessage: 'Get profile fail',
-                    errorCode: 'GET_PROFILE_FAIL'
-                }
-            }
-
-
-        } catch (e: any) {
-            logService(getProfilePayload, e, logStepModel)
-            throw e
-        }
-    }
-
-    private async getDtacProfile(phoneNumber: string, id: string) {
-        const logModel = LogModel.getInstance();
-        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_GET_PROFILE_AND_PACKAGE, logModel);
-        const getProfilePayload: IGetProfileDtacRequest = {
-            id,
-            channel: "dtac",
-            category: "1",
-            relatedParty: {
-                id: phoneNumber,
-            }
-        }
-        try {
-            // TODO :: Block TCB case
-            // TODO :: When K'Kor fullfil coda IMPLEMENT THIS
-            const apigeeClientAdapter = new ApigeeClientAdapter
-            const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
-            logService(getProfilePayload, response, logStepModel)
-            const { data, code } = response.data
-            if (code === '0') {
-                if (data.subscriberInfo.telType !== 'T') {
-                    throw {
-                        statusCode: 400,
-                        statusMessage: 'Subscriber type is not postpaid',
-                        errorCode: 'SUBSCRIBER_TYPE_NOT_POST_POSTPAID'
-                    }
-                }
-
-                const thaiId = data.engagedParty.id
-                const custValue = data.relatedParty.href
-                const aging: Characteristic = data.characteristic.find((c: Characteristic) => c.name === "CS_CUST__OCCP_CODE")
-
-                return {
-                    thaiId,
-                    aging: aging.value,
-                    custValue
-                }
-            } else {
-                throw {
-                    statusCode: 400,
-                    statusMessage: 'Get profile fail',
-                    errorCode: 'GET_PROFILE_FAIL'
-                }
-            }
-
 
         } catch (e: any) {
             logService(getProfilePayload, e, logStepModel)
