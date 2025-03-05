@@ -54,3 +54,10 @@ export interface Characteristic {
   name: string;
   value: string;
 }
+
+export interface checkCustomerProfileRequest {
+  mobileNumber: string;
+  id: string;
+  operator: string;
+  journey: string;
+}

@@ -1,11 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import { OtpService } from "../services/otp.service";
 import { HTTP_MESSAGE, HTTP_STATUSES } from "../constants/http.constant";
-import { verifyOtpRequest } from "../interfaces/otp.interface";
-import { createLogModel, LogModel, logService } from "../utils/logger.utils";
-import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
+import { checkCustomerProfileRequest, verifyOtpRequest } from "../interfaces/otp.interface";
+import { createLogModel, LogModel } from "../utils/logger.utils";
+import { LOG_APPS } from "../constants/log.constant";
 import moment from "moment";
-import { EXCEPTION_MESSAGES } from "../constants/messages.constant";
 
 export class OtpController {
     private readonly otpService: OtpService;
@@ -14,6 +13,7 @@ export class OtpController {
         this.otpService = new OtpService();
         this.requestOtp = this.requestOtp.bind(this);
         this.verifyOtp = this.verifyOtp.bind(this);
+        this.getCustomerProfile = this.getCustomerProfile.bind(this);
     }
 
     public async requestOtp(req: Request, res: Response, next: NextFunction) {
@@ -65,6 +65,31 @@ export class OtpController {
 
         } catch (err: any) {
             next(err);
+        }
+    }
+
+    public async getCustomerProfile(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> {
+        const logModel = createLogModel(LOG_APPS.STORE_WEB, "");
+        logModel.start_date = moment().toISOString();
+        LogModel.initialize(logModel);
+
+        try {
+            const { mobileNumber, id, operator, journey } = req.query as unknown as checkCustomerProfileRequest;
+
+            // todo: change it after deploy 
+            const responseBody = await this.otpService.getCustomerProfile(id, mobileNumber, operator, journey);
+
+            res.status(200).json({
+                statusCode: HTTP_STATUSES.OK,
+                statusMessage: HTTP_MESSAGE.OK,
+                data: responseBody
+            });
+        } catch (error) {
+            next(error);
         }
     }
 }

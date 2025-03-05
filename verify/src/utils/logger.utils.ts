@@ -27,6 +27,7 @@ interface LogModelRequest {
     step_txid?: string;
     workflow_id?: string;
     order_number?: string;
+    url?: string;
 }
 export class LogModel {
     static instance: any;
@@ -42,6 +43,7 @@ export class LogModel {
     timestamp?: string;
     txid?: string;
     elapsed_time?: string | number;
+    url?: string
 
     constructor(req: LogModelRequest) {
         this.app = req.app;
@@ -55,6 +57,7 @@ export class LogModel {
         this.start_date = req.start_date;
         this.timestamp = req.timestamp;
         this.txid = req.txid;
+        this.url = req.url;
     }
 
     public static initialize(logModel: LogModel): void {
@@ -79,6 +82,7 @@ export class LogModel {
         this.result_code = (status || statusCode || '200').toString();
         this.timestamp = new Date().toISOString();
         this.elapsed_time = moment(moment().diff(moment(this.start_date))).milliseconds()
+
 
         logger.info(safeStringify(this));
     }
