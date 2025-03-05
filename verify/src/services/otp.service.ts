@@ -305,7 +305,7 @@ export class OtpService {
 
             } else {
                 const response = await apigeeClientAdapter.verifyOTP(verifyOtpPayload)
-                logService(verifyOtpPayload, response, logStepModel)
+                logService(verifyOtpPayload, response.data, logStepModel)
                 const operator = await this.checkOperator(phoneNumber)
                 const customerOperatorIsActive = await this.checkActive(operator, journey)
 
