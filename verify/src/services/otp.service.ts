@@ -14,6 +14,7 @@ import { IGetProfileDtacRequest, IGetProfileTrueRequest } from "../interfaces/ot
 import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile } from "../validators/operator.validators";
 import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
+import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
 
 export class OtpService {
 
@@ -519,6 +520,7 @@ export class OtpService {
     private async checkContractAndQuota(id: string, operator: string, thaiId?: string, agreementId?: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_CONTRACT_AND_QUOTA, logModel);
+        const key = this.config.apigee.privateKeyEncryption;
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
 
@@ -548,9 +550,11 @@ export class OtpService {
                     }
                 }
 
-                const response = await apigeeClientAdapter.getContractAndQuotaDtac(id, thaiId)
-                logService({ id, operator, thaiId }, response, logStepModel)
-                const { data } = response.data
+                const newThaiId = encryptedOFB(thaiId,key )
+
+                const response = await apigeeClientAdapter.getContractAndQuotaDtac(id, newThaiId)
+                logService({ id, operator, thaiId }, response.data, logStepModel)
+                const data = response.data
 
                 validateContractAndQuotaDtac(data)
             }

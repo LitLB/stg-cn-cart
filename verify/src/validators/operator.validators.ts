@@ -142,5 +142,17 @@ export const validateContractAndQuotaTrue = (data: any) => {
 }
 
 export const validateContractAndQuotaDtac = (data: any) => {
-    return
+
+    const allowFlag = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag").value === "Y"
+    const quotaStatus = data.characteristic.find((r: Characteristic) => r.name === "QuotaStatus").value === "Y"
+
+    if (allowFlag && quotaStatus) {
+        return
+    } else {
+        throw {
+            statusCode: 400,
+            statusMessage: 'Not allowed to extend contract',
+            errorCode: 'NOT_ALLOWED_TO_EXTERNAL_CONTRACT'
+        }
+    }
 }
