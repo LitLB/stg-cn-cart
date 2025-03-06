@@ -358,21 +358,6 @@ export class CartService {
                 );
             }
 
-            const validatedCouponDiscount = await validateCouponDiscount(ctCart, talonOneUpdateActions?.couponsInformation, FUNC_CHECKOUT)
-            if (validatedCouponDiscount) {
-                const removeFlag = notice !== '' || cartWithCheckPublicPublish.lineItems.length === 0
-
-                await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithCheckPublicPublish, removeFlag)
-                throw createStandardizedError(
-                    {
-                        statusCode: validatedCouponDiscount.statusCode,
-                        statusMessage: validatedCouponDiscount.statusMessage,
-                        errorCode: validatedCouponDiscount.errorCode
-                    },
-                    'checkout'
-                );
-            }
-
             if (notice !== '') {
                 await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithCheckPublicPublish, true)
                 throw createStandardizedError(
@@ -439,6 +424,18 @@ export class CartService {
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
+
+            const validatedCouponDiscount = await validateCouponDiscount(cartWithUpdatedPrice, talonOneUpdateActions?.couponsInformation, FUNC_CHECKOUT)
+            if (validatedCouponDiscount) {
+                throw createStandardizedError(
+                    {
+                        statusCode: validatedCouponDiscount.statusCode,
+                        statusMessage: validatedCouponDiscount.statusMessage,
+                        errorCode: validatedCouponDiscount.errorCode
+                    },
+                    'checkout'
+                );
+            }
 
             return { ...iCartWithBenefit, hasChanged: compared, couponsInformation, notice };
         } catch (error: any) {
