@@ -111,7 +111,7 @@ export function logService(req: any, res: any, l: LogModel) {
         const respCode = status || statusCode;
 
         if (resCode == '0' || respCode == '200' || respCode == '201' || respCode == '204') {
-            l.logSuccess(req, res, l.level || LOG_LEVELS.INFO);
+            l.logSuccess(req, res?.data || res, l.level ?? LOG_LEVELS.INFO);
         } else {
             const errResp = res?.response?.data || res;
 
