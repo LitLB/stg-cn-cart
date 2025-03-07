@@ -423,7 +423,6 @@ export class CartService {
             const updatedCart = await CommercetoolsCartClient.updateCart(cartWithCheckPublicPublish.id, cartWithCheckPublicPublish.version, updateActions);
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
-            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
             const validatedCouponDiscount = await validateCouponDiscount(cartWithUpdatedPrice, talonOneUpdateActions?.couponsInformation, FUNC_CHECKOUT)
             
@@ -445,6 +444,8 @@ export class CartService {
                     'checkout'
                 );
             }
+
+            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
             return { ...iCartWithBenefit, hasChanged: compared, couponsInformation, notice };
         } catch (error: any) {
