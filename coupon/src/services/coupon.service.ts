@@ -222,6 +222,7 @@ export class CouponService {
                     value: coupon.value || '',
                     discountPrice: coupon.attributes?.discount_price || 0,
                     discountCode: coupon.attributes?.discount_code || '',
+                    otherPaymentCode: coupon.attributes?.other_payment_code || '',
                     couponName: {
                         th: coupon.attributes?.coupon_name_th || '',
                         en: coupon.attributes?.coupon_name_en || '',
@@ -239,6 +240,19 @@ export class CouponService {
                         th: coupon.attributes?.term_condition_th || '',
                         en: coupon.attributes?.term_condition_en || '',
                     },
+                    loyaltyGroup: coupon.attributes?.loyalty_group || [],
+                    customerType: coupon.attributes?.customer_type || [],
+                    applyWithJourney: coupon.attributes?.apply_with_journey || [],
+                    applyToProduct: coupon.attributes?.apply_to_product || [],
+                    applyToPackage: coupon.attributes?.apply_to_package || [],
+                    applyToSeries: coupon.attributes?.apply_to_series || [],
+                    applyToBrand: coupon.attributes?.apply_to_brand || [],
+                    applyToCategories: coupon.attributes?.apply_to_categories || [],
+                    allowDiscountOnProducts: coupon.attributes?.allow_discount_on_products ?? null,
+                    minimumPurchase: coupon.attributes?.minimum_purchase ?? null,
+                    maximumPurchase: coupon.attributes?.maximum_purchase ?? null,
+                    maximumDiscount: coupon.attributes?.maximum_discount ?? null,
+                    allowStacking: coupon.attributes?.allow_stacking ?? null,
                     startDate: coupon.startDate || '',
                     expiryDate: coupon.expiryDate || '',
                 };
@@ -357,7 +371,7 @@ export class CouponService {
                 const couponCodes = acceptedCouponsOld;
                 const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
                 const ctCart = await commercetoolsMeCartClient.getCartById(id);
-            
+
                 if (!ctCart) {
                     logger.info('Commercetools getCartById error');
                     throw {
