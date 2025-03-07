@@ -426,7 +426,16 @@ export class CartService {
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
             const validatedCouponDiscount = await validateCouponDiscount(cartWithUpdatedPrice, talonOneUpdateActions?.couponsInformation, FUNC_CHECKOUT)
+            
             if (validatedCouponDiscount) {
+                const customerSession = await talonOneIntegrationAdapter.getCustomerSession(cartWithUpdatedPrice.id);
+                const updatedCartWithRemoveCoupon = await this.couponService.clearAllCoupons(cartWithUpdatedPrice, customerSession);
+                const ctCartWithRemoveCoupon = await CommercetoolsProductClient.checkCartHasChanged(updatedCartWithRemoveCoupon)
+
+                const { ctCart: cartWithRemoveCoupon, compared: comparedWithRemovecoupon } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithRemoveCoupon)
+
+                const iCartWithRemoveCoupon = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithRemoveCoupon);
+                
                 throw createStandardizedError(
                     {
                         statusCode: validatedCouponDiscount.statusCode,
