@@ -39,6 +39,7 @@ import { validateInventory } from '../utils/cart.utils';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit, validateCouponDiscount } from '../validators/coupon.validator';
 import { FUNC_CHECKOUT } from '../constants/func.constant';
+import { CART_HAS_CHANGED_NOTICE_MESSAGE } from '../constants/cart.constant';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -332,11 +333,11 @@ export class CartService {
             );
 
             const { talonOneUpdateActions } =
-            await this.talonOneCouponAdapter.fetchCouponEffectsAndUpdateActionsById(
-                ctCart.id,
-                ctCart,
-                couponEffects.coupons
-            );
+                await this.talonOneCouponAdapter.fetchCouponEffectsAndUpdateActionsById(
+                    ctCart.id,
+                    ctCart,
+                    couponEffects.coupons
+                );
 
             const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
             const { couponsInfomation } = cartWithCheckPublicPublish.custom?.fields ?? {};
@@ -526,11 +527,22 @@ export class CartService {
             }
 
             if (notice !== '') {
+                let errorCode
+
+                switch (notice as CART_HAS_CHANGED_NOTICE_MESSAGE) {
+                    case CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK:
+                        errorCode = 'DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK'
+                        break;
+                    default:
+                        errorCode = 'CART_HAS_CHANGED'
+                        break;
+                }
+
                 throw createStandardizedError(
                     {
                         statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: notice,
-                        errorCode: 'CART_HAS_CHANGED'
+                        errorCode: errorCode,
                     },
                     'getCartById'
                 );
