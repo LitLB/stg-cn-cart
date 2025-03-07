@@ -14,6 +14,7 @@ import { createStandardizedError } from '../utils/error.utils';
 import { HttpStatusCode } from 'axios';
 import CommercetoolsMeCartClient from './me/ct-me-cart-client';
 import { validateInventory } from '../utils/cart.utils';
+import { CART_HAS_CHANGED_NOTICE_MESSAGE } from '../constants/cart.constant';
 
 
 
@@ -483,14 +484,14 @@ class CommercetoolsCartClient {
 
 			// A. Not published ⇒ remove
 			if (!isProductPublished) {
-				notice = "The cart items have changed; some items have been removed, and the course items have been unpublished.";
+				notice = CART_HAS_CHANGED_NOTICE_MESSAGE.UNPUBLISH_PRODUCT;
 				itemsForRemoval.push(lineItem);
 				continue;
 			}
 
 			// B. Not preOrder but dummy/out-of-stock ⇒ remove
 			if (!isPreOrder && isDummyStock && isOutOfStock) {
-				notice = "The items in the cart have changed; some have been removed, and the stock type has been updated.";
+				notice = CART_HAS_CHANGED_NOTICE_MESSAGE.OUT_OF_STOCK;
 				itemsForRemoval.push(lineItem);
 				continue;
 			}
@@ -498,15 +499,21 @@ class CommercetoolsCartClient {
 			// C. Is preOrder but not out-of-stock or dummy ⇒ update
 			if (isPreOrder && !isOutOfStock && !isDummyStock) {
 
-				// D. Is out-of-stock or quantity more than available
-				if (lineItem.quantity > available) {
+				// D. Is out-of-stock or quantity more than available and available equal to 0
+				if (available === 0 && lineItem.quantity > available) {
 					itemsForRemoval.push(lineItem);
-					notice = "The items in the cart have changed; some have been removed, and insufficient stock item in cart > available";
+					notice = CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_OUT_OF_STOCK;
 					continue;
-				}
+				} else if (available > 0 && lineItem.quantity > available) {
+                    // E. is out-of-stock but available > 0
+                    // change to physical and not alert
+                    itemsForUpdate.push(lineItem);
+                    notice = CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK;
+					continue;
+                }
 
 				itemsForUpdate.push(lineItem);
-				notice = "Cart change type from Dummy to physical.";
+				notice = CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL;
 			}
 
 
