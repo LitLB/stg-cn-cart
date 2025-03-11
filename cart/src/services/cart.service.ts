@@ -360,14 +360,24 @@ export class CartService {
             }
 
             if (notice !== '') {
-                await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithCheckPublicPublish, true)
+                let errorCode
+
+                switch (notice as CART_HAS_CHANGED_NOTICE_MESSAGE) {
+                    case CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK:
+                        errorCode = 'DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK'
+                        break;
+                    default:
+                        errorCode = 'CART_HAS_CHANGED'
+                        break;
+                }
+
                 throw createStandardizedError(
                     {
                         statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: notice,
-                        errorCode: 'CART_HAS_CHANGED'
+                        errorCode: errorCode,
                     },
-                    'checkout'
+                    'getCartById'
                 );
             }
 
@@ -499,12 +509,22 @@ export class CartService {
                 } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithUpdatedPrice);
 
                 if (notice !== '') {
-                    await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithUpdatedPrice, true);
+                    let errorCode
+    
+                    switch (notice as CART_HAS_CHANGED_NOTICE_MESSAGE) {
+                        case CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK:
+                            errorCode = 'DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK'
+                            break;
+                        default:
+                            errorCode = 'CART_HAS_CHANGED'
+                            break;
+                    }
+    
                     throw createStandardizedError(
                         {
                             statusCode: HTTP_STATUSES.BAD_REQUEST,
                             statusMessage: notice,
-                            errorCode: 'CART_HAS_CHANGED'
+                            errorCode: errorCode,
                         },
                         'getCartById'
                     );
