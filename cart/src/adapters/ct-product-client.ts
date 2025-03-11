@@ -349,6 +349,10 @@ class CommercetoolsProductClient {
                             hasChangedAction.action = 'REMOVE_LINE_ITEM'
                             quantityOverStock = true
                         }
+                    } else if ((maximumStockAllocation === undefined || maximumStockAllocation === 0 ) && quantity > stockAvailable) {
+                        hasChangedAction.action = 'UPDATE_QUANTITY'
+                        hasChangedAction.updateValue = stockAvailable
+                        quantityOverStock = true
                     }
                 }
             }
