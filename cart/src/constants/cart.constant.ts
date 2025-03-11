@@ -3,6 +3,7 @@
 export enum CART_JOURNEYS {
     SINGLE_PRODUCT = 'single_product',
     DEVICE_ONLY = 'device_only',
+    DEVICE_BUNDLE_EXISTING = 'device_bundle_existing',
 }
 
 export enum CART_INVENTORY_MODES {
@@ -21,6 +22,14 @@ export const journeyConfigMap: Record<CART_JOURNEYS, any> = {
         inventory: {
             maximumKey: 'maximumStockAllocationDeviceOnly',
             totalKey: 'totalPurchaseStockAllocationDeviceOnly',
+            dummyKey: 'dummyStock',
+            dummyPurchaseKey: 'dummyPurchase',
+        },
+    },
+    [CART_JOURNEYS.DEVICE_BUNDLE_EXISTING]: {
+        inventory: {
+            maximumKey: 'maximumStockAllocationDeviceBundleExisting',
+            totalKey: 'totalPurchaseStockAllocationDeviceBundleExisting',
             dummyKey: 'dummyStock',
             dummyPurchaseKey: 'dummyPurchase',
         },
