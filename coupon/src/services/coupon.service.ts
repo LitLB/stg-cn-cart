@@ -417,4 +417,135 @@ export class CouponService {
             throw createStandardizedError(error, 'checkCouponDiscount');
         }
     };
+
+    private couponFilter(coupon: any, filter: any) {
+        const {
+            totalPrice = null,
+            allowStacking = null,
+            allowWithDiscountedProducts = null,
+            campaignGroup = null,
+            journey = null,
+            customerType = null,
+            loyaltyGroup = null,
+            products = [],
+            series = [],
+            brands = [],
+            categories = [],
+            packages = [],
+        } = filter;
+
+        const {
+            minimum_purchase,
+            allow_stacking,
+            allow_with_discounted_products,
+            allowed_campaign_groups,
+            allowed_journeys,
+            customer_types,
+            loyalty_groups,
+            allowed_products,
+            excluded_products,
+            allowed_series,
+            excluded_series,
+            allowed_brands,
+            excluded_brands,
+            allowed_categories,
+            excluded_categories,
+            allowed_packages,
+            excluded_packages,
+        } = coupon?.attributes || {};
+
+        if (totalPrice !== null && totalPrice < minimum_purchase) {
+            return false
+        }
+
+        if (allowStacking !== null && allowStacking !== allow_stacking) {
+            return false
+        }
+
+        if (allowWithDiscountedProducts !== null && allowWithDiscountedProducts !== allow_with_discounted_products) {
+            return false
+        }
+
+        if (campaignGroup !== null && !allowed_campaign_groups.includes(campaignGroup)) {
+            return false
+        }
+
+        if (journey !== null && !allowed_journeys.includes(journey)) {
+            return false
+        }
+
+        if (customerType !== null && !customer_types.includes(customerType)) {
+            return false
+        }
+
+        if (loyaltyGroup !== null && !loyalty_groups.includes(loyaltyGroup)) {
+            return false
+        }
+
+        if (!this.checkInAllowedList(products, allowed_products)) {
+            return false
+        }
+
+        if (this.checkInExcludedList(products, excluded_products)) {
+            return false
+        }
+
+        if (!this.checkInAllowedList(series, allowed_series)) {
+            return false
+        }
+
+        if (this.checkInExcludedList(series, excluded_series)) {
+            return false
+        }
+
+        if (!this.checkInAllowedList(brands, allowed_brands)) {
+            return false
+        }
+
+        if (this.checkInExcludedList(brands, excluded_brands)) {
+            return false
+        }
+
+        if (!this.checkInAllowedList(categories, allowed_categories)) {
+            return false
+        }
+
+        if (this.checkInExcludedList(categories, excluded_categories)) {
+            return false
+        }
+
+        if (!this.checkInAllowedList(packages, allowed_packages)) {
+            return false
+        }
+
+        if (this.checkInExcludedList(packages, excluded_packages)) {
+            return false
+        }
+
+        return true
+    };
+
+
+    private checkInAllowedList(filterList: any[], allowedList: any[]) {
+        if (filterList.length > 0 && allowedList.length > 0) {
+            const allowedSet = new Set(allowedList);
+            const intersect = filterList.filter(value => allowedSet.has(value));
+
+            return !!intersect.length
+        }
+
+        return true
+    }
+
+
+    private checkInExcludedList(filterList: any[], excludedList: any[]) {
+        if (filterList.length > 0 && excludedList.length > 0) {
+            const excludedSet = new Set(excludedList);
+            const intersect = filterList.filter(value => excludedSet.has(value));
+
+            return !!intersect.length
+        }
+
+        return false
+    }
 }
