@@ -523,10 +523,11 @@ export class CouponService {
         }
 
         return true
-    };
+    }
 
 
     private checkInAllowedList(filterList: any[], allowedList: any[]) {
+        allowedList = allowedList.filter((v) => v !== 'null')
         if (filterList.length > 0 && allowedList.length > 0) {
             const allowedSet = new Set(allowedList);
             const intersect = filterList.filter(value => allowedSet.has(value));
@@ -539,6 +540,7 @@ export class CouponService {
 
 
     private checkInExcludedList(filterList: any[], excludedList: any[]) {
+        excludedList = excludedList.filter((v) => v !== 'null')
         if (filterList.length > 0 && excludedList.length > 0) {
             const excludedSet = new Set(excludedList);
             const intersect = filterList.filter(value => excludedSet.has(value));
