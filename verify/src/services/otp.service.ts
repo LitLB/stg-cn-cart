@@ -60,7 +60,7 @@ export class OtpService {
             const otpNumberMinuteExpire = this.config.otp.expireTime as number
             const otpNumberSecondResend = this.config.otp.resendTime as number
 
-            const expireAt = dayjs(data.sendTimeComplete).add(otpNumberMinuteExpire, 'minutes').toISOString()
+            const expireAt = dayjs(data.sendTimeComplete).utc().add(otpNumberMinuteExpire, 'minutes').toISOString()
 
             const refCode = getOTPReferenceCodeFromArray(data.characteristic) ?? "Invalid"
 
@@ -68,7 +68,7 @@ export class OtpService {
 
             return {
                 otp: {
-                    expireAt,
+                    expTime: expireAt,
                     refCode
                 },
                 config: {
