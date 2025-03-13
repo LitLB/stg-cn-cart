@@ -40,6 +40,7 @@ import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit, validateCouponDiscount } from '../validators/coupon.validator';
 import { FUNC_CHECKOUT } from '../constants/func.constant';
 import { CART_HAS_CHANGED_NOTICE_MESSAGE } from '../constants/cart.constant';
+import { ApiResponse } from '../interfaces/response.interface';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -434,6 +435,20 @@ export class CartService {
             const updatedCart = await CommercetoolsCartClient.updateCart(cartWithCheckPublicPublish.id, cartWithCheckPublicPublish.version, updateActions);
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
+
+            const priceChange = await this.checkPriceChange(compared)
+
+            if (priceChange) {
+                await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
+                throw createStandardizedError(
+                    {
+                        statusCode: priceChange.statusCode,
+                        statusMessage: priceChange.statusMessage,
+                        errorCode: priceChange.errorCode
+                    },
+                    'checkout'
+                );
+            }
 
             const validatedCouponDiscount = await validateCouponDiscount(cartWithUpdatedPrice, talonOneUpdateActions?.couponsInformation, FUNC_CHECKOUT)
             
@@ -1198,4 +1213,24 @@ export class CartService {
 
         return { discounts, otherPayments };
     }
+
+    public checkPriceChange = async (
+        compared: any,
+    ): Promise<void | ApiResponse> => {
+        let priceUpdated = false;
+        for (const item of compared) {
+            let isPriceHasChange = item?.hasChange?.prices || false;
+            if (isPriceHasChange) {
+                priceUpdated = true;
+                break;
+            }
+        }
+        if (priceUpdated)  {
+            return {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                errorCode: "PRICE_HAS_BEEN_CHANGED",
+                statusMessage: 'price has changed',
+            };
+        }
+    };
 }
