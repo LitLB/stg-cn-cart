@@ -437,19 +437,6 @@ export class CartService {
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
 
             const priceChange = await this.checkPriceChange(compared)
-
-            if (priceChange) {
-                await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
-                throw createStandardizedError(
-                    {
-                        statusCode: priceChange.statusCode,
-                        statusMessage: priceChange.statusMessage,
-                        errorCode: priceChange.errorCode
-                    },
-                    'checkout'
-                );
-            }
-
             const validatedCouponDiscount = await validateCouponDiscount(cartWithUpdatedPrice, talonOneUpdateActions?.couponsInformation, FUNC_CHECKOUT)
             
             if (validatedCouponDiscount) {
@@ -466,6 +453,18 @@ export class CartService {
                         statusCode: validatedCouponDiscount.statusCode,
                         statusMessage: validatedCouponDiscount.statusMessage,
                         errorCode: validatedCouponDiscount.errorCode
+                    },
+                    'checkout'
+                );
+            }
+
+            if (priceChange) {
+                await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
+                throw createStandardizedError(
+                    {
+                        statusCode: priceChange.statusCode,
+                        statusMessage: priceChange.statusMessage,
+                        errorCode: priceChange.errorCode
                     },
                     'checkout'
                 );
