@@ -1,4 +1,5 @@
-import moment from "moment";
+import dayjs from "dayjs";
+
 
 import ApigeeClientAdapter from "../adapters/apigee-client.adapter";
 import { readConfiguration } from "../utils/config.utils";
@@ -28,7 +29,7 @@ export class OtpService {
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const transactionId = generateTransactionId()
-            const sendTime = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
+            const sendTime = dayjs().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
             const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
             const thailandMobile = convertToThailandMobile(decryptedMobile)
 
@@ -48,7 +49,6 @@ export class OtpService {
                 ]
             }
 
-
             const response = await apigeeClientAdapter.requestOTP(requestOtpPayload)
 
             const { data } = response
@@ -57,12 +57,11 @@ export class OtpService {
             const otpNumberMinuteExpire = this.config.otp.expireTime as number
             const otpNumberSecondResend = this.config.otp.resendTime as number
 
-            const expireAt = moment(data.sendTimeComplete).add(otpNumberMinuteExpire, 'minutes')
-
+            const expireAt = dayjs(data.sendTimeComplete).add(otpNumberMinuteExpire, 'minutes')            
 
             const refCode = getOTPReferenceCodeFromArray(data.characteristic) ?? "Invalid"
 
-            logger.info(JSON.stringify({ phoneNumber, refCode, date: moment() }))
+            logger.info(JSON.stringify({ phoneNumber, refCode, date: dayjs() }))
 
             return {
                 otp: {
@@ -76,7 +75,7 @@ export class OtpService {
             }
 
         } catch (e: any) {
-            logger.info(JSON.stringify({ phoneNumber, refCode: null, date: moment() }))
+            logger.info(JSON.stringify({ phoneNumber, refCode: null, date: dayjs() }))
             throw e
         }
     }
@@ -91,7 +90,7 @@ export class OtpService {
             journey: "",
             status: "",
             reason: "",
-            date_time: moment().toISOString()
+            date_time: dayjs().toISOString()
         }
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
