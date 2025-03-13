@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 
 
 import ApigeeClientAdapter from "../adapters/apigee-client.adapter";
@@ -11,6 +12,8 @@ import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client
 import { getValueByKey } from "../utils/object.utils";
 import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
+
+dayjs.extend(utc);
 
 export class OtpService {
 
@@ -57,7 +60,7 @@ export class OtpService {
             const otpNumberMinuteExpire = this.config.otp.expireTime as number
             const otpNumberSecondResend = this.config.otp.resendTime as number
 
-            const expireAt = dayjs(data.sendTimeComplete).add(otpNumberMinuteExpire, 'minutes')            
+            const expireAt = dayjs(data.sendTimeComplete).add(otpNumberMinuteExpire, 'minutes').toISOString()
 
             const refCode = getOTPReferenceCodeFromArray(data.characteristic) ?? "Invalid"
 
