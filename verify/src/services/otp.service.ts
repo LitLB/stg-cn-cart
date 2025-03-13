@@ -57,8 +57,9 @@ export class OtpService {
             const otpNumberMinuteExpire = this.config.otp.expireTime as number
             const otpNumberSecondResend = this.config.otp.resendTime as number
 
-            const expireAt = moment(data.sendCompleteTime).add(otpNumberMinuteExpire, 'minute')
-            expireAt.add('7', 'hours')
+            const expireAt = moment(data.sendTimeComplete).add(otpNumberMinuteExpire, 'minutes')
+
+
             const refCode = getOTPReferenceCodeFromArray(data.characteristic) ?? "Invalid"
 
             logger.info(JSON.stringify({ phoneNumber, refCode, date: moment() }))
