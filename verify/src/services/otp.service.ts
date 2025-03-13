@@ -1,4 +1,6 @@
-import moment from "moment";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+
 
 import ApigeeClientAdapter from "../adapters/apigee-client.adapter";
 import { readConfiguration } from "../utils/config.utils";
@@ -10,6 +12,8 @@ import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client
 import { getValueByKey } from "../utils/object.utils";
 import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
+
+dayjs.extend(utc);
 
 export class OtpService {
 
@@ -28,7 +32,7 @@ export class OtpService {
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const transactionId = generateTransactionId()
-            const sendTime = moment().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
+            const sendTime = dayjs().format('YYYY-MM-DD[T]HH:mm:ss.SSS');
             const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
             const thailandMobile = convertToThailandMobile(decryptedMobile)
 
@@ -48,7 +52,6 @@ export class OtpService {
                 ]
             }
 
-
             const response = await apigeeClientAdapter.requestOTP(requestOtpPayload)
 
             const { data } = response
@@ -57,15 +60,15 @@ export class OtpService {
             const otpNumberMinuteExpire = this.config.otp.expireTime as number
             const otpNumberSecondResend = this.config.otp.resendTime as number
 
-            const expireAt = moment(data.sendCompleteTime).add(otpNumberMinuteExpire, 'minute')
-            expireAt.add('7', 'hours')
+            const expireAt = dayjs().utc().add(otpNumberMinuteExpire, 'minutes').toISOString()
+
             const refCode = getOTPReferenceCodeFromArray(data.characteristic) ?? "Invalid"
 
-            logger.info(JSON.stringify({ phoneNumber, refCode, date: moment() }))
+            logger.info(JSON.stringify({ phoneNumber, refCode, date: dayjs() }))
 
             return {
                 otp: {
-                    expireAt,
+                    expTime: expireAt,
                     refCode
                 },
                 config: {
@@ -75,7 +78,7 @@ export class OtpService {
             }
 
         } catch (e: any) {
-            logger.info(JSON.stringify({ phoneNumber, refCode: null, date: moment() }))
+            logger.info(JSON.stringify({ phoneNumber, refCode: null, date: dayjs() }))
             throw e
         }
     }
@@ -90,7 +93,7 @@ export class OtpService {
             journey: "",
             status: "",
             reason: "",
-            date_time: moment().toISOString()
+            date_time: dayjs().toISOString()
         }
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
