@@ -57,4 +57,3 @@ export const getCouponsQuerySchema = Joi.object({
         "any.required": `"packageIds" must contain valid values`,
     })).optional(),
 })
-}
