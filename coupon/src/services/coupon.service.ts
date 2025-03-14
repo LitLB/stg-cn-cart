@@ -182,7 +182,7 @@ export class CouponService {
         }
     };
 
-    public getQueryCoupons = async (profileId: any, options: any) => {
+    public getQueryCoupons = async (profileId: any, filter: any, options: any) => {
         try {
             let data;
             try {
@@ -200,66 +200,12 @@ export class CouponService {
             }
 
             // filter active coupons coupon_status === true and state === 'active'
-            const filterActiveCoupons = (coupons: any[]): any[] => {
-                if (!Array.isArray(coupons)) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: `Error Invalid datatype for coupons`,
-                        errorCode: 'QUERY_COUPONS_ON_CT_INVALID_DATATYPE',
-                    };
-                }
-                return coupons.filter((coupon: any) => {
-                    return (
-                        coupon.attributes?.coupon_status === true &&
-                        coupon.state === 'active'
-                    );
-                });
-            };
+            const activeCoupons = this.filterActiveCoupons(data.coupons);
+            const mappedCoupons = activeCoupons
+                .filter((activeCoupon: any) => this.couponFilter(activeCoupon, filter))
+                .map(this.mapCouponData);
 
-            // map coupon data
-            const mapCouponData = (coupon: any): any => {
-                return {
-                    value: coupon.value || '',
-                    discountPrice: coupon.attributes?.discount_price || 0,
-                    discountCode: coupon.attributes?.discount_code || '',
-                    otherPaymentCode: coupon.attributes?.other_payment_code || '',
-                    couponName: {
-                        th: coupon.attributes?.coupon_name_th || '',
-                        en: coupon.attributes?.coupon_name_en || '',
-                    },
-                    marketingName: {
-                        th: coupon.attributes?.marketing_name_th || '',
-                        en: coupon.attributes?.marketing_name_en || '',
-                    },
-                    couponShortDetail: {
-                        th: coupon.attributes?.coupon_short_detail_th || '',
-                        en: coupon.attributes?.coupon_short_detail_en || '',
-                    },
-                    couponImage: coupon.attributes?.coupon_image || '',
-                    termCondition: {
-                        th: coupon.attributes?.term_condition_th || '',
-                        en: coupon.attributes?.term_condition_en || '',
-                    },
-                    loyaltyGroup: coupon.attributes?.loyalty_group || [],
-                    customerType: coupon.attributes?.customer_type || [],
-                    applyWithJourney: coupon.attributes?.apply_with_journey || [],
-                    applyToProduct: coupon.attributes?.apply_to_product || [],
-                    applyToPackage: coupon.attributes?.apply_to_package || [],
-                    applyToSeries: coupon.attributes?.apply_to_series || [],
-                    applyToBrand: coupon.attributes?.apply_to_brand || [],
-                    applyToCategories: coupon.attributes?.apply_to_categories || [],
-                    allowDiscountOnProducts: coupon.attributes?.allow_discount_on_products ?? null,
-                    minimumPurchase: coupon.attributes?.minimum_purchase ?? null,
-                    maximumPurchase: coupon.attributes?.maximum_purchase ?? null,
-                    maximumDiscount: coupon.attributes?.maximum_discount ?? null,
-                    allowStacking: coupon.attributes?.allow_stacking ?? null,
-                    startDate: coupon.startDate || '',
-                    expiryDate: coupon.expiryDate || '',
-                };
-            };
-
-            const activeCoupons = filterActiveCoupons(data.coupons);
-            return activeCoupons.map(mapCouponData);
+            return mappedCoupons;
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
@@ -267,6 +213,54 @@ export class CouponService {
 
             throw createStandardizedError(error, 'getQueryCoupons');
         }
+    };
+
+    private filterActiveCoupons(coupons: any[]): any[] {
+        if (!Array.isArray(coupons)) {
+            throw {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                statusMessage: `Error Invalid datatype for coupons`,
+                errorCode: 'QUERY_COUPONS_ON_CT_INVALID_DATATYPE',
+            };
+        }
+        return coupons.filter((coupon: any) => {
+            return (
+                coupon.attributes?.coupon_status === true &&
+                coupon.state === 'active'
+            );
+        });
+    };
+    // map coupon data
+    private mapCouponData(coupon: any) {
+        return {
+            value: coupon.value || '',
+            discountPrice: coupon.attributes?.discount_price || 0,
+            couponName: {
+                th: coupon.attributes?.coupon_name_th || '',
+                en: coupon.attributes?.coupon_name_en || '',
+            },
+            marketingName: {
+                th: coupon.attributes?.marketing_name_th || '',
+                en: coupon.attributes?.marketing_name_en || '',
+            },
+            couponShortDetail: {
+                th: coupon.attributes?.coupon_short_detail_th || '',
+                en: coupon.attributes?.coupon_short_detail_en || '',
+            },
+            couponImage: coupon.attributes?.coupon_image || '',
+            termCondition: {
+                th: coupon.attributes?.term_condition_th || '',
+                en: coupon.attributes?.term_condition_en || '',
+            },
+            minimumPurchase: coupon.attributes?.minimum_purchase ?? [],
+            allowStacking: coupon.attributes?.allow_stacking ?? false,
+            loyaltyGroups: coupon.attributes?.loyalty_groups ?? [],
+            customerTypes: coupon.attributes?.customer_types ?? [],
+            allowedPackages: coupon.attributes?.allowed_packages ?? [],
+            excludedPackages: coupon.attributes?.excluded_packages ?? [],
+            startDate: coupon.startDate || '',
+            expiryDate: coupon.expiryDate || '',
+        };
     };
 
     private async removeInvalidCouponsFromSession(
@@ -422,36 +416,36 @@ export class CouponService {
         const {
             totalPrice = null,
             allowStacking = null,
-            allowWithDiscountedProducts = null,
+            containsDiscountedProducts = null,
             campaignGroup = null,
             journey = null,
             customerType = null,
             loyaltyGroup = null,
-            products = [],
+            skus = [],
             series = [],
             brands = [],
             categories = [],
-            packages = [],
+            packageIds = [],
         } = filter;
 
         const {
-            minimum_purchase,
-            allow_stacking,
-            allow_with_discounted_products,
-            allowed_campaign_groups,
-            allowed_journeys,
-            customer_types,
-            loyalty_groups,
-            allowed_products,
-            excluded_products,
-            allowed_series,
-            excluded_series,
-            allowed_brands,
-            excluded_brands,
-            allowed_categories,
-            excluded_categories,
-            allowed_packages,
-            excluded_packages,
+            minimum_purchase = 0,
+            allow_stacking = false,
+            allow_with_discounted_products = false,
+            allowed_campaign_groups: allowedCampaignGroups = [],
+            allowed_journeys: allowedJourneys = [],
+            customer_types: customerTypes = [],
+            loyalty_groups: loyaltyGroups = [],
+            allowed_products = [],
+            excluded_products = [],
+            allowed_series = [],
+            excluded_series = [],
+            allowed_brands = [],
+            excluded_brands = [],
+            allowed_categories = [],
+            excluded_categories = [],
+            allowed_packages = [],
+            excluded_packages = [],
         } = coupon?.attributes || {};
 
         if (totalPrice !== null && totalPrice < minimum_purchase) {
@@ -462,31 +456,31 @@ export class CouponService {
             return false
         }
 
-        if (allowWithDiscountedProducts !== null && allowWithDiscountedProducts !== allow_with_discounted_products) {
+        if (containsDiscountedProducts !== null && containsDiscountedProducts !== allow_with_discounted_products) {
             return false
         }
 
-        if (campaignGroup !== null && !allowed_campaign_groups.includes(campaignGroup)) {
+        if (campaignGroup !== null && !this.checkInAllowedList([campaignGroup], allowedCampaignGroups)) {
             return false
         }
 
-        if (journey !== null && !allowed_journeys.includes(journey)) {
+        if (journey !== null && !this.checkInAllowedList([journey], allowedJourneys)) {
             return false
         }
 
-        if (customerType !== null && !customer_types.includes(customerType)) {
+        if (customerType !== null && !this.checkInAllowedList([customerType], customerTypes)) {
             return false
         }
 
-        if (loyaltyGroup !== null && !loyalty_groups.includes(loyaltyGroup)) {
+        if (loyaltyGroup !== null && !this.checkInAllowedList([loyaltyGroup], loyaltyGroups)) {
             return false
         }
 
-        if (!this.checkInAllowedList(products, allowed_products)) {
+        if (!this.checkInAllowedList(skus, allowed_products)) {
             return false
         }
 
-        if (this.checkInExcludedList(products, excluded_products)) {
+        if (this.checkInExcludedList(skus, excluded_products)) {
             return false
         }
 
@@ -514,11 +508,11 @@ export class CouponService {
             return false
         }
 
-        if (!this.checkInAllowedList(packages, allowed_packages)) {
+        if (!this.checkInAllowedList(packageIds, allowed_packages)) {
             return false
         }
 
-        if (this.checkInExcludedList(packages, excluded_packages)) {
+        if (this.checkInExcludedList(packageIds, excluded_packages)) {
             return false
         }
 
