@@ -1,6 +1,6 @@
 // interface/cart.ts
 
-import type { Address, Attribute, LocalizedString, ProductTypeReference, ShippingMethodReference } from '@commercetools/platform-sdk';
+import type { Address, Attribute, Cart, LocalizedString, ProductTypeReference, ShippingMethodReference } from '@commercetools/platform-sdk';
 import { ProductType } from '../types/share.types';
 
 export interface ICart {
@@ -174,4 +174,13 @@ export interface IAvailableBenefitProductVariant {
 	unitPrice: number;
 	// inventory?: any;
 	totalSelectedItem: number;
+}
+
+export interface ICartStrategy {
+	accessToken: string;
+	addItem(cart: Cart, payload: any): Promise<any>;
+	updateItem(cart: Cart, body: any): Promise<any>;
+	removeItem(cart: Cart, body: any): Promise<any>;
+	bulkRemoveItems(cart: Cart, body: any): Promise<any>;
+	selectItem(cart: Cart, body: any): Promise<any>
 }

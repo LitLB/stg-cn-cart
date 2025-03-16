@@ -15,7 +15,6 @@ import type {
 	LineItem,
 	CustomLineItem,
 	CartAddCustomLineItemAction,
-	CartAddLineItemAction,
 	CartChangeCustomLineItemMoneyAction,
 	CartRemoveCustomLineItemAction,
 	CartUpdateAction,
@@ -33,11 +32,10 @@ import { CURRENCY_CODES } from '../../constants/currency.constant';
 import { COUNTRIES } from '../../constants/country.constant';
 import { HTTP_STATUSES } from '../../constants/http.constant';
 import { LOCALES } from '../../constants/locale.constant';
-import { updatedCartWithFreeGiftAdded } from '../../mocks/free-gift/updatedCart.mock';
-import { lineItemWithCampaignBenefitsMock } from '../../mocks/lineItemWithCampaignBenefits.mock';
-import { updateCartFlag } from '../../utils/cart.utils';
+import { IAdapter } from '../../interfaces/adapter.interface';
 
-export default class CommercetoolsMeCartClient {
+export default class CommercetoolsMeCartClient implements IAdapter {
+	public name = 'commercetoolsMeCartClient'
 	private apiRoot: ApiRoot;
 	private projectKey: string;
 	private onlineChannel: string;

@@ -4,14 +4,16 @@ import type { ApiRoot, InventoryEntry, InventoryEntryUpdate, InventoryEntryUpdat
 import { readConfiguration } from '../utils/config.utils';
 import CommercetoolsBaseClient from './ct-base-client'
 import { HTTP_STATUSES } from '../constants/http.constant';
+import { IAdapter } from '../interfaces/adapter.interface';
 
-class CommercetoolsInventoryClient {
+export class CommercetoolsInventoryClient implements IAdapter {
+	public name = 'commercetoolsInventoryClient'
 	private static instance: CommercetoolsInventoryClient;
 	private apiRoot: ApiRoot;
 	private projectKey: string;
 	private onlineChannel: string;
 
-	private constructor() {
+	constructor() {
 		this.apiRoot = CommercetoolsBaseClient.getApiRoot();
 		this.projectKey = readConfiguration().ctpProjectKey as string;
 		this.onlineChannel = readConfiguration().onlineChannel as string;

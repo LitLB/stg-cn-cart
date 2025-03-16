@@ -8,15 +8,17 @@ import { readConfiguration } from '../utils/config.utils';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client'
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { CustomLineItemVariantAttribute, HasChangedAction } from '../types/custom.types';
+import { IAdapter } from '../interfaces/adapter.interface';
 
-class CommercetoolsProductClient {
+export class CommercetoolsProductClient implements IAdapter{
+	public name = 'commercetoolsProductClient'
 	private static instance: CommercetoolsProductClient;
 	private apiRoot: ApiRoot;
 	private projectKey: string;
 	private readonly ctInventoryClient;
 
 
-	private constructor() {
+	constructor() {
 		this.apiRoot = CommercetoolsBaseClient.getApiRoot();
 		this.projectKey = readConfiguration().ctpProjectKey as string;
 		this.ctInventoryClient = CommercetoolsInventoryClient;
@@ -141,6 +143,15 @@ class CommercetoolsProductClient {
 			}).execute()
 
 		return products;
+	}
+
+	async queryProducts(queryParams: any): Promise<any> {
+		const response = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.products()
+			.get({ queryArgs: queryParams })
+			.execute();
+		return response.body;
 	}
 
 	async getProductsByIds(productIds: any[]) {
