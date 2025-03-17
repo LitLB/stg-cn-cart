@@ -50,12 +50,6 @@ export const validateCheckCustomerProfile: ValidationChain[] = [
         .isString()
         .withMessage('id must be a string'),
 
-    query('operator')
-        .exists({ checkFalsy: true })
-        .withMessage('operator is required')
-        .isString()
-        .withMessage('operator must be a string'),
-
     query('journey')
         .exists({ checkFalsy: true })
         .withMessage('journey is required')

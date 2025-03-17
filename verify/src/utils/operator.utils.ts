@@ -10,7 +10,7 @@ export const validateOperator = (operatorNumber: string) => {
 
     if (!isTrue && !isDtac) {
         throw {
-            statusCode: "400",
+            statusCode: "400.4005",
             statusMessage: 'Operator not TRUE or DTAC',
             errorCode: 'OPERATOR_NOT_TRUE_OR_DTAC'
         }

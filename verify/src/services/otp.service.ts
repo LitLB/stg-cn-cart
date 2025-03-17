@@ -348,7 +348,11 @@ export class OtpService {
         } catch (e: any) {
             logService(checkOperatorPayload, e, logStepModel)
             logger.error('Error checkOperator')
-            throw e
+            throw {
+                statusCode: '400.4016',
+                statusMessage: 'Get operator fail',
+                errorCode: 'GET_OPERATOR_FAIL'
+            }
         }
     }
 
@@ -391,9 +395,15 @@ export class OtpService {
         }
     }
 
-    public async getCustomerProfile(id: string, mobileNumber: string, operator: string, journey: string) {
+    public async getCustomerProfile(id: string, mobileNumberN: string, journey: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_GET_PROFILE_AND_PACKAGE, logModel);
+        const apigeeClientAdapter = new ApigeeClientAdapter
+
+
+        const mobileNumber = await apigeeClientAdapter.apigeeEncrypt(mobileNumberN)
+
+        const operator = await this.checkOperator(mobileNumber)
 
         let getProfilePayload: Partial<IGetProfileDtacRequest | IGetProfileTrueRequest> = {}
 
@@ -430,7 +440,8 @@ export class OtpService {
         }
 
         try {
-            const apigeeClientAdapter = new ApigeeClientAdapter
+
+            await this.checkActive(operator, journey)
 
             const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
 
@@ -445,9 +456,9 @@ export class OtpService {
 
             } else {
                 throw {
-                    statusCode: 400,
-                    statusMessage: 'Get profile fail',
-                    errorCode: 'GET_PROFILE_FAIL'
+                    statusCode: "400.4010",
+                    statusMessage: 'Get profile info fail',
+                    errorCode: 'GET_PROFILE_INFO_FAIL'
                 }
             }
 
@@ -475,15 +486,13 @@ export class OtpService {
                 logService({ id, thaiId, operator }, response, logStepModel)
                 const { data } = response.data
 
-
-                // todo :: uncomment this before deploy
-                // if (data.mobileRelaxBlacklist === 'Y') {
-                //     throw {
-                //         statusCode: 400,
-                //         statusMessage: 'Black Listed Customer is not allowed',
-                //         errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
-                //     }
-                // }
+                if (data.mobileRelaxBlacklist === 'Y') {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Black Listed Customer is not allowed',
+                        errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
+                    }
+                }
             }
 
             if (operator === OPERATOR.DTAC) {
@@ -500,14 +509,13 @@ export class OtpService {
                 logService({ id, thaiId, operator }, response, logStepModel)
                 const { status } = response.data
 
-                // todo :: uncomment this before deploy
-                // if (status === "FALSE") {
-                //     throw {
-                //         statusCode: 400,
-                //         statusMessage: 'Black Listed Customer is not allowed',
-                //         errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
-                //     }
-                // }
+                if (status === "FALSE") {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Black Listed Customer is not allowed',
+                        errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
+                    }
+                }
             }
 
 
@@ -550,7 +558,7 @@ export class OtpService {
                     }
                 }
 
-                const newThaiId = encryptedOFB(thaiId,key )
+                const newThaiId = encryptedOFB(thaiId, key)
 
                 const response = await apigeeClientAdapter.getContractAndQuotaDtac(id, newThaiId)
                 logService({ id, operator, thaiId }, response.data, logStepModel)

@@ -3,12 +3,19 @@ import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.i
 
 
 export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileResponse => {
-
     const date = new Date()
 
-    if (data.characteristic[26].name === "CS_CUST__OCCP_COD" && data.characteristic[26].value === "902") {
+    if (!data.characteristic[26] || !data.characteristic[28]) {
         throw {
-            statusCode: 400,
+            statusCode: '400.4010',
+            statusMessage: 'Get profile info fail',
+            errorCode: 'GET_PROFILE_INFO_FAIL'
+        }
+    }
+
+    if (data.characteristic[26]?.name === "CS_CUST__OCCP_COD" && data.characteristic[26]?.value === "902") {
+        throw {
+            statusCode: '400.4017',
             statusMessage: 'Customer type is not eligible',
             errorCode: 'CUSTOMER_TYPE_IS_NOT_NOT_ELIGIBLE'
         }
@@ -16,43 +23,43 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
 
     if (data.characteristic[28].name === "NXCL_FLAG" && data.characteristic[28].value === "Y") {
         throw {
-            statusCode: 400,
+            statusCode: '400.4023',
             statusMessage: 'This number requested service cancellation or switch from a postpaid to a prepaid plan',
             errorCode: 'THIS_NUMBER_REQUESTED_SERVICE_CANCELLATION_OR_SWITCH_FROM_A_POSTPAID_TO_A_PREPAID_PLAN'
         }
     }
 
-    // if (data.subscriberInfo.status.code === "S") {
-    //     throw {
-    //         statusCode: 400,
-    //         statusMessage: 'Customer is suspended',
-    //         errorCode: 'CUSTOMER_IS_SUSPENDED'
-    //     }
-    // }
+    if (data.subscriberInfo.status.code === "S") {
+        throw {
+            statusCode: '400.4020',
+            statusMessage: 'Customer is suspended',
+            errorCode: 'CUSTOMER_IS_SUSPENDED'
+        }
+    }
 
-    // if (data.subscriberInfo.status.code !== "A") {
-    //     throw {
-    //         statusCode: 400,
-    //         statusMessage: 'Customer status is not active',
-    //         errorCode: 'CUSTOMER_STATUS_IS_NOT_ACTIVE'
-    //     }
-    // }
+    if (data.subscriberInfo.status.code !== "A") {
+        throw {
+            statusCode: '400.4019',
+            statusMessage: 'Customer status is not active',
+            errorCode: 'CUSTOMER_STATUS_IS_NOT_ACTIVE'
+        }
+    }
 
     //todo: share plan 
     //! implement this after have solution
     // if(condition){ 
-    //     throw {
-    //         statusCode: 400,
-    //         statusMessage: 'Customer is sharing plan',
-    //         errorCode: 'CUSTOMER_IS_SHARING_PLAN'
-    //     }
+    // throw {
+    //     statusCode: '400.4021',
+    //     statusMessage: 'Package is share plan',
+    //     errorCode: 'PACKAGE_IS_SHARE_PLAN'
+    // }
     // }
 
     if (data.subscriberInfo.telType !== "T") {
         throw {
-            statusCode: 400,
+            statusCode: '400.4011',
             statusMessage: 'Subscriber type is not postpaid',
-            errorCode: 'SUBSCRIBER_TYPE_IS_NOT_POST_POSTPAID'
+            errorCode: 'SUBSCRIBER_TYPE_IS_NOT_POSTPAID'
         }
     }
 
@@ -65,7 +72,7 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
         thaiId: data.engagedParty.id,
         customerNo: data.relatedParty.href,
         aging,
-        pricePlan: pricePlan ?? null
+        pricePlan: pricePlan ?? {}
     }
 
 }
@@ -75,23 +82,23 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
 
     if (!["I", "X", "P"].includes(data.relatedParty.customer.type)) {
         throw {
-            statusCode: 400,
+            statusCode: '400.4017',
             statusMessage: 'Customer type is not eligible',
             errorCode: 'CUSTOMER_TYPE_IS_NOT_ELIGIBLE'
         }
     }
 
-    // if ((data.subscriberInfo.status.code === "A" && data.subscriberInfo.status.description === "Soft Suspend") || (data.subscriberInfo.status.code == "S")) {
-    //     throw {
-    //         statusCode: 400,
-    //         statusMessage: 'Customer is suspended',
-    //         errorCode: 'CUSTOMER_IS_SUSPENDED'
-    //     }
-    // }
+    if ((data.subscriberInfo.status.code === "A" && data.subscriberInfo.status.description === "Soft Suspend") || (data.subscriberInfo.status.code == "S")) {
+        throw {
+            statusCode: '400.4020',
+            statusMessage: 'Customer is suspended',
+            errorCode: 'CUSTOMER_IS_SUSPENDED'
+        }
+    }
 
     if (data.subscriberInfo.status.code !== "A") {
         throw {
-            statusCode: 400,
+            statusCode: '400.4019',
             statusMessage: 'Customer status is not active',
             errorCode: 'CUSTOMER_STATUS_IS_NOT_ACTIVE'
         }
@@ -99,7 +106,7 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
 
     if (data.characteristic.name === "installmentType" && data.characteristic.value === "FSIM") {
         throw {
-            statusCode: 400,
+            statusCode: '400.4021',
             statusMessage: 'Package is share plan',
             errorCode: 'PACKAGE_IS_SHARE_PLAN'
         }
@@ -107,7 +114,7 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
 
     if (data.characteristic.name === "system" && data.characteristic.value !== "CCBS") {
         throw {
-            statusCode: 400,
+            statusCode: '400.4011',
             statusMessage: 'Subscriber type is not postpaid',
             errorCode: 'SUBSCRIBER_TYPE_IS_NOT_POSTPAID'
         }
@@ -128,7 +135,7 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
 
     } else {
         throw {
-            statusCode: 400,
+            statusCode: '400.4010',
             statusMessage: 'Get profile info fail',
             errorCode: 'GET_PROFILE_INFO_FAIL'
         }

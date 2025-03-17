@@ -9,7 +9,7 @@ const otpController = new OtpController();
 
 otpRouter.get('/v1/preverify/otp/request', validateRequestOtp, handleValidationErrors, otpController.requestOtp)
 otpRouter.get('/v1/preverify/otp/verify', validateVerifyOtp, handleValidationErrors, otpController.verifyOtp)
-otpRouter.get('/v1/preverify/check-profile', validateCheckCustomerProfile, handleValidationErrors, otpController.getCustomerProfile)
+otpRouter.get('/v1/preverify/customer/verify', validateCheckCustomerProfile, handleValidationErrors, otpController.getCustomerProfile)
 
 
 export default otpRouter;
