@@ -327,12 +327,14 @@ export class OtpService {
         }
     }
 
-    private async checkOperator(phoneNumber: string) {
+    private async checkOperator(id: string, phoneNumber: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_OPERATOR, logModel);
         let checkOperatorPayload
+
         const isMockOtp = this.config.otp.isMock as string
-        const txid = isMockOtp ? '1234567' : Math.floor(100000 + Math.random() * 900000).toString()
+        const txid = isMockOtp === 'true' ? "1234567" : id
+
 
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
@@ -340,6 +342,7 @@ export class OtpService {
                 phoneNumber,
                 txid
             }
+
             const response = await apigeeClientAdapter.checkOperator(phoneNumber, txid)
             logService(checkOperatorPayload, response, logStepModel)
             const result = validateOperator(response.data.operator)
@@ -395,15 +398,12 @@ export class OtpService {
         }
     }
 
-    public async getCustomerProfile(id: string, mobileNumberN: string, journey: string) {
+    public async getCustomerProfile(id: string, mobileNumber: string, journey: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_GET_PROFILE_AND_PACKAGE, logModel);
         const apigeeClientAdapter = new ApigeeClientAdapter
 
-
-        const mobileNumber = await apigeeClientAdapter.apigeeEncrypt(mobileNumberN)
-
-        const operator = await this.checkOperator(mobileNumber)
+        const operator = await this.checkOperator(id, mobileNumber)
 
         let getProfilePayload: Partial<IGetProfileDtacRequest | IGetProfileTrueRequest> = {}
 
@@ -462,8 +462,8 @@ export class OtpService {
                 }
             }
 
-            await this.checkBacklist(id, customerProfile.thaiId, operator, customerProfile.customerNo);
-            await this.checkContractAndQuota(id, operator, customerProfile.thaiId, customerProfile.agreementId);
+            // await this.checkBacklist(id, customerProfile.thaiId, operator, customerProfile.customerNo);
+            // await this.checkContractAndQuota(id, operator, customerProfile.thaiId, customerProfile.agreementId);
 
 
             return customerProfile
@@ -488,7 +488,7 @@ export class OtpService {
 
                 if (data.mobileRelaxBlacklist === 'Y') {
                     throw {
-                        statusCode: 400,
+                        statusCode: '400.4006',
                         statusMessage: 'Black Listed Customer is not allowed',
                         errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
                     }
@@ -511,7 +511,7 @@ export class OtpService {
 
                 if (status === "FALSE") {
                     throw {
-                        statusCode: 400,
+                        statusCode: '400.4006',
                         statusMessage: 'Black Listed Customer is not allowed',
                         errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
                     }
@@ -559,6 +559,8 @@ export class OtpService {
                 }
 
                 const newThaiId = encryptedOFB(thaiId, key)
+
+                console.log(newThaiId)
 
                 const response = await apigeeClientAdapter.getContractAndQuotaDtac(id, newThaiId)
                 logService({ id, operator, thaiId }, response.data, logStepModel)

@@ -78,9 +78,11 @@ export class OtpController {
         LogModel.initialize(logModel);
 
         try {
-            const { mobileNumber, id, journey } = req.query as unknown as checkCustomerProfileRequest;
+            const { mobileNumber, journey } = req.query as unknown as checkCustomerProfileRequest;
 
-            const responseBody = await this.otpService.getCustomerProfile(id, mobileNumber, journey);
+            const { correlatorid } = req.headers
+
+            const responseBody = await this.otpService.getCustomerProfile(correlatorid as string, mobileNumber, journey);
 
             res.status(200).json({
                 statusCode: HTTP_STATUSES.OK,

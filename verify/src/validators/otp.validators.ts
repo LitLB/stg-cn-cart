@@ -44,12 +44,6 @@ export const validateCheckCustomerProfile: ValidationChain[] = [
         .isString()
         .withMessage('mobileNumber must be a string'),
 
-    query('id')
-        .exists({ checkFalsy: true })
-        .withMessage('id is required')
-        .isString()
-        .withMessage('id must be a string'),
-
     query('journey')
         .exists({ checkFalsy: true })
         .withMessage('journey is required')
@@ -66,10 +60,9 @@ export const handleValidationErrors = (
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({
-            statusCode: "400",
-            statusMessage: 'Bad Request',
-            errorCode: 'INVALID_INPUT_DATA',
-            data: errors.array(),
+            statusCode: "400.1001",
+            statusMessage: 'Input parameter is blank or invalid',
+            errorCode: 'INPUT_PARAMETER_IS_BLANK_OR_INVALID',
         });
     }
     next();

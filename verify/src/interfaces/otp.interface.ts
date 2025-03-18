@@ -57,6 +57,5 @@ export interface Characteristic {
 
 export interface checkCustomerProfileRequest {
   mobileNumber: string;
-  id: string;
   journey: string;
 }
