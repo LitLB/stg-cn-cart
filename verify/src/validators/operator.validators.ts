@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { Characteristic } from "../interfaces/otp.interface";
 import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
 
@@ -145,7 +146,40 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
 
 export const validateContractAndQuotaTrue = (data: any) => {
 
-    return 
+    const product = data.product
+
+    const now = dayjs()
+
+    const filteredProduct = product.map((item: any) => {
+
+        if (parseInt(item.fee) > 0 && parseInt(item.term) > 0) {
+
+            return {
+                contractTerm: parseInt(item.term),
+                contractFee: parseInt(item.fee),
+                contractRemain: now.diff(dayjs(item.contractExpirationDate), "day")
+            }
+        }
+
+    })
+
+    filteredProduct.forEach((item: { contractTerm: number, contractFee: number, contractRemain: number }) => {
+        if (item.contractTerm > 0 && item.contractFee >= 0 && item.contractRemain <= 90) return
+        else if (item.contractTerm > 0 && item.contractFee > 0 && item.contractRemain > 90) {
+            throw {
+                statusCode: '400.4013',
+                statusMessage: 'Not allowed to extend contract',
+                errorCode: 'NOT_ALLOWED_TO_EXTERNAL_CONTRACT'
+            }
+        } else {
+            throw {
+                statusCode: '400.4013',
+                statusMessage: 'Not allowed to extend contract',
+                errorCode: 'NOT_ALLOWED_TO_EXTERNAL_CONTRACT'
+            }
+        }
+    })
+
 }
 
 export const validateContractAndQuotaDtac = (data: any) => {

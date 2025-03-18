@@ -440,37 +440,34 @@ export class OtpService {
         }
 
         try {
+            await this.checkActive(operator, journey);
 
-            await this.checkActive(operator, journey)
+            const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload);
+            logService(getProfilePayload, response, logStepModel);
 
-            const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
+            const { data, code } = response.data;
 
-            logService(getProfilePayload, response, logStepModel)
-            const { data, code } = response.data
-
-            let customerProfile: ICheckCustomerProfileResponse
-
-            if (code === '0') {
-
-                customerProfile = operator === OPERATOR.TRUE ? validateCustomerTrueProfile(data) : validateCustomerDtacProfile(data)
-
-            } else {
+            if (code !== '0') {
                 throw {
                     statusCode: "400.4010",
                     statusMessage: 'Get profile info fail',
                     errorCode: 'GET_PROFILE_INFO_FAIL'
-                }
+                };
             }
 
-            // await this.checkBacklist(id, customerProfile.thaiId, operator, customerProfile.customerNo);
-            // await this.checkContractAndQuota(id, operator, customerProfile.thaiId, customerProfile.agreementId);
+            const customerProfile = operator === OPERATOR.TRUE
+                ? validateCustomerTrueProfile(data)
+                : validateCustomerDtacProfile(data);
 
+            await Promise.all([
+                this.checkBacklist(id, customerProfile.thaiId, operator, customerProfile.customerNo),
+                this.checkContractAndQuota(id, operator, customerProfile.thaiId, customerProfile.agreementId)
+            ]);
 
-            return customerProfile
-
+            return customerProfile;
         } catch (e: any) {
-            logService(getProfilePayload, e, logStepModel)
-            throw e
+            logService(getProfilePayload, e, logStepModel);
+            throw e;
         }
     }
 
@@ -532,6 +529,7 @@ export class OtpService {
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
 
+
             if (operator === OPERATOR.TRUE) {
 
                 if (!agreementId || agreementId === undefined) {
@@ -544,9 +542,9 @@ export class OtpService {
 
                 const response = await apigeeClientAdapter.getContractAndQuotaTrue(id, agreementId)
                 logService({ id, agreementId }, response, logStepModel)
-                const { data } = response.data
+                const { agreementItem } = response.data
 
-                validateContractAndQuotaTrue(data)
+                validateContractAndQuotaTrue(agreementItem)
             }
 
             if (operator === OPERATOR.DTAC) {
@@ -559,9 +557,6 @@ export class OtpService {
                 }
 
                 const newThaiId = encryptedOFB(thaiId, key)
-
-                console.log(newThaiId)
-
                 const response = await apigeeClientAdapter.getContractAndQuotaDtac(id, newThaiId)
                 logService({ id, operator, thaiId }, response.data, logStepModel)
                 const data = response.data
