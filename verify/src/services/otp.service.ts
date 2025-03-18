@@ -575,4 +575,66 @@ export class OtpService {
         }
     }
 
+    private async getCustomerTier(id: string, mobileNumber: string, operator: string) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_GET_CUSTOMER_TIER, logModel);
+        try {
+            const apigeeClientAdapter = new ApigeeClientAdapter
+
+            if (!id) {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'id is required',
+                    errorCode: 'ID_IS_REQUIRED'
+                }
+            }
+
+            if (!mobileNumber) {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'Mobile Number is required',
+                    errorCode: 'MOBILE_NUMBER_IS_REQUIRED'
+                }
+            }
+
+            if (!operator) {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'Operator is required',
+                    errorCode: 'OPERATOR_IS_REQUIRED'
+                }
+            }
+
+            // if (operator === 'true') {
+            //     const response = await apigeeClientAdapter.getCustomerTierTrue(mobileNumber)
+            //     logService({ mobileNumber }, response, logStepModel)
+            //     const { data } = response.data
+
+            // }
+
+            // if (operator === 'dtac') {
+
+            const mobileDecrypt = await apigeeClientAdapter.apigeeDecrypt(mobileNumber)
+
+            console.log({ mobileDecrypt })
+
+
+            const response = await apigeeClientAdapter.getCustomerTierDtac(id, mobileDecrypt)
+            logService({ id, mobileDecrypt, operator }, response, logStepModel)
+            const res = response.data
+
+            console.log({ res })
+
+
+            // }
+
+
+
+
+        } catch (e: any) {
+            logService({ id, operator, mobileNumber }, e, logStepModel)
+            throw e
+        }
+    }
+
 }

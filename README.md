@@ -21,3 +21,4 @@ Use `create-connect-app` cli with `starter-typescript` as `template` value to do
 * Connector solution should use open source technologies, although connector itself can be private for specific customer(s)
 * Code should not contain console.log statements, use [the included logger](https://github.com/commercetools/merchant-center-application-kit/tree/main/packages-backend/loggers#readme) instead.
 
+

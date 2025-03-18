@@ -210,12 +210,33 @@ class ApigeeClientAdapter {
         return response;
     }
 
-    async getCustomerTierDtac() {
-        return
+    async getCustomerTierDtac(id:string,phoneNumber: string) {
+        await this.init()
+
+        // * Phone number must decrypted before use format 6698XXXXXXX
+        
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/loyaltyManagement/v1/loyaltyProgramMember?id=${id}&phoneNumber=${phoneNumber}`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
     }
 
-    async getCustomerTierTrue() {
-        return
+    async getCustomerTierTrue(mobileNumber: string) {
+        const relatedPartyId = this.config.otp.relatedPartyId
+        const relatedPartyHref = this.config.otp.relatedPartyHref
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/loyaltyManagement/v1/loyaltyProgramMember?relatedParty.id=${relatedPartyId}&relatedParty.href=${relatedPartyHref}&type=true&customerIdnNo=${mobileNumber}&fields=hasCard%3BtrueCard%3BaccountGrade%3BadditionalData%3BmainPointsBalance%3BisEmployee%3BhasProduct%3BhasTrueId%3BredemptionEnabled%3BfirstName%3BlastName%3Bmultiplier%3BloyaltyCustomerId&idnType=TMH&extensions=trueCard%2CaccountGrade%2CadditionalData`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
     }
 }
 
