@@ -79,9 +79,6 @@ export class InventoryService {
         console.log('totalUsed', totalUsed);
         console.log('newTotal', newTotal);
 
-        // if unlimited => skip
-        if (maxStock == null) return;
-
         // maxStock = 0, validate new usage (throws if invalid)
         InventoryUtils.validateNewUsage(
             maxStock,
