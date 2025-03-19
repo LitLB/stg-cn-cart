@@ -47,54 +47,55 @@ export class InventoryService {
             );
         }
 
-        const journeyConfig = journeyConfigMap[journey];
-        if (!journeyConfig?.inventory) {
-            // No special inventory config => skip
-            return;
+        if (journey !== CART_JOURNEYS.SINGLE_PRODUCT) {
+            const journeyConfig = journeyConfigMap[journey];
+            if (!journeyConfig?.inventory) {
+                // No special inventory config => skip
+                return;
+            }
+
+            const { maximumKey, totalKey } = journeyConfig.inventory;
+
+            // Get Inventory Entry
+            const refetchedInventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
+            if (!refetchedInventoryEntry) {
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    statusMessage: `Refetched Inventory entry ${inventoryId} not found.`,
+                }, 'InventoryService.commitLineItemStockUsage');
+            }
+
+            // Get Stock Allocation of Journey by Key
+            const { maxStock, totalUsed } = InventoryUtils.getMaxStockAndTotalUsed(
+                inventoryEntry,
+                maximumKey,
+                totalKey
+            );
+            console.log('maximumKey', maximumKey);
+            console.log('totalKey', totalKey);
+
+            // calculate new usage
+            const newTotal = totalUsed + lineItem.quantity;
+            console.log('maxStock', maxStock);
+            console.log('totalUsed', totalUsed);
+            console.log('newTotal', newTotal);
+
+            // maxStock = 0, validate new usage (throws if invalid)
+            InventoryUtils.validateNewUsage(
+                maxStock,
+                newTotal,
+                'InventoryService.commitLineItemStockUsage'
+            );
+
+            // update totalUsed
+            if (totalKey) {
+                await CommercetoolsInventoryClient.updateInventoryCustomField(
+                    refetchedInventoryEntry,
+                    totalKey,
+                    newTotal
+                );
+            }
         }
-
-        const { maximumKey, totalKey } = journeyConfig.inventory;
-
-        // Get Inventory Entry
-        const refetchedInventoryEntry = await CommercetoolsInventoryClient.getInventoryById(inventoryId);
-        if (!refetchedInventoryEntry) {
-            throw createStandardizedError({
-                statusCode: HTTP_STATUSES.NOT_FOUND,
-                statusMessage: `Refetched Inventory entry ${inventoryId} not found.`,
-            }, 'InventoryService.commitLineItemStockUsage');
-        }
-
-        // Get Stock Allocation of Journey by Key
-        const { maxStock, totalUsed } = InventoryUtils.getMaxStockAndTotalUsed(
-            inventoryEntry,
-            maximumKey,
-            totalKey
-        );
-        console.log('maximumKey', maximumKey);
-        console.log('totalKey', totalKey);
-
-        // calculate new usage
-        const newTotal = totalUsed + lineItem.quantity;
-        console.log('maxStock', maxStock);
-        console.log('totalUsed', totalUsed);
-        console.log('newTotal', newTotal);
-
-        // if unlimited => skip
-        if (maxStock == null) return;
-
-        // maxStock = 0, validate new usage (throws if invalid)
-        InventoryUtils.validateNewUsage(
-            maxStock,
-            newTotal,
-            'InventoryService.commitLineItemStockUsage'
-        );
-
-        // update totalUsed
-        await CommercetoolsInventoryClient.updateInventoryCustomField(
-            refetchedInventoryEntry,
-            totalKey,
-            newTotal
-        );
     }
 
     /**

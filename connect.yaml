@@ -254,66 +254,56 @@ deployAs:
         - key: AWS_SECRET_ACCESS_KEY
           description: AWS secret access key
           required: true
-  - name: save-order-tsm
-    applicationType: job
-    endpoint: /save
-    properties:
-      schedule: "*/5 * * * *"
+  - name: verify
+    applicationType: service
+    endpoint: /verify
+    scripts:
+      postDeploy: npm install && npm run build
+      preUndeploy: npm install && npm run build
     configuration:
       standardConfiguration:
-        - key: APP_ENV
-          description: commercetools Composable Commerce API region
+        - key: APP_PORT
+          description: App port
+          required: true
+        - key: SHUTDOWN_ON_FATAL_ERROR
+          description: Shutdown on fatal error
           required: true
         - key: CTP_REGION
-          description: commercetools Composable Commerce API region
+          description: Commercetools API region (e.g., 'us-east-1')
           required: true
-        - key: AWS_REGION
-          description: AWS region
-          required: true
-        - key: DISABLE_CRON
-          description: The cron job is temporarily will not perform its scheduled tasks if value = true
-          default: 'false'
-        - key: TSM_ORDER_SHOP_CODE
-          description: Tsm order shop code
-          required: true
-        - key: TSM_ORDER_SALE_CODE
-          description: Tsm order sale code
-          required: true
-        - key: TSM_ORDER_SALE_NAME
-          description: Tsm order sale name
         - key: CTP_AUTH_URL
           description: Commercetools authentication URL (e.g., 'https://auth.commercetools.com')
           required: true
         - key: CTP_API_URL
           description: Commercetools API base URL (e.g., 'https://api.commercetools.com')
           required: true
-        - key: CTP_SUPPLY_CHANNEL_ID
-          description: Commercetools inventory channel id identifier
-          required: true
-        - key: CTP_TAX_CATEGORY_ID
-          description: Commercetools Tax Category Id
-          required: true
         - key: APIGW_BASE_URL
           description: Apigee base url
           required: true
+        - key: OTP_NUMBER_MINUTE_EXPIRE
+          description: Time to expire OTP
+          required: true
+        - key: OTP_NUMBER_SECOND_RESEND
+          description: Time to allow resend OTP
+          required: true
+        - key: OTP_IS_MOCK
+          description: Flag check mock for OTP
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
-          description: commercetools Composable Commerce project key
+          description: Commercetools project key identifying your specific project
           required: true
         - key: CTP_CLIENT_ID
-          description: commercetools Composable Commerce client ID
+          description: Commercetools client ID for authentication purposes
           required: true
         - key: CTP_CLIENT_SECRET
-          description: commercetools Composable Commerce client secret
+          description: Commercetools client secret corresponding to the client ID
           required: true
         - key: CTP_SCOPE
-          description: commercetools Composable Commerce client scope
+          description: Commercetools authentication scope (e.g., 'manage_project:cart')
           required: true
-        - key: CONNECT_GCP_TOPIC_NAME_KEY
-          description: connect Pub/Sub topic name
-          required: true
-        - key: CONNECT_GCP_PROJECT_ID_KEY
-          description: connect Pub/Sub project id
+        - key: T1_API_KEY
+          description: Talon.one API Key used for authenticating requests to Talon.one services
           required: true
         - key: AWS_ACCESS_KEY_ID
           description: AWS access key
@@ -321,15 +311,12 @@ deployAs:
         - key: AWS_SECRET_ACCESS_KEY
           description: AWS secret access key
           required: true
-        - key: BFF_CTP_CLIENT_ID
-          description: Commercetools client ID for managing Anonymous Sessions
-          required: true
-        - key: BFF_CTP_CLIENT_SECRET
-          description: Commercetools client secret for managing Anonymous Sessions
-          required: true
         - key: APIGW_CLIENT_ID
           description: Apigee client ID
           required: true
         - key: APIGW_CLIENT_SECRET
           description: Apigee client secret
+          required: true
+        - key: APIGW_PRIVATE_KEY_ENCRYPTION
+          description: Apigee key encryption
           required: true

@@ -180,7 +180,7 @@ class TalonOneIntegrationAdapter {
 
 		removeCouponCodes = [...removeCouponCodes, ...removeCodeEff]
 		// Validate coupon limit
-		const validationError = await validateCouponLimit(applyCoupons.length);
+		const validationError = await validateCouponLimit(applyCoupons.length, removeCouponCodes.length);
 		if (validationError) {
 			return { applyCoupons: [], error: validationError };
 		}

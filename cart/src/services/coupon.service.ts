@@ -153,13 +153,15 @@ export class CouponService {
             const currentCouponCodes: string[] =
                 couponEffects?.coupons?.acceptedCoupons?.map((coupons: any) => coupons.code) ?? [];
 
-            if (currentCouponCodes.length === 0) {
-                // No coupons to re-check
-                return {
-                    updatedCart: ctCart,
-                    permanentlyInvalidRejectedCoupons: []
-                };
-            }
+
+            // ? Comment this course need to remove the coupon code in talon 1 when cart change type or lineItems is empty
+            // if (currentCouponCodes.length === 0) {
+            //     // No coupons to re-check
+            //     return {
+            //         updatedCart: ctCart,
+            //         permanentlyInvalidRejectedCoupons: []
+            //     };
+            // }
 
             // 2) Re-check with Talon.One to see if any have become invalid
             const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({

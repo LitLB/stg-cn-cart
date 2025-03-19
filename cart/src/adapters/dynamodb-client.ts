@@ -2,9 +2,13 @@ import {
     DynamoDBClient, 
     GetItemCommand, 
     GetItemCommandInput, 
+    PutItemCommand, 
+    PutItemCommandInput, 
     QueryCommand,
     ScanCommand, 
-    ScanCommandOutput} from "@aws-sdk/client-dynamodb";
+    ScanCommandOutput,
+    ScanCommandInput as DynamoScanCommandInput
+} from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { readConfiguration } from '../utils/config.utils';
 import { logger } from "../utils/logger.utils";
@@ -14,6 +18,7 @@ export interface ScanCommandInput {
     filterExpression: string;
     expressionAttributeNames?: Record<string, string>;
     expressionAttributeValues?: Record<string, any>;
+    exclusiveStartKey?: Record<string, any>;
 }
 
 export interface QueryCommandInput {
@@ -61,13 +66,15 @@ export class dynamoDB {
         filterExpression,
         expressionAttributeNames,
         expressionAttributeValues,
+        exclusiveStartKey,
       }: ScanCommandInput): Promise<null | ScanCommandOutput> {
         try {
-            const params = {
+            const params: DynamoScanCommandInput = {
                 TableName: tableName,
                 FilterExpression: filterExpression,
                 ExpressionAttributeNames: expressionAttributeNames,
                 ExpressionAttributeValues: expressionAttributeValues,
+                ExclusiveStartKey: exclusiveStartKey,
             }
 
             const client = this.dynamoDBClient
@@ -107,6 +114,24 @@ export class dynamoDB {
             return null
         }
     }
+
+    public async insertData(tableName: string, item: Record<string, any>): Promise<void> {
+        const params: PutItemCommandInput = {
+            TableName: tableName,
+            Item: marshall(item),
+        };
+
+        try {
+            const command = new PutItemCommand(params);
+            await this.dynamoDBClient.send(command);
+            logger.info(`Successfully inserted item into ${tableName}`);
+        } catch (error) {
+            logger.error(`Failed to insert item into ${tableName}`, error);
+            throw error;
+        }
+    }
+
+
 }
 
 export const dynamoClient = new dynamoDB()

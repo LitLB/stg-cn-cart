@@ -835,32 +835,34 @@ class TalonOneEffectConverter {
 		})
 
 		// ! Validate Main Product
-		const cartItemCampaignCodes = newCartItems
-			.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
-			.filter((cartItem: any) => cartItem?.campaignCode)
-			.map((cartItem: any) => cartItem.campaignCode)
+		const mainCartItems = newCartItems.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
+		const campaignMap:any = {}
+		let noCampaign = 0
+		mainCartItems.forEach((mainCartItem:any) => {
+			if (mainCartItem?.campaignCode) {
+				campaignMap[mainCartItem.campaignCode] = (campaignMap?.[mainCartItem?.campaignCode] ?? 0) + mainCartItem.quantity;
+			} else {
+				noCampaign++
+			}
+		})
 
-		const uniqueCampaginCodes = [...new Set(cartItemCampaignCodes)];
-		if (uniqueCampaginCodes.length > 1) {
+		const isHaveMultipleCampaignInCart = Object.keys(campaignMap).length > 1
+		const isHaveCampaignInCart = Object.keys(campaignMap).length >= 1
+		const isHaveNoCampaignInCart = noCampaign >= 1
+
+		if (isHaveMultipleCampaignInCart) {
 			return {
 				isValid: false,
 				errorMessage: 'Multiple campaigns in a single cart are not supported.'
 			}
 		}
 
-		// const MAXIMUM_MAIN_PRODUCT_QUANTITY_PER_CAMPAIGN = 1
-
-		// const exceedQuantityLimitCartItem = newCartItems
-		// 	.filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
-		// 	.filter((cartItem: any) => cartItem?.campaignCode)
-		// 	.find((cartItem: any) => cartItem?.quantity > MAXIMUM_MAIN_PRODUCT_QUANTITY_PER_CAMPAIGN)
-
-		// if (exceedQuantityLimitCartItem) {
-		// 	return {
-		// 		isValid: false,
-		// 		errorMessage: 'Exceed maximum quantity per campaign.'
-		// 	}
-		// }
+		if (isHaveCampaignInCart && isHaveNoCampaignInCart) {
+			return {
+				isValid: false,
+				errorMessage: 'A mix of campaign and non-campaign items in the cart is not supported.'
+			}
+		}
 
 		const allowCampaignVerifyKeys: any[] = []
 
@@ -921,6 +923,22 @@ class TalonOneEffectConverter {
 						}
 					}
 				}
+
+                // Change step to validate campaign verify keys
+                // Hard code max quantity
+                const MAXIMUM_MAIN_PRODUCT_QUANTITY_PER_CAMPAIGN = 1
+
+                const exceedQuantityLimitCartItem = newCartItems
+                    .filter((cartItem: any) => cartItem?.attributes.product_type === 'main_product')
+                    .filter((cartItem: any) => cartItem?.campaignCode)
+                    .find((cartItem: any) => cartItem?.quantity > MAXIMUM_MAIN_PRODUCT_QUANTITY_PER_CAMPAIGN)
+                if (exceedQuantityLimitCartItem) {
+                    return {
+                        isValid: false,
+                        errorMessage: 'Exceed maximum quantity per campaign.',
+                        errorCode: 'EXCEED_MAX_QUANTITY_PER_CAMPAIGN'
+                    }
+                }
 			}
 		}
 
@@ -976,7 +994,7 @@ class TalonOneEffectConverter {
 					...remainingMaxItem,
 					[productType]: {
 						...remainingMaxItem[productType],
-						[benefitGroup]: remainingMaxItem[productType][benefitGroup] - quantity,
+						[benefitGroup]: (remainingMaxItem[productType][benefitGroup] || 0) - quantity,
 					}
 				}
 			}

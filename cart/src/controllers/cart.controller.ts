@@ -9,6 +9,8 @@ import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.in
 import { ICart } from '../interfaces/cart';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { GetCartByIdInPut } from '../interfaces/get-cart-by-id.interface';
+import { HttpStatusCode } from 'axios';
+import { createStandardizedError } from '../utils/error.utils';
 
 export class CartController {
     private cartService: CartService;
@@ -22,12 +24,12 @@ export class CartController {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
 
-            const updatedCart = await this.cartService.test(accessToken, id, req.body);
+            const test = await this.cartService.getCurrentAndUpdatedCouponEffects(accessToken, id, req.body);
 
             const response: ApiResponse = {
                 statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.SUCCESS,
-                data: updatedCart,
+                data: test,
             };
 
             res.status(200).json(response);
@@ -103,7 +105,32 @@ export class CartController {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
+            const { inventorys } = req.body;
 
+            if (inventorys) {
+                const cart: ICart = await this.cartService.getCartById(accessToken, id, true, false) || []
+                cart?.items.forEach(item => {
+                    let cartItemType = '', stockType = ''
+                    if (item?.inventory?.isOutOfStock === false) {
+                        const inventoryItem = inventorys.find((_item: { inventory: { id: string; }; }) => _item?.inventory?.id === item?.inventory?.id);
+                        if (inventoryItem) {
+                            if (inventoryItem?.inventory?.stock?.available > 0) cartItemType = 'physical';
+                            if (inventoryItem?.inventory?.stock?.totalAvailableDummyStock > 0 && inventoryItem?.inventory?.stock?.totalAvailableDummyStock !== inventoryItem?.inventory?.stock?.totalAvailableDummyPurchaseStock) cartItemType = 'dummy';
+                        }
+                        if (item?.inventory?.stock?.available > 0) stockType = 'physical';
+                        if (item?.inventory?.stock?.totalAvailableDummyStock > 0 && item.inventory.stock.totalAvailableDummyStock !== item.inventory.stock.totalAvailableDummyPurchaseStock) stockType = 'dummy';
+                    }
+                    if (cartItemType !== stockType) {
+                        throw createStandardizedError({
+                            statusCode: HttpStatusCode.BadRequest,
+                            statusMessage: `StockType has Change ${cartItemType} to ${stockType}`,
+                            errorCode: '',
+                        });
+                    }
+                    // throw new Error(`StockType has Change when ${cartItemType} to ${stockType}`);
+                    // return { ...item.inventory, cartItemType, stockType };
+                });
+            }
             const updatedCart = await this.cartService.checkout(accessToken, id, req.body);
 
             const response: ApiResponse = {

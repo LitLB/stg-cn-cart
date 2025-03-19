@@ -44,6 +44,7 @@ export class CartItemService {
                 sku,
                 quantity,
                 journey,
+                payload.campaignVerifyValues && payload.campaignVerifyValues.length > 0
             );
 
             const product = await CommercetoolsProductClient.getProductById(productId);
@@ -186,7 +187,8 @@ export class CartItemService {
             if (!validateResult?.isValid) {
                 throw createStandardizedError({
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: validateResult?.errorMessage
+                    statusMessage: validateResult?.errorMessage,
+                    errorCode: (validateResult as any).errorCode
                 }, 'addItem');
             }
 

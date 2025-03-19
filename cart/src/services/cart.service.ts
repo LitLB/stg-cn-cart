@@ -5,7 +5,6 @@ import { Cart, CartUpdateAction, LineItem, Order } from '@commercetools/platform
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
@@ -35,11 +34,13 @@ import { CartValidator } from '../validators/cart.validator';
 import { COUPON_INFO_CONTAINER } from '../constants/ct.constant';
 import { InventoryValidator } from '../validators/inventory.validator';
 import { InventoryService } from './inventory.service';
-import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { validateInventory } from '../utils/cart.utils';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
-import { validateCouponLimit } from '../validators/coupon.validator';
+import { validateCouponLimit, validateCouponDiscount } from '../validators/coupon.validator';
 import { FUNC_CHECKOUT } from '../constants/func.constant';
+import { CART_HAS_CHANGED_NOTICE_MESSAGE } from '../constants/cart.constant';
+import { ApiResponse } from '../interfaces/response.interface';
+import { attachPackageToCart } from '../helpers/cart.helper';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -54,26 +55,43 @@ export class CartService {
         this.inventoryService = new InventoryService()
     }
 
-    async test(accessToken: string, id: string, body: any): Promise<any> {
+    async getCurrentAndUpdatedCouponEffects(accessToken: string, id: string, body: any): Promise<any> {
         try {
             const { cartId } = body;
-            const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(cartId);
 
-            const processCouponEffectsV2 = this.talonOneCouponAdapter.processCouponEffectsV2(talonEffects);
-            // console.log('processCouponEffects', processCouponEffects);
+            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
-            return processCouponEffectsV2;
+            const ctCart = await commercetoolsMeCartClient.getCartById(cartId);
+            const customerSession = await talonOneIntegrationAdapter.getCustomerSession(cartId);
+
+            // Get Current Effects
+            const currentProcessedCouponEffects = this.talonOneCouponAdapter.processCouponEffectsV2(customerSession.effects);
+            console.log('currentProcessedCouponEffects', currentProcessedCouponEffects);
+
+            // Get Updated Effects
+            const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
+                profileId: cartId,
+                ctCartData: ctCart,
+                couponCodes: currentProcessedCouponEffects.couponCodes,
+            });
+            const updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(
+                cartId,
+                customerSessionPayload
+            );
+            const updatedProcessedCouponEffects = this.talonOneCouponAdapter.processCouponEffectsV2(updatedCustomerSession.effects);
+            console.log('updatedProcessedCouponEffects', updatedProcessedCouponEffects);
+
+            return { currentProcessedCouponEffects, updatedProcessedCouponEffects };
         } catch (error: any) {
+            console.log('error', error);
+
             if (error.status && error.message) {
                 throw error;
             }
 
             throw createStandardizedError(
-                {
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'Some coupons were rejected during processing.',
-                },
-                'removeUnselectedItems'
+                error,
+                'getCurrentAndUpdatedCouponEffects'
             );
         }
     }
@@ -259,7 +277,7 @@ export class CartService {
             ctCart.id,
             talonOneUpdateActions?.couponsInformation
         );
-        if(couponPriceChange.length > 0) {
+        if (couponPriceChange.length > 0) {
             // Update customObject coupon information
             await this.couponService.addCouponInformation(updateActions, ctCart.id, talonOneUpdateActions?.couponsInformation);
             throw createStandardizedError(
@@ -310,14 +328,27 @@ export class CartService {
                 };
             }
 
-            const { couponsInfomation } = ctCart.custom?.fields ?? {};
-            const couponsInformation = couponsInfomation?.obj.value ?? []
+            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
+                ctCart.id,
+                ctCart.lineItems
+            );
+
+            const { talonOneUpdateActions } =
+                await this.talonOneCouponAdapter.fetchCouponEffectsAndUpdateActionsById(
+                    ctCart.id,
+                    ctCart,
+                    couponEffects.coupons
+                );
+
+            const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
+            const { couponsInfomation } = cartWithCheckPublicPublish.custom?.fields ?? {};
+            const couponsInformation = couponsInfomation?.obj?.value ?? []
 
             const validatedCoupon = await validateCouponLimit(couponsInformation.length, FUNC_CHECKOUT)
-
             if (validatedCoupon) {
+                const removeFlag = notice !== '' || cartWithCheckPublicPublish.lineItems.length === 0
 
-                await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(ctCart, true)
+                await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithCheckPublicPublish, removeFlag)
 
                 throw createStandardizedError(
                     {
@@ -329,6 +360,27 @@ export class CartService {
                 );
             }
 
+            if (notice !== '') {
+                let errorCode
+
+                switch (notice as CART_HAS_CHANGED_NOTICE_MESSAGE) {
+                    case CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK:
+                        errorCode = 'DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK'
+                        break;
+                    default:
+                        errorCode = 'CART_HAS_CHANGED'
+                        break;
+                }
+
+                throw createStandardizedError(
+                    {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: notice,
+                        errorCode: errorCode,
+                    },
+                    'getCartById'
+                );
+            }
 
             const updateActions: CartUpdateAction[] = [];
 
@@ -356,7 +408,7 @@ export class CartService {
                 });
             }
 
-            if (payment && payment?.key) {
+            if (payment && payment?.key) { // no payment
                 const paymentTransaction = {
                     paymentOptionContainer: 'paymentOptions',
                     paymentOptionKey: payment.key, // e.g., 'installment', 'ccw', etc.
@@ -366,15 +418,61 @@ export class CartService {
                     createdAt: new Date().toISOString(),
                 };
 
-                await CommercetoolsCustomObjectClient.addPaymentTransaction(ctCart.id, paymentTransaction);
+                await CommercetoolsCustomObjectClient.addPaymentTransaction(cartWithCheckPublicPublish.id, paymentTransaction);
+            } else if (!payment?.key && ctCart?.totalPrice?.centAmount <= 0) {
+                const paymentTransaction = {
+                    paymentOptionContainer: 'paymentOptions',
+                    paymentOptionKey: 'nopayment', // e.g., 'installment', 'ccw', etc.
+                    source: null,
+                    token: null,
+                    additionalData: null,
+                    createdAt: new Date().toISOString(),
+                };
+
+                await CommercetoolsCustomObjectClient.addPaymentTransaction(cartWithCheckPublicPublish.id, paymentTransaction);
             }
 
-            const updatedCart = await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, updateActions);
+            const updatedCart = await CommercetoolsCartClient.updateCart(cartWithCheckPublicPublish.id, cartWithCheckPublicPublish.version, updateActions);
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
+
+            const priceChange = await this.checkPriceChange(compared)
+            const validatedCouponDiscount = await validateCouponDiscount(cartWithUpdatedPrice, talonOneUpdateActions?.couponsInformation, FUNC_CHECKOUT)
+
+            if (validatedCouponDiscount) {
+                const customerSession = await talonOneIntegrationAdapter.getCustomerSession(cartWithUpdatedPrice.id);
+                const updatedCartWithRemoveCoupon = await this.couponService.clearAllCoupons(cartWithUpdatedPrice, customerSession);
+                const ctCartWithRemoveCoupon = await CommercetoolsProductClient.checkCartHasChanged(updatedCartWithRemoveCoupon)
+
+                const { ctCart: cartWithRemoveCoupon, compared: comparedWithRemovecoupon } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithRemoveCoupon)
+
+                const iCartWithRemoveCoupon = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithRemoveCoupon);
+
+                throw createStandardizedError(
+                    {
+                        statusCode: validatedCouponDiscount.statusCode,
+                        statusMessage: validatedCouponDiscount.statusMessage,
+                        errorCode: validatedCouponDiscount.errorCode
+                    },
+                    'checkout'
+                );
+            }
+
+            if (priceChange) {
+                await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
+                throw createStandardizedError(
+                    {
+                        statusCode: priceChange.statusCode,
+                        statusMessage: priceChange.statusMessage,
+                        errorCode: priceChange.errorCode
+                    },
+                    'checkout'
+                );
+            }
+
             const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return { ...iCartWithBenefit, hasChanged: compared, couponsInformation };
+            return { ...iCartWithBenefit, hasChanged: compared, couponsInformation, notice };
         } catch (error: any) {
             logger.error(`CartService.checkout.error`, error);
             if (error.status && error.message) {
@@ -423,6 +521,29 @@ export class CartService {
                     updatedCart: _cartAfterAutoRemove,
                     permanentlyInvalidRejectedCoupons: _permanentlyInvalidRejectedCoupons
                 } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithUpdatedPrice);
+
+                if (notice !== '') {
+                    let errorCode
+
+                    switch (notice as CART_HAS_CHANGED_NOTICE_MESSAGE) {
+                        case CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK:
+                            errorCode = 'DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK'
+                            break;
+                        default:
+                            errorCode = 'CART_HAS_CHANGED'
+                            break;
+                    }
+
+                    throw createStandardizedError(
+                        {
+                            statusCode: HTTP_STATUSES.BAD_REQUEST,
+                            statusMessage: notice,
+                            errorCode: errorCode,
+                        },
+                        'getCartById'
+                    );
+                }
+
                 cartAfterAutoRemove = _cartAfterAutoRemove;
                 permanentlyInvalidRejectedCoupons = _permanentlyInvalidRejectedCoupons;
                 couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartAfterAutoRemove.id, cartAfterAutoRemove.lineItems);
@@ -439,12 +560,34 @@ export class CartService {
                 couponsInformation = couponsInfomation?.obj.value || []
             }
 
+            if (notice !== '') {
+                let errorCode
+
+                switch (notice as CART_HAS_CHANGED_NOTICE_MESSAGE) {
+                    case CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK:
+                        errorCode = 'DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK'
+                        break;
+                    default:
+                        errorCode = 'CART_HAS_CHANGED'
+                        break;
+                }
+
+                throw createStandardizedError(
+                    {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: notice,
+                        errorCode: errorCode,
+                    },
+                    'getCartById'
+                );
+            }
+
             const selectedLineItems: LineItem[] = commercetoolsMeCartClient.filterSelectedLineItems(cartAfterAutoRemove.lineItems, selectedOnly);
             const cartWithFilteredItems: Cart = { ...cartAfterAutoRemove, lineItems: selectedLineItems };
 
-
             // 3) Map to ICart
-            const iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartWithFilteredItems);
+            let iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartWithFilteredItems);
+            iCartWithBenefit = await attachPackageToCart(iCartWithBenefit, ctCart);
 
             const response = {
                 ...iCartWithBenefit,
@@ -465,79 +608,6 @@ export class CartService {
         } catch (error: any) {
             console.log('error', error);
 
-            if (error.status && error.message) {
-                throw error;
-            }
-            throw createStandardizedError(error, 'getCartById');
-        }
-    };
-
-    public getCartByIdV2 = async (
-        accessToken: string,
-        cartId: string,
-        selectedOnly = false,
-        includeCoupons = false
-    ): Promise<ICart> => {
-        try {
-            console.log('selectedOnly', selectedOnly);
-            console.log('includeCoupons', includeCoupons);
-
-            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-
-            // 1) Fetch the cart from Commercetools
-            const ctCart = await commercetoolsMeCartClient.getCartById(cartId);
-            if (!ctCart) {
-                throw createStandardizedError({
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'Cart not found or has expired',
-                }, 'getCartById');
-            }
-
-            // 2) Check for price/availability changes in the FULL (unfiltered) cart
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart);
-            const { ctCart: updatedCart, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged);
-
-            // 3) If `includeCoupons` is true, possibly do coupon auto-removal on the real updatedCart
-            let finalCart: Cart = updatedCart;
-            if (includeCoupons) {
-                const {
-                    updatedCart: couponCart,
-                    permanentlyInvalidRejectedCoupons,
-                } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(updatedCart);
-
-                finalCart = couponCart;
-            }
-
-            // 4) **Ephemeral** filter for the response if `selectedOnly === true`.
-            const ephemeralCart = {
-                ...finalCart,
-                lineItems: selectedOnly
-                    ? finalCart.lineItems.filter(li => li.custom?.fields?.selected === true)
-                    : finalCart.lineItems,
-            };
-
-            // 5) Convert ephemeralCart to ICart for the response
-            const iCart = commercetoolsMeCartClient.mapCartToICart(ephemeralCart);
-
-            // 6) Optionally attach any coupon effects if `includeCoupons` is true
-            if (includeCoupons) {
-                const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
-                    finalCart.id,
-                    finalCart.lineItems
-                );
-                return {
-                    ...iCart,
-                    hasChanged: compared,
-                    ...couponEffects,
-                };
-            }
-
-            // 7) If no coupons needed, just return ephemeral iCart
-            return {
-                ...iCart,
-                hasChanged: compared,
-            };
-        } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
             }
@@ -1069,4 +1139,24 @@ export class CartService {
 
         return { discounts, otherPayments };
     }
+
+    public checkPriceChange = async (
+        compared: any,
+    ): Promise<void | ApiResponse> => {
+        let priceUpdated = false;
+        for (const item of compared) {
+            let isPriceHasChange = item?.hasChange?.prices || false;
+            if (isPriceHasChange) {
+                priceUpdated = true;
+                break;
+            }
+        }
+        if (priceUpdated) {
+            return {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                errorCode: "PRICE_HAS_BEEN_CHANGED",
+                statusMessage: 'price has changed',
+            };
+        }
+    };
 }

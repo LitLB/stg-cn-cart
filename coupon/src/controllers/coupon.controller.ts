@@ -18,8 +18,9 @@ export class CouponController {
         try {
             const { id } = req.params;
             const accessToken = req.accessToken as string;
-
-            const cart = await this.couponService.applyCoupons(accessToken, id, req.body);
+            const cart = await this.couponService.applyCoupons(accessToken, id, req.body).then(async (cart: any) => {
+                return await this.couponService.checkCouponDiscount(accessToken, id, cart, req.body)
+            });
 
             const response: ApiResponse = {
                 statusCode: HTTP_STATUSES.OK,
@@ -37,11 +38,40 @@ export class CouponController {
 
     public getQueryCoupons = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
+            const {
+                totalPrice,
+                containsDiscountedProducts,
+                allowStacking,
+                campaignGroup,
+                loyalty,
+                customerType,
+                journey,
+                skus,
+                series,
+                brands,
+                categories,
+                packageIds
+            } = req.query
+
+            const filter = {
+                ...(totalPrice ? { totalPrice } : {}),
+                ...(typeof containsDiscountedProducts === 'boolean' ? { containsDiscountedProducts } : {}),
+                ...(typeof allowStacking === 'boolean' ? { allowStacking } : {}),
+                ...(campaignGroup ? { campaignGroup } : {}),
+                ...(loyalty ? { loyalty } : {}),
+                ...(customerType ? { customerType } : {}),
+                ...(journey ? { journey } : {}),
+                ...(skus ? { skus } : {}),
+                ...(series ? { series } : {}),
+                ...(brands ? { brands } : {}),
+                ...(categories ? { categories } : {}),
+                ...(packageIds ? { packageIds } : {}),
+            }
 
             const body = req.body
             const profileId = body.profileId || undefined
             const options = { coupons: true }
-            const activeCoupons = await this.couponService.getQueryCoupons(profileId, options);
+            const activeCoupons = await this.couponService.getQueryCoupons(profileId, filter, options);
 
             const response: ApiResponse = {
                 statusCode: HTTP_STATUSES.OK,

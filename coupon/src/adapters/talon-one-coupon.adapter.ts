@@ -248,16 +248,41 @@ export class TalonOneCouponAdapter {
 
     private prepareCouponInformation(couponCode: string, props: any): any {
         return {
+            couponCode: couponCode,
+            discountPrice: Number(props.payload.discount_price) || 0,
+            discountPercentage: Number(props.payload.discount_percentage) || 0,
+            discountCode: props.payload.discount_code,
+            otherPaymentCode: props.payload.other_payment_code,
             marketingName: {
                 en: props.payload.marketing_name_en,
                 th: props.payload.marketing_name_th,
             },
-            couponName: props.payload.name_en,
-            couponCode: couponCode,
-            discountCode: props.payload.discount_code,
-            otherPaymentCode: props.payload.other_payment_code,
-            discountPrice: Number(props.payload.discount_price) || 0,
-            discountPercentage: Number(props.payload.discount_percentage) || 0,
+            couponName: {
+                th: props.payload.name_th || '',
+                en: props.payload.name_th || '',
+            },
+            couponShortDetail: {
+                th: props.payload.coupon_short_detail_th || '',
+                en: props.payload.coupon_short_detail_en || '',
+            },
+            couponImage: props.payload.coupon_image || '',
+            termCondition: {
+                th: props.payload.term_condition_th || '',
+                en: props.payload.term_condition_en || '',
+            },
+            loyaltyGroup: props.payload.loyalty_group || [],
+            customerType: props.payload.customer_type || [],
+            applyWithJourney: props.payload.apply_with_journey || [],
+            applyToProduct: props.payload.apply_to_product || [],
+            applyToPackage: props.payload.apply_to_package || [],
+            applyToSeries: props.payload.apply_to_series || [],
+            applyToBrand: props.payload.apply_to_brand || [],
+            applyToCategories: props.payload.apply_to_categories || [],
+            allowDiscountOnProducts: props.payload.allow_discount_on_products ?? null,
+            minimumPurchase: props.payload.minimum_purchase ?? null,
+            maximumPurchase: props.payload.maximum_purchase ?? null,
+            maximumDiscount: props.payload.maximum_discount ?? null,
+            allowStacking: props.payload.allow_stacking ?? null,
         };
     }
 }

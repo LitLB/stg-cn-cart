@@ -1,7 +1,7 @@
 import { LineItem } from '@commercetools/platform-sdk';
 // src/server/adapters/ct-product-client.ts
 
-import type { ApiRoot, Cart, Product, ProductDraft, ProductVariant } from '@commercetools/platform-sdk';
+import type { ApiRoot, Cart, Product, ProductDraft, ProductPagedQueryResponse, ProductVariant } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
 import { CT_PRODUCT_ACTIONS } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
@@ -39,15 +39,23 @@ class CommercetoolsProductClient {
 		return product.body;
 	}
 
-	async getProductById(id: string): Promise<Product> {
+	async getProductById(id: string, queryParams?: any): Promise<Product> {
 		const product = await this.apiRoot
 			.withProjectKey({ projectKey: this.projectKey })
 			.products()
 			.withId({ ID: id })
-			.get()
+			.get({ queryArgs: queryParams })
 			.execute();
-
 		return product.body;
+	}
+
+	async queryProducts(queryParams: any): Promise<ProductPagedQueryResponse> {
+		const response = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.products()
+			.get({ queryArgs: queryParams })
+			.execute();
+		return response.body;
 	}
 
 	async getProductByKey(key: string): Promise<Product> {
@@ -259,7 +267,7 @@ class CommercetoolsProductClient {
 
 	async checkCartHasChanged(ctCart: Cart): Promise<Cart> {
 		const { lineItems } = ctCart;
-		if (lineItems.length === 0) return {...ctCart, lineItems: []}
+		if (lineItems.length === 0) return { ...ctCart, lineItems: [] }
 
 		const mainProductLineItems = lineItems.filter(
 			(item: LineItem) => item.custom?.fields?.productType === 'main_product',
@@ -282,16 +290,16 @@ class CommercetoolsProductClient {
 
 		const processedItems = lineItems.map((cartItem: LineItem) => {
 			const parentQuantity = mainProductLineItems
-                .filter((item: LineItem) => item.productId === cartItem.productId)
-                .reduce((sum:any, item:any) => sum + item.quantity, 0);
+				.filter((item: LineItem) => item.productId === cartItem.productId)
+				.reduce((sum: any, item: any) => sum + item.quantity, 0);
 
 			const matchingSkuItem = skuItems.find(
 				(skuItem: any) => cartItem.productId === skuItem.id
 			);
 
 			const matchedInventory = inventories.find(
-                (invItem: any) => invItem.sku === cartItem.variant.sku
-            );
+				(invItem: any) => invItem.sku === cartItem.variant.sku
+			);
 
 			if (!matchingSkuItem) return cartItem;
 
@@ -303,46 +311,62 @@ class CommercetoolsProductClient {
 				matchingSkuItem.variants
 			);
 
-			const validPrice = findValidPrice(matchedVariant);
-            let stockAvailable: number = matchedInventory.stock.available
 
-            const hasChangedAction: HasChangedAction = { action: 'NONE', updateValue: 0 }
-            let quantityOverStock = quantity > stockAvailable
+			const validPrice = findValidPrice(matchedVariant);
+			let stockAvailable: number = matchedInventory.stock.available
+
+			const hasChangedAction: HasChangedAction = { action: 'NONE', updateValue: 0 }
+			let quantityOverStock = quantity > stockAvailable
 
             // Check maximum stock allocation by journey
             const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
+            const isPreOrder = ctCart.custom?.fields.preOrder as boolean || false
             const productJourney = (cartItem.variant.attributes?.find((attr: CustomLineItemVariantAttribute) => attr.name === 'journey')?.value[0]?.key || CART_JOURNEYS.SINGLE_PRODUCT) as CART_JOURNEYS
             const lineItemJourney = cartJourney === CART_JOURNEYS.SINGLE_PRODUCT && cartJourney !== productJourney ? productJourney : cartJourney
             const journeyConfig = journeyConfigMap[lineItemJourney]
             
             let maximumStockAllocation: number | undefined
             if (journeyConfig.inventory) {
-                const dummyStock: number | undefined = matchedInventory.custom.fields[journeyConfig.inventory.dummyKey] || undefined
                 // !!exclude dummy stock
-                if (!dummyStock || dummyStock === 0) {
+                // NOTE - stock physical when dummy stock is 0, null, undefined, blank text.
+                const dummyStock: number = matchedInventory.custom.fields[journeyConfig.inventory.dummyKey] || 0
+                const isDummyStock: boolean = isPreOrder && dummyStock > 0    
+                if (!isDummyStock) {
                     maximumStockAllocation = matchedInventory.custom.fields[journeyConfig.inventory.maximumKey];
                     const totalPurchase: number = matchedInventory.custom.fields[journeyConfig.inventory.totalKey] || 0
                     // use min value of stock
-                    stockAvailable = maximumStockAllocation !== undefined ? Math.min(stockAvailable, maximumStockAllocation): stockAvailable
-    
-                    if ((maximumStockAllocation !== undefined && maximumStockAllocation !== 0) && quantity > stockAvailable) {
-                        // update quantity if stock allocation less than quantity
+                    if (maximumStockAllocation !== undefined && maximumStockAllocation > 0) {
+                        const maximumStockAllocationAvailable = maximumStockAllocation - totalPurchase
+                        stockAvailable = Math.min(maximumStockAllocationAvailable, stockAvailable)
+                    }
+
+                    if (stockAvailable <= 0) {
+                        hasChangedAction.action = 'REMOVE_LINE_ITEM'
                         quantityOverStock = true
+                    } else if ((maximumStockAllocation !== undefined && maximumStockAllocation !== 0) && quantity > stockAvailable) {
+                        // update quantity if stock allocation less than quantity
                         hasChangedAction.action = 'UPDATE_QUANTITY'
-                        hasChangedAction.updateValue = maximumStockAllocation
+                        hasChangedAction.updateValue = stockAvailable
+                        quantityOverStock = true
                     } else if (maximumStockAllocation !== undefined) {
                         // remove if maximumStockAllocation is set to 0 or totalPurchase is less than or equal to maximumStockAllocation
                         if (maximumStockAllocation === 0) {
                             hasChangedAction.action = 'REMOVE_LINE_ITEM'
+                            quantityOverStock = true
                         } else if ((totalPurchase >= maximumStockAllocation)) {
                             hasChangedAction.action = 'REMOVE_LINE_ITEM'
+                            quantityOverStock = true
                         }
+                    } else if ((maximumStockAllocation === undefined || maximumStockAllocation === 0 ) && quantity > stockAvailable) {
+                        hasChangedAction.action = 'UPDATE_QUANTITY'
+                        hasChangedAction.updateValue = stockAvailable
+                        quantityOverStock = true
                     }
                 }
             }
 
 			const hasChanged = {
-                quantity_over_stock: quantityOverStock,
+				quantity_over_stock: quantityOverStock,
 			};
 
 			const updatedItem = {
@@ -354,7 +378,7 @@ class CommercetoolsProductClient {
 				},
 				parentQuantity,
 				hasChanged,
-                hasChangedAction,
+				hasChangedAction,
 			}
 
 			return updatedItem;
