@@ -153,15 +153,6 @@ export class CommercetoolsProductClient implements IAdapter {
 		return products;
 	}
 
-	async queryProducts(queryParams: any): Promise<any> {
-		const response = await this.apiRoot
-			.withProjectKey({ projectKey: this.projectKey })
-			.products()
-			.get({ queryArgs: queryParams })
-			.execute();
-		return response.body;
-	}
-
 	async getProductsByIds(productIds: any[]) {
 		const filter = `id: ${productIds.map(productId => `"${productId}"`).join(',')}`
 		const products = await this.apiRoot

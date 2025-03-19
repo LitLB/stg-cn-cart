@@ -78,8 +78,8 @@ export async function attachPackageToCart(iCart: ICart, ctCart: Cart): Promise<I
             if (!pkg.masterVariant.connector) {
                 pkg.masterVariant.connector = {
                     description: {
-                        "en-US": "Monthly fee 1,299 \n 12-month contract \n Package fee will be charged on the invoice \n Early cancellation penalty 10,000 THB",
-                        "th-TH": "ค่าบริการรายเดือน 1,299 \n สัญญา 12 \n ค่าแพ็คเกจ รายเดือนจะเรียกเก็บในใบแจ้งค่าบริการ \n ค่าปรับกรณียกเลิกสัญญาก่อนกำหนด 10,000 บาท",
+                        "en-US": "Monthly fee 1,299 12-month \n contract Package fee will be charged on the invoice \n Early cancellation penalty 10,000 THB",
+                        "th-TH": "ค่าบริการราย 1,299 สัญญา 12 เดือน \n ค่าแพ็คเกจ รายเดือนจะเรียกเก็บในใบแจ้งค่าบริการ \n ค่าปรับกรณียกเลิกสัญญาก่อนกำหนด 10,000 บาท",
                     }
                 };
             }
