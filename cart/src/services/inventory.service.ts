@@ -88,7 +88,7 @@ export class InventoryService {
             );
 
             // update totalUsed
-            if (!totalKey) {
+            if (totalKey) {
                 await CommercetoolsInventoryClient.updateInventoryCustomField(
                     refetchedInventoryEntry,
                     totalKey,
