@@ -19,6 +19,7 @@ export const COUPON_CUSTOM_EFFECT = 'coupon_custom_effect_v3';
 export const journeyConfigMap: Record<CART_JOURNEYS, any> = {
     [CART_JOURNEYS.SINGLE_PRODUCT]: {
         inventory: {
+            totalKey: 'totalPurchaseStockAllocationDeviceOnly',
             dummyKey: 'dummyStock',
             dummyPurchaseKey: 'dummyPurchase',
         },
