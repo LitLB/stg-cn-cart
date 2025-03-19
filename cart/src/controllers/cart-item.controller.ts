@@ -7,18 +7,38 @@ import { CartItemService } from '../services/cart-item.service';
 import { logger } from '../utils/logger.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { validateAddItemCartBody } from '../schemas/cart-item.schema';
-import { CART_OPERATOS } from '../constants/cart.constant';
+import { CART_JOURNEYS, CART_OPERATOS } from '../constants/cart.constant';
+import { ICartStrategy } from '../interfaces/cart';
+import { DeviceBundleExistingCartStrategy } from '../strategies/device-bundle-existing-cart.strategy';
+import { SingleProductDeviceOnlyCartStrategy } from '../strategies/single-product-device-only.strategy';
 
 export class CartItemController {
-    private cartItemService: CartItemService;
+    private cartItemService?: CartItemService<ICartStrategy>;
 
-    constructor() {
-        this.cartItemService = new CartItemService();
+    constructor() {}
+
+    set cartStrategy(journey: CART_JOURNEYS) {
+        switch(journey) {
+            case CART_JOURNEYS.DEVICE_BUNDLE_EXISTING:
+                this.cartItemService = new CartItemService<DeviceBundleExistingCartStrategy>(DeviceBundleExistingCartStrategy)
+                break
+            case CART_JOURNEYS.SINGLE_PRODUCT:
+                this.cartItemService = new CartItemService<SingleProductDeviceOnlyCartStrategy>(SingleProductDeviceOnlyCartStrategy)
+                break
+            case CART_JOURNEYS.DEVICE_ONLY:
+                this.cartItemService = new CartItemService<SingleProductDeviceOnlyCartStrategy>(SingleProductDeviceOnlyCartStrategy)
+                break
+            default:
+                throw new Error(`Unsupported journey: ${journey}`);
+        }
     }
 
     public addItem = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            const { id } = req.params;
+            // Select strategy
+            const { cart } = req
+            this.cartStrategy = cart!.custom?.fields?.journey
+
             const accessToken = req.accessToken as string;
             // TODO remove when integrate
             if (!req.body.operator) {
@@ -33,7 +53,7 @@ export class CartItemController {
                 };
             }
 
-            const data = await this.cartItemService.addItem(accessToken, id, value);
+            const data = await this.cartItemService?.addItem(accessToken, cart!, value);
             let response: ApiResponse
 
             if (data?.campaignVerifyKeys) {
@@ -64,10 +84,14 @@ export class CartItemController {
 
     public updateItemQuantityById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            const { id, itemId } = req.params;
+            // Select strategy
+            const { cart } = req
+
+            this.cartStrategy = cart!.custom?.fields?.journey
+
             const accessToken = req.accessToken as string;
 
-            const updatedCart = await this.cartItemService.updateItemQuantityById(accessToken, id, itemId, req.body);
+            const updatedCart = await this.cartItemService?.updateItemQuantityById(accessToken, cart!, req.body);
 
             const response: ApiResponse = {
                 statusCode: HTTP_STATUSES.OK,
@@ -85,10 +109,13 @@ export class CartItemController {
 
     public deleteItemById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            const { id, itemId } = req.params;
+            // Select strategy
+            const { cart } = req
+            this.cartStrategy = cart!.custom?.fields?.journey
+
             const accessToken = req.accessToken as string;
 
-            const updatedCart = await this.cartItemService.deleteItemById(accessToken, id, itemId, req.body);
+            const updatedCart = await this.cartItemService?.deleteItemById(accessToken, cart!, req.body);
 
             const response: ApiResponse = {
                 statusCode: HTTP_STATUSES.OK,
@@ -106,10 +133,13 @@ export class CartItemController {
 
     public bulkDelete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            const { id } = req.params;
+            // Select strategy
+            const { cart } = req
+            this.cartStrategy = cart!.custom?.fields?.journey
+ 
             const accessToken = req.accessToken as string;
 
-            const updatedCart = await this.cartItemService.bulkDelete(accessToken, id, req.body);
+            const updatedCart = await this.cartItemService?.bulkDelete(accessToken, cart!, req.body);
 
             const response: ApiResponse = {
                 statusCode: HTTP_STATUSES.OK,
@@ -127,10 +157,13 @@ export class CartItemController {
 
     public select = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            const { id } = req.params;
+            // Select strategy
+            const { cart } = req
+            this.cartStrategy = cart!.custom?.fields?.journey
+
             const accessToken = req.accessToken as string;
 
-            const updatedCart = await this.cartItemService.select(accessToken, id, req.body);
+            const updatedCart = await this.cartItemService?.select(accessToken, cart!, req.body);
 
             const response: ApiResponse = {
                 statusCode: HTTP_STATUSES.OK,

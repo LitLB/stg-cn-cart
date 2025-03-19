@@ -32,8 +32,10 @@ import { CURRENCY_CODES } from '../../constants/currency.constant';
 import { COUNTRIES } from '../../constants/country.constant';
 import { HTTP_STATUSES } from '../../constants/http.constant';
 import { LOCALES } from '../../constants/locale.constant';
+import { IAdapter } from '../../interfaces/adapter.interface';
 
-export default class CommercetoolsMeCartClient {
+export default class CommercetoolsMeCartClient implements IAdapter {
+	public name = 'commercetoolsMeCartClient'
 	private apiRoot: ApiRoot;
 	private projectKey: string;
 	private onlineChannel: string;

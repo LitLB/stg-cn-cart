@@ -1,3 +1,4 @@
+import { IAdapter } from '../interfaces/adapter.interface';
 import CommercetoolsProductClient from './ct-product-client';
 import { talonOneIntegrationAdapter } from './talon-one.adapter'
 enum AddOnType {
@@ -30,7 +31,8 @@ const getAddOnType = (promotionDetailType: PromotionDetailType) => {
 	}
 };
 
-class TalonOneEffectConverter {
+export class TalonOneEffectConverter implements IAdapter {
+	public name = 'talonOneEffectConverter'
 	private readonly ctProductClient;
 	private readonly talonOneIntegrationAdapter;
 	constructor() {

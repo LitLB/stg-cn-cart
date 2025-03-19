@@ -7,13 +7,15 @@ import { readConfiguration } from '../utils/config.utils';
 import { IOrderAdditional } from '../interfaces/order-additional.interface';
 import { logger } from '../utils/logger.utils';
 import { Coupon } from '../interfaces/coupon.interface';
+import { IAdapter } from '../interfaces/adapter.interface';
 
-class CommercetoolsCustomObjectClient {
+export class CommercetoolsCustomObjectClient implements IAdapter {
+	public name = 'commercetoolsCustomObjectClient'
 	private static instance: CommercetoolsCustomObjectClient;
 	private apiRoot: ApiRoot;
 	private projectKey: string;
 
-	private constructor() {
+	constructor() {
 		this.apiRoot = CommercetoolsBaseClient.getApiRoot();
 		this.projectKey = readConfiguration().ctpProjectKey as string;
 	}

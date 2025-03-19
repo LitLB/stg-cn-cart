@@ -15,15 +15,17 @@ import { HttpStatusCode } from 'axios';
 import CommercetoolsMeCartClient from './me/ct-me-cart-client';
 import { validateInventory } from '../utils/cart.utils';
 import { CART_HAS_CHANGED_NOTICE_MESSAGE } from '../constants/cart.constant';
+import { IAdapter } from '../interfaces/adapter.interface';
 
 
 
-class CommercetoolsCartClient {
+export class CommercetoolsCartClient implements IAdapter {
+	public name = 'commercetoolsCartClient'
 	private static instance: CommercetoolsCartClient;
 	private apiRoot: ApiRoot;
 	private projectKey: string;
 
-	private constructor() {
+	constructor() {
 		this.apiRoot = CommercetoolsBaseClient.getApiRoot();
 		this.projectKey = readConfiguration().ctpProjectKey as string;
 
@@ -624,6 +626,46 @@ class CommercetoolsCartClient {
 		return await this.updateCart(cartId, cartVersion, updateActions);
 	}
 
+	public async emptyCart(cart: Cart): Promise<any> {
+		const actions:any = [];
+
+		// Remove each regular line item
+		if (cart.lineItems && cart.lineItems.length > 0) {
+			cart.lineItems.forEach(lineItem => {
+				actions.push({
+				action: 'removeLineItem',
+				lineItemId: lineItem.id,
+				// Remove the entire quantity; alternatively, you can set a specific quantity
+				quantity: lineItem.quantity
+				});
+			});
+		}
+
+		// Remove each custom line item (if any)
+		if (cart.customLineItems && cart.customLineItems.length > 0) {
+			cart.customLineItems.forEach(customLineItem => {
+				actions.push({
+				action: 'removeCustomLineItem',
+				customLineItemId: customLineItem.id,
+				quantity: customLineItem.quantity
+				});
+			});
+		}
+
+		const updatedCart = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.carts()
+			.withId({ID: cart.id})
+			.post({
+				body: {
+					version: cart.version, // use the current version of the cart
+					actions: actions
+				}
+			})
+			.execute();
+
+		return updatedCart.body
+	}
 
 }
 
