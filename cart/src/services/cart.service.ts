@@ -1,18 +1,17 @@
 // cart/src/services/cart.service.ts
 
 import _ from 'lodash'
-import { Cart, CartUpdateAction, LineItem, Order, ProductProjection } from '@commercetools/platform-sdk';
+import { Cart, CartUpdateAction, LineItem, Order } from '@commercetools/platform-sdk';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { talonOneEffectConverter } from '../adapters/talon-one-effect-converter'
-import { CustomProductProjection, ICart } from '../interfaces/cart';
+import { ICart } from '../interfaces/cart';
 import { validateCartCheckoutBody } from '../schemas/cart.schema';
 import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 import { validateProductQuantity } from '../schemas/cart-item.schema';
@@ -41,6 +40,7 @@ import { validateCouponLimit, validateCouponDiscount } from '../validators/coupo
 import { FUNC_CHECKOUT } from '../constants/func.constant';
 import { CART_HAS_CHANGED_NOTICE_MESSAGE } from '../constants/cart.constant';
 import { ApiResponse } from '../interfaces/response.interface';
+import { attachPackageToCart } from '../helpers/cart.helper';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -490,288 +490,15 @@ export class CartService {
         includeCoupons = false,
     ): Promise<ICart> => {
         try {
-            // Get Package Code from ctCart.lineItems filter by product type === package_postpaid.
-            const productProjection: CustomProductProjection = {
-                // const productProjection: any = {
-                t1: {},
-                cms: {},
-                id: 'a8d1e006-2271-4ecb-aaab-8560e9710e84',
-                version: 202,
-                productType: {
-                    typeId: 'product-type',
-                    id: '5e52c33f-fca3-4dd4-901a-a1d3538e0772',
-                },
-                name: {
-                    'en-US': 'PACKAGE_NAME 21 - Updated (by New)',
-                    'th-TH': 'PACKAGE_NAME 21 - Updated (by New)',
-                },
-                categories: [],
-                categoryOrderHints: {},
-                slug: {
-                    'en-US': 'pkg-02-unlimited-5g',
-                },
-                masterVariant: {
-                    id: 1,
-                    sku: 'PACKAGE_NAME 21 - Updated (by New)',
-                    key: '351a4b0f-c281-4ee5-9140-72397498f3bb',
-                    prices: [],
-                    images: [],
-                    attributes: [
-                        {
-                            name: 'package_desc_marketing',
-                            value: {
-                                'en-US': 'ฟฟฟ',
-                                'th-TH': 'หหห',
-                            },
-                        },
-                        {
-                            name: 'package_type',
-                            value: {
-                                key: 'topping_package',
-                                label: 'Topping Package',
-                            },
-                        },
-                        {
-                            name: 'effective_date_sale',
-                            value: '2025-01-01T00:00:00.000Z',
-                        },
-                        {
-                            name: 'expiry_date_sale',
-                            value: '2025-01-31T00:00:00.000Z',
-                        },
-                        {
-                            name: 'effective_date_marketing',
-                            value: '2025-01-01T00:00:00.000Z',
-                        },
-                        {
-                            name: 'expiry_date_marketing',
-                            value: '2025-01-31T00:00:00.000Z',
-                        },
-                        {
-                            name: 'internet_quota',
-                            value: 111,
-                        },
-                        {
-                            name: 'internet_quota_unit',
-                            value: {
-                                key: 'GB',
-                                label: 'GB',
-                            },
-                        },
-                        {
-                            name: 'internet_max_speed',
-                            value: 111,
-                        },
-                        {
-                            name: 'internet_max_speed_unit',
-                            value: {
-                                key: 'mbps',
-                                label: 'Mbps',
-                            },
-                        },
-                        {
-                            name: 'internet_fup_speed',
-                            value: 111,
-                        },
-                        {
-                            name: 'internet_fup_speed_unit',
-                            value: {
-                                key: 'mbps',
-                                label: 'Mbps',
-                            },
-                        },
-                        {
-                            name: 'voice_quota_unit',
-                            value: {
-                                key: 'Seconds',
-                                label: 'Seconds',
-                            },
-                        },
-                        {
-                            name: 'mms_message',
-                            value: {
-                                'en-US': 'aaa',
-                                'th-TH': 'ฟฟฟ',
-                            },
-                        },
-                        {
-                            name: 'company',
-                            value: {
-                                key: 'dtac',
-                                label: 'DTAC',
-                            },
-                        },
-                        {
-                            name: 'product_type',
-                            value: {
-                                key: 'DTN',
-                                label: 'DTN',
-                            },
-                        },
-                        {
-                            name: 'group',
-                            value: 'plan',
-                        },
-                        {
-                            name: 'voice_buffet_flag',
-                            value: true,
-                        },
-                        {
-                            name: 'voice_group',
-                            value: {
-                                key: 'ALLNET',
-                                label: 'All Net',
-                            },
-                        },
-                        {
-                            name: 'customer_type_allow',
-                            value: [
-                                {
-                                    key: 'B',
-                                    label: 'Business',
-                                },
-                                {
-                                    key: 'C',
-                                    label: 'Corporate',
-                                },
-                                {
-                                    key: 'I',
-                                    label: 'Individual',
-                                },
-                            ],
-                        },
-                        {
-                            name: 'internet_group',
-                            value: {
-                                key: 'LIMIT',
-                                label: 'Limit',
-                            },
-                        },
-                        {
-                            name: 'voice_rate_message',
-                            value: {
-                                'en-US': 'ccc',
-                                'th-TH': 'กกก',
-                            },
-                        },
-                        {
-                            name: 'package_desc',
-                            value: {
-                                'en-US': 'ฟฟฟ',
-                                'th-TH': 'หหห',
-                            },
-                        },
-                        {
-                            name: 'voice_buffet_type',
-                            value: {
-                                key: 'ONNET',
-                                label: 'On Net',
-                            },
-                        },
-                        {
-                            name: 'package_free',
-                            value: [
-                                {
-                                    'en-US': 'aaa',
-                                    'th-TH': 'ฟฟฟ',
-                                },
-                                {
-                                    'en-US': 'bbb',
-                                    'th-TH': 'หหห',
-                                },
-                                {
-                                    'en-US': 'ccc',
-                                    'th-TH': 'กกก',
-                                },
-                            ],
-                        },
-                        {
-                            name: 'package_main_image',
-                            value: {
-                                'en-US':
-                                    'd/2/4/9/d249fe65d9bc11c805d6686265a0400ff1af6ef5_Facebook.png',
-                                'th-TH':
-                                    '5/e/4/5/5e45633c06e8a84c1d361fb53700d20888355873_Google.jpg',
-                            },
-                        },
-                        {
-                            name: 'voice_quota',
-                            value: 222,
-                        },
-                        {
-                            name: 'wifi_unlimit_flag',
-                            value: true,
-                        },
-                        {
-                            name: 'priceplan_rc',
-                            value: 222.22,
-                        },
-                        {
-                            name: 'sms_message',
-                            value: {
-                                'th-TH': 'หหห',
-                                'en-US': 'bbb',
-                            },
-                        },
-                        {
-                            name: 'package_code',
-                            value: 'PACKAGE_CODE 21 - Updated (by New)',
-                        },
-                        {
-                            name: 'effective_time_sale',
-                            value: '21:59',
-                        },
-                        {
-                            name: 'effective_time_marketing',
-                            value: '21:59',
-                        },
-                        {
-                            name: 'expiry_time_sale',
-                            value: '21:59',
-                        },
-                        {
-                            name: 'package_id',
-                            value: 'PACKAGE_ID 21 - Updated (by New)',
-                        },
-                        {
-                            name: 'package_name_marketing',
-                            value: {
-                                'en-US': 'aaaaaaaa',
-                                'th-TH': 'ฟฟฟฟฟฟฟฟฟฟฟ',
-                            },
-                        },
-                    ],
-                    assets: [],
-                },
-                variants: [],
-                searchKeywords: {},
-                hasStagedChanges: false,
-                published: true,
-                key: '351a4b0f-c281-4ee5-9140-72397498f3bb',
-                taxCategory: {
-                    typeId: 'tax-category',
-                    id: 'fb18160d-f163-4d67-9e9c-f657653fdf25',
-                },
-                priceMode: 'Embedded',
-                createdAt: '2025-02-27T08:01:22.440Z',
-                lastModifiedAt: '2025-03-18T04:31:43.342Z',
-            };
-
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
             // 1) Fetch the cart
             const ctCart = await commercetoolsMeCartClient.getCartById(id);
-            // ctCart package_
             if (!ctCart) {
                 throw createStandardizedError({
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Cart not found or has expired'
                 });
-            }
-
-            const existing = true;
-            if (existing) {
-                // getPackageByCode()
             }
 
             const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
@@ -858,9 +585,9 @@ export class CartService {
             const selectedLineItems: LineItem[] = commercetoolsMeCartClient.filterSelectedLineItems(cartAfterAutoRemove.lineItems, selectedOnly);
             const cartWithFilteredItems: Cart = { ...cartAfterAutoRemove, lineItems: selectedLineItems };
 
-
             // 3) Map to ICart
-            const iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartWithFilteredItems);
+            let iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartWithFilteredItems);
+            iCartWithBenefit = await attachPackageToCart(iCartWithBenefit, ctCart);
 
             const response = {
                 ...iCartWithBenefit,
@@ -881,79 +608,6 @@ export class CartService {
         } catch (error: any) {
             console.log('error', error);
 
-            if (error.status && error.message) {
-                throw error;
-            }
-            throw createStandardizedError(error, 'getCartById');
-        }
-    };
-
-    public getCartByIdV2 = async (
-        accessToken: string,
-        cartId: string,
-        selectedOnly = false,
-        includeCoupons = false
-    ): Promise<ICart> => {
-        try {
-            console.log('selectedOnly', selectedOnly);
-            console.log('includeCoupons', includeCoupons);
-
-            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-
-            // 1) Fetch the cart from Commercetools
-            const ctCart = await commercetoolsMeCartClient.getCartById(cartId);
-            if (!ctCart) {
-                throw createStandardizedError({
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'Cart not found or has expired',
-                }, 'getCartById');
-            }
-
-            // 2) Check for price/availability changes in the FULL (unfiltered) cart
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart);
-            const { ctCart: updatedCart, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged);
-
-            // 3) If `includeCoupons` is true, possibly do coupon auto-removal on the real updatedCart
-            let finalCart: Cart = updatedCart;
-            if (includeCoupons) {
-                const {
-                    updatedCart: couponCart,
-                    permanentlyInvalidRejectedCoupons,
-                } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(updatedCart);
-
-                finalCart = couponCart;
-            }
-
-            // 4) **Ephemeral** filter for the response if `selectedOnly === true`.
-            const ephemeralCart = {
-                ...finalCart,
-                lineItems: selectedOnly
-                    ? finalCart.lineItems.filter(li => li.custom?.fields?.selected === true)
-                    : finalCart.lineItems,
-            };
-
-            // 5) Convert ephemeralCart to ICart for the response
-            const iCart = commercetoolsMeCartClient.mapCartToICart(ephemeralCart);
-
-            // 6) Optionally attach any coupon effects if `includeCoupons` is true
-            if (includeCoupons) {
-                const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
-                    finalCart.id,
-                    finalCart.lineItems
-                );
-                return {
-                    ...iCart,
-                    hasChanged: compared,
-                    ...couponEffects,
-                };
-            }
-
-            // 7) If no coupons needed, just return ephemeral iCart
-            return {
-                ...iCart,
-                hasChanged: compared,
-            };
-        } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
             }
