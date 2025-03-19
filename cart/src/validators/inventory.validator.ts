@@ -20,7 +20,7 @@ export class InventoryValidator {
     ): Promise<void> {
         // 1) If no inventory config, skip
         const journeyConfig = journeyConfigMap[journey];
-        if (!journeyConfig?.inventory) {
+        if (!journeyConfig?.inventory || journey === CART_JOURNEYS.SINGLE_PRODUCT) {
             return;
         }
 
