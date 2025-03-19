@@ -1,0 +1,693 @@
+{
+  "type": "Order",
+  "id": "5f75efbf-49ce-40ce-aab9-ae25b792f769",
+  "version": 4,
+  "versionModifiedAt": "2025-03-17T08:51:01.788Z",
+  "lastMessageSequenceNumber": 4,
+  "createdAt": "2025-03-17T08:36:58.495Z",
+  "lastModifiedAt": "2025-03-17T08:51:01.788Z",
+  "lastModifiedBy": {
+    "clientId": "GNOkt1jcitDIzBnB_JiLzWO7",
+    "isPlatformClient": false
+  },
+  "createdBy": {
+    "clientId": "Hfl3Z7_NrxC_Z2rd5LJRAK2W",
+    "isPlatformClient": false,
+    "anonymousId": "63b179ea-506d-4b6a-9be9-0c9a7b5e8bc6"
+  },
+  "totalPrice": {
+    "type": "centPrecision",
+    "currencyCode": "THB",
+    "centAmount": 3004200,
+    "fractionDigits": 2
+  },
+  "taxedPrice": {
+    "totalNet": {
+      "type": "centPrecision",
+      "currencyCode": "THB",
+      "centAmount": 2807663,
+      "fractionDigits": 2
+    },
+    "totalGross": {
+      "type": "centPrecision",
+      "currencyCode": "THB",
+      "centAmount": 3004200,
+      "fractionDigits": 2
+    },
+    "taxPortions": [
+      {
+        "rate": 0.07,
+        "amount": {
+          "type": "centPrecision",
+          "currencyCode": "THB",
+          "centAmount": 196537,
+          "fractionDigits": 2
+        },
+        "name": "Bangkok"
+      }
+    ],
+    "totalTax": {
+      "type": "centPrecision",
+      "currencyCode": "THB",
+      "centAmount": 196537,
+      "fractionDigits": 2
+    }
+  },
+  "taxedShippingPrice": {
+    "totalNet": {
+      "type": "centPrecision",
+      "currencyCode": "THB",
+      "centAmount": 0,
+      "fractionDigits": 2
+    },
+    "totalGross": {
+      "type": "centPrecision",
+      "currencyCode": "THB",
+      "centAmount": 0,
+      "fractionDigits": 2
+    },
+    "taxPortions": [
+      {
+        "rate": 0.07,
+        "amount": {
+          "type": "centPrecision",
+          "currencyCode": "THB",
+          "centAmount": 0,
+          "fractionDigits": 2
+        },
+        "name": "Bangkok"
+      }
+    ],
+    "totalTax": {
+      "type": "centPrecision",
+      "currencyCode": "THB",
+      "centAmount": 0,
+      "fractionDigits": 2
+    }
+  },
+  "orderState": "Cancelled",
+  "paymentState": "Failed",
+  "syncInfo": [],
+  "returnInfo": [],
+  "state": {
+    "typeId": "state",
+    "id": "967a51c2-c14e-4d03-881b-82edb8fbb84c"
+  },
+  "taxMode": "Platform",
+  "inventoryMode": "None",
+  "taxRoundingMode": "HalfEven",
+  "taxCalculationMode": "LineItemLevel",
+  "origin": "Customer",
+  "shippingMode": "Single",
+  "shippingInfo": {
+    "shippingMethodName": "จัดส่งปกติ en",
+    "price": {
+      "type": "centPrecision",
+      "currencyCode": "THB",
+      "centAmount": 0,
+      "fractionDigits": 2
+    },
+    "shippingRate": {
+      "price": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 0,
+        "fractionDigits": 2
+      },
+      "tiers": [
+        {
+          "type": "CartValue",
+          "minimumCentAmount": 20000000,
+          "price": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 0,
+            "fractionDigits": 2
+          }
+        }
+      ]
+    },
+    "taxRate": {
+      "name": "Bangkok",
+      "amount": 0.07,
+      "includedInPrice": true,
+      "country": "TH",
+      "state": "Bangkok",
+      "id": "opgU3dD5",
+      "subRates": []
+    },
+    "taxCategory": {
+      "typeId": "tax-category",
+      "id": "fb18160d-f163-4d67-9e9c-f657653fdf25"
+    },
+    "deliveries": [],
+    "shippingMethod": {
+      "typeId": "shipping-method",
+      "id": "754adb17-e505-41c7-b194-89925d608c20"
+    },
+    "taxedPrice": {
+      "totalNet": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 0,
+        "fractionDigits": 2
+      },
+      "totalGross": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 0,
+        "fractionDigits": 2
+      },
+      "taxPortions": [
+        {
+          "rate": 0.07,
+          "amount": {
+            "type": "centPrecision",
+            "currencyCode": "THB",
+            "centAmount": 0,
+            "fractionDigits": 2
+          },
+          "name": "Bangkok"
+        }
+      ],
+      "totalTax": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 0,
+        "fractionDigits": 2
+      }
+    },
+    "shippingMethodState": "MatchesCart"
+  },
+  "shippingAddress": {
+    "title": "My Address",
+    "salutation": "Mr.",
+    "firstName": "Example",
+    "lastName": "Person",
+    "streetName": "Example Street",
+    "streetNumber": "4711",
+    "additionalStreetInfo": "Backhouse",
+    "postalCode": "80933",
+    "city": "Bangkok",
+    "region": "",
+    "state": "Bangkok",
+    "country": "TH",
+    "company": "My Company Name",
+    "department": "Sales",
+    "building": "Hightower 1",
+    "apartment": "247",
+    "pOBox": "2471",
+    "phone": "+49 89 12345678",
+    "mobile": "+49 171 2345678",
+    "email": "email@example.com",
+    "fax": "+49 89 12345679",
+    "additionalAddressInfo": "no additional Info",
+    "externalId": "Information not needed",
+    "key": "exampleKey"
+  },
+  "shipping": [],
+  "discountTypeCombination": {
+    "type": "Stacking"
+  },
+  "lineItems": [
+    {
+      "id": "27705035-f2b7-49a5-b6be-eb5cda452338",
+      "productId": "bb223b57-bf6b-454f-a1de-e0b6c4ebfe7b",
+      "productKey": "7a29ebcc-9c6d-4848-8d02-794b8733ce9b",
+      "name": {
+        "en-US": "iphone 21 Pro Max (By New)",
+        "th-TH": "ไอโฟน 21 โปรแม็กซ์ (นิว)"
+      },
+      "productType": {
+        "typeId": "product-type",
+        "id": "02584416-7fac-4a37-a511-be6b3e329664"
+      },
+      "productSlug": {
+        "en-US": "slug-1726121072239"
+      },
+      "variant": {
+        "id": 1,
+        "sku": "iphone-21-pro-max-black",
+        "key": "iphone-21-pro-max-black",
+        "prices": [
+          {
+            "id": "c4caae65-cb72-4f61-97a9-345c6256a97f",
+            "value": {
+              "type": "centPrecision",
+              "currencyCode": "THB",
+              "centAmount": 1000000,
+              "fractionDigits": 2
+            },
+            "key": "PRC-1",
+            "customerGroup": {
+              "typeId": "customer-group",
+              "id": "94e4dca6-8b56-4861-ab92-4fbeefacb228"
+            },
+            "custom": {
+              "type": {
+                "typeId": "type",
+                "id": "5c33c940-0121-4e20-bd0e-358473377e13"
+              },
+              "fields": {
+                "minimumAdvancePayment": 1000,
+                "minimunPackageCode": "PACKCODE_01"
+              }
+            }
+          }
+        ],
+        "images": [
+          {
+            "url": "https://images.cdn.australia-southeast1.gcp.commercetools.com/11c6ea39-ac1a-4868-87d8-5bd23bc70f03/tree-736885_640-LX3K9HiH.jpg",
+            "label": "AAA",
+            "dimensions": {
+              "w": 640,
+              "h": 398
+            }
+          }
+        ],
+        "attributes": [
+          {
+            "name": "akeneo_id",
+            "value": "iphone-21-pro-max-black"
+          },
+          {
+            "name": "company",
+            "value": {
+              "key": "true",
+              "label": "True"
+            }
+          },
+          {
+            "name": "company_code",
+            "value": "1064"
+          },
+          {
+            "name": "screen_size",
+            "value": "1024"
+          },
+          {
+            "name": "status",
+            "value": {
+              "key": "enabled",
+              "label": "Enabled"
+            }
+          },
+          {
+            "name": "product_id",
+            "value": "7a29ebcc-9c6d-4848-8d02-794b8733ce9b"
+          },
+          {
+            "name": "variant_product_title",
+            "value": {
+              "en-US": "iphone 21 Pro Max - Black"
+            }
+          },
+          {
+            "name": "brand_name",
+            "value": {
+              "key": "apple",
+              "label": "Apple"
+            }
+          },
+          {
+            "name": "payment_options_specification",
+            "value": [
+              {
+                "key": "truemoney",
+                "label": "True Money Wallet"
+              },
+              {
+                "key": "cod",
+                "label": "Cash on Delivery"
+              },
+              {
+                "key": "installment",
+                "label": "Installment Credit Card"
+              },
+              {
+                "key": "promptpay",
+                "label": "PromptPay"
+              },
+              {
+                "key": "ccw",
+                "label": "Credit / Debit Card"
+              }
+            ]
+          },
+          {
+            "name": "image",
+            "value": "https://images.contentstack.io/v3/assets/blt8ba403bee4433fd8/blta971c43b460c7f42/6723354eb3d37517e0930d80/iphone-16.jpg?branch=develop"
+          },
+          {
+            "name": "color_code",
+            "value": "BLACK"
+          },
+          {
+            "name": "capacity",
+            "value": {
+              "key": "1TB",
+              "label": "1TB"
+            }
+          },
+          {
+            "name": "quantity_min",
+            "value": 1
+          },
+          {
+            "name": "journey",
+            "value": [
+              {
+                "key": "device_bundle_existing",
+                "label": "Device Bundling (Existing)"
+              },
+              {
+                "key": "device_only",
+                "label": "Device Only"
+              }
+            ]
+          },
+          {
+            "name": "quantity_max",
+            "value": 1
+          }
+        ],
+        "assets": [],
+        "availability": {
+          "channels": {
+            "354a59c3-412a-4ecd-8264-795e1611b7df": {
+              "isOnStock": true,
+              "availableQuantity": 100,
+              "version": 662,
+              "id": "6998fe11-af8c-4510-a441-1e0f1fde629d"
+            }
+          }
+        }
+      },
+      "price": {
+        "id": "4d066f06-2b91-48d5-97e7-1545e2e76a00",
+        "value": {
+          "type": "centPrecision",
+          "currencyCode": "THB",
+          "centAmount": 1500000,
+          "fractionDigits": 2
+        }
+      },
+      "quantity": 2,
+      "discountedPricePerQuantity": [],
+      "taxRate": {
+        "name": "Bangkok",
+        "amount": 0.07,
+        "includedInPrice": true,
+        "country": "TH",
+        "state": "Bangkok",
+        "id": "opgU3dD5",
+        "subRates": []
+      },
+      "perMethodTaxRate": [],
+      "addedAt": "2025-03-17T08:36:52.976Z",
+      "lastModifiedAt": "2025-03-17T08:36:52.976Z",
+      "state": [
+        {
+          "quantity": 2,
+          "state": {
+            "typeId": "state",
+            "id": "4edd1d7a-f5ac-4ec8-b575-29dd9e87e020"
+          }
+        }
+      ],
+      "priceMode": "ExternalPrice",
+      "lineItemMode": "Standard",
+      "totalPrice": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 3000000,
+        "fractionDigits": 2
+      },
+      "taxedPrice": {
+        "totalNet": {
+          "type": "centPrecision",
+          "currencyCode": "THB",
+          "centAmount": 2803738,
+          "fractionDigits": 2
+        },
+        "totalGross": {
+          "type": "centPrecision",
+          "currencyCode": "THB",
+          "centAmount": 3000000,
+          "fractionDigits": 2
+        },
+        "taxPortions": [
+          {
+            "rate": 0.07,
+            "amount": {
+              "type": "centPrecision",
+              "currencyCode": "THB",
+              "centAmount": 196262,
+              "fractionDigits": 2
+            },
+            "name": "Bangkok"
+          }
+        ],
+        "totalTax": {
+          "type": "centPrecision",
+          "currencyCode": "THB",
+          "centAmount": 196262,
+          "fractionDigits": 2
+        }
+      },
+      "taxedPricePortions": []
+    }
+  ],
+  "customLineItems": [
+    {
+      "id": "76ffecf8-179b-4292-92e0-c3581eac7788",
+      "name": {
+        "en": "Name EN",
+        "de": "Name DE"
+      },
+      "money": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 4200,
+        "fractionDigits": 2
+      },
+      "slug": "mySlug",
+      "quantity": 1,
+      "discountedPricePerQuantity": [],
+      "taxCategory": {
+        "typeId": "tax-category",
+        "id": "fb18160d-f163-4d67-9e9c-f657653fdf25"
+      },
+      "taxRate": {
+        "name": "Bangkok",
+        "amount": 0.07,
+        "includedInPrice": true,
+        "country": "TH",
+        "state": "Bangkok",
+        "id": "opgU3dD5",
+        "subRates": []
+      },
+      "state": [
+        {
+          "quantity": 1,
+          "state": {
+            "typeId": "state",
+            "id": "4edd1d7a-f5ac-4ec8-b575-29dd9e87e020"
+          }
+        }
+      ],
+      "totalPrice": {
+        "type": "centPrecision",
+        "currencyCode": "THB",
+        "centAmount": 4200,
+        "fractionDigits": 2
+      },
+      "taxedPrice": {
+        "totalNet": {
+          "type": "centPrecision",
+          "currencyCode": "THB",
+          "centAmount": 3925,
+          "fractionDigits": 2
+        },
+        "totalGross": {
+          "type": "centPrecision",
+          "currencyCode": "THB",
+          "centAmount": 4200,
+          "fractionDigits": 2
+        },
+        "taxPortions": [
+          {
+            "rate": 0.07,
+            "amount": {
+              "type": "centPrecision",
+              "currencyCode": "THB",
+              "centAmount": 275,
+              "fractionDigits": 2
+            },
+            "name": "Bangkok"
+          }
+        ],
+        "totalTax": {
+          "type": "centPrecision",
+          "currencyCode": "THB",
+          "centAmount": 275,
+          "fractionDigits": 2
+        }
+      },
+      "taxedPricePortions": [],
+      "perMethodTaxRate": [],
+      "priceMode": "Standard"
+    }
+  ],
+  "transactionFee": true,
+  "discountCodes": [],
+  "directDiscounts": [],
+  "cart": {
+    "typeId": "cart",
+    "id": "d76f43a0-1d77-4eae-ad15-6109415fee52"
+  },
+  "billingAddress": {
+    "title": "My Address",
+    "salutation": "Mr.",
+    "firstName": "Example",
+    "lastName": "Person",
+    "streetName": "Example Street",
+    "streetNumber": "4711",
+    "additionalStreetInfo": "Backhouse",
+    "postalCode": "80933",
+    "city": "Bangkok",
+    "region": "Exemplary Region",
+    "state": "Bangkok",
+    "country": "TH",
+    "company": "My Company Name",
+    "department": "Sales",
+    "building": "Hightower 1",
+    "apartment": "247",
+    "pOBox": "2471",
+    "phone": "+49 89 12345678",
+    "mobile": "+49 171 2345678",
+    "email": "email@example.com",
+    "fax": "+49 89 12345679",
+    "additionalAddressInfo": "no additional Info",
+    "externalId": "Information not needed",
+    "key": "exampleKey"
+  },
+  "itemShippingAddresses": [],
+  "refusedGifts": [],
+  "custom": {
+    "type": {
+      "typeId": "type",
+      "id": "6f5ebb53-b59e-4cb1-bd94-8469a4e8629e"
+    },
+    "fields": {
+      "campaignGroup": "A",
+      "preOrder": false,
+      "journey": "A",
+      "couponsInfomation": {
+        "typeId": "key-value-document",
+        "id": "fda0ae39-09f8-4d6d-a996-3d780d17ae3b",
+        "obj": {
+          "id": "fda0ae39-09f8-4d6d-a996-3d780d17ae3b",
+          "version": 2,
+          "versionModifiedAt": "2025-03-17T07:40:16.808Z",
+          "createdAt": "2025-03-17T07:39:56.770Z",
+          "lastModifiedAt": "2025-03-17T07:40:16.808Z",
+          "lastModifiedBy": {
+            "clientId": "Ea4Qtl5uCinAa8Hx-6zUeXvT",
+            "isPlatformClient": false
+          },
+          "createdBy": {
+            "clientId": "Ea4Qtl5uCinAa8Hx-6zUeXvT",
+            "isPlatformClient": false
+          },
+          "container": "couponsInfomation",
+          "key": "aaaf79c7-8e76-46d4-8197-d4b7ea95f370",
+          "value": [
+            {
+              "couponCode": "O-ARGUS-V3",
+              "discountPrice": 100,
+              "discountPercentage": 0,
+              "discountCode": "TEST",
+              "otherPaymentCode": "TEST",
+              "marketingName": {
+                "en": "TEST",
+                "th": "TEST"
+              },
+              "couponName": {
+                "th": "TEST",
+                "en": "TEST"
+              },
+              "couponShortDetail": {
+                "th": "TEST",
+                "en": "TEST"
+              },
+              "couponImage": "",
+              "termCondition": {
+                "th": "TEST",
+                "en": "TEST"
+              },
+              "loyaltyGroup": ["BLACK", "RED", "BLUE", "GREEN"],
+              "customerType": ["VIP"],
+              "applyWithJourney": ["null"],
+              "applyToProduct": ["null"],
+              "applyToPackage": ["null"],
+              "applyToSeries": ["null"],
+              "applyToBrand": ["null"],
+              "applyToCategories": ["null"],
+              "allowDiscountOnProducts": false,
+              "minimumPurchase": 0,
+              "maximumPurchase": 0,
+              "maximumDiscount": 0,
+              "allowStacking": false
+            }
+          ]
+        }
+      },
+      "package": {
+        "typeId": "key-value-document",
+        "id": "212fae49-d772-49ff-b30a-b9716079cc56",
+        "obj": {
+          "id": "212fae49-d772-49ff-b30a-b9716079cc56",
+          "version": 1,
+          "versionModifiedAt": "2024-06-07T04:29:55.750Z",
+          "createdAt": "2024-06-07T04:29:55.750Z",
+          "lastModifiedAt": "2024-06-07T04:29:55.750Z",
+          "lastModifiedBy": {
+            "clientId": "Ea4Qtl5uCinAa8Hx-6zUeXvT",
+            "isPlatformClient": false
+          },
+          "createdBy": {
+            "clientId": "Ea4Qtl5uCinAa8Hx-6zUeXvT",
+            "isPlatformClient": false
+          },
+          "container": "test-container",
+          "key": "",
+          "value": [
+            {
+              "sku"
+              // package detatails
+              "name": {
+                "en-US": "PACKAGE_NAME 21 - Updated (by New)",
+                "th-TH": "PACKAGE_NAME 21 - Updated (by New)"
+              },
+              // START DATA FROM T1 (SaSS)
+              "t1": {
+                "priceplanRcc": 1299,
+                "penalty": 1299,
+                "advancedPayment": 100000, // 1000.00
+                "contractTerm": "12"
+              },
+              // Custom
+              "connector": {
+                "description": {
+                  "en-US": "ค่าบริการรายเดือน 1299 | สัญญา 12 | ", // `ค่าบริการ... ${priceplanRcc}`
+                  "th-TH": "Monthly 1299" // if(priceplanRcc): {}
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

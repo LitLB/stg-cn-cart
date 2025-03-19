@@ -1,6 +1,6 @@
 // interface/cart.ts
 
-import type { Address, Attribute, LocalizedString, ProductTypeReference, ShippingMethodReference } from '@commercetools/platform-sdk';
+import type { Address, Attribute, LocalizedString, ProductProjection, ProductTypeReference, ProductVariant, ShippingMethodReference } from '@commercetools/platform-sdk';
 import { ProductType } from '../types/share.types';
 
 export interface ICart {
@@ -41,6 +41,20 @@ export interface ICart {
 
 }
 
+export interface CustomVariant extends ProductVariant {
+	t1?: any;
+	cms?: any;
+	connector?: any
+}
+
+export interface CustomProductProjection extends ProductProjection {
+	masterVariant: CustomVariant;
+	variants: CustomVariant[];
+	t1?: any;
+	cms?: any;
+	connector?: any
+}
+
 export interface IItem {
 	productId: string;
 	productKey?: string;
@@ -53,6 +67,7 @@ export interface IItem {
 	productGroup?: number;
 	addOnGroup?: string;
 	freeGiftGroup?: string;
+	package?: CustomProductProjection;
 	quantity: number;
 	unitPrice: number;
 	totalUnitPrice: number;

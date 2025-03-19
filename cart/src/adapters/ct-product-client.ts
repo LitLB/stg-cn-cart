@@ -1,7 +1,7 @@
 import { LineItem } from '@commercetools/platform-sdk';
 // src/server/adapters/ct-product-client.ts
 
-import type { ApiRoot, Cart, Product, ProductDraft, ProductVariant } from '@commercetools/platform-sdk';
+import type { ApiRoot, Cart, Product, ProductDraft, ProductPagedQueryResponse, ProductVariant } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
 import { CT_PRODUCT_ACTIONS } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
@@ -39,15 +39,23 @@ class CommercetoolsProductClient {
 		return product.body;
 	}
 
-	async getProductById(id: string): Promise<Product> {
+	async getProductById(id: string, queryParams?: any): Promise<Product> {
 		const product = await this.apiRoot
 			.withProjectKey({ projectKey: this.projectKey })
 			.products()
 			.withId({ ID: id })
-			.get()
+			.get({ queryArgs: queryParams })
 			.execute();
-
 		return product.body;
+	}
+
+	async queryProducts(queryParams: any): Promise<ProductPagedQueryResponse> {
+		const response = await this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.products()
+			.get({ queryArgs: queryParams })
+			.execute();
+		return response.body;
 	}
 
 	async getProductByKey(key: string): Promise<Product> {

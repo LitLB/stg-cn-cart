@@ -1,0 +1,487 @@
+{
+  "statusCode": 200,
+  "statusMessage": "Operation was successful.",
+  "data": {
+    "cartId": "c6e6b8b0-ee50-41f5-ad3c-09f915f8ff3a",
+    "locale": "th-TH",
+    "preOrder": false,
+    "campaignGroup": "mass",
+    "journey": "device_only",
+    "subtotalPrice": 10000,
+    "totalDiscount": 0,
+    "totalPriceAfterDiscount": 1000000,
+    "shippingCost": 0,
+    "totalAdvancePayment": 200000, // 2000.00
+    "grandTotal": 1000000,
+    "currencyCode": "THB",
+    "totalQuantity": 1,
+    "shippingMethod": null,
+    "paymentMethod": null,
+    "shippingAddress": null,
+    "billingAddress": null,
+    "quantitiesByProductType": {
+      "main_product": 1
+    },
+    "items": [
+      {
+        "package": {
+          "name": {
+            "en-US": "PACKAGE_NAME 21 - Updated (by New)",
+            "th-TH": "PACKAGE_NAME 21 - Updated (by New)"
+          },
+          "categories": [],
+          "categoryOrderHints": {},
+          "slug": {
+            "en-US": "pkg-02-unlimited-5g"
+          },
+          "cms": {
+            "image": "https://images.cdn.australia-southeast1.gcp.commercetools.com/11c6ea39-ac1a-4868-87d8-5bd23bc70f03/tree-736885_640-LX3K9HiH.jpg"
+          },
+          "masterVariant": {
+            // START DATA FROM T1 (SaSS)
+            "t1": {
+              "priceplanRcc": 1299,
+              "penalty": 1299,
+              "advancedPayment": 100000, // 1000.00
+              "contractTerm": "12"
+            },
+            // Custom
+            "connector": {
+              "description": {
+                "en-US": "ค่าบริการรายเดือน 1299 | สัญญา 12 | ", // `ค่าบริการ... ${priceplanRcc}`
+                "th-TH": "Monthly 1299" // if(priceplanRcc): {}
+              }
+            },
+            // END DATA FROM T1
+            "id": 1,
+            "sku": "PACKAGE_NAME 21 - Updated (by New)",
+            "key": "351a4b0f-c281-4ee5-9140-72397498f3bb",
+            "prices": [],
+            "images": [],
+            "attributes": [
+              {
+                "name": "package_desc_marketing",
+                "value": {
+                  "en-US": "ฟฟฟ",
+                  "th-TH": "หหห"
+                }
+              },
+              {
+                "name": "package_type",
+                "value": {
+                  "key": "topping_package",
+                  "label": "Topping Package"
+                }
+              },
+              {
+                "name": "effective_date_sale",
+                "value": "2025-01-01T00:00:00.000Z"
+              },
+              {
+                "name": "expiry_date_sale",
+                "value": "2025-01-31T00:00:00.000Z"
+              },
+              {
+                "name": "effective_date_marketing",
+                "value": "2025-01-01T00:00:00.000Z"
+              },
+              {
+                "name": "expiry_date_marketing",
+                "value": "2025-01-31T00:00:00.000Z"
+              },
+              {
+                "name": "internet_quota",
+                "value": 111
+              },
+              {
+                "name": "internet_quota_unit",
+                "value": {
+                  "key": "GB",
+                  "label": "GB"
+                }
+              },
+              {
+                "name": "internet_max_speed",
+                "value": 111
+              },
+              {
+                "name": "internet_max_speed_unit",
+                "value": {
+                  "key": "mbps",
+                  "label": "Mbps"
+                }
+              },
+              {
+                "name": "internet_fup_speed",
+                "value": 111
+              },
+              {
+                "name": "internet_fup_speed_unit",
+                "value": {
+                  "key": "mbps",
+                  "label": "Mbps"
+                }
+              },
+              {
+                "name": "voice_quota_unit",
+                "value": {
+                  "key": "Seconds",
+                  "label": "Seconds"
+                }
+              },
+              {
+                "name": "mms_message",
+                "value": {
+                  "en-US": "aaa",
+                  "th-TH": "ฟฟฟ"
+                }
+              },
+              {
+                "name": "company",
+                "value": {
+                  "key": "dtac",
+                  "label": "DTAC"
+                }
+              },
+              {
+                "name": "product_type",
+                "value": {
+                  "key": "DTN",
+                  "label": "DTN"
+                }
+              },
+              {
+                "name": "group",
+                "value": "plan"
+              },
+              {
+                "name": "voice_buffet_flag",
+                "value": true
+              },
+              {
+                "name": "voice_group",
+                "value": {
+                  "key": "ALLNET",
+                  "label": "All Net"
+                }
+              },
+              {
+                "name": "customer_type_allow",
+                "value": [
+                  {
+                    "key": "B",
+                    "label": "Business"
+                  },
+                  {
+                    "key": "C",
+                    "label": "Corporate"
+                  },
+                  {
+                    "key": "I",
+                    "label": "Individual"
+                  }
+                ]
+              },
+              {
+                "name": "internet_group",
+                "value": {
+                  "key": "LIMIT",
+                  "label": "Limit"
+                }
+              },
+              {
+                "name": "voice_rate_message",
+                "value": {
+                  "en-US": "ccc",
+                  "th-TH": "กกก"
+                }
+              },
+              {
+                "name": "package_desc",
+                "value": {
+                  "en-US": "ฟฟฟ",
+                  "th-TH": "หหห"
+                }
+              },
+              {
+                "name": "voice_buffet_type",
+                "value": {
+                  "key": "ONNET",
+                  "label": "On Net"
+                }
+              },
+              {
+                "name": "package_free",
+                "value": [
+                  {
+                    "en-US": "aaa",
+                    "th-TH": "ฟฟฟ"
+                  },
+                  {
+                    "en-US": "bbb",
+                    "th-TH": "หหห"
+                  },
+                  {
+                    "en-US": "ccc",
+                    "th-TH": "กกก"
+                  }
+                ]
+              },
+              {
+                "name": "package_main_image",
+                "value": {
+                  "en-US": "d/2/4/9/d249fe65d9bc11c805d6686265a0400ff1af6ef5_Facebook.png",
+                  "th-TH": "5/e/4/5/5e45633c06e8a84c1d361fb53700d20888355873_Google.jpg"
+                }
+              },
+              {
+                "name": "voice_quota",
+                "value": 222
+              },
+              {
+                "name": "wifi_unlimit_flag",
+                "value": true
+              },
+              {
+                "name": "priceplan_rc",
+                "value": 222.22
+              },
+              {
+                "name": "sms_message",
+                "value": {
+                  "th-TH": "หหห",
+                  "en-US": "bbb"
+                }
+              },
+              {
+                "name": "package_code",
+                "value": "PACKAGE_CODE 21 - Updated (by New)"
+              },
+              {
+                "name": "effective_time_sale",
+                "value": "21:59"
+              },
+              {
+                "name": "effective_time_marketing",
+                "value": "21:59"
+              },
+              {
+                "name": "expiry_time_sale",
+                "value": "21:59"
+              },
+              {
+                "name": "package_id",
+                "value": "PACKAGE_ID 21 - Updated (by New)"
+              },
+              {
+                "name": "package_name_marketing",
+                "value": {
+                  "en-US": "aaaaaaaa",
+                  "th-TH": "ฟฟฟฟฟฟฟฟฟฟฟ"
+                }
+              }
+            ],
+            "assets": []
+          },
+          "variants": [],
+          "searchKeywords": {}
+        },
+        "productId": "bb223b57-bf6b-454f-a1de-e0b6c4ebfe7b",
+        "productKey": "7a29ebcc-9c6d-4848-8d02-794b8733ce9b",
+        "productName": {
+          "en-US": "iphone 21 Pro Max (By New)",
+          "th-TH": "ไอโฟน 21 โปรแม็กซ์ (นิว)"
+        },
+        "ctProductType": {
+          "typeId": "product-type",
+          "id": "02584416-7fac-4a37-a511-be6b3e329664"
+        },
+        "productSlug": {
+          "en-US": "slug-1726121072239"
+        },
+        "variantId": 1,
+        "sku": "iphone-21-pro-max-black",
+        "productType": "main_product",
+        "productGroup": 1,
+        "image": {
+          "url": "https://images.cdn.australia-southeast1.gcp.commercetools.com/11c6ea39-ac1a-4868-87d8-5bd23bc70f03/tree-736885_640-LX3K9HiH.jpg",
+          "label": "AAA",
+          "dimensions": {
+            "w": 640,
+            "h": 398
+          }
+        },
+        "quantity": 1,
+        "unitPrice": 1000000,
+        "totalUnitPrice": 1000000,
+        "discountAmount": 0,
+        "otherPaymentAmount": 0,
+        "priceAfterDiscount": 1000000,
+        "finalPrice": 1000000,
+        "appliedEffects": [],
+        "attributes": [
+          {
+            "name": "akeneo_id",
+            "value": "iphone-21-pro-max-black"
+          },
+          {
+            "name": "company",
+            "value": {
+              "key": "true",
+              "label": "True"
+            }
+          },
+          {
+            "name": "company_code",
+            "value": "1064"
+          },
+          {
+            "name": "screen_size",
+            "value": "1024"
+          },
+          {
+            "name": "status",
+            "value": {
+              "key": "enabled",
+              "label": "Enabled"
+            }
+          },
+          {
+            "name": "product_id",
+            "value": "7a29ebcc-9c6d-4848-8d02-794b8733ce9b"
+          },
+          {
+            "name": "variant_product_title",
+            "value": {
+              "en-US": "iphone 21 Pro Max - Black"
+            }
+          },
+          {
+            "name": "brand_name",
+            "value": {
+              "key": "apple",
+              "label": "Apple"
+            }
+          },
+          {
+            "name": "payment_options_specification",
+            "value": [
+              {
+                "key": "truemoney",
+                "label": "True Money Wallet"
+              },
+              {
+                "key": "cod",
+                "label": "Cash on Delivery"
+              },
+              {
+                "key": "installment",
+                "label": "Installment Credit Card"
+              },
+              {
+                "key": "promptpay",
+                "label": "PromptPay"
+              },
+              {
+                "key": "ccw",
+                "label": "Credit / Debit Card"
+              }
+            ]
+          },
+          {
+            "name": "image",
+            "value": "https://images.contentstack.io/v3/assets/blt8ba403bee4433fd8/blta971c43b460c7f42/6723354eb3d37517e0930d80/iphone-16.jpg?branch=develop"
+          },
+          {
+            "name": "color_code",
+            "value": "BLACK"
+          },
+          {
+            "name": "capacity",
+            "value": {
+              "key": "1TB",
+              "label": "1TB"
+            }
+          },
+          {
+            "name": "quantity_min",
+            "value": 1
+          },
+          {
+            "name": "journey",
+            "value": [
+              {
+                "key": "device_bundle_existing",
+                "label": "Device Bundling (Existing)"
+              },
+              {
+                "key": "device_only",
+                "label": "Device Only"
+              }
+            ]
+          },
+          {
+            "name": "quantity_max",
+            "value": 1
+          }
+        ],
+        "selected": false,
+        "insurances": [],
+        "inventory": {
+          "id": "6998fe11-af8c-4510-a441-1e0f1fde629d",
+          "key": "80001999-iphone-21-pro-max-black",
+          "stock": {
+            "available": 80,
+            "totalAvailableDummyStock": 0,
+            "totalAvailableDummyPurchaseStock": 0
+          },
+          "isOutOfStock": false
+        },
+        "availableBenefits": [],
+        "isRequirePrivilege": false,
+        "privilege": null,
+        "discounts": [],
+        "otherPayments": []
+      }
+    ],
+    "triggeredCampaigns": [],
+    "appliedEffects": [],
+    "createdAt": "2025-03-18T06:52:19.109Z",
+    "updatedAt": "2025-03-18T06:52:25.413Z",
+    "deleteDaysAfterLastModification": 1,
+    "expiredAt": "2025-03-19T06:52:25.413Z",
+    "operator": "TRUE",
+    "hasChanged": [
+      {
+        "productId": "bb223b57-bf6b-454f-a1de-e0b6c4ebfe7b",
+        "skuId": "iphone-21-pro-max-black",
+        "hasChange": {
+          "brand_name": false,
+          "capacity": false,
+          "color_code": false,
+          "company": false,
+          "image": false,
+          "journey": false,
+          "payment_options_specification": false,
+          "prices": false,
+          "quantity_lower_parent_min": false,
+          "quantity_lower_sku_min": false,
+          "quantity_max": false,
+          "quantity_min": false,
+          "quantity_over_parent_max": false,
+          "quantity_over_sku_max": false,
+          "quantity_over_stock": false,
+          "screen_size": false,
+          "status": false,
+          "variant_product_title": false
+        }
+      }
+    ],
+    "hasChangedNote": "",
+    "coupons": {
+      "acceptedCoupons": [],
+      "rejectedCoupons": []
+    },
+    "couponsInformation": []
+  }
+}
