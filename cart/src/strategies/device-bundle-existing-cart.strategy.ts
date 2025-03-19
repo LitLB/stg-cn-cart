@@ -1,4 +1,4 @@
-import { Cart, CustomObject, Product, ProductVariant } from "@commercetools/platform-sdk";
+import { Cart, CustomObject, LineItem, Product, ProductVariant } from "@commercetools/platform-sdk";
 import { CommercetoolsCartClient } from "../adapters/ct-cart-client";
 import { CommercetoolsInventoryClient } from "../adapters/ct-inventory-client";
 import { CommercetoolsProductClient } from "../adapters/ct-product-client";
@@ -13,6 +13,7 @@ import { readConfiguration } from "../utils/config.utils";
 import { validateInventory } from "../utils/cart.utils";
 import { LINE_ITEM_INVENTORY_MODES } from "../constants/lineItem.constant";
 import { CommercetoolsCustomObjectClient } from "../adapters/ct-custom-object-client";
+import { ICart } from "../interfaces/cart";
 
 export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
     constructor() {
@@ -131,6 +132,15 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
     }
 
     protected validateQuantity(productType: string, cart: Cart, sku: string, product: Product, variant: ProductVariant, deltaQuantity: number) {
+        const cartQuantity = cart.lineItems.filter((item: LineItem) => item.variant.sku === sku).reduce((sum, item) => sum + item.quantity, 0);
+
+        if (cartQuantity === 1 && deltaQuantity > 0) {
+            throw {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                statusMessage: `Cannot have more than 1 unit of SKU ${sku} in the cart.`,
+            };
+        }
+
         validateProductQuantity(
             productType,
             cart,
@@ -241,7 +251,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
 
             const product = await this.getProductById(productId)
             const mainPackage = await this.getPackageByCode(packageInfo.code)
-            const packageAdditionalInfo = await this.getPackageAdditionalInfo(packageInfo.code)
+            const { advancedPayment, contractTerm, contractFee } = await this.getPackageAdditionalInfo(packageInfo.code)
             const variant = this.getVariantBySku(product, sku)
             const validPrice = this.getValidPrice(variant, now)
 
@@ -261,85 +271,6 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
                 productType,
                 productGroup,
             })
-
-
-            /**
-            if (productType === 'insurance') {
-                const validateInsuranceResult = await this.adapters.commercetoolsMeCartClient.validateInsurance(cart, {
-                    productGroup: newProductGroup,
-                    productId,
-                    sku
-                })
-
-                if (!validateInsuranceResult?.isValid) {
-                    return {
-                        status: 'error',
-                        message: validateInsuranceResult?.errorMessage
-                    }
-                }
-            }
-
-            const changes = [{
-                sku,
-                quantity,
-                productType,
-                productGroup: newProductGroup,
-                addOnGroup,
-                freeGiftGroup,
-                campaignVerifyValues
-            }]
-            const action = 'add_product'
-            const validateResult = await this.adapters.talonOneEffectConverter.validate(cart, changes, action)
-
-            if (!validateResult?.isValid && (validateResult as any)?.isRequireCampaignVerify) {
-                throw createStandardizedError({
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: validateResult?.errorMessage,
-                    errorCode: 'CAMPAIGN_VERIFY_KEY_IS_REQUIRED',
-                    data: {
-                        requestBody: {
-                            ...payload
-                        },
-                        campaignVerifyKeys: (validateResult as any)?.campaignVerifyKeys,
-                    }
-                }, 'addItem');
-            }
-
-            if (!validateResult?.isValid) {
-                throw createStandardizedError({
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: validateResult?.errorMessage,
-                    errorCode: (validateResult as any).errorCode
-                }, 'addItem');
-            }
-            
-
-            // TODO: filter out campaignVerifyValues that does not allow
-            const allowCampaignVerifyKeys = (validateResult as { allowCampaignVerifyKeys?: any[] }).allowCampaignVerifyKeys ?? [];
-            const { campaignVerifyKeys: allowCampaignVerifyKeysForCurrentItem = [] } = allowCampaignVerifyKeys.find((item: any) => item.sku === sku &&
-                item.productType === productType &&
-                item.productGroup === newProductGroup) || {}
-            
-            const filteredCampaignVerifyValues = campaignVerifyValues.filter((campaignVerifyValue: any) => {
-                return allowCampaignVerifyKeysForCurrentItem.find((allowCampaignVerifyKey: any) => allowCampaignVerifyKey.name === campaignVerifyValue.name)
-            })
-            
-
-            const updatedCart = await this.adapters.commercetoolsCartClient.addItemToCart({
-                cart,
-                productId,
-                variantId: variant.id,
-                quantity,
-                productType,
-                productGroup: newProductGroup,
-                addOnGroup,
-                freeGiftGroup,
-                externalPrice: validPrice.value,
-                dummyFlag: isDummyStock,
-                campaignVerifyValues: filteredCampaignVerifyValues,
-            });
-            */
-
 
             const updatedCart = await this.adapters.commercetoolsCartClient.updateCart(cart.id, cart.version, [
                 {
@@ -383,18 +314,28 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
                     }
                 },
                 {
-                    action: "setCustomType",
-                    type: { "key": "packageAdditionalInfo" },
-                    fields: packageAdditionalInfo
+                    action: "setCustomField",
+                    name: "advancedPayment",
+                    value: advancedPayment
+                },
+                {
+                    action: "setCustomField",
+                    name: "contractTerm",
+                    value: contractTerm
+                },
+                {
+                    action: "setCustomField",
+                    name: "contractFee",
+                    value: contractFee
                 },
             ]);
-
+            let iCart: ICart = this.adapters.commercetoolsMeCartClient.mapCartToICart(updatedCart);
             // const ctCartWithChanged: Cart = await this.adapters.commercetoolsProductClient.checkCartHasChanged(updatedCart)
             // const { ctCart: cartWithUpdatedPrice, compared } = await this.adapters.commercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
             // const updateCartWithOperator = await this.adapters.commercetoolsCartClient.updateCartWithOperator(cartWithUpdatedPrice, payload.operator)
             // const iCartWithBenefit = await this.adapters.commercetoolsMeCartClient.updateCartWithBenefit(updateCartWithOperator);
 
-            return updatedCart;
+            return iCart;
         } catch (error: any) {
             console.log('error', error);
 

@@ -45,6 +45,7 @@ export class CartItemController {
                 req.body.operator = CART_OPERATOS.TRUE;
             }
             const { error, value } = validateAddItemCartBody(req.body);
+            console.log(JSON.stringify(error, null, 2))
             if (error) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -76,6 +77,7 @@ export class CartItemController {
 
             res.status(200).json(response);
         } catch (error: any) {
+            console.log(error)
             logger.error(`CartItemController.addItem.error`, error);
 
             next(error);
