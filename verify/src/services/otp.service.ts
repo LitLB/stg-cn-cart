@@ -401,50 +401,34 @@ export class OtpService {
     public async getCustomerProfile(id: string, mobileNumber: string, journey: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_GET_PROFILE_AND_PACKAGE, logModel);
-        const apigeeClientAdapter = new ApigeeClientAdapter
+        const apigeeClientAdapter = new ApigeeClientAdapter();
 
-        const operator = await this.checkOperator(id, mobileNumber)
+        const operator = await this.checkOperator(id, mobileNumber);
 
-        let getProfilePayload: Partial<IGetProfileDtacRequest | IGetProfileTrueRequest> = {}
-
-        const basePayload = {
-            id,
-            channel: operator,
-        };
-
-        if (operator === OPERATOR.TRUE) {
-            getProfilePayload = {
+        const basePayload = { id, channel: operator };
+        const getProfilePayload = operator === OPERATOR.TRUE
+            ? {
                 ...basePayload,
                 limit: "50",
                 page: "1",
-                relatedParty: {
-                    id: mobileNumber,
-                    type: "MOBILE"
-                },
-                characteristic: [
-                    {
-                        name: "agingIndicator",
-                        value: "Y"
-                    }
-                ]
-            };
-
-        } else {
-            getProfilePayload = {
+                relatedParty: { id: mobileNumber, type: "MOBILE" },
+                characteristic: [{ name: "agingIndicator", value: "Y" }]
+            }
+            : {
                 ...basePayload,
                 category: "2",
-                relatedParty: {
-                    id: mobileNumber
-                }
+                relatedParty: { id: mobileNumber }
             };
-        }
 
         try {
-            await this.checkActive(operator, journey);
+            const [_, response] = await Promise.all([
+                // * Check operator active
+                this.checkActive(operator, journey),
+                // * Get Profile & Package
+                apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
+            ]);
 
-            const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload);
             logService(getProfilePayload, response, logStepModel);
-
             const { data, code } = response.data;
 
             if (code !== '0') {
@@ -459,8 +443,11 @@ export class OtpService {
                 ? validateCustomerTrueProfile(data)
                 : validateCustomerDtacProfile(data);
 
+            // Run post-checks concurrently.
             await Promise.all([
+                // * Check backlist
                 this.checkBacklist(id, customerProfile.thaiId, operator, customerProfile.customerNo),
+                // * Check Contract & Quota
                 this.checkContractAndQuota(id, operator, customerProfile.thaiId, customerProfile.agreementId)
             ]);
 
