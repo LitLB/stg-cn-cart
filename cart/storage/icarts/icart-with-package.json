@@ -2,16 +2,15 @@
   "statusCode": 200,
   "statusMessage": "Operation was successful.",
   "data": {
-    "cartId": "c6e6b8b0-ee50-41f5-ad3c-09f915f8ff3a",
+    "cartId": "0b31cc91-68a7-41da-a2d4-4a6c404f7605",
     "locale": "th-TH",
     "preOrder": false,
     "campaignGroup": "mass",
-    "journey": "device_only",
-    "subtotalPrice": 10000,
+    "journey": "device_bundle_existing",
+    "subtotalPrice": 1000000,
     "totalDiscount": 0,
     "totalPriceAfterDiscount": 1000000,
     "shippingCost": 0,
-    "totalAdvancePayment": 200000, // 2000.00
     "grandTotal": 1000000,
     "currencyCode": "THB",
     "totalQuantity": 1,
@@ -24,7 +23,169 @@
     },
     "items": [
       {
+        "productId": "bb223b57-bf6b-454f-a1de-e0b6c4ebfe7b",
+        "productKey": "7a29ebcc-9c6d-4848-8d02-794b8733ce9b",
+        "productName": {
+          "en-US": "iphone 21 Pro Max (By New)",
+          "th-TH": "ไอโฟน 21 โปรแม็กซ์ (นิว)"
+        },
+        "ctProductType": {
+          "typeId": "product-type",
+          "id": "02584416-7fac-4a37-a511-be6b3e329664"
+        },
+        "productSlug": {
+          "en-US": "slug-1726121072239"
+        },
+        "variantId": 1,
+        "sku": "iphone-21-pro-max-black",
+        "productType": "main_product",
+        "productGroup": 1,
+        "image": {
+          "url": "https://images.cdn.australia-southeast1.gcp.commercetools.com/11c6ea39-ac1a-4868-87d8-5bd23bc70f03/tree-736885_640-LX3K9HiH.jpg",
+          "label": "AAA",
+          "dimensions": {
+            "w": 640,
+            "h": 398
+          }
+        },
+        "quantity": 1,
+        "unitPrice": 1000000,
+        "totalUnitPrice": 1000000,
+        "discountAmount": 0,
+        "otherPaymentAmount": 0,
+        "priceAfterDiscount": 1000000,
+        "finalPrice": 1000000,
+        "appliedEffects": [],
+        "attributes": [
+          {
+            "name": "akeneo_id",
+            "value": "iphone-21-pro-max-black"
+          },
+          {
+            "name": "company",
+            "value": {
+              "key": "true",
+              "label": "True"
+            }
+          },
+          {
+            "name": "company_code",
+            "value": "1064"
+          },
+          {
+            "name": "screen_size",
+            "value": "1024"
+          },
+          {
+            "name": "status",
+            "value": {
+              "key": "enabled",
+              "label": "Enabled"
+            }
+          },
+          {
+            "name": "product_id",
+            "value": "7a29ebcc-9c6d-4848-8d02-794b8733ce9b"
+          },
+          {
+            "name": "variant_product_title",
+            "value": {
+              "en-US": "iphone 21 Pro Max - Black"
+            }
+          },
+          {
+            "name": "brand_name",
+            "value": {
+              "key": "apple",
+              "label": "Apple"
+            }
+          },
+          {
+            "name": "payment_options_specification",
+            "value": [
+              {
+                "key": "truemoney",
+                "label": "True Money Wallet"
+              },
+              {
+                "key": "cod",
+                "label": "Cash on Delivery"
+              },
+              {
+                "key": "installment",
+                "label": "Installment Credit Card"
+              },
+              {
+                "key": "promptpay",
+                "label": "PromptPay"
+              },
+              {
+                "key": "ccw",
+                "label": "Credit / Debit Card"
+              }
+            ]
+          },
+          {
+            "name": "image",
+            "value": "https://images.contentstack.io/v3/assets/blt8ba403bee4433fd8/blta971c43b460c7f42/6723354eb3d37517e0930d80/iphone-16.jpg?branch=develop"
+          },
+          {
+            "name": "color_code",
+            "value": "BLACK"
+          },
+          {
+            "name": "capacity",
+            "value": {
+              "key": "1TB",
+              "label": "1TB"
+            }
+          },
+          {
+            "name": "quantity_min",
+            "value": 1
+          },
+          {
+            "name": "journey",
+            "value": [
+              {
+                "key": "device_bundle_existing",
+                "label": "Device Bundling (Existing)"
+              },
+              {
+                "key": "device_only",
+                "label": "Device Only"
+              }
+            ]
+          },
+          {
+            "name": "quantity_max",
+            "value": 1
+          }
+        ],
+        "selected": false,
+        "insurances": [],
+        "inventory": {
+          "id": "6998fe11-af8c-4510-a441-1e0f1fde629d",
+          "key": "80001999-iphone-21-pro-max-black",
+          "stock": {
+            "available": 80,
+            "totalAvailableDummyStock": 0,
+            "totalAvailableDummyPurchaseStock": 0
+          },
+          "isOutOfStock": false
+        },
+        "availableBenefits": [],
+        "isRequirePrivilege": false,
+        "privilege": null,
+        "discounts": [],
+        "otherPayments": [],
         "package": {
+          "id": "a8d1e006-2271-4ecb-aaab-8560e9710e84",
+          "version": 205,
+          "productType": {
+            "typeId": "product-type",
+            "id": "5e52c33f-fca3-4dd4-901a-a1d3538e0772"
+          },
           "name": {
             "en-US": "PACKAGE_NAME 21 - Updated (by New)",
             "th-TH": "PACKAGE_NAME 21 - Updated (by New)"
@@ -34,25 +195,7 @@
           "slug": {
             "en-US": "pkg-02-unlimited-5g"
           },
-          "cms": {
-            "image": "https://images.cdn.australia-southeast1.gcp.commercetools.com/11c6ea39-ac1a-4868-87d8-5bd23bc70f03/tree-736885_640-LX3K9HiH.jpg"
-          },
           "masterVariant": {
-            // START DATA FROM T1 (SaSS)
-            "t1": {
-              "priceplanRcc": 129900, // 129900
-              "penalty": 129900, // 129900
-              "advancedPayment": 100000, // 1000.00
-              "contractTerm": 12 // mothnly
-            },
-            // Custom
-            "connector": {
-              "description": {
-                "en-US": "ค่าบริการรายเดือน 1299 | สัญญา 12 | ", // `ค่าบริการ... ${priceplanRcc}`
-                "th-TH": "Monthly 1299" // if(priceplanRcc): {}
-              }
-            },
-            // END DATA FROM T1
             "id": 1,
             "sku": "PACKAGE_NAME 21 - Updated (by New)",
             "key": "351a4b0f-c281-4ee5-9140-72397498f3bb",
@@ -255,7 +398,7 @@
               },
               {
                 "name": "package_code",
-                "value": "PACKAGE_CODE 21 - Updated (by New)"
+                "value": "PACKAGE_CODE_21"
               },
               {
                 "name": "effective_time_sale",
@@ -281,175 +424,44 @@
                 }
               }
             ],
-            "assets": []
+            "assets": [],
+            "t1": {
+              "priceplanRcc": 129900,
+              "penalty": 129900,
+              "advancedPayment": 100000,
+              "contractTerm": 12
+            },
+            "connector": {
+              "description": {
+                "en-US": "ค่าบริการรายเดือน 1299 | สัญญา 12 | ",
+                "th-TH": "Monthly 1299"
+              }
+            }
           },
           "variants": [],
-          "searchKeywords": {}
-        },
-        "productId": "bb223b57-bf6b-454f-a1de-e0b6c4ebfe7b",
-        "productKey": "7a29ebcc-9c6d-4848-8d02-794b8733ce9b",
-        "productName": {
-          "en-US": "iphone 21 Pro Max (By New)",
-          "th-TH": "ไอโฟน 21 โปรแม็กซ์ (นิว)"
-        },
-        "ctProductType": {
-          "typeId": "product-type",
-          "id": "02584416-7fac-4a37-a511-be6b3e329664"
-        },
-        "productSlug": {
-          "en-US": "slug-1726121072239"
-        },
-        "variantId": 1,
-        "sku": "iphone-21-pro-max-black",
-        "productType": "main_product",
-        "productGroup": 1,
-        "image": {
-          "url": "https://images.cdn.australia-southeast1.gcp.commercetools.com/11c6ea39-ac1a-4868-87d8-5bd23bc70f03/tree-736885_640-LX3K9HiH.jpg",
-          "label": "AAA",
-          "dimensions": {
-            "w": 640,
-            "h": 398
+          "searchKeywords": {},
+          "hasStagedChanges": false,
+          "published": true,
+          "key": "351a4b0f-c281-4ee5-9140-72397498f3bb",
+          "taxCategory": {
+            "typeId": "tax-category",
+            "id": "fb18160d-f163-4d67-9e9c-f657653fdf25"
+          },
+          "priceMode": "Embedded",
+          "createdAt": "2025-02-27T08:01:22.440Z",
+          "lastModifiedAt": "2025-03-19T07:41:04.872Z",
+          "cms": {
+            "image": "https://images.cdn.australia-southeast1.gcp.commercetools.com/11c6ea39-ac1a-4868-87d8-5bd23bc70f03/tree-736885_640-LX3K9HiH.jpg"
           }
-        },
-        "quantity": 1,
-        "unitPrice": 1000000,
-        "totalUnitPrice": 1000000,
-        "discountAmount": 0,
-        "otherPaymentAmount": 0,
-        "priceAfterDiscount": 1000000,
-        "finalPrice": 1000000,
-        "appliedEffects": [],
-        "attributes": [
-          {
-            "name": "akeneo_id",
-            "value": "iphone-21-pro-max-black"
-          },
-          {
-            "name": "company",
-            "value": {
-              "key": "true",
-              "label": "True"
-            }
-          },
-          {
-            "name": "company_code",
-            "value": "1064"
-          },
-          {
-            "name": "screen_size",
-            "value": "1024"
-          },
-          {
-            "name": "status",
-            "value": {
-              "key": "enabled",
-              "label": "Enabled"
-            }
-          },
-          {
-            "name": "product_id",
-            "value": "7a29ebcc-9c6d-4848-8d02-794b8733ce9b"
-          },
-          {
-            "name": "variant_product_title",
-            "value": {
-              "en-US": "iphone 21 Pro Max - Black"
-            }
-          },
-          {
-            "name": "brand_name",
-            "value": {
-              "key": "apple",
-              "label": "Apple"
-            }
-          },
-          {
-            "name": "payment_options_specification",
-            "value": [
-              {
-                "key": "truemoney",
-                "label": "True Money Wallet"
-              },
-              {
-                "key": "cod",
-                "label": "Cash on Delivery"
-              },
-              {
-                "key": "installment",
-                "label": "Installment Credit Card"
-              },
-              {
-                "key": "promptpay",
-                "label": "PromptPay"
-              },
-              {
-                "key": "ccw",
-                "label": "Credit / Debit Card"
-              }
-            ]
-          },
-          {
-            "name": "image",
-            "value": "https://images.contentstack.io/v3/assets/blt8ba403bee4433fd8/blta971c43b460c7f42/6723354eb3d37517e0930d80/iphone-16.jpg?branch=develop"
-          },
-          {
-            "name": "color_code",
-            "value": "BLACK"
-          },
-          {
-            "name": "capacity",
-            "value": {
-              "key": "1TB",
-              "label": "1TB"
-            }
-          },
-          {
-            "name": "quantity_min",
-            "value": 1
-          },
-          {
-            "name": "journey",
-            "value": [
-              {
-                "key": "device_bundle_existing",
-                "label": "Device Bundling (Existing)"
-              },
-              {
-                "key": "device_only",
-                "label": "Device Only"
-              }
-            ]
-          },
-          {
-            "name": "quantity_max",
-            "value": 1
-          }
-        ],
-        "selected": false,
-        "insurances": [],
-        "inventory": {
-          "id": "6998fe11-af8c-4510-a441-1e0f1fde629d",
-          "key": "80001999-iphone-21-pro-max-black",
-          "stock": {
-            "available": 80,
-            "totalAvailableDummyStock": 0,
-            "totalAvailableDummyPurchaseStock": 0
-          },
-          "isOutOfStock": false
-        },
-        "availableBenefits": [],
-        "isRequirePrivilege": false,
-        "privilege": null,
-        "discounts": [],
-        "otherPayments": []
+        }
       }
     ],
     "triggeredCampaigns": [],
     "appliedEffects": [],
-    "createdAt": "2025-03-18T06:52:19.109Z",
-    "updatedAt": "2025-03-18T06:52:25.413Z",
+    "createdAt": "2025-03-19T08:47:57.902Z",
+    "updatedAt": "2025-03-19T08:56:15.139Z",
     "deleteDaysAfterLastModification": 1,
-    "expiredAt": "2025-03-19T06:52:25.413Z",
+    "expiredAt": "2025-03-20T08:56:15.139Z",
     "operator": "TRUE",
     "hasChanged": [
       {

@@ -21,7 +21,7 @@ import type {
 	CartChangeCustomLineItemQuantityAction,
 } from '@commercetools/platform-sdk';
 import type { IAvailableBenefitProduct, IAvailableBenefitProductVariant, ICart, IImage, IItem } from '../../interfaces/cart';
-import { CART_EXPIRATION_DAYS, CART_INVENTORY_MODES } from '../../constants/cart.constant';
+import { CART_EXPIRATION_DAYS } from '../../constants/cart.constant';
 import dayjs from 'dayjs';
 import CommercetoolsInventoryClient from '../ct-inventory-client';
 import CommercetoolsCartClient from '../ct-cart-client';
@@ -134,10 +134,8 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 				.me()
 				.carts()
 				.withId({ ID: cartId })
-				.get({ queryArgs: { expand: 'custom.fields.couponsInfomation' } })
+				.get({ queryArgs: { expand: ['custom.fields.couponsInfomation', 'custom.fields.package'] } })
 				.execute();
-
-			// console.log(JSON.stringify(response.body, null, 2));
 
 			return response.body;
 
@@ -298,7 +296,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 		freeGiftGroup: string;
 	}) {
 		const lineItem = cart.lineItems.find((item) => {
-			return  item.productId === productId &&
+			return item.productId === productId &&
 				item.variant.id === variantId &&
 				item.custom?.fields?.productType === productType &&
 				item.custom?.fields?.productGroup === productGroup &&
@@ -627,7 +625,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
  */
 	private calculateCustomLineItemsTotalPrice(customLineItems: CustomLineItem[]): number {
 		return customLineItems
-			.filter((item:any) => !item.slug.includes(this.ctpAddCustomOtherPaymentLineItemPrefix))
+			.filter((item: any) => !item.slug.includes(this.ctpAddCustomOtherPaymentLineItemPrefix))
 			.reduce((total, cli) => total + cli.totalPrice.centAmount, 0);
 	}
 
@@ -770,7 +768,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 			const sku = item.sku;
 			const inventory = inventoryMap.get(sku);
 			if (inventory) {
-                // check out of stock allocation
+				// check out of stock allocation
 				const { id, key, stock, isOutOfStock } = inventory;
 				item.inventory = { id, key, stock, isOutOfStock };
 			} else {
@@ -792,8 +790,8 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 	calculateLineItemOtherPaymentAmount(lineItem: any, customLineItems: any[]) {
 		const lineItemId = lineItem.id
 		this.ctpAddCustomOtherPaymentLineItemPrefix
-		const otherPaymentCustomLineItems = 
-			customLineItems.filter((item:any) => item.slug.startsWith(`${lineItemId}-${this.ctpAddCustomOtherPaymentLineItemPrefix}`))
+		const otherPaymentCustomLineItems =
+			customLineItems.filter((item: any) => item.slug.startsWith(`${lineItemId}-${this.ctpAddCustomOtherPaymentLineItemPrefix}`))
 		const lineItemOtherPaymentAmount = otherPaymentCustomLineItems.reduce((acc: number, current: any) => {
 			return acc + Math.abs(current?.totalPrice?.centAmount)
 		}, 0)
@@ -858,24 +856,24 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 		const myCartUpdateActions: MyCartUpdateAction[] = [];
 		const cartUpdateActions: CartUpdateAction[] = []
 		const newDirectDiscounts: any[] = [];
-	
+
 		lineItems.forEach((lineItem: any) => {
 			const lineItemId = lineItem.id
 			const lineItemProductType = lineItem.custom.fields.productType
 			const lineItemProductGroup = lineItem.custom.fields.productGroup
 			const lineItemAddOnGroup = lineItem.custom.fields.addOnGroup
 			const lineItemFreeGiftGroup = lineItem.custom.fields.freeGiftGroup
-	
+
 			const quantity = lineItem.quantity
 
 			const lineItemWithCampaignBenefit = lineItemWithCampaignBenefits.find((item: any) => {
 				return lineItem.variant.sku === item.variant.sku &&
 					lineItemProductType === item.custom.fields.productType &&
 					lineItemProductGroup === item.custom.fields.productGroup &&
-					(!lineItemAddOnGroup || lineItemAddOnGroup === item.custom.fields.addOnGroup) && 
+					(!lineItemAddOnGroup || lineItemAddOnGroup === item.custom.fields.addOnGroup) &&
 					(!lineItemFreeGiftGroup || lineItemFreeGiftGroup === item.custom.fields.freeGiftGroup)
 			})
-	
+
 			const newPrivilege = lineItemWithCampaignBenefit?.privilege
 
 			myCartUpdateActions.push({
@@ -884,14 +882,14 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 				name: 'privilege',
 				value: newPrivilege ? JSON.stringify(newPrivilege) : '',
 			});
-	
+
 			const newLineItemDiscounts: any[] = (lineItemWithCampaignBenefit.discounts ?? [])
 			const discounts = []
 			if (newLineItemDiscounts.length) {
 				// ! Main product
 				// ! Add on
 				// ! Free gift
-	
+
 				for (const newLineItemDiscount of newLineItemDiscounts) {
 					const { benefitType } = newLineItemDiscount
 					if (benefitType === 'main_product') {
@@ -901,7 +899,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 							`custom.productType = "${lineItemProductType}"`,
 							`custom.productGroup = ${lineItemProductGroup}`
 						].join(' AND ');
-	
+
 						newDirectDiscounts.push({
 							target: {
 								type: 'lineItems',
@@ -918,7 +916,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 							},
 						})
 					}
-	
+
 					if (benefitType === 'add_on') {
 						const { specialPrice } = newLineItemDiscount
 						const predicate = [
@@ -927,7 +925,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 							`custom.productGroup = ${lineItemProductGroup}`,
 							`custom.addOnGroup = "${lineItemAddOnGroup}"`,
 						].join(' AND ');
-	
+
 						newDirectDiscounts.push({
 							target: {
 								type: 'lineItems',
@@ -948,14 +946,14 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 					if (benefitType === 'free_gift') {
 						const lineItemPrice = lineItem.price?.value?.centAmount || 0;
 						const totalLineCost = lineItemPrice * quantity;
-	
+
 						const predicate = [
 							`product.id = "${lineItem.productId}"`,
 							`custom.productType = "${lineItemProductType}"`,
 							`custom.productGroup = ${lineItemProductGroup}`,
 							`custom.freeGiftGroup = "${lineItemFreeGiftGroup}"`,
 						].join(' AND ');
-	
+
 						newDirectDiscounts.push({
 							target: {
 								type: 'lineItems',
@@ -972,11 +970,11 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 							},
 						});
 					}
-	
+
 					discounts.push(JSON.stringify(newLineItemDiscount))
 				}
 			}
-	
+
 			myCartUpdateActions.push({
 				action: 'setLineItemCustomField',
 				lineItemId,
@@ -986,12 +984,12 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 
 			const newLineItemOtherPayments: any[] = (lineItemWithCampaignBenefit.otherPayments ?? [])
 			const otherPayments = []
-	
-	
+
+
 			const otherPaymentCustomLineItems = customLineItems.filter(
 				(item: any) => item.slug.startsWith(`${lineItemId}-${this.ctpAddCustomOtherPaymentLineItemPrefix}`)
 			)
-	
+
 			let deleteOtherPaymentCustomLineItems = otherPaymentCustomLineItems
 			if (newLineItemOtherPayments.length) {
 				for (const newLineItemOtherPayment of newLineItemOtherPayments) {
@@ -999,7 +997,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 					const { otherPaymentCode, otherPaymentAmt } = newLineItemOtherPayment
 					const slug = `${lineItemId}-${this.ctpAddCustomOtherPaymentLineItemPrefix}-${otherPaymentCode}`
 					const existingOtherPaymentCustomLineItem = otherPaymentCustomLineItems.find((item: any) => item.slug.startsWith(slug))
-	
+
 					if (existingOtherPaymentCustomLineItem) {
 						const changeCustomLineItemMoney: CartChangeCustomLineItemMoneyAction = {
 							action: 'changeCustomLineItemMoney',
@@ -1036,20 +1034,20 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 						};
 						cartUpdateActions.push(customLineItem);
 					}
-	
+
 					deleteOtherPaymentCustomLineItems = deleteOtherPaymentCustomLineItems.filter((item: any) => !item.slug.startsWith(slug))
 				}
 			}
-	
+
 			if (deleteOtherPaymentCustomLineItems.length) {
 				const removeCustomLineItemActions: CartRemoveCustomLineItemAction[] = deleteOtherPaymentCustomLineItems.map((item: any) => ({
 					action: 'removeCustomLineItem',
 					customLineItemId: item.id
 				}))
-	
+
 				cartUpdateActions.push(...removeCustomLineItemActions)
 			}
-	
+
 			myCartUpdateActions.push({
 				action: 'setLineItemCustomField',
 				lineItemId,
@@ -1057,20 +1055,20 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 				value: otherPayments,
 			});
 		});
-	
+
 		let newCart = updatedCart
 		let currentVersion = version
 		if (myCartUpdateActions.length) {
 			newCart = await this.updateCart(cartId, currentVersion, myCartUpdateActions)
 			currentVersion = newCart.version
 		}
-	
+
 		cartUpdateActions.push({
 			action: 'setDirectDiscounts',
 			discounts: newDirectDiscounts
 		})
 		newCart = await this.ctCartClient.updateCart(cartId, currentVersion, cartUpdateActions)
-	
+
 		return newCart
 	}
 
@@ -1106,10 +1104,10 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 	}
 
 	async mapAvailableBenefits(availableBenefits: any[]) {
-		const mappedAvailableBenefits = availableBenefits.map((availableBenefit:any) => {
-			const { benefitType, freeGiftProducts = [], addOnProducts = [] }=availableBenefit
+		const mappedAvailableBenefits = availableBenefits.map((availableBenefit: any) => {
+			const { benefitType, freeGiftProducts = [], addOnProducts = [] } = availableBenefit
 
-			const newAddOnProducts: IAvailableBenefitProduct[] = addOnProducts.map((addOnProduct:any) => {
+			const newAddOnProducts: IAvailableBenefitProduct[] = addOnProducts.map((addOnProduct: any) => {
 				const {
 					id,
 					key,
@@ -1120,7 +1118,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 					totalSelectedItem
 				} = addOnProduct
 
-				const newVariants: IAvailableBenefitProductVariant[] = variants.map((variant:any) => {
+				const newVariants: IAvailableBenefitProductVariant[] = variants.map((variant: any) => {
 					const {
 						attributes,
 						images,
@@ -1162,7 +1160,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 				}
 			})
 
-			const newFreeGiftProducts: IAvailableBenefitProduct[] = freeGiftProducts.map((freeGiftProduct:any) => {
+			const newFreeGiftProducts: IAvailableBenefitProduct[] = freeGiftProducts.map((freeGiftProduct: any) => {
 				const {
 					id,
 					key,
@@ -1173,7 +1171,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 					totalSelectedItem
 				} = freeGiftProduct
 
-				const newVariants: IAvailableBenefitProductVariant[] = variants.map((variant:any) => {
+				const newVariants: IAvailableBenefitProductVariant[] = variants.map((variant: any) => {
 					const {
 						attributes,
 						images,

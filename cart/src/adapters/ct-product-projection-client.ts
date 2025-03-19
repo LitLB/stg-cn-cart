@@ -1,20 +1,17 @@
 // cart/src/adapters/ct-product-projection-client.ts
 
-import type { ApiRoot, Product, ProductDraft, ProductProjection } from '@commercetools/platform-sdk';
+import type { ApiRoot, ProductProjection } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from './ct-base-client';
 import { readConfiguration } from '../utils/config.utils';
-import CommercetoolsInventoryClient from './ct-inventory-client'
 
 class CommercetoolsProductProjectionClient {
 	private static instance: CommercetoolsProductProjectionClient;
 	private apiRoot: ApiRoot;
 	private projectKey: string;
-	private readonly ctInventoryClient;
 
 	private constructor() {
 		this.apiRoot = CommercetoolsBaseClient.getApiRoot();
 		this.projectKey = readConfiguration().ctpProjectKey as string;
-		this.ctInventoryClient = CommercetoolsInventoryClient;
 	}
 
 	public static getInstance(): CommercetoolsProductProjectionClient {
@@ -24,19 +21,19 @@ class CommercetoolsProductProjectionClient {
 		return CommercetoolsProductProjectionClient.instance;
 	}
 
-	async getProductProjectionByPackageCode (): Promise<ProductProjection> {
-		const search = `masterData(staged(variants(attributes(name="akeneo_id" and value in (${akeneoIds}))))) or masterData(staged(masterVariant(attributes(name="akeneo_id" and value in (${akeneoIds})))))`;
+	async getProductProjectionByPackageCodes(packageCodes: string[]): Promise<ProductProjection[]> {
+		const updatedPackageCodes = packageCodes.map(packageCode => `"${packageCode}"`).join(',');
+		const where = `variants(attributes(name="package_code" and value in (${updatedPackageCodes}))) or masterVariant(attributes(name="package_code" and value in (${updatedPackageCodes})))`;
+
 		const product = await this.apiRoot
 			.withProjectKey({ projectKey: this.projectKey })
 			.productProjections()
 			.get({
-				queryArgs: {
-					where: search.concat(`masterData(staged(variants(attributes(name="akeneo_id" and value in (${akeneoIds}))))) or masterData(staged(masterVariant(attributes(name="akeneo_id" and value in (${akeneoIds})))))`)
-				},
+				queryArgs: { where }
 			})
 			.execute();
 
-		return product.body;
+		return product.body.results;
 	}
 }
 

@@ -946,10 +946,10 @@
             },
             // START DATA FROM T1 (SaSS)
             "t1": {
-              "priceplanRcc": 1299,
-              "penalty": 1299,
-              "advancedPayment": 100000, // 1000.00
-              "contractTerm": "12"
+              "priceplanRcc": 129900, // 129900 
+              "penalty": 129900, // 129900
+              "advancedPayment": 100000, // 1000.00 
+              "contractTerm": 12 // mothnly
             },
             // Custom
             "connector": {
