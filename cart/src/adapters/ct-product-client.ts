@@ -5,12 +5,12 @@ import type { ApiRoot, Cart, Product, ProductDraft, ProductPagedQueryResponse, P
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
 import { CT_PRODUCT_ACTIONS } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
-import CommercetoolsInventoryClient from '../adapters/ct-inventory-client'
+import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { CustomLineItemVariantAttribute, HasChangedAction } from '../types/custom.types';
 import { IAdapter } from '../interfaces/adapter.interface';
 
-export class CommercetoolsProductClient implements IAdapter{
+export class CommercetoolsProductClient implements IAdapter {
 	public name = 'commercetoolsProductClient'
 	private static instance: CommercetoolsProductClient;
 	private apiRoot: ApiRoot;

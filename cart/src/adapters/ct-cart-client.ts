@@ -626,7 +626,6 @@ export class CommercetoolsCartClient implements IAdapter {
 		return await this.updateCart(cartId, cartVersion, updateActions);
 	}
 
-	
 	public async emptyCart(cart: Cart): Promise<any> {
 		const actions:any = [];
 
@@ -667,7 +666,6 @@ export class CommercetoolsCartClient implements IAdapter {
 
 		return updatedCart.body
 	}
-
 
 }
 

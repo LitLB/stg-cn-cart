@@ -39,7 +39,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy {
         try {
             const now = new Date();
             const { productId, sku, quantity, productType, productGroup, addOnGroup, freeGiftGroup, campaignVerifyValues = [] } = payload;
-            
+
             const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
 
             await InventoryValidator.validateLineItemUpsert(

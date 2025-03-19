@@ -86,6 +86,7 @@ export class CartItemController {
         try {
             // Select strategy
             const { cart } = req
+
             this.cartStrategy = cart!.custom?.fields?.journey
 
             const accessToken = req.accessToken as string;

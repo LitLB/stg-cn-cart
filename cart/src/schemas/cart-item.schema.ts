@@ -389,7 +389,7 @@ export function validateProductQuantity(
 	productId: string,
 	variant: ProductVariant,
 	deltaQuantity = 0,
-): void | ApiResponse {
+): void {
 	if (productType !== 'main_product') {
 		return;
 	}
