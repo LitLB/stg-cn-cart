@@ -37,6 +37,20 @@ export const validateRequestOtp: ValidationChain[] = [
         .withMessage('mobileNumber must be a string'),
 ]
 
+export const validateCheckCustomerProfile: ValidationChain[] = [
+    query('mobileNumber')
+        .exists({ checkFalsy: true })
+        .withMessage('mobileNumber is required')
+        .isString()
+        .withMessage('mobileNumber must be a string'),
+
+    query('journey')
+        .exists({ checkFalsy: true })
+        .withMessage('journey is required')
+        .isString()
+        .withMessage('journey must be a string'),
+];
+
 // Middleware to check for errors from express-validator
 export const handleValidationErrors = (
     req: Request,
@@ -46,10 +60,9 @@ export const handleValidationErrors = (
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({
-            statusCode: "400",
-            statusMessage: 'Bad Request',
-            errorCode: 'INVALID_INPUT_DATA',
-            data: errors.array(),
+            statusCode: "400.1001",
+            statusMessage: 'Input parameter is blank or invalid',
+            errorCode: 'INPUT_PARAMETER_IS_BLANK_OR_INVALID',
         });
     }
     next();

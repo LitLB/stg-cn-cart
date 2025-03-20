@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from 'axios'
 import { readConfiguration } from "../utils/config.utils";
 import * as crypto from 'crypto';
-import { RequestOTPToApigee, VerifyOTPToApigee } from '../interfaces/otp.interface';
+import { IGetProfileDtacRequest, IGetProfileTrueRequest, RequestOTPToApigee, VerifyOTPToApigee } from '../interfaces/otp.interface';
 
 
 class ApigeeClientAdapter {
@@ -49,7 +49,6 @@ class ApigeeClientAdapter {
             const ivSize = 16; // IV size in bytes
             const key = this.config.apigee.privateKeyEncryption;
 
-
             // Decode the Base64 input to get the combined IV and encrypted text
             const encryptedIvAndText = Buffer.from(encryptedInput, 'base64');
 
@@ -81,7 +80,7 @@ class ApigeeClientAdapter {
 
             const normalizedError = {
                 statusCode: 400,
-                statusMessage:  "Invalid format",
+                statusMessage: "Invalid format",
                 errorCode: "FAILED_TO_DECRYPT_DATA"
             }
             throw normalizedError
@@ -146,6 +145,96 @@ class ApigeeClientAdapter {
             'Cookies': 'ROUTEID=.'
         };
         const url = `/operator/v1/check?id=${mobileNumber}&txid=${txid}`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
+    }
+
+    async getProfileAndPackage(body: Partial<IGetProfileDtacRequest | IGetProfileTrueRequest>) {
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/customerProfile/v2/profileAndPackage`;
+        const response: AxiosResponse = await this.client.post(`${url}`, body, { headers });
+        return response;
+    }
+
+    async checkBacklistDtac(id: string, thaiId: string, custValue: string) {
+
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/customer/v2/checkBlackList?channelName=ECP&transactionId=${id}&idType=IDCard&idValue=${thaiId}&funcID=2&channel=dtac&custValue=${custValue}`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
+    }
+
+    async checkBacklistTrue(id: string, cardId: string) {
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/customer/v2/checkBlackList?channelName=ECP&transactionId=${id}&idType=IDCard&idValue=${cardId}&channel=true&companyCode=AL&verifyType=AL&accountCat=I&activityFunction=EXISTING&activityFunctionType=null`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
+    }
+
+    async getContractAndQuotaDtac(id: string, thaiId: string) {
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/agreementManagement/v1/agreement?id=${id}&type=Quota&agreementType=1&engagedParty.id=${thaiId}`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
+    }
+
+    async getContractAndQuotaTrue(id: string, agreementId: string) {
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/agreementManagement/v1/agreement?channel=true&id=${id}&agreementId=${agreementId}&entityType=SUBSCRIBER`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
+    }
+
+    async getCustomerTierDtac(id:string,phoneNumber: string) {
+        await this.init()
+
+        // * Phone number must decrypted before use format 6698XXXXXXX
+        
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/loyaltyManagement/v1/loyaltyProgramMember?id=${id}&phoneNumber=${phoneNumber}`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
+    }
+
+    async getCustomerTierTrue(mobileNumber: string) {
+        const relatedPartyId = this.config.otp.relatedPartyId
+        const relatedPartyHref = this.config.otp.relatedPartyHref
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/loyaltyManagement/v1/loyaltyProgramMember?relatedParty.id=${relatedPartyId}&relatedParty.href=${relatedPartyHref}&type=true&customerIdnNo=${mobileNumber}&fields=hasCard%3BtrueCard%3BaccountGrade%3BadditionalData%3BmainPointsBalance%3BisEmployee%3BhasProduct%3BhasTrueId%3BredemptionEnabled%3BfirstName%3BlastName%3Bmultiplier%3BloyaltyCustomerId&idnType=TMH&extensions=trueCard%2CaccountGrade%2CadditionalData`;
         const response: AxiosResponse = await this.client.get(`${url}`, { headers });
         return response;
     }

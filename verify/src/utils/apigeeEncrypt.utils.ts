@@ -1,34 +1,35 @@
 import * as crypto from 'crypto';
 
-/**
- * Encrypt a value using AES-256 CBC with PKCS5Padding
- * @param {string} input - The text to encrypt
- * @param {string} key - The secret key (must be 32 bytes for AES-256)
- * @returns {string} - Base64 encoded string containing IV + Ciphertext
- */
-export const apigeeEncrypt = (input: string, key: string): string => {
-    const ivSize = 16; // Size of IV
-    const keySize = key.length;
-
-    // Generate a random IV
-    const iv = crypto.randomBytes(ivSize);
-
-    // Hash the key using SHA-256 and truncate to the key size
-    const keyHash = crypto.createHash('sha256').update(key).digest();
-    const truncatedKey = keyHash.slice(0, keySize);
-
-    // Create the cipher
-    const cipher = crypto.createCipheriv('aes-256-cbc', truncatedKey, iv);
-
-    // Encrypt the input and concatenate with the IV
-    const encrypted = Buffer.concat([cipher.update(input, 'utf-8'), cipher.final()]);
-
-    // Combine IV and encrypted data
-    const encryptedIvAndText = Buffer.concat([iv, encrypted]);
-
-    // Return the Base64 encoded result
-    return encryptedIvAndText.toString('base64');
+export const hashKey = (key: string): Buffer => {
+    // Create a SHA-256 hash of the key.
+    return crypto.createHash('sha256').update(key).digest();
 }
 
-// export const apigeeDecrypt = (input: string, key: string): string => {
-// }
+export const encryptedOFB = (inp: string, key: string): string => {
+    let result = "";
+    // Generate a hashed key (32 bytes for AES-256)
+    const keyHashed = hashKey(key);
+
+    try {
+        // Use the first 16 bytes of the hashed key as the IV.
+        const iv = keyHashed.slice(0, 16);
+        // Create a cipher using AES-256-OFB.
+        const cipher = crypto.createCipheriv('aes-256-ofb', keyHashed, iv);
+
+        // Encrypt the plaintext.
+        const encryptedBuffer = Buffer.concat([
+            cipher.update(inp, 'utf8'),
+            cipher.final()
+        ]);
+
+        // Concatenate the IV and encrypted data.
+        const concatenated = Buffer.concat([iv, encryptedBuffer]);
+
+        // Base64-encode the result.
+        result = concatenated.toString('base64');
+    } catch (error) {
+        console.error("Encryption error:", error);
+    }
+
+    return result;
+}

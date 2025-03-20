@@ -12,6 +12,11 @@ import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client
 import { getValueByKey } from "../utils/object.utils";
 import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
+import { IGetProfileDtacRequest, IGetProfileTrueRequest } from "../interfaces/otp.interface";
+import { OPERATOR } from "../constants/operator.constant";
+import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile } from "../validators/operator.validators";
+import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
+import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
 
 dayjs.extend(utc);
 
@@ -57,6 +62,7 @@ export class OtpService {
             const { data } = response
 
             logService(requestOtpPayload, response, logStepModel)
+
             const otpNumberMinuteExpire = this.config.otp.expireTime as number
             const otpNumberSecondResend = this.config.otp.resendTime as number
 
@@ -86,6 +92,7 @@ export class OtpService {
     public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
+
         let verifyOtpPayload
         const logInformation = {
             otpNumber: "",
@@ -96,10 +103,12 @@ export class OtpService {
             date_time: dayjs().toISOString()
         }
         try {
+
             const apigeeClientAdapter = new ApigeeClientAdapter
             const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
 
             const thailandMobile = convertToThailandMobile(decryptedMobile)
+
             verifyOtpPayload = {
                 id: refCode,
                 description: "TH",
@@ -273,10 +282,6 @@ export class OtpService {
 
                     logService(verifyOtpPayload, response, logStepModel)
 
-                    const operator = await this.checkOperator(phoneNumber)
-                    const customerOperatorIsActive = await this.checkActive(operator, journey)
-
-
                     logInformation.journey = journey
                     logInformation.otpNumber = pin
                     logInformation.refCode = refCode
@@ -285,32 +290,22 @@ export class OtpService {
 
                     logger.info(JSON.stringify(logInformation))
 
+                } else if (otpErrorMap[pin]) {
+                    logService(verifyOtpPayload, otpErrorMap[pin], logStepModel)
+                    throw otpErrorMap[pin]
 
-                    return {
-                        customerOperator: operator,
-                        isOperatorIsActive: customerOperatorIsActive
-                    }
                 } else {
-                    if (otpErrorMap[pin]) {
-                        logService(verifyOtpPayload, otpErrorMap[pin], logStepModel)
-                        throw otpErrorMap[pin];
-                    } else {
-                        throw {
-                            status: 400,
-                            statusCode: '400.4002',
-                            statusMessage: 'OTP is not match',
-                            errorCode: 'OTP_IS_NOT_MATCH'
-                        }
+                    throw {
+                        status: 400,
+                        statusCode: '400.4002',
+                        statusMessage: 'OTP is not match',
+                        errorCode: 'OTP_IS_NOT_MATCH'
                     }
                 }
 
-
-
             } else {
                 const response = await apigeeClientAdapter.verifyOTP(verifyOtpPayload)
-                logService(verifyOtpPayload, response.data, logStepModel)
-                const operator = await this.checkOperator(phoneNumber)
-                const customerOperatorIsActive = await this.checkActive(operator, journey)
+                logService(verifyOtpPayload, response, logStepModel)
 
                 logInformation.journey = journey
                 logInformation.otpNumber = pin
@@ -319,10 +314,7 @@ export class OtpService {
                 logInformation.reason = "Verify OTP successfully"
                 logger.info(JSON.stringify(logInformation))
 
-                return {
-                    customerOperator: operator,
-                    isOperatorIsActive: customerOperatorIsActive
-                }
+                return
             }
 
         } catch (e: any) {
@@ -338,12 +330,14 @@ export class OtpService {
         }
     }
 
-    private async checkOperator(phoneNumber: string) {
+    private async checkOperator(id: string, phoneNumber: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_OPERATOR, logModel);
         let checkOperatorPayload
-        const isMockOtp = this.config.otp.isMock as boolean
-        const txid = isMockOtp ? '1234567' : Math.floor(100000 + Math.random() * 900000).toString()
+
+        const isMockOtp = this.config.otp.isMock as string
+        const txid = isMockOtp === 'true' ? "1234567" : id
+
 
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
@@ -351,6 +345,7 @@ export class OtpService {
                 phoneNumber,
                 txid
             }
+
             const response = await apigeeClientAdapter.checkOperator(phoneNumber, txid)
             logService(checkOperatorPayload, response, logStepModel)
             const result = validateOperator(response.data.operator)
@@ -359,7 +354,11 @@ export class OtpService {
         } catch (e: any) {
             logService(checkOperatorPayload, e, logStepModel)
             logger.error('Error checkOperator')
-            throw e
+            throw {
+                statusCode: '400.4016',
+                statusMessage: 'Get operator fail',
+                errorCode: 'GET_OPERATOR_FAIL'
+            }
         }
     }
 
@@ -398,6 +397,227 @@ export class OtpService {
             return isActive
         } catch (e: any) {
             logService(checkJourneyActivationPayload, e, logStepModel)
+            throw e
+        }
+    }
+
+    public async getCustomerProfile(id: string, mobileNumber: string, journey: string) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_GET_PROFILE_AND_PACKAGE, logModel);
+        const apigeeClientAdapter = new ApigeeClientAdapter();
+
+        const operator = await this.checkOperator(id, mobileNumber);
+
+        const basePayload = { id, channel: operator };
+        const getProfilePayload = operator === OPERATOR.TRUE
+            ? {
+                ...basePayload,
+                limit: "50",
+                page: "1",
+                relatedParty: { id: mobileNumber, type: "MOBILE" },
+                characteristic: [{ name: "agingIndicator", value: "Y" }]
+            }
+            : {
+                ...basePayload,
+                category: "2",
+                relatedParty: { id: mobileNumber }
+            };
+
+        try {
+            const [_, response] = await Promise.all([
+                // * Check operator active
+                this.checkActive(operator, journey),
+                // * Get Profile & Package
+                apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
+            ]);
+
+            logService(getProfilePayload, response, logStepModel);
+            const { data, code } = response.data;
+
+            if (code !== '0') {
+                throw {
+                    statusCode: "400.4010",
+                    statusMessage: 'Get profile info fail',
+                    errorCode: 'GET_PROFILE_INFO_FAIL'
+                };
+            }
+
+            const customerProfile = operator === OPERATOR.TRUE
+                ? validateCustomerTrueProfile(data)
+                : validateCustomerDtacProfile(data);
+
+            // Run post-checks concurrently.
+            await Promise.all([
+                // * Check backlist
+                this.checkBacklist(id, customerProfile.thaiId, operator, customerProfile.customerNo),
+                // * Check Contract & Quota
+                this.checkContractAndQuota(id, operator, customerProfile.thaiId, customerProfile.agreementId)
+            ]);
+
+            return customerProfile;
+        } catch (e: any) {
+            logService(getProfilePayload, e, logStepModel);
+            throw e;
+        }
+    }
+
+    private async checkBacklist(id: string, thaiId: string, operator: string, custValue?: string) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_BACKLIST, logModel);
+
+        try {
+            const apigeeClientAdapter = new ApigeeClientAdapter
+
+            if (operator === OPERATOR.TRUE) {
+                const response = await apigeeClientAdapter.checkBacklistTrue(id, thaiId)
+                logService({ id, thaiId, operator }, response, logStepModel)
+                const { data } = response.data
+
+                if (data.mobileRelaxBlacklist === 'Y') {
+                    throw {
+                        statusCode: '400.4006',
+                        statusMessage: 'Black Listed Customer is not allowed',
+                        errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
+                    }
+                }
+            }
+
+            if (operator === OPERATOR.DTAC) {
+                if (!custValue) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Customer value is required',
+                        errorCode: 'CUSTOMER_VALUE_REQUIRED'
+                    }
+                }
+
+                const response = await apigeeClientAdapter.checkBacklistDtac(id, thaiId, custValue)
+
+                logService({ id, thaiId, operator }, response, logStepModel)
+                const { status } = response.data
+
+                if (status === "FALSE") {
+                    throw {
+                        statusCode: '400.4006',
+                        statusMessage: 'Black Listed Customer is not allowed',
+                        errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
+                    }
+                }
+            }
+
+
+        } catch (e: any) {
+            logService({ id, thaiId, operator, custValue }, e, logStepModel)
+            throw e
+        }
+    }
+
+    private async checkContractAndQuota(id: string, operator: string, thaiId?: string, agreementId?: string) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_CONTRACT_AND_QUOTA, logModel);
+        const key = this.config.apigee.privateKeyEncryption;
+        try {
+            const apigeeClientAdapter = new ApigeeClientAdapter
+
+
+            if (operator === OPERATOR.TRUE) {
+
+                if (!agreementId || agreementId === undefined) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Agreement ID not found',
+                        errorCode: 'AGREEMENT_ID_NOT_FOUND'
+                    }
+                }
+
+                const response = await apigeeClientAdapter.getContractAndQuotaTrue(id, agreementId)
+                logService({ id, agreementId }, response, logStepModel)
+                const { agreementItem } = response.data
+
+                validateContractAndQuotaTrue(agreementItem)
+            }
+
+            if (operator === OPERATOR.DTAC) {
+                if (!thaiId) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Thai ID not found',
+                        errorCode: 'THAI_ID_NOT_FOUND'
+                    }
+                }
+
+                const newThaiId = encryptedOFB(thaiId, key)
+                const response = await apigeeClientAdapter.getContractAndQuotaDtac(id, newThaiId)
+                logService({ id, operator, thaiId }, response.data, logStepModel)
+                const data = response.data
+
+                validateContractAndQuotaDtac(data)
+            }
+
+        } catch (e: any) {
+            logService({ id, operator, thaiId }, e, logStepModel)
+            throw e
+        }
+    }
+
+    private async getCustomerTier(id: string, mobileNumber: string, operator: string) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_GET_CUSTOMER_TIER, logModel);
+        try {
+            const apigeeClientAdapter = new ApigeeClientAdapter
+
+            if (!id) {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'id is required',
+                    errorCode: 'ID_IS_REQUIRED'
+                }
+            }
+
+            if (!mobileNumber) {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'Mobile Number is required',
+                    errorCode: 'MOBILE_NUMBER_IS_REQUIRED'
+                }
+            }
+
+            if (!operator) {
+                throw {
+                    statusCode: 400,
+                    statusMessage: 'Operator is required',
+                    errorCode: 'OPERATOR_IS_REQUIRED'
+                }
+            }
+
+            // if (operator === 'true') {
+            //     const response = await apigeeClientAdapter.getCustomerTierTrue(mobileNumber)
+            //     logService({ mobileNumber }, response, logStepModel)
+            //     const { data } = response.data
+
+            // }
+
+            // if (operator === 'dtac') {
+
+            const mobileDecrypt = await apigeeClientAdapter.apigeeDecrypt(mobileNumber)
+
+            console.log({ mobileDecrypt })
+
+
+            const response = await apigeeClientAdapter.getCustomerTierDtac(id, mobileDecrypt)
+            logService({ id, mobileDecrypt, operator }, response, logStepModel)
+            const res = response.data
+
+            console.log({ res })
+
+
+            // }
+
+
+
+
+        } catch (e: any) {
+            logService({ id, operator, mobileNumber }, e, logStepModel)
             throw e
         }
     }

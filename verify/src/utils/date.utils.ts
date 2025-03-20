@@ -1,4 +1,4 @@
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 /**
  * Generates a transaction ID in the format:
@@ -10,7 +10,7 @@ import moment from 'moment';
  */
 export function generateTransactionId(): string {
   // Use Moment.js to format the current date and time.
-  const dateTimeStr = moment().format('YYYYMMDDHHmmss');
+  const dateTimeStr = dayjs().format('YYYYMMDDHHmmss');
 
   // Generate a random 6-digit number, padded with leading zeros.
   const randomSix = Math.floor(Math.random() * 1000000)
