@@ -158,6 +158,7 @@ class ApigeeClientAdapter {
         };
         const url = `/customerProfile/v2/profileAndPackage`;
         const response: AxiosResponse = await this.client.post(`${url}`, body, { headers });
+
         return response;
     }
 
@@ -210,11 +211,11 @@ class ApigeeClientAdapter {
         return response;
     }
 
-    async getCustomerTierDtac(id:string,phoneNumber: string) {
+    async getCustomerTierDtac(id: string, phoneNumber: string) {
         await this.init()
 
         // * Phone number must decrypted before use format 6698XXXXXXX
-        
+
         const headers = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${this.accessToken}`,
