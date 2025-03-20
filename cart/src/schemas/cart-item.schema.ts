@@ -63,7 +63,13 @@ export function validateSelectCartItemBody(body: any) {
 					selected: Joi.boolean().required().messages({
 						'any.required': 'Selected field is required.',
 						'boolean.base': 'Selected field must be a boolean.',
-					})
+						}),
+					package: Joi.object({
+						code: Joi.string().required().messages({
+							'string.empty': 'Package Code cannot be empty',
+							'any.required': 'Product Code is required',
+						}),
+					}).optional()
 				}),
 			)
 			.min(1)
@@ -160,7 +166,6 @@ export function validateAddItemCartBody(body: any) {
 				'string.empty': 'Package Code cannot be empty',
 				'any.required': 'Product Code is required',
 			}),
-			advanced: Joi.number().optional().default(0)
 		}).optional()
 	}).validate(body, { abortEarly: false });
 }
@@ -224,48 +229,8 @@ export function validateUpdateCartItemBody(body: any) {
 				'string.empty': 'Package Code cannot be empty',
 				'any.required': 'Product Code is required',
 			}),
-			advanced: Joi.number().optional()
 		}).optional()
 	}).validate(body, { abortEarly: false });
-}
-
-export function validateDeviceBundleExisting(body:any, cart: Cart, variant: ProductVariant) {
-	const { package: mainPackage, sku } = body
-
-	const mainProductLineItems = cart.lineItems.filter(
-		(item: LineItem) => item.custom?.fields?.productType === 'main_product',
-	);
-
-	const totalCartQuantity = mainProductLineItems.reduce((sum, item) => sum + item.quantity, 0);
-
-	if (_.isEmpty(mainPackage)) {
-		throw {
-			statusCode: HTTP_STATUSES.BAD_REQUEST,
-			statusMessage: '"package.code" is required for journey "device_bundle_existing"',
-		};
-	}
-
-	if (totalCartQuantity > 1) {
-		throw {
-			statusCode: HTTP_STATUSES.BAD_REQUEST,
-			statusMessage: `Cannot have more than 1 unit of SKU ${sku} in the cart.`,
-		};
-	}
-
-	if (!variant.attributes?.some((value) => value.name === 'journey' && value.value.some((journey: any) => journey.key === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING))) {
-		throw {
-			statusCode: HTTP_STATUSES.BAD_REQUEST,
-			statusMessage: `Cannot add a non-"device_bundle_existing" item to a "device_bundle_existing" cart.`,
-		};
-	}
-}
-
-export function validateByJourney(journey: CART_JOURNEYS, body: any, cart: Cart, variant: ProductVariant) {
-	switch(journey) {
-		case CART_JOURNEYS.DEVICE_BUNDLE_EXISTING:
-			validateDeviceBundleExisting(body, cart, variant)
-			break;
-	}
 }
 
 export function validateDeleteCartItemBody(body: any) {
