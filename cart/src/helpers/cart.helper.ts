@@ -21,14 +21,6 @@ import { Cart } from "@commercetools/platform-sdk";
 export async function attachPackageToCart(iCart: ICart, ctCart: Cart): Promise<ICart> {
     // 1. Get cart-level package code (if present)
     let cartPackageCode: string | undefined;
-    if (
-        ctCart.custom?.fields?.package &&
-        ctCart.custom.fields.package.obj &&
-        ctCart.custom.fields.package.obj.value &&
-        ctCart.custom.fields.package.obj.value.package_code
-    ) {
-        cartPackageCode = ctCart.custom.fields.package.obj.value.package_code;
-    }
 
     // 2. Collect distinct package codes from the cart items.
     const packageCodesSet = new Set<string>();
@@ -60,6 +52,7 @@ export async function attachPackageToCart(iCart: ICart, ctCart: Cart): Promise<I
         // Extract the package_code from the masterVariant attributes.
         const { attributes = [] } = pkg.masterVariant;
         const pkgAttr = attributes.find((attr) => attr.name === "package_code");
+        const pkgPriceplanRc = attributes.find((attr) => attr.name === "priceplan_rc")
         if (pkgAttr && typeof pkgAttr.value === "string") {
             // Enrich the package with mock data if not already set.
             if (!pkg.cms) {
@@ -69,10 +62,10 @@ export async function attachPackageToCart(iCart: ICart, ctCart: Cart): Promise<I
             }
             if (!pkg.masterVariant.t1) {
                 pkg.masterVariant.t1 = {
-                    priceplanRcc: 129900,
-                    penalty: 129900,
-                    advancedPayment: 100000,
-                    contractTerm: 12
+                    contractTerm: ctCart?.custom?.fields?.contractTerm,
+                    penalty: ctCart?.custom?.fields.contractFee.centAmount,
+                    advancedPayment: ctCart?.custom?.fields.advancedPayment.centAmount,
+                    priceplanRcc: pkgPriceplanRc?.value,
                 };
             }
             if (!pkg.masterVariant.connector) {

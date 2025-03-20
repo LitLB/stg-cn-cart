@@ -272,9 +272,12 @@ export class CommercetoolsCartClient implements IAdapter {
 
 	public async updateCartWithNewValue(oldCart: Cart): Promise<CustomCartWithCompared> {
 		const { id: cartId, version: cartVersion } = oldCart
-		const lineItems = oldCart.lineItems as CustomLineItemHasChanged[]
+		let lineItems = oldCart.lineItems as CustomLineItemHasChanged[]
 		const lineItemHasChanged: Record<string, HasChangedAction> = {}
 		const updateLineItemQuantityPayload: CartChangeLineItemQuantityAction[] = []
+
+		//HOTFIX: bundle_existing
+		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType)
 
 		const updateActions: CartUpdateAction[] = lineItems.map((lineItem: CustomLineItemHasChanged) => {
 			const { id, price, hasChangedAction } = lineItem
@@ -313,8 +316,9 @@ export class CommercetoolsCartClient implements IAdapter {
 
 		const recalculatedCart = await this.recalculateCart(updatedCart.id, updatedCart.version)
 		const updateActionAfterRecalculated: CartUpdateAction[] = []
-
-		recalculatedCart.lineItems.map((lineItem: LineItem) => {
+		
+		//HOTFIX: bundle_existing	
+		recalculatedCart.lineItems.filter((lineItem) => lineItem.custom?.fields?.productType).map((lineItem: LineItem) => {
 			const validPrice = CommercetoolsProductClient.findValidPrice({
 				prices: lineItem.variant.prices || [],
 				customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
@@ -444,8 +448,11 @@ export class CommercetoolsCartClient implements IAdapter {
 	}
 
 	public async validateProductIsPublished(ctCart: Cart): Promise<CustomCartWithNotice> {
-		const { lineItems, version, id } = ctCart;
+		let { lineItems, version, id } = ctCart;
 		let notice = "";
+
+		//HOTFIX: bundle_existing
+		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType)
 
 		// 1. Early exit if no line items
 		if (!lineItems || lineItems.length === 0) {
