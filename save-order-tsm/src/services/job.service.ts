@@ -1,154 +1,60 @@
-import { Order } from '@commercetools/platform-sdk'
-import { logger } from '../utils/logger.utils'
-import { calculateExponentialBackoffTime } from '../utils/time.utils'
-import * as commercetoolsServices from './commercetools.service'
-import * as dynamodbService from './dynamodb.service'
-import * as tsmService from './tsm.service'
-import * as apigeeService from './apigee.service'
-import { readConfiguration } from '../utils/config.utils'
-import { marshall } from '@aws-sdk/util-dynamodb'
+import { commercetoolsOrderClient } from '../adapters/ct-order-client';
+import { CommercetoolsCustomObjectClient } from '../adapters/ct-custom-object-client'
 import _ from 'lodash'
-import { CustomOrderWithTSMResponse, SaveBulkOrderOnTSMResult, SaveOrderOnTSMResult } from '../types/services/jobs.type'
-import { COUPON_INFO_CONTAINER } from "../constants/ct.constant"
+import { STATE_ORDER_KEYS } from "../constants/state.constant"
+import { ORDER_STATES } from "../constants/order.constant"
+import { PAYMENT_STATES } from "../constants/payment.constant"
+import { SHIPMENT_STATES } from "../constants/shipment.constant"
+import { createLogModel, logger, LogModel } from '../utils/logger.utils';
+import { LOG_APPS, LOG_MSG } from '../constants/log.constant';
+import { ResponseService } from '../interfaces/config.interface';
 
-export const saveOrderTSMService = async (): Promise<void> => {
+import { SharedService } from './shared.service'
+
+const sharedService = new SharedService(commercetoolsOrderClient, CommercetoolsCustomObjectClient.getInstance());
+
+
+export const saveOrderTSMService = async (): Promise<ResponseService> => {
+    const logModel = LogModel.getInstance();
+    const logStepModel = createLogModel(LOG_APPS.STG_CN_CART, LOG_MSG.ORDER_UPDATE, logModel);
+    const response: ResponseService = { success: 200, response: '' };
+
     try {
-        const orders = await commercetoolsServices.getBulkOrderNotSaveOnTSM()
-        logger.info(`Found ${orders.length} orders to process`)
-        logger.info(`orders:[${orders.map(order => order.orderNumber).join(',')}]`)
-        if (orders.length === 0) return
+        const stateData = await commercetoolsOrderClient.getStateByKey(STATE_ORDER_KEYS.PAYMENT_SUCCESS)
+        const queryWhere = `state(id="${_.get(stateData, 'id')}") and orderState="${ORDER_STATES.OPEN}" and shipmentState="${SHIPMENT_STATES.PENDING}" and paymentState="${PAYMENT_STATES.PAID}" and custom(fields(tsmOrderIsSaved=false))`
+        const orders = await commercetoolsOrderClient.getOrderFromQuery(queryWhere)
 
-        const saveOrderSuccess: CustomOrderWithTSMResponse[] = []
-        const saveOrderFailed: CustomOrderWithTSMResponse[] = []
-
-        // chunk order step if order > 10
-        const chunks = _.chunk(orders, 100)
-        for (const chunkOrder of chunks) {
-            const { success, failed } = await saveBulkOrderOnTSM(chunkOrder)
-            if (failed.length > 0) {
-
-                saveOrderFailed.push(...failed.map(item => {
-                    return {
-                        order: item.order,
-                        tsmResponse: item.tsmResponse
-                    }
-                }))
-            }
-
-            if (success.length > 0) {
-                saveOrderSuccess.push(...success.map(item => {
-                    return {
-                        order: item.order,
-                        tsmResponse: item.tsmResponse
-                    }
-                }))
-            }
-
-            // wait for 10 sec before process next chunk
-            await new Promise((resolve) => setTimeout(resolve, 1 * 1000))
+        logger.info(`${LOG_MSG.ORDER_UPDATE} Found ${orders.length} orders to process`)
+        logger.info(`${LOG_MSG.ORDER_UPDATE} orders:[${orders.map(order => order.orderNumber).join(',')}]`)
+        
+        if (orders.length === 0) {
+            return { success: 400, response: `${LOG_MSG.ORDER_UPDATE} Order not found` };
         }
 
-        // Update order is saved on TSM to commercetools
-        await Promise.all([
-            bulkUpdateOrderIsSavedOnTSM(saveOrderSuccess),
-            saveOrderOnDatabase(saveOrderFailed)
-        ])
+        for (const order of orders) {
+            logger.info(`${LOG_MSG.ORDER_UPDATE} Processing order: ${order.orderNumber}`);
+            const orderId = order.id
+            const stateKey = STATE_ORDER_KEYS.SAVE_ORDER;
+            const orderPayload = await commercetoolsOrderClient.buildUpdateOrderTransitionState(order, stateKey);
+
+            const updatedOrder = await sharedService.updateOrderStatusByIdWithRetry(orderId, stateKey, orderPayload, { logStep: logStepModel });
+
+            if (!updatedOrder?.success) {
+                logger.error(`${LOG_MSG.ORDER_UPDATE} Error Update Order: ${JSON.stringify(updatedOrder)}`);
+            }else {
+                logger.info(`${LOG_MSG.ORDER_UPDATE} Update Order Success : ${order.orderNumber}`);
+            }
+
+            logger.info(`${LOG_MSG.ORDER_UPDATE} End Processed order: ${order.orderNumber}`);
+
+        }
+        
+        logger.info(`${LOG_MSG.ORDER_UPDATE} Update All Order is done`);
     } catch (error) {
-        logger.error(`saveOrderTSMService:badRequest:${JSON.stringify(error)}`)
-        throw error
-    }
-}
+        logger.error(`${LOG_MSG.ORDER_UPDATE} Failed to update`, error);
 
-export const saveOrderOnTSM = async (order: Order, apigeeAccessToken: string, attemptTime = 5): Promise<SaveOrderOnTSMResult> => {
-    let attempt = 0
-    let backoffTime = 0
-    let result: SaveOrderOnTSMResult['tsmResponse'] | undefined
-
-    // prepare information before save
-    const couponDiscounts = await commercetoolsServices.getCouponInformation(order.orderNumber!, COUPON_INFO_CONTAINER, order.cart!.id)
-
-    while (attempt <= attemptTime) {
-        try {
-            // wait for backoff time
-            if (backoffTime > 0) {
-                logger.info(`saveOrderOnTSM:backoff:attempt:${attempt}:${backoffTime}ms`)
-                await new Promise(resolve => setTimeout(resolve, backoffTime))
-            }
-
-            const _result = await tsmService.createTSMSaleOrder(order, couponDiscounts, apigeeAccessToken)
-            result = _result
-            if (!_result.success) {
-                const errorMessage = _result.response?.message || `orderId code != 0:${order.id}`
-                throw new Error(errorMessage)
-            }
-
-            break
-        } catch (error: any) {
-            logger.error(`saveOrderOnTSM:attempt:${attempt}:message:"${error?.message || `unknown error`}"`)
-            backoffTime = calculateExponentialBackoffTime(attempt)
-            attempt++
-        }
+        return { success: 400, response: `${LOG_MSG.ORDER_UPDATE} Failed to update ` };
     }
 
-    // NOTE - if not success 5 time return false
-    if (attempt >= 5) {
-        return {
-            success: false,
-            order: order,
-            tsmResponse: result
-        }
-    } else {
-        return {
-            success: true,
-            order: order,
-            tsmResponse: result
-        }
-    }
-
-}
-
-export const saveBulkOrderOnTSM = async (orders: Order[]): Promise<SaveBulkOrderOnTSMResult> => {
-    const apigeeAccessToken = await apigeeService.getToken()
-    const result = await Promise.all(orders.map(order => saveOrderOnTSM(order, apigeeAccessToken)))
-
-    const success: SaveOrderOnTSMResult[] = []
-    const failed: SaveOrderOnTSMResult[] = []
-
-    result.forEach(item => {
-        if (item.success) {
-            success.push(item)
-        } else {
-            failed.push(item)
-        }
-    })
-
-    return {
-        success,
-        failed
-    }
-}
-
-
-export const saveOrderOnDatabase = async (orders: CustomOrderWithTSMResponse[]): Promise<void> => {
-    if (orders.length === 0) return
-
-    // update order on commercetools
-    await Promise.all(orders.map(item => commercetoolsServices.updateOrderIsSavedOnTSM(item.order, false, item.tsmResponse)))
-
-    //TODO: wait for data model
-    // convert order to data models and save on database
-    const item = {}
-
-    const tableName = `tsm-failed-create-order-${readConfiguration().appEnv}`
-    await dynamodbService.putItem({
-        tableName,
-        item: marshall(item)
-    })
-}
-
-export const bulkUpdateOrderIsSavedOnTSM = async (orders: CustomOrderWithTSMResponse[]): Promise<void> => {
-    if (orders.length === 0) return
-
-    // update order on commercetools
-    await Promise.all(orders.map(item => commercetoolsServices.updateOrderIsSavedOnTSM(item.order, true, item.tsmResponse)))
+    return response;
 }

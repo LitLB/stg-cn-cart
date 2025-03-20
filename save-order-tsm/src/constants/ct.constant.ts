@@ -20,3 +20,4 @@ export const ORDER_ADDITIONAL_INFO = 'orderAdditionalInfo';
 export const COUPON_INFO_CONTAINER = "couponsInfomation";
 export const CONFIGURATION_CONTAINER = 'configuration';
 export const COUPON_LIMIT_KEY = 'limitMaxCoupon'
+export const ORDER_ERROR = 'orderError'
