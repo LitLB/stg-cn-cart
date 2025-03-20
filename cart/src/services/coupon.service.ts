@@ -144,10 +144,13 @@ export class CouponService {
         permanentlyInvalidRejectedCoupons: Coupon[];
     }> {
         try {
+            //HOTFIX: bundle_existing
+            let lineItems = ctCart.lineItems.filter((lineItem) => lineItem.custom?.fields?.productType)
+
             // 1) Gather current coupon codes
             const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
                 ctCart.id,
-                ctCart.lineItems
+                lineItems
             );
 
             const currentCouponCodes: string[] =

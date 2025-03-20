@@ -268,7 +268,11 @@ export class CommercetoolsProductClient implements IAdapter {
 	}
 
 	async checkCartHasChanged(ctCart: Cart): Promise<Cart> {
-		const { lineItems } = ctCart;
+		let  { lineItems } = ctCart;
+
+		//HOTFIX: bundle_existing
+		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType)
+		
 		if (lineItems.length === 0) return { ...ctCart, lineItems: [] }
 
 		const mainProductLineItems = lineItems.filter(
@@ -398,7 +402,7 @@ export class CommercetoolsProductClient implements IAdapter {
 
 		return {
 			...ctCart,
-			lineItems: processedItems ?? [],
+			lineItems: lineItems.filter((lineItem) => !lineItem.custom?.fields?.productType).concat(processedItems) ?? [],
 			totalPrice: {
 				...ctCart.totalPrice,
 				centAmount: totalPrice,
