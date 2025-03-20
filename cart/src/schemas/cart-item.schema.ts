@@ -3,10 +3,8 @@
 import type { Attribute, Cart, LineItem, Product, ProductVariant } from '@commercetools/platform-sdk';
 import Joi from 'joi';
 import { getAttributeValue } from '../utils/product-utils';
-import { readConfiguration } from '../utils/config.utils';
-import { ApiResponse } from '../interfaces/response.interface';
 import { HTTP_STATUSES } from '../constants/http.constant';
-import { CART_JOURNEYS, CART_OPERATOS } from '../constants/cart.constant';
+import { CART_OPERATOS } from '../constants/cart.constant';
 import * as _ from 'lodash'
 
 export function validateSelectCartItemBody(body: any) {

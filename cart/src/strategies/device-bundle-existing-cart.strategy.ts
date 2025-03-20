@@ -15,6 +15,7 @@ import { LINE_ITEM_INVENTORY_MODES } from "../constants/lineItem.constant";
 import { CommercetoolsCustomObjectClient } from "../adapters/ct-custom-object-client";
 import { ICart } from "../interfaces/cart";
 import _ from 'lodash'
+import { attachPackageToCart } from "../helpers/cart.helper";
 
 export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
     constructor() {
@@ -183,20 +184,33 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
         return { isDummyStock, isOutOfStock }
     }
 
-    protected async getPackageAdditionalInfo(code: string): Promise<any> {
-        const packageInfo = {
-            advancedPayment: {
-                currencyCode: "THB",
-                centAmount: 42000
-            },
-            contractTerm: "12",
-            contractFee:{
-                currencyCode: "THB",
-                centAmount: 1_000_000
-            },
-        }
+    protected async getPackageAdditionalInfo(mainPackage: ProductVariant): Promise<any> {
+        const packageCode = mainPackage.attributes?.find((attr) => attr.name === 'package_code')
+        const packageName = mainPackage.attributes?.find((attr) => attr.name === 'package_name')
+        const priceplanRc = mainPackage.attributes?.find((attr) => attr.name === 'priceplan_rc')
 
-        return packageInfo
+        const packageCustomObj = await this.adapters.commercetoolsCustomObjectClient.createOrUpdateCustomObject({
+            container: 'package-info',
+            key: 'packageAdditionalInfo',
+            value: {
+                package_code: packageCode?.value,
+                name: packageName?.value,
+                t1: {
+                  priceplanRcc: priceplanRc?.value,
+                  penalty: 1_000_000,
+                  advancedPayment: 42000, 
+                  contractTerm: 12
+                },
+                connector: {
+                    description: {
+                        "en-US": "Monthly fee 1,299 12-month \n contract Package fee will be charged on the invoice \n Early cancellation penalty 10,000 THB",
+                        "th-TH": "ค่าบริการราย 1,299 สัญญา 12 เดือน \n ค่าแพ็คเกจ รายเดือนจะเรียกเก็บในใบแจ้งค่าบริการ \n ค่าปรับกรณียกเลิกสัญญาก่อนกำหนด 10,000 บาท",
+                    }
+                }
+              }
+        })
+
+        return packageCustomObj
     }
     
     protected validateDeviceBundleExisting(body:any, cart: Cart, variant: ProductVariant) {
@@ -291,8 +305,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
             this.validateDeviceBundleExisting(payload, cart, variant)
             const validPrice = this.getValidPrice(variant, now)
             const mainPackage = await this.getPackageByCode(packageInfo.code)
-            const { advancedPayment, contractTerm, contractFee } = await this.getPackageAdditionalInfo(packageInfo.code)
-
+            const packageAdditionalInfo = await this.getPackageAdditionalInfo(mainPackage.masterData.current.masterVariant)
             this.validateReleaseDate(variant.attributes!, now)
             this.validateStatus(variant)
             this.validateQuantity(productType, cart, sku, product, variant, quantity)
@@ -374,27 +387,20 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
                 },
                 {
                     action: "setCustomField",
-                    name: "advancedPayment",
-                    value: advancedPayment
-                },
-                {
-                    action: "setCustomField",
-                    name: "contractTerm",
-                    value: contractTerm
-                },
-                {
-                    action: "setCustomField",
-                    name: "contractFee",
-                    value: contractFee
-                },
+                    name: "packageAdditionalInfo",
+                    value: {
+                      typeId: "key-value-document",
+                      id: packageAdditionalInfo.id
+                    }
+                }
             ]);
-            let iCart: ICart = this.adapters.commercetoolsMeCartClient.mapCartToICart(updatedCart);
-            // const ctCartWithChanged: Cart = await this.adapters.commercetoolsProductClient.checkCartHasChanged(updatedCart)
-            // const { ctCart: cartWithUpdatedPrice, compared } = await this.adapters.commercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
-            // const updateCartWithOperator = await this.adapters.commercetoolsCartClient.updateCartWithOperator(cartWithUpdatedPrice, payload.operator)
-            // const iCartWithBenefit = await this.adapters.commercetoolsMeCartClient.updateCartWithBenefit(updateCartWithOperator);
+            // let iCart: ICart = this.adapters.commercetoolsMeCartClient.mapCartToICart(updatedCart);
+            const ctCartWithChanged: Cart = await this.adapters.commercetoolsProductClient.checkCartHasChanged(updatedCart)
+            const { ctCart: cartWithUpdatedPrice, compared } = await this.adapters.commercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
+            const updateCartWithOperator = await this.adapters.commercetoolsCartClient.updateCartWithOperator(cartWithUpdatedPrice, payload.operator)
+            const iCartWithBenefit = await this.adapters.commercetoolsMeCartClient.updateCartWithBenefit(updateCartWithOperator);
 
-            return iCart;
+            return await attachPackageToCart(iCartWithBenefit, updatedCart)
         } catch (error: any) {
             console.log('error', error);
 
@@ -445,10 +451,10 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
 
             // updatedCart = await this.adapters.commercetoolsMeCartClient.resetCartItemProductGroup(updatedCart)
 
-            // let iCartWithBenefit = await this.adapters.commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
+            let iCartWithBenefit = await this.adapters.commercetoolsMeCartClient.updateCartWithBenefit(updatedCart);
             // iCartWithBenefit = updateCartFlag(iCartWithBenefit)
 
-            return this.adapters.commercetoolsMeCartClient.mapCartToICart(updatedCart);
+            return await attachPackageToCart(iCartWithBenefit, updatedCart)
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
@@ -495,14 +501,13 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
             if (deltaQuantity > 0) {
                 this.validateQuantity(productType, cart, sku, product, variant, deltaQuantity)
             }
-            
-            let iCart: ICart = this.adapters.commercetoolsMeCartClient.mapCartToICart(cart);
-            // const ctCartWithChanged: Cart = await this.adapters.commercetoolsProductClient.checkCartHasChanged(updatedCart)
-            // const { ctCart: cartWithUpdatedPrice, compared } = await this.adapters.commercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
-            // const updateCartWithOperator = await this.adapters.commercetoolsCartClient.updateCartWithOperator(cartWithUpdatedPrice, payload.operator)
-            // const iCartWithBenefit = await this.adapters.commercetoolsMeCartClient.updateCartWithBenefit(updateCartWithOperator);
 
-            return iCart;
+            const ctCartWithChanged: Cart = await this.adapters.commercetoolsProductClient.checkCartHasChanged(cart)
+            const { ctCart: cartWithUpdatedPrice, compared } = await this.adapters.commercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
+            const updateCartWithOperator = await this.adapters.commercetoolsCartClient.updateCartWithOperator(cartWithUpdatedPrice, body.operator)
+            const iCartWithBenefit = await this.adapters.commercetoolsMeCartClient.updateCartWithBenefit(updateCartWithOperator);
+
+            return await attachPackageToCart(iCartWithBenefit, cart)
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
@@ -582,11 +587,11 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
                 updateActions,
             );
 
-            // const ctCartWithChanged: Cart = await this.adapters.commercetoolsProductClient.checkCartHasChanged(updatedCart)
-            // const { ctCart: cartWithUpdatedPrice, compared } = await this.adapters.commercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
-            // const iCartWithBenefit = await this.adapters.commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
+            const ctCartWithChanged: Cart = await this.adapters.commercetoolsProductClient.checkCartHasChanged(updatedCart)
+            const { ctCart: cartWithUpdatedPrice, compared } = await this.adapters.commercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
+            const iCartWithBenefit = await this.adapters.commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
-            return this.adapters.commercetoolsMeCartClient.mapCartToICart(updatedCart);
+            return await attachPackageToCart(iCartWithBenefit, updatedCart)
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;

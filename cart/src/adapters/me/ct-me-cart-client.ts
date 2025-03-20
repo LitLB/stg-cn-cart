@@ -134,7 +134,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 				.me()
 				.carts()
 				.withId({ ID: cartId })
-				.get({ queryArgs: { expand: ['custom.fields.couponsInfomation', 'custom.fields.package'] } })
+				.get({ queryArgs: { expand: ['custom.fields.couponsInfomation', 'custom.fields.packageAdditionalInfo'] } })
 				.execute();
 
 			return response.body;

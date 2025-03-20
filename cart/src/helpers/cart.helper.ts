@@ -21,6 +21,14 @@ import { Cart } from "@commercetools/platform-sdk";
 export async function attachPackageToCart(iCart: ICart, ctCart: Cart): Promise<ICart> {
     // 1. Get cart-level package code (if present)
     let cartPackageCode: string | undefined;
+    if (
+        ctCart.custom?.fields?.packageAdditionalInfo &&
+        ctCart.custom.fields.packageAdditionalInfo?.obj &&
+        ctCart.custom.fields.packageAdditionalInfo.obj?.value &&
+        ctCart.custom.fields.packageAdditionalInfo.obj.value?.package_code
+    ) {
+        cartPackageCode = ctCart.custom.fields.packageAdditionalInfo.obj.value.package_code;
+    }
 
     // 2. Collect distinct package codes from the cart items.
     const packageCodesSet = new Set<string>();
@@ -52,7 +60,6 @@ export async function attachPackageToCart(iCart: ICart, ctCart: Cart): Promise<I
         // Extract the package_code from the masterVariant attributes.
         const { attributes = [] } = pkg.masterVariant;
         const pkgAttr = attributes.find((attr) => attr.name === "package_code");
-        const pkgPriceplanRc = attributes.find((attr) => attr.name === "priceplan_rc")
         if (pkgAttr && typeof pkgAttr.value === "string") {
             // Enrich the package with mock data if not already set.
             if (!pkg.cms) {
@@ -61,36 +68,38 @@ export async function attachPackageToCart(iCart: ICart, ctCart: Cart): Promise<I
                 };
             }
             if (!pkg.masterVariant.t1) {
-                pkg.masterVariant.t1 = {
-                    contractTerm: ctCart?.custom?.fields?.contractTerm,
-                    penalty: ctCart?.custom?.fields.contractFee.centAmount,
-                    advancedPayment: ctCart?.custom?.fields.advancedPayment.centAmount,
-                    priceplanRcc: pkgPriceplanRc?.value,
-                };
+                const t1 = ctCart?.custom?.fields?.packageAdditionalInfo?.obj?.value?.t1 ?? {}
+                pkg.masterVariant.t1 = t1
             }
             if (!pkg.masterVariant.connector) {
-                pkg.masterVariant.connector = {
-                    description: {
-                        "en-US": "Monthly fee 1,299 12-month \n contract Package fee will be charged on the invoice \n Early cancellation penalty 10,000 THB",
-                        "th-TH": "ค่าบริการราย 1,299 สัญญา 12 เดือน \n ค่าแพ็คเกจ รายเดือนจะเรียกเก็บในใบแจ้งค่าบริการ \n ค่าปรับกรณียกเลิกสัญญาก่อนกำหนด 10,000 บาท",
-                    }
-                };
+                const connector = ctCart?.custom?.fields?.packageAdditionalInfo?.obj?.value?.connector ?? {}
+                pkg.masterVariant.connector = connector
             }
             packageMap[pkgAttr.value] = pkg;
         }
     });
 
     // 5. Attach the matching package projection to each ICart item.
+    // iCart.items = iCart.items.map((item) => {
+    //     const pkgAttr = item.attributes.find((attr) => attr.name === "package_code");
+    //     if (pkgAttr && typeof pkgAttr.value === "string" && packageMap[pkgAttr.value]) {
+    //         item.package = packageMap[pkgAttr.value];
+    //     } else if (!pkgAttr && cartPackageCode && packageMap[cartPackageCode]) {
+    //         // Fallback: attach the cart-level package.
+    //         item.package = packageMap[cartPackageCode];
+    //     }
+    //     return item;
+    // });
+
+    iCart.items = iCart.items.filter((item) => item.productType === 'main_product')
     iCart.items = iCart.items.map((item) => {
-        const pkgAttr = item.attributes.find((attr) => attr.name === "package_code");
-        if (pkgAttr && typeof pkgAttr.value === "string" && packageMap[pkgAttr.value]) {
-            item.package = packageMap[pkgAttr.value];
-        } else if (!pkgAttr && cartPackageCode && packageMap[cartPackageCode]) {
-            // Fallback: attach the cart-level package.
-            item.package = packageMap[cartPackageCode];
-        }
-        return item;
-    });
+
+        // remove indexing when support multiple packages
+        item.package = Object.values(packageMap)[0]
+
+        return item
+    })
+
 
     return iCart;
 }
