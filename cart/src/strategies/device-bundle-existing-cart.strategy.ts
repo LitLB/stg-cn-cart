@@ -1,4 +1,4 @@
-import { Cart, CustomObject, LineItem, MyCartUpdateAction, Product, ProductVariant } from "@commercetools/platform-sdk";
+import { Cart, LineItem, MyCartUpdateAction, Product, ProductVariant } from "@commercetools/platform-sdk";
 import { CommercetoolsCartClient } from "../adapters/ct-cart-client";
 import { CommercetoolsInventoryClient } from "../adapters/ct-inventory-client";
 import { CommercetoolsProductClient } from "../adapters/ct-product-client";
@@ -8,12 +8,11 @@ import { createStandardizedError } from "../utils/error.utils";
 import { InventoryValidator } from "../validators/inventory.validator";
 import { CART_JOURNEYS } from "../constants/cart.constant";
 import { HTTP_STATUSES } from "../constants/http.constant";
-import { validateDeleteCartItemBody, validateProductQuantity, validateProductReleaseDate, validateSelectCartItemBody, validateSkuStatus, validateUpdateCartItemBody } from "../schemas/cart-item.schema";
+import { validateBulkDeleteCartItemBody, validateProductQuantity, validateProductReleaseDate, validateSelectCartItemBody, validateSkuStatus, validateUpdateCartItemBody } from "../schemas/cart-item.schema";
 import { readConfiguration } from "../utils/config.utils";
 import { validateInventory } from "../utils/cart.utils";
 import { LINE_ITEM_INVENTORY_MODES } from "../constants/lineItem.constant";
 import { CommercetoolsCustomObjectClient } from "../adapters/ct-custom-object-client";
-import { ICart } from "../interfaces/cart";
 import _ from 'lodash'
 import { attachPackageToCart } from "../helpers/cart.helper";
 
@@ -412,32 +411,14 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
         }
     }
 
-    public async removeItem(cart: Cart, body: any): Promise<any> {
+    public async bulkRemoveItems(cart: Cart, body: any): Promise<any> {
         try {
-            const { error, value } = validateDeleteCartItemBody(body);
+            const { error, value } = validateBulkDeleteCartItemBody(body);
             if (error) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
                     statusMessage: 'Validation failed',
                     data: error.details.map((err) => err.message),
-                };
-            }
-
-            const { productId, sku, productGroup, productType, addOnGroup, freeGiftGroup } = value;
-
-            const product = await this.adapters.commercetoolsProductClient.getProductById(productId);
-            if (!product) {
-                throw {
-                    statusCode: HTTP_STATUSES.NOT_FOUND,
-                    statusMessage: 'Product not found',
-                };
-            }
-
-            const variant = this.adapters.commercetoolsProductClient.findVariantBySku(product, sku);
-            if (!variant) {
-                throw {
-                    statusCode: HTTP_STATUSES.NOT_FOUND,
-                    statusMessage: 'SKU not found in the specified product',
                 };
             }
 
