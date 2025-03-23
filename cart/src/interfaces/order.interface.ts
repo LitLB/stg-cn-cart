@@ -51,6 +51,7 @@ export interface IOrderItem {
     unitPrice: number;
     totalUnitPrice: number;
     discountAmount: number;
+    otherPaymentAmount: number;
     priceAfterDiscount: number;
     // vatRate: string;
     // vatAmount: number;

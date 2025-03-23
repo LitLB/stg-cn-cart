@@ -13,10 +13,12 @@ import type { CustomObjectDraft, CustomObject } from '@commercetools/platform-sd
 class CommercetoolsOrderClient {
     private apiRoot: ApiRoot;
     private projectKey: string;
+    private readonly ctpAddCustomOtherPaymentLineItemPrefix;
 
     constructor() {
         this.apiRoot = CommercetoolsBaseClient.getApiRoot();
         this.projectKey = readConfiguration().ctpProjectKey as string;
+        this.ctpAddCustomOtherPaymentLineItemPrefix = readConfiguration().ctpAddCustomOtherPaymentLineItemPrefix as string;
     }
 
     public async getOrderById(orderId: string): Promise<Order | null> {
@@ -192,6 +194,18 @@ class CommercetoolsOrderClient {
         }, 0);
     }
 
+    calculateLineItemOtherPaymentAmount(lineItem: any, customLineItems: any[]) {
+		const lineItemId = lineItem.id
+		this.ctpAddCustomOtherPaymentLineItemPrefix
+		const otherPaymentCustomLineItems =
+			customLineItems.filter((item: any) => item.slug.startsWith(`${lineItemId}-${this.ctpAddCustomOtherPaymentLineItemPrefix}`))
+		const lineItemOtherPaymentAmount = otherPaymentCustomLineItems.reduce((acc: number, current: any) => {
+			return acc + Math.abs(current?.totalPrice?.centAmount)
+		}, 0)
+
+		return lineItemOtherPaymentAmount
+	}
+
     calculateQuantities(items: IOrderItem[]) {
         let totalQuantity = 0;
         const quantitiesByProductType: { [key: string]: number } = {};
@@ -215,10 +229,9 @@ class CommercetoolsOrderClient {
     }
 
     private calculateCustomLineItemsTotalPrice(customLineItems: CustomLineItem[]): number {
-        return customLineItems.reduce(
-            (total, cli) => total + cli.totalPrice.centAmount,
-            0
-        );
+        return customLineItems
+			.filter((item: any) => !item.slug.includes(this.ctpAddCustomOtherPaymentLineItemPrefix))
+			.reduce((total, cli) => total + cli.totalPrice.centAmount, 0);
     }
 
     /**
@@ -226,6 +239,7 @@ class CommercetoolsOrderClient {
      * @param ctOrder - The Commercetools Order object.
      */
     mapOrderToIOrder(ctOrder: Order): IOrder {
+        const customLineItems = ctOrder.customLineItems || [];
         const items: IOrderItem[] = [...ctOrder.lineItems]
             .sort((a: LineItem, b: LineItem) => {
                 const productGroupA = a.custom?.fields?.productGroup || 0;
@@ -252,7 +266,8 @@ class CommercetoolsOrderClient {
                 const image = this.getVariantImage(lineItem);
                 const totalUnitPrice = lineItem.price.value.centAmount * lineItem.quantity;
                 const discountAmount = this.calculateTotalDiscountAmount(lineItem);
-                const priceAfterDiscount = lineItem.totalPrice.centAmount;
+                const otherPaymentAmount = this.calculateLineItemOtherPaymentAmount(lineItem, customLineItems);
+                const priceAfterDiscount = lineItem.totalPrice.centAmount - otherPaymentAmount;
 
                 const item: IOrderItem = {
                     productId: lineItem.productId,
@@ -271,6 +286,7 @@ class CommercetoolsOrderClient {
                     unitPrice: lineItem.price.value.centAmount,
                     totalUnitPrice,
                     discountAmount,
+                    otherPaymentAmount,
                     priceAfterDiscount,
                     finalPrice: priceAfterDiscount,
                     appliedEffects: [],
@@ -294,9 +310,6 @@ class CommercetoolsOrderClient {
             (total, item) => total + item.priceAfterDiscount,
             0
         );
-
-        // Process customLineItems (e.g., order-level discounts)
-        const customLineItems = ctOrder.customLineItems || [];
 
         // Use the new function to calculate the total price of custom line items
         const customLineItemsTotalPrice = this.calculateCustomLineItemsTotalPrice(customLineItems);
