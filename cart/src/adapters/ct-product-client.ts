@@ -138,15 +138,16 @@ export class CommercetoolsProductClient implements IAdapter {
 		return variant || null;
 	}
 
-	async getProductsBySkus(skus: any[]): Promise<any> {
-		const filter = `variants.sku: ${skus.map(sku => `"${sku}"`).join(',')}`
+	async getProductsBySkus(skus: any[], expand?:string[]): Promise<any> {
+		const skusFilter = `variants.sku: ${skus.map(sku => `"${sku}"`).join(',')}`
 		const products = await this.apiRoot
 			.withProjectKey({ projectKey: this.projectKey })
 			.productProjections()
 			.search()
 			.get({
 				queryArgs: {
-					filter
+					filter: skusFilter,
+					expand,
 				}
 			}).execute()
 
@@ -411,6 +412,12 @@ export class CommercetoolsProductClient implements IAdapter {
 		};
 	}
 
+	getProductCategorySlug(categories: any[]) {
+		const parentCategorySlug = categories?.[0]?.obj?.parent?.obj?.slug || null
+		const categorySlug = categories?.[0]?.obj?.slug || null
+
+		return parentCategorySlug ? parentCategorySlug : categorySlug
+	}
 }
 
 export default CommercetoolsProductClient.getInstance();
