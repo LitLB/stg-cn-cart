@@ -333,6 +333,12 @@ deployAs:
         - key: CTP_REGION
           description: commercetools Composable Commerce API region
           required: true
+        - key: CTP_AUTH_URL
+          description: Commercetools authentication URL (e.g., 'https://auth.commercetools.com')
+          required: true
+        - key: CTP_API_URL
+          description: Commercetools API base URL (e.g., 'https://api.commercetools.com')
+          required: true
         - key: AWS_REGION
           description: AWS region
           required: true
