@@ -29,34 +29,43 @@ export const errorHandler = (
         statusCode,
         statusMessage,
         errorCode: errorCode || 'UNKNOWN_ERROR_CODE',
-        data: err.data ? err.response?.data : null,
+        data: err.data ? err.response?.data : undefined,
     };
 
-    const newResponse = normalizeError(response)
-
-    res.status(status).json(newResponse);
+    res.status(status).json(response);
 };
 
-const normalizeError = (response: ApiResponse) => {
+
+
+export function transformError(error: any): { statusCode: string; statusMessage: string; errorCode: string } {
 
     const statusMessages: Record<string, string> = {
         '400.010.0015': 'OTP is not match',
         '400.010.0016': 'OTP is not match for 5 times',
         '400.010.0014': 'OTP has expired',
+        400: 'Verify OTP fail'
     };
 
-    const statusCode: Record<string, string> = {
+    const statusCodes: Record<string, string> = {
         '400.009.0003': '400.4001',
         '400.010.0015': '400.4002',
         '400.010.0016': '400.4003',
-        '400.010.0014': '400.4004'
+        '400.010.0014': '400.4004',
+        400: '400.4028'
+    };
+
+    if (statusMessages[error.statusCode]) {
+        const message = statusMessages[error.statusCode];
+        return {
+            statusCode: statusCodes[error.statusCode],
+            statusMessage: message,
+            errorCode: message.replace(/\s+/g, '_').toUpperCase()
+        };
     }
 
-    if (statusMessages[response.statusCode]) {
-        response.statusCode = statusCode[response.statusCode];
-        response.statusMessage = statusMessages[response.statusCode];
-        response.errorCode = statusMessages[response.statusCode].split(" ").join("_").toUpperCase();
-    }
-
-    return response;
-};
+    return {
+        statusCode: error.statusCode,
+        statusMessage: error.statusMessage,
+        errorCode: error.errorCode
+    };
+}
