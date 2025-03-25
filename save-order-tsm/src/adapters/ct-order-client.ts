@@ -156,7 +156,7 @@ export class CommercetoolsOrderClient {
 	
 			return body.results
 		} catch (error) {
-			logger.error(`Get orders ${error}`)
+			logger.error(`Get orders ${error} Body Query : ${query}`)
 			return []
 		}
 	}
