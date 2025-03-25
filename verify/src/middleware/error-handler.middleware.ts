@@ -37,13 +37,13 @@ export const errorHandler = (
 
 
 
-export function transformError(error: any): { statusCode: string; statusMessage: string; errorCode: string } {
+export function transformError(error: any, fnMsg: string, code: string): { statusCode: string; statusMessage: string; errorCode: string } {
 
     const statusMessages: Record<string, string> = {
         '400.010.0015': 'OTP is not match',
         '400.010.0016': 'OTP is not match for 5 times',
         '400.010.0014': 'OTP has expired',
-        400: 'Verify OTP fail'
+        400: fnMsg
     };
 
     const statusCodes: Record<string, string> = {
@@ -51,7 +51,7 @@ export function transformError(error: any): { statusCode: string; statusMessage:
         '400.010.0015': '400.4002',
         '400.010.0016': '400.4003',
         '400.010.0014': '400.4004',
-        400: '400.4028'
+        400: code
     };
 
     if (statusMessages[error.statusCode]) {
