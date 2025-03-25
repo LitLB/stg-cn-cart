@@ -12,10 +12,8 @@ import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client
 import { getValueByKey } from "../utils/object.utils";
 import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
-import { IGetProfileDtacRequest, IGetProfileTrueRequest } from "../interfaces/otp.interface";
 import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile } from "../validators/operator.validators";
-import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
 
 dayjs.extend(utc);
@@ -354,11 +352,7 @@ export class OtpService {
         } catch (e: any) {
             logService(checkOperatorPayload, e, logStepModel)
             logger.error('Error checkOperator')
-            throw {
-                statusCode: '400.4016',
-                statusMessage: 'Get operator fail',
-                errorCode: 'GET_OPERATOR_FAIL'
-            }
+            throw e
         }
     }
 
@@ -402,11 +396,34 @@ export class OtpService {
     }
 
     public async getCustomerProfile(id: string, mobileNumber: string, journey: string) {
+        const operator = await this.checkOperator(id, mobileNumber);
+        const [_, response] = await Promise.all([
+            // * Check operator active
+            this.checkActive(operator, journey),
+            // * Get Profile & Package
+            this.getProfileAndPackage(id, operator, mobileNumber)
+        ]);
+
+        const customerProfile = operator === OPERATOR.TRUE
+            ? validateCustomerTrueProfile(response.data)
+            : validateCustomerDtacProfile(response.data);
+
+        // Run post-checks concurrently.
+        await Promise.all([
+            // * Check backlist
+            this.checkBacklist(id, customerProfile.thaiId, operator, customerProfile.customerNo),
+            // * Check Contract & Quota
+            this.checkContractAndQuota(id, operator, customerProfile.thaiId, customerProfile.agreementId)
+        ]);
+
+        return customerProfile;
+    }
+
+    private async getProfileAndPackage(id: string, operator: string, mobileNumber: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_GET_PROFILE_AND_PACKAGE, logModel);
         const apigeeClientAdapter = new ApigeeClientAdapter();
 
-        const operator = await this.checkOperator(id, mobileNumber);
 
         const basePayload = { id, channel: operator };
         const getProfilePayload = operator === OPERATOR.TRUE
@@ -424,40 +441,19 @@ export class OtpService {
             };
 
         try {
-            const [_, response] = await Promise.all([
-                // * Check operator active
-                this.checkActive(operator, journey),
-                // * Get Profile & Package
-                apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
-            ]);
 
+            const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
             logService(getProfilePayload, response, logStepModel);
-            const { data, code } = response.data;
 
-            if (code !== '0') {
-                throw {
-                    statusCode: "400.4010",
-                    statusMessage: 'Get profile info fail',
-                    errorCode: 'GET_PROFILE_INFO_FAIL'
-                };
-            }
 
-            const customerProfile = operator === OPERATOR.TRUE
-                ? validateCustomerTrueProfile(data)
-                : validateCustomerDtacProfile(data);
-
-            // Run post-checks concurrently.
-            await Promise.all([
-                // * Check backlist
-                this.checkBacklist(id, customerProfile.thaiId, operator, customerProfile.customerNo),
-                // * Check Contract & Quota
-                this.checkContractAndQuota(id, operator, customerProfile.thaiId, customerProfile.agreementId)
-            ]);
-
-            return customerProfile;
-        } catch (e: any) {
+            return response.data
+        } catch (e) {
             logService(getProfilePayload, e, logStepModel);
-            throw e;
+            throw {
+                statusCode: "400.4010",
+                statusMessage: 'Get profile info fail',
+                errorCode: 'GET_PROFILE_INFO_FAIL'
+            };
         }
     }
 
@@ -471,6 +467,7 @@ export class OtpService {
             if (operator === OPERATOR.TRUE) {
                 const response = await apigeeClientAdapter.checkBacklistTrue(id, thaiId)
                 logService({ id, thaiId, operator }, response, logStepModel)
+
                 const { data } = response.data
 
                 if (data.mobileRelaxBlacklist === 'Y') {
@@ -496,7 +493,7 @@ export class OtpService {
                 logService({ id, thaiId, operator }, response, logStepModel)
                 const { status } = response.data
 
-                if (status === "FALSE") {
+                if (status !== "FALSE") {
                     throw {
                         statusCode: '400.4006',
                         statusMessage: 'Black Listed Customer is not allowed',
@@ -505,9 +502,15 @@ export class OtpService {
                 }
             }
 
-
         } catch (e: any) {
             logService({ id, thaiId, operator, custValue }, e, logStepModel)
+            if (operator === OPERATOR.TRUE && e.status === 400) {
+                throw {
+                    statusCode: '400.4006',
+                    statusMessage: 'Black Listed Customer is not allowed',
+                    errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
+                }
+            }
             throw e
         }
     }
@@ -556,6 +559,14 @@ export class OtpService {
 
         } catch (e: any) {
             logService({ id, operator, thaiId }, e, logStepModel)
+
+            if (operator === OPERATOR.TRUE && e.status === 400) {
+                throw {
+                    statusCode: '400.4013',
+                    statusMessage: 'Not allowed to extend contract',
+                    errorCode: 'NOT_ALLOWED_TO_EXTERNAL_CONTRACT'
+                }
+            }
             throw e
         }
     }

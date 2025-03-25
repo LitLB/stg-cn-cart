@@ -8,9 +8,9 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
 
     if (!data.characteristic[26] || !data.characteristic[28]) {
         throw {
-            statusCode: '400.4010',
-            statusMessage: 'Get profile info fail',
-            errorCode: 'GET_PROFILE_INFO_FAIL'
+            statusCode: '400.4017',
+            statusMessage: 'Customer type is not eligible',
+            errorCode: 'CUSTOMER_TYPE_IS_NOT_NOT_ELIGIBLE'
         }
     }
 
