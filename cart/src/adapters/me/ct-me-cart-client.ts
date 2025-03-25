@@ -672,6 +672,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 					productName: lineItem.name,
 					ctProductType: lineItem.productType,
 					productSlug: lineItem.productSlug,
+					productCategorySlug: (lineItem as any).productCategorySlug,
 					variantId: lineItem.variant.id,
 					sku: lineItem.variant.sku,
 					productType,
@@ -1350,6 +1351,30 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 		};
 	}
 
+	async attachProductCategorySlugToICart(iCart: any) {
+		const { items } = iCart
+		if (!items.length) {
+			return iCart
+		}
+		const allSkus = items.map((item:any) => item.sku)
+		const { body } = await this.ctProductClient.getProductsBySkus(allSkus, ['categories[*].parent'])
+		const skuItems = body.results;
+		const withProductCategorySlugItems = items.map((item:any) => {
+			const matchingSkuItem = skuItems.find(
+				(skuItem: any) => item.productId === skuItem.id
+			);
+			const productCategorySlug = this.ctProductClient.getProductCategorySlug(matchingSkuItem?.categories)
+			return {
+				...item,
+				productCategorySlug
+			}
+		})
+		return {
+			...iCart,
+			items: withProductCategorySlugItems
+		}
+	}
+
 	/**
 	 * Main entry for applying Talon.One benefit logic, etc.
 	 */
@@ -1409,6 +1434,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 
 		let iCart: ICart = this.mapCartToICart(ctCart);
 		iCart = await this.attachInsuranceToICart(iCart);
+		iCart = await this.attachProductCategorySlugToICart(iCart);
 
 		this.mapInventoryToItems(iCart.items, inventoryMap);
 
