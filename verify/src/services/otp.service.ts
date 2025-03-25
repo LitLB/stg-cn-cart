@@ -10,10 +10,8 @@ import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client
 import { getValueByKey } from "../utils/object.utils";
 import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
-import { IGetProfileDtacRequest, IGetProfileTrueRequest } from "../interfaces/otp.interface";
 import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile } from "../validators/operator.validators";
-import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
 
 export class OtpService {
@@ -444,8 +442,10 @@ export class OtpService {
             const response = await apigeeClientAdapter.getProfileAndPackage(getProfilePayload)
             logService(getProfilePayload, response, logStepModel);
 
+
             return response.data
         } catch (e) {
+            logService(getProfilePayload, e, logStepModel);
             throw {
                 statusCode: "400.4010",
                 statusMessage: 'Get profile info fail',
@@ -464,6 +464,7 @@ export class OtpService {
             if (operator === OPERATOR.TRUE) {
                 const response = await apigeeClientAdapter.checkBacklistTrue(id, thaiId)
                 logService({ id, thaiId, operator }, response, logStepModel)
+
                 const { data } = response.data
 
                 if (data.mobileRelaxBlacklist === 'Y') {
@@ -500,6 +501,13 @@ export class OtpService {
 
         } catch (e: any) {
             logService({ id, thaiId, operator, custValue }, e, logStepModel)
+            if (operator === OPERATOR.TRUE && e.status === 400) {
+                throw {
+                    statusCode: '400.4006',
+                    statusMessage: 'Black Listed Customer is not allowed',
+                    errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
+                }
+            }
             throw e
         }
     }
@@ -548,6 +556,14 @@ export class OtpService {
 
         } catch (e: any) {
             logService({ id, operator, thaiId }, e, logStepModel)
+
+            if (operator === OPERATOR.TRUE && e.status === 400) {
+                throw {
+                    statusCode: '400.4013',
+                    statusMessage: 'Not allowed to extend contract',
+                    errorCode: 'NOT_ALLOWED_TO_EXTERNAL_CONTRACT'
+                }
+            }
             throw e
         }
     }
