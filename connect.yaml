@@ -322,7 +322,7 @@ deployAs:
           required: true
   - name: save-order-tsm
     applicationType: job
-    endpoint: /save
+    endpoint: /jobs/save
     properties:
       schedule: "*/5 * * * *"
     configuration:
