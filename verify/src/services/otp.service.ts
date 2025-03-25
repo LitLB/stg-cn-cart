@@ -15,6 +15,7 @@ import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile } from "../validators/operator.validators";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
+import { transformError } from "../middleware/error-handler.middleware";
 
 dayjs.extend(utc);
 
@@ -55,6 +56,7 @@ export class OtpService {
                 ]
             }
 
+
             const response = await apigeeClientAdapter.requestOTP(requestOtpPayload)
 
             const { data } = response
@@ -90,6 +92,8 @@ export class OtpService {
     public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
+        const isMockOtp = this.config.otp.isMock as string
+
 
         let verifyOtpPayload
         const logInformation = {
@@ -123,7 +127,6 @@ export class OtpService {
                 ]
             }
 
-            const isMockOtp = this.config.otp.isMock as string
 
             if (isMockOtp === 'true') {
 
@@ -139,85 +142,8 @@ export class OtpService {
                         statusCode: '400.4004',
                         statusMessage: 'OTP has expired',
                         errorCode: 'OTP_HAS_EXPIRED'
-                    },
-                    '100004': {
-                        status: 400,
-                        statusCode: '400.4005',
-                        statusMessage: 'Operator not TRUE or DTAC',
-                        errorCode: 'OPERATOR_NOT_TRUE_OR_DTAC'
-                    },
-                    '100005': {
-                        status: 400,
-                        statusCode: '400.4016',
-                        statusMessage: 'Get operator fail',
-                        errorCode: 'GET_OPERATOR_FAIL'
-                    },
-                    '100006': {
-                        status: 400,
-                        statusCode: '400.4006',
-                        statusMessage: 'Black listed customer is not allowed',
-                        errorCode: 'BLACK_LISTED_CUSTOMER_NOT_ALLOWED'
-                    },
-                    '100007': {
-                        status: 400,
-                        statusCode: '400.4007',
-                        statusMessage: 'Get customer tier fail',
-                        errorCode: 'GET_CUSTOMER_TIER_FAIL'
-                    },
-                    '100008': {
-                        status: 400,
-                        statusCode: '400.4008',
-                        statusMessage: 'Get contract fail',
-                        errorCode: 'GET_CONTRACT_FAIL'
-                    },
-                    '100009': {
-                        status: 400,
-                        statusCode: '400.4009',
-                        statusMessage: 'Get package info fail',
-                        errorCode: 'GET_PACKAGE_INFO_FAIL'
-                    },
-                    '100010': {
-                        status: 400,
-                        statusCode: '400.4010',
-                        statusMessage: 'Get profile info fail',
-                        errorCode: 'GET_PROFILE_INFO_FAIL'
-                    },
-                    '100011': {
-                        status: 400,
-                        statusCode: '400.4011',
-                        statusMessage: 'Subscriber type is not postpaid',
-                        errorCode: 'SUBSCRIBER_TYPE_NOT_POSTPAID'
-                    },
-                    '100012': {
-                        status: 400,
-                        statusCode: '400.4012',
-                        statusMessage: 'Get quota fail',
-                        errorCode: 'GET_QUOTA_FAIL'
-                    },
-                    '100013': {
-                        status: 400,
-                        statusCode: '400.4013',
-                        statusMessage: 'Not allowed to extend contract',
-                        errorCode: 'NOT_ALLOWED_TO_EXTEND_CONTRACT'
-                    },
-                    '100014': {
-                        status: 400,
-                        statusCode: '400.4014',
-                        statusMessage: 'Offer package not found',
-                        errorCode: 'OFFER_PACKAGE_NOT_FOUND'
-                    },
-                    '100015': {
-                        status: 400,
-                        statusCode: '400.4015',
-                        statusMessage: 'Get offer package fail',
-                        errorCode: 'GET_OFFER_PACKAGE_FAIL'
-                    },
-                    '500000': {
-                        status: 500,
-                        statusCode: '500.9999',
-                        statusMessage: 'Unknown error',
-                        errorCode: 'UNKNOWN_ERROR'
                     }
+
                 };
 
                 if (pin === '888888') {
@@ -317,14 +243,18 @@ export class OtpService {
 
         } catch (e: any) {
             logService(verifyOtpPayload, e, logStepModel)
-            logInformation.journey = journey
-            logInformation.otpNumber = pin
-            logInformation.refCode = refCode
-            logInformation.status = "Failed"
-            logInformation.reason = e.response?.data.message || e.errorCode || e.statusMessage || e.message || "Internal Server Error";
-            logger.error(JSON.stringify(logInformation))
+            Object.assign(logInformation, {
+                journey,
+                otpNumber: pin,
+                refCode,
+                status: "Failed",
+                reason: e.response?.data.message || e.errorCode || e.statusMessage || e.message || "Internal Server Error"
+            });
 
-            throw e
+
+            logger.error(JSON.stringify(logInformation));
+
+            throw transformError(e)
         }
     }
 
@@ -561,6 +491,7 @@ export class OtpService {
             logService({ id, operator, thaiId }, e, logStepModel)
 
             if (operator === OPERATOR.TRUE && e.status === 400) {
+
                 throw {
                     statusCode: '400.4013',
                     statusMessage: 'Not allowed to extend contract',
