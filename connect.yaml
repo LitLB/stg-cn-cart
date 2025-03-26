@@ -324,7 +324,7 @@ deployAs:
     applicationType: job
     endpoint: /jobs/save
     properties:
-      schedule: "*/5 * * * *"
+      schedule: "*/10 * * * *"
     configuration:
       standardConfiguration:
         - key: APP_ENV
