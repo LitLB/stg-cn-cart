@@ -377,8 +377,13 @@ export class OtpService {
 
 
             return response.data
-        } catch (e) {
+        } catch (e: any) {
             logService(getProfilePayload, e, logStepModel);
+
+            if (operator === OPERATOR.TRUE) {
+                throw e
+            }
+
             throw {
                 statusCode: "400.4010",
                 statusMessage: 'Get profile info fail',
