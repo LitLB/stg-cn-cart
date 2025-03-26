@@ -106,7 +106,8 @@ export class InventoryService {
         if (!journey) return;
 
         for (const lineItem of ctCart.lineItems) {
-            await this.commitLineItemStockUsage(lineItem, journey);
+            const itemJourney = (lineItem.custom?.fields?.journey as CART_JOURNEYS) || journey;
+            await this.commitLineItemStockUsage(lineItem, itemJourney);
         }
     }
 }

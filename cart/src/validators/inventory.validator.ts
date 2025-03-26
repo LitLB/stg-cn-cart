@@ -115,11 +115,12 @@ export class InventoryValidator {
 
         for (const lineItem of cart.lineItems) {
             if (!lineItem.variant?.sku) continue;
+            const itemJourney = (lineItem.custom?.fields?.journey as CART_JOURNEYS) || journey;
             await InventoryValidator.validateLineItemStock(
                 cart,
                 lineItem.variant.sku,
                 lineItem.quantity,
-                journey
+                itemJourney
             );
         }
     }

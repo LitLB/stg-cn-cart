@@ -1,4 +1,4 @@
-import { Cart, MyCartUpdateAction } from "@commercetools/platform-sdk";
+import { Cart, MyCartUpdateAction, Product } from "@commercetools/platform-sdk";
 import { CommercetoolsCartClient } from "../adapters/ct-cart-client";
 import { CommercetoolsInventoryClient } from "../adapters/ct-inventory-client";
 import { CommercetoolsProductClient } from "../adapters/ct-product-client";
@@ -40,16 +40,6 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy {
             const now = new Date();
             const { productId, sku, quantity, productType, productGroup, addOnGroup, freeGiftGroup, campaignVerifyValues = [] } = payload;
 
-            const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
-
-            await InventoryValidator.validateLineItemUpsert(
-                cart,
-                sku,
-                quantity,
-                journey,
-                payload.campaignVerifyValues && payload.campaignVerifyValues.length > 0
-            );
-
             const product = await this.adapters.commercetoolsProductClient.getProductById(productId);
             if (!product) {
                 throw {
@@ -65,6 +55,16 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy {
                 };
             }
 
+            // Override journey level cart gonna be product journey to validation
+            const journey = this.determineJourney(product, cart.custom?.fields?.journey as CART_JOURNEYS, payload?.journey);
+            
+            await InventoryValidator.validateLineItemUpsert(
+                cart,
+                sku,
+                quantity,
+                journey,
+                payload.campaignVerifyValues && payload.campaignVerifyValues.length > 0
+            );
             const variant = this.adapters.commercetoolsProductClient.findVariantBySku(product, sku);
 
             if (!variant) {
@@ -217,6 +217,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy {
                 externalPrice: validPrice.value,
                 dummyFlag: isDummyStock,
                 campaignVerifyValues: filteredCampaignVerifyValues,
+                journey
             });
 
             const ctCartWithChanged: Cart = await this.adapters.commercetoolsProductClient.checkCartHasChanged(updatedCart)
@@ -252,9 +253,6 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy {
 
             const { productId, sku, quantity, productGroup, productType, addOnGroup, freeGiftGroup } = value;
 
-            const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
-            await InventoryValidator.validateLineItemReplaceQty(cart, sku, quantity, journey);
-
             const product = await this.adapters.commercetoolsProductClient.getProductById(productId);
             if (!product) {
                 throw {
@@ -269,6 +267,11 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy {
                     statusMessage: 'Product is no longer available.',
                 };
             }
+            // Override journey level cart gonna be product journey to validation
+            const journey = this.determineJourney(product, cart.custom?.fields?.journey as CART_JOURNEYS);
+            
+            // const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
+            await InventoryValidator.validateLineItemReplaceQty(cart, sku, quantity, journey);
 
             const variant = this.adapters.commercetoolsProductClient.findVariantBySku(product, sku);
             if (!variant) {
@@ -599,4 +602,18 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy {
 
         return newProductGroup;
     };
+
+    private determineJourney(product: Product, journeyDefault: CART_JOURNEYS, payloadJourney?: string): CART_JOURNEYS {
+        let journey = journeyDefault;
+      
+        if (!payloadJourney) {
+          const [foundJourney] = this.adapters.commercetoolsProductClient.findProductJourney(product);
+          journey = foundJourney?.key ? foundJourney.key : CART_JOURNEYS.SINGLE_PRODUCT;
+        } else {
+          journey = payloadJourney as CART_JOURNEYS;
+        }
+
+        return journey;
+    }
+      
 }

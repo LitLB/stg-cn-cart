@@ -21,7 +21,7 @@ import type {
 	CartChangeCustomLineItemQuantityAction,
 } from '@commercetools/platform-sdk';
 import type { IAvailableBenefitProduct, IAvailableBenefitProductVariant, ICart, IImage, IItem } from '../../interfaces/cart';
-import { CART_EXPIRATION_DAYS } from '../../constants/cart.constant';
+import { CART_EXPIRATION_DAYS, CART_JOURNEYS } from '../../constants/cart.constant';
 import dayjs from 'dayjs';
 import CommercetoolsInventoryClient from '../ct-inventory-client';
 import CommercetoolsCartClient from '../ct-cart-client';
@@ -440,6 +440,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 				quantity,
 			});
 		} else {
+			// Are not use?
 			const lineItemIds = this.findLineItemIds(cart, [{
 				productId,
 				variantId,
@@ -498,13 +499,17 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 			freeGiftGroup
 		}]);
 
-		const updatedCart = await this.removeMultipleItemsFromCart(
+		// Removed cart item
+		const removed = await this.removeMultipleItemsFromCart(
 			cart.id,
 			cart.version,
 			lineItemIds,
 		);
-
-		return updatedCart;
+		
+		// Update cart journey only if journey is 'device_only' or 'single_product'
+		const updated = await this.updateCartJourneyIfNeeded(removed)
+		
+		return updated || removed;
 	}
 
 	/**
@@ -549,13 +554,16 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 			throw new Error('No valid line items found to remove.');
 		}
 
-		const updatedCart = await this.removeMultipleItemsFromCart(
+		const removed = await this.removeMultipleItemsFromCart(
 			cart.id,
 			cart.version,
 			lineItemIds,
 		);
-
-		return updatedCart;
+		
+		// Update cart journey only if journey is 'device_only' or 'single_product'
+		const updated = await this.updateCartJourneyIfNeeded(removed)
+				
+		return updated || removed;
 	}
 
 	private getVariantImage(lineItem: LineItem): IImage | null {
@@ -659,7 +667,8 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 				const productType = lineItem.custom?.fields?.productType;
 				const productGroup = lineItem.custom?.fields?.productGroup;
 				const addOnGroup = lineItem.custom?.fields?.addOnGroup;
-				const freeGiftGroup = lineItem.custom?.fields?.freeGiftGroup
+				const freeGiftGroup = lineItem.custom?.fields?.freeGiftGroup;
+				const journey = lineItem.custom?.fields?.journey;
 				const image = this.getVariantImage(lineItem);
 				const totalUnitPrice = lineItem.price.value.centAmount * lineItem.quantity;
 				const discountAmount = this.calculateTotalDiscountAmount(lineItem);
@@ -690,6 +699,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 					appliedEffects: [],
 					attributes: lineItem.variant.attributes || [],
 					selected,
+					journey
 				};
 
 				return item;
@@ -1450,4 +1460,35 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 	async updateCartChangeDataToCommerceTools(ctCartWithUpdated: Cart) {
 		return await this.ctCartClient.updateCartWithNewValue(ctCartWithUpdated)
 	}
+
+	private async updateCartJourneyIfNeeded(removed: Cart): Promise<Cart | void> {
+		const { custom, lineItems } = removed;
+		const journey = custom?.fields?.journey;
+	
+		const isDeviceOrSingleProduct =
+			journey === CART_JOURNEYS.DEVICE_ONLY || journey === CART_JOURNEYS.SINGLE_PRODUCT;
+	
+		if (lineItems.length === 0 || !isDeviceOrSingleProduct) return;
+	
+		const newCartJourney = lineItems.some(
+			item => item.custom?.fields?.journey === CART_JOURNEYS.DEVICE_ONLY
+		)
+			? CART_JOURNEYS.DEVICE_ONLY
+			: CART_JOURNEYS.SINGLE_PRODUCT;
+	
+		if (journey !== newCartJourney) {
+			return await this.updateCart(
+				removed.id,
+				removed.version,
+				[
+					{
+						action: 'setCustomField',
+						name: 'journey',
+						value: newCartJourney
+					}
+				]
+			);
+		}
+	}
+	
 }

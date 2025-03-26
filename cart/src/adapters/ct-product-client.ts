@@ -137,6 +137,12 @@ export class CommercetoolsProductClient implements IAdapter {
 		const variant = variants.find((v) => v.sku === sku);
 		return variant || null;
 	}
+	
+	findProductJourney(product: Product): { key: string; label: string }[] {
+		const { masterVariant } = product.masterData.current;
+		const journey = masterVariant?.attributes?.find((v) => v.name === 'journey');
+		return journey?.value || []
+	}
 
 	async getProductsBySkus(skus: any[], expand?:string[]): Promise<any> {
 		const skusFilter = `variants.sku: ${skus.map(sku => `"${sku}"`).join(',')}`

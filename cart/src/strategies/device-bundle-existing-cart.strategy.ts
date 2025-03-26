@@ -228,12 +228,12 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
             };
         }
     
-        if (totalCartQuantity > 1) {
-            throw {
-                statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: `Cannot have more than 1 unit of SKU ${sku} in the cart.`,
-            };
-        }
+        // if (totalCartQuantity > 1) {
+        //     throw {
+        //         statusCode: HTTP_STATUSES.BAD_REQUEST,
+        //         statusMessage: `Cannot have more than 1 unit of SKU ${sku} in the cart.`,
+        //     };
+        // }
     
         if (!variant.attributes?.some((value) => value.name === 'journey' && value.value.some((journey: any) => journey.key === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING))) {
             throw {
@@ -344,6 +344,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
                             productGroup,
                             selected: false,
                             isPreOrder: false,
+                            journey
                         },
                     },
                 },

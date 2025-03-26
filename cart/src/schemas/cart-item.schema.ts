@@ -1,6 +1,6 @@
 // cart/src/schemas/cart-item.schema.ts
 
-import type { Attribute, Cart, LineItem, Product, ProductVariant } from '@commercetools/platform-sdk';
+import type { Attribute, Cart, LineItem, ProductVariant } from '@commercetools/platform-sdk';
 import Joi from 'joi';
 import { getAttributeValue } from '../utils/product-utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
@@ -79,8 +79,31 @@ export function validateSelectCartItemBody(body: any) {
 	}).validate(body, { abortEarly: false });
 }
 
+export type AddItemCartBodyRequest = {
+	productId: string;
+	sku: string;
+	quantity: number;
+	campaignGroup?: string | null;
+	journey?: string | null;
+	loyaltyTier?: string | null;
+	campaignByJourney?: string | null;
+	propositionGroup?: string | null;
+	productType: 'main_product' | 'add_on' | 'insurance' | 'free_gift';
+	productGroup?: number;
+	addOnGroup?: string | null;
+	freeGiftGroup?: string | null;
+	campaignVerifyValues?: {
+		name: string;
+		value: any;
+	}[];
+	operator: 'TRUE' | 'DTAC';
+	package?: {
+		code: string;
+	};
+};
+  
 export function validateAddItemCartBody(body: any) {
-	return Joi.object({
+	return Joi.object<AddItemCartBodyRequest>({
 		productId: Joi.string().required().messages({
 			'string.empty': 'Product ID cannot be empty',
 			'any.required': 'Product ID is required',

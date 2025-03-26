@@ -12,9 +12,8 @@ import CommercetoolsInventoryClient from '../adapters/ct-inventory-client'
 import { CustomCartWithCompared, CustomCartWithNotice, CustomLineItemHasChanged, HasChangedAction } from '../types/custom.types';
 import { createStandardizedError } from '../utils/error.utils';
 import { HttpStatusCode } from 'axios';
-import CommercetoolsMeCartClient from './me/ct-me-cart-client';
 import { validateInventory } from '../utils/cart.utils';
-import { CART_HAS_CHANGED_NOTICE_MESSAGE } from '../constants/cart.constant';
+import { CART_HAS_CHANGED_NOTICE_MESSAGE, CART_JOURNEYS } from '../constants/cart.constant';
 import { IAdapter } from '../interfaces/adapter.interface';
 
 
@@ -87,6 +86,7 @@ export class CommercetoolsCartClient implements IAdapter {
 		externalPrice,
 		dummyFlag,
 		campaignVerifyValues,
+		journey
 	}: {
 		cart: Cart;
 		productId: string;
@@ -107,8 +107,9 @@ export class CommercetoolsCartClient implements IAdapter {
 				value: string;
 			}
 		];
+		journey: string
 	}): Promise<Cart> {
-		const { lineItems } = cart;
+		const { lineItems, custom } = cart;
 
 		const existingPreOrderMainProduct = lineItems.find((lineItem: LineItem) =>
 			lineItem.custom?.fields?.productType === 'main_product'
@@ -190,13 +191,29 @@ export class CommercetoolsCartClient implements IAdapter {
 			return updatedCart;
 		}
 
-		const updateCustom: CartSetCustomFieldAction = {
+		const updateCartCustomFields: CartSetCustomFieldAction[] = [{
 			action: 'setCustomField',
 			name: 'preOrder',
 			value: cartFlag
-		};
+		}]
+		
+		// New logic check existing cart journey are 'single_product' and new item journey is 'device_only' we will update cart journey gonna be 'device_only'
+		if (custom?.fields?.journey === CART_JOURNEYS.SINGLE_PRODUCT && journey === CART_JOURNEYS.DEVICE_ONLY) {
+			updateCartCustomFields.push({
+				action: 'setCustomField',
+				name: 'journey',
+				value: journey
+			})
+		}
+		if (lineItems.length === 0) {
+			updateCartCustomFields.push({
+				action: 'setCustomField',
+				name: 'journey',
+				value: journey
+			})
+		}
 
-		const cartWithDummyFlag = await this.updateCart(cart.id, cart.version, [updateCustom])
+		const cartWithDummyFlag = await this.updateCart(cart.id, cart.version, updateCartCustomFields)
 		const transformedCampaignVerifyValues = campaignVerifyValues.map((item: any) => JSON.stringify(item))
 		const lineItemDraft: LineItemDraft = {
 			productId,
@@ -222,7 +239,8 @@ export class CommercetoolsCartClient implements IAdapter {
 					...(discounts?.length ? { discounts } : {}),
 					...(otherPayments?.length ? { otherPayments } : {}),
 					isPreOrder: dummyFlag,
-					...(productType === 'main_product' ? { campaignVerifyValues: transformedCampaignVerifyValues } : {})
+					...(productType === 'main_product' ? { campaignVerifyValues: transformedCampaignVerifyValues } : {}),
+					journey
 				},
 			},
 			externalPrice,

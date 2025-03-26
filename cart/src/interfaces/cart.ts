@@ -84,7 +84,7 @@ export interface IItem {
 	image: IImage | null;
 	inventory?: any;
 	hasChanged?: any
-
+	journey?: string
 }
 
 export interface IImage {

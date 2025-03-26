@@ -6,11 +6,12 @@ import { ApiResponse } from '../interfaces/response.interface';
 import { CartItemService } from '../services/cart-item.service';
 import { logger } from '../utils/logger.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
-import { validateAddItemCartBody } from '../schemas/cart-item.schema';
+import { AddItemCartBodyRequest, validateAddItemCartBody } from '../schemas/cart-item.schema';
 import { CART_JOURNEYS, CART_OPERATOS } from '../constants/cart.constant';
 import { ICartStrategy } from '../interfaces/cart';
 import { DeviceBundleExistingCartStrategy } from '../strategies/device-bundle-existing-cart.strategy';
 import { SingleProductDeviceOnlyCartStrategy } from '../strategies/single-product-device-only.strategy';
+import { Cart } from '@commercetools/platform-sdk';
 
 export class CartItemController {
     private cartItemService?: CartItemService<ICartStrategy>;
@@ -23,8 +24,6 @@ export class CartItemController {
                 this.cartItemService = new CartItemService<DeviceBundleExistingCartStrategy>(DeviceBundleExistingCartStrategy)
                 break
             case CART_JOURNEYS.SINGLE_PRODUCT:
-                this.cartItemService = new CartItemService<SingleProductDeviceOnlyCartStrategy>(SingleProductDeviceOnlyCartStrategy)
-                break
             case CART_JOURNEYS.DEVICE_ONLY:
                 this.cartItemService = new CartItemService<SingleProductDeviceOnlyCartStrategy>(SingleProductDeviceOnlyCartStrategy)
                 break
@@ -33,19 +32,31 @@ export class CartItemController {
         }
     }
 
+    private strategyJourney = async (cart: Cart, body: AddItemCartBodyRequest): Promise<string> => {
+        const journey = cart.custom?.fields?.journey;
+      
+        if (
+          cart.lineItems.length > 0 ||
+          (body.journey && body.journey === journey) ||
+          (body.journey === '' && journey === CART_JOURNEYS.SINGLE_PRODUCT)
+        ) {
+          return journey;
+        }
+
+        return body.journey === '' ? CART_JOURNEYS.SINGLE_PRODUCT : body.journey || journey;
+    };      
+
     public addItem = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            // Select strategy
-            const { cart } = req
-            this.cartStrategy = cart!.custom?.fields?.journey
-
             const accessToken = req.accessToken as string;
+            
             // TODO remove when integrate
             if (!req.body.operator) {
                 req.body.operator = CART_OPERATOS.TRUE;
             }
+            
+            // Validation request body first.
             const { error, value } = validateAddItemCartBody(req.body);
-
             if (error) {
                 throw {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -53,6 +64,12 @@ export class CartItemController {
                     data: error.details.map((err:any) => err.message),
                 };
             }
+
+            
+            const { cart } = req
+            // Select strategy
+            const journey = await this.strategyJourney(cart as Cart ,value)
+            this.cartStrategy = journey as CART_JOURNEYS
 
             const data = await this.cartItemService?.addItem(accessToken, cart!, value);
             let response: ApiResponse

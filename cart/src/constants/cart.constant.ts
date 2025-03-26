@@ -1,5 +1,7 @@
 // cart/src/constants/country.constant.ts
 
+type CartJourneyInventoryMap = Record<string, Record<string, string>>;
+
 export enum CART_JOURNEYS {
     SINGLE_PRODUCT = 'single_product',
     DEVICE_ONLY = 'device_only',
@@ -16,7 +18,7 @@ export const CART_EXPIRATION_DAYS = 1;
 
 export const COUPON_CUSTOM_EFFECT = 'coupon_custom_effect_v3';
 
-export const journeyConfigMap: Record<CART_JOURNEYS, any> = {
+export const journeyConfigMap: Record<CART_JOURNEYS, CartJourneyInventoryMap> = {
     [CART_JOURNEYS.SINGLE_PRODUCT]: {
         inventory: {
             dummyKey: 'dummyStock',
