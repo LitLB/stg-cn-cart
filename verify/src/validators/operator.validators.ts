@@ -46,16 +46,6 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
         }
     }
 
-    //todo: share plan 
-    //! implement this after have solution
-    // if(condition){ 
-    // throw {
-    //     statusCode: '400.4021',
-    //     statusMessage: 'Package is share plan',
-    //     errorCode: 'PACKAGE_IS_SHARE_PLAN'
-    // }
-    // }
-
     if (data.subscriberInfo.telType !== "T") {
         throw {
             statusCode: '400.4011',
@@ -64,7 +54,17 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
         }
     }
 
+
+
     const aging = data.characteristic.find((row: Characteristic) => row.name === "TOTL_DAYS").value
+
+    if (aging < "90") {
+        throw {
+            statusCode: "400.4034",
+            statusMessage: "The age of use does not meet the required criteria"
+        }
+    }
+
     const pricePlan = data.productOfferingQualificationItem.find((element: any) => {
         return element.productItem.find((item: any) => item.type === "10" && (item.validFor.endDateTime === null || item.validFor.endDateTime > date) && item.itemPrice.value > 0)
     });
@@ -118,6 +118,13 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
             statusCode: '400.4011',
             statusMessage: 'Subscriber type is not postpaid',
             errorCode: 'SUBSCRIBER_TYPE_IS_NOT_POSTPAID'
+        }
+    }
+
+    if (data.aging < "90") {
+        throw {
+            statusCode: "400.4034",
+            statusMessage: "The age of use does not meet the required criteria",
         }
     }
 
@@ -195,6 +202,16 @@ export const validateContractAndQuotaDtac = (data: any) => {
             statusCode: '400.4013',
             statusMessage: 'Not allowed to extend contract',
             errorCode: 'NOT_ALLOWED_TO_EXTERNAL_CONTRACT'
+        }
+    }
+}
+
+export const validateSharePlan = (data: any) => {
+    if(data.account[0].type === "P"){
+        throw {
+            statusCode: '400.4021',
+            statusMessage: 'Package is share plan',
+            errorCode: 'PACKAGE_IS_SHARE_PLAN'
         }
     }
 }

@@ -13,7 +13,7 @@ import { getValueByKey } from "../utils/object.utils";
 import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { OPERATOR } from "../constants/operator.constant";
-import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile } from "../validators/operator.validators";
+import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile, validateSharePlan } from "../validators/operator.validators";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
 import { transformError } from "../middleware/error-handler.middleware";
 import { RedisAdapter } from "../adapters/redis.adapter";
@@ -269,16 +269,16 @@ export class OtpService {
                 logInformation.reason = "Verify OTP successfully"
 
                 const redisKey = `${sourceSystemId}:customer:verify:guest:${journey}:mobile:${correlatorId}`
-                    const redisValue = {
-                        sessionId,
-                        verifyValue: mobileForRedis,
-                        verifyOtpStatus: "fail",
-                        verifyCustStatus: "pending",
-                        createAt: formatted,
-                        updateAt: formatted,
-                    }
+                const redisValue = {
+                    sessionId,
+                    verifyValue: mobileForRedis,
+                    verifyOtpStatus: "fail",
+                    verifyCustStatus: "pending",
+                    createAt: formatted,
+                    updateAt: formatted,
+                }
 
-               isMockOtp ? console.log("redis save success", { redisKey, redisValue }) : await redisAdapter.set(redisKey, JSON.stringify(redisValue), 86400)
+                isMockOtp ? console.log("redis save success", { redisKey, redisValue }) : await redisAdapter.set(redisKey, JSON.stringify(redisValue), 86400)
 
                 logger.info(JSON.stringify(logInformation))
 
@@ -296,16 +296,16 @@ export class OtpService {
             });
 
             const redisKey = `${sourceSystemId}:customer:verify:guest:${journey}:mobile:${correlatorId}`
-                    const redisValue = {
-                        sessionId,
-                        verifyValue: mobileForRedis,
-                        verifyOtpStatus: "fail",
-                        verifyCustStatus: "pending",
-                        createAt: formatted,
-                        updateAt: formatted,
-                    }
+            const redisValue = {
+                sessionId,
+                verifyValue: mobileForRedis,
+                verifyOtpStatus: "fail",
+                verifyCustStatus: "pending",
+                createAt: formatted,
+                updateAt: formatted,
+            }
 
-                await redisAdapter.set(redisKey, JSON.stringify(redisValue), 86400)
+            await redisAdapter.set(redisKey, JSON.stringify(redisValue), 86400)
 
 
             logger.error(JSON.stringify(logInformation));
@@ -387,7 +387,8 @@ export class OtpService {
             // * Check operator active
             this.checkActive(operator, journey),
             // * Get Profile & Package
-            this.getProfileAndPackage(id, operator, mobileNumber)
+            this.getProfileAndPackage(id, operator, mobileNumber),
+            this.checkSharePlan(operator, mobileNumber)
         ]);
 
         const customerProfile = operator === OPERATOR.TRUE
@@ -403,6 +404,30 @@ export class OtpService {
         ]);
 
         return customerProfile;
+    }
+
+    private async checkSharePlan(operator: string, mobileNumber: string) {
+
+        if (operator === OPERATOR.TRUE) return
+
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_SHARE_PLAN, logModel);
+        const apigeeClientAdapter = new ApigeeClientAdapter();
+
+        try {
+
+            const response = await apigeeClientAdapter.checkSharePlanDtac(mobileNumber)
+            logService(mobileNumber, response, logStepModel);
+
+            validateSharePlan(response.data)
+
+        } catch (e) {
+            logService(mobileNumber, e, logStepModel);
+            throw {
+                statusCode: "400.4035",
+                statusMessage: 'Get customer type fail',
+            };
+        }
     }
 
     private async getProfileAndPackage(id: string, operator: string, mobileNumber: string) {
