@@ -21,7 +21,7 @@ import type {
 	CartChangeCustomLineItemQuantityAction,
 } from '@commercetools/platform-sdk';
 import type { IAvailableBenefitProduct, IAvailableBenefitProductVariant, ICart, IImage, IItem } from '../../interfaces/cart';
-import { CART_EXPIRATION_DAYS } from '../../constants/cart.constant';
+import { CART_EXPIRATION_DAYS, CART_JOURNEYS } from '../../constants/cart.constant';
 import dayjs from 'dayjs';
 import CommercetoolsInventoryClient from '../ct-inventory-client';
 import CommercetoolsCartClient from '../ct-cart-client';
@@ -33,6 +33,7 @@ import { COUNTRIES } from '../../constants/country.constant';
 import { HTTP_STATUSES } from '../../constants/http.constant';
 import { LOCALES } from '../../constants/locale.constant';
 import { IAdapter } from '../../interfaces/adapter.interface';
+import _ from 'lodash';
 
 export default class CommercetoolsMeCartClient implements IAdapter {
 	public name = 'commercetoolsMeCartClient'
@@ -1075,12 +1076,13 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 
 	async attachBenefitToICart(iCart: any, lineItemWithCampaignBenefits: any[]) {
 		const { items } = iCart
+        const journey = _.get(iCart, 'custom.fields.journey')
 		const promises = items.map(async (item: any) => {
 			const sku = item.sku
 			const lineItem = lineItemWithCampaignBenefits.find((lineItem: any) => lineItem.variant.sku === sku)
 
 			const availableBenefits = lineItem?.availableBenefits || []
-			const mappedAvailableBenefits = await this.mapAvailableBenefits(availableBenefits)
+			const mappedAvailableBenefits = await this.mapAvailableBenefits(availableBenefits, journey)
 			const privilege = lineItem?.privilege || null
 			const discounts = lineItem?.discounts || []
 			const otherPayments = lineItem?.otherPayments || []
@@ -1104,8 +1106,10 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 		return newICart
 	}
 
-	async mapAvailableBenefits(availableBenefits: any[]) {
+	async mapAvailableBenefits(availableBenefits: any[], journey: CART_JOURNEYS) {
 		const mappedAvailableBenefits = availableBenefits.map((availableBenefit: any) => {
+            const customerGroupId = journey === CART_JOURNEYS.DEVICE_ONLY ? readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly : readConfiguration().ctPriceCustomerGroupIdRrp
+            
 			const { benefitType, freeGiftProducts = [], addOnProducts = [] } = availableBenefit
 
 			const newAddOnProducts: IAvailableBenefitProduct[] = addOnProducts.map((addOnProduct: any) => {
@@ -1132,7 +1136,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 
 					const price = this.ctProductClient.findValidPrice({
 						prices,
-						customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp
+						customerGroupId: customerGroupId
 					})
 					const unitPrice = price?.value.centAmount
 					const image = images?.[0] || null
@@ -1185,7 +1189,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 
 					const price = this.ctProductClient.findValidPrice({
 						prices,
-						customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp
+						customerGroupId: customerGroupId
 					})
 					const unitPrice = price?.value.centAmount
 					const image = images?.[0] || null

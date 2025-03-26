@@ -73,6 +73,9 @@ deployAs:
         - key: CTP_ADD_CUSTOM_OTHER_PAYMENT_LINE_ITEM_PREFIX
           description: Commercetools Other Payment Line Item Prefix
           required: true
+        - key: CT_PRICE_CUSTOMER_GROUP_ID_TRUE_MASS_DEVICE_ONLY
+          description: Commercetools Price Customer Group ID for True Mass Device Only
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: Commercetools project key identifying your specific project

@@ -9,6 +9,7 @@ import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
 import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { CustomLineItemVariantAttribute, HasChangedAction } from '../types/custom.types';
 import { IAdapter } from '../interfaces/adapter.interface';
+import _ from 'lodash';
 
 export class CommercetoolsProductClient implements IAdapter {
 	public name = 'commercetoolsProductClient'
@@ -270,6 +271,8 @@ export class CommercetoolsProductClient implements IAdapter {
 
 	async checkCartHasChanged(ctCart: Cart): Promise<Cart> {
 		let  { lineItems } = ctCart;
+        const journey = _.get(ctCart, 'custom.fields.journey')
+        const customerGroupId = journey === CART_JOURNEYS.DEVICE_ONLY ? readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly : readConfiguration().ctPriceCustomerGroupIdRrp
 
 		//HOTFIX: bundle_existing
 		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType)
@@ -290,7 +293,7 @@ export class CommercetoolsProductClient implements IAdapter {
 		const findValidPrice = (variants: any) => {
 			return this.findValidPrice({
 				prices: variants.prices,
-				customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
+				customerGroupId: customerGroupId,
 				date: new Date(),
 			});
 		}
