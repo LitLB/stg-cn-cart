@@ -30,21 +30,7 @@ export class CartItemController {
             default:
                 throw new Error(`Unsupported journey: ${journey}`);
         }
-    }
-
-    private strategyJourney = async (cart: Cart, body: AddItemCartBodyRequest): Promise<string> => {
-        const journey = cart.custom?.fields?.journey;
-      
-        if (
-          cart.lineItems.length > 0 ||
-          (body.journey && body.journey === journey) ||
-          (body.journey === '' && journey === CART_JOURNEYS.SINGLE_PRODUCT)
-        ) {
-          return journey;
-        }
-
-        return body.journey === '' ? CART_JOURNEYS.SINGLE_PRODUCT : body.journey || journey;
-    };      
+    }    
 
     public addItem = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
@@ -195,4 +181,18 @@ export class CartItemController {
             next(error);
         }
     };
+
+    // private strategyJourney = async (cart: Cart, body: AddItemCartBodyRequest): Promise<string> => {
+    //     const journey = cart.custom?.fields?.journey;
+      
+    //     if (
+    //       cart.lineItems.length > 0 ||
+    //       (body.journey && body.journey === journey) ||
+    //       (body.journey === '' && journey === CART_JOURNEYS.SINGLE_PRODUCT)
+    //     ) {
+    //       return journey;
+    //     }
+
+    //     return body.journey === '' ? CART_JOURNEYS.SINGLE_PRODUCT : body.journey || journey;
+    // };  
 }
