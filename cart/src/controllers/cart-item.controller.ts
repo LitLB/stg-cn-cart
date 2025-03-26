@@ -50,6 +50,10 @@ export class CartItemController {
         try {
             const accessToken = req.accessToken as string;
             
+            // Select strategy
+            const { cart } = req
+            this.cartStrategy = cart?.custom?.fields?.journey as CART_JOURNEYS; 
+
             // TODO remove when integrate
             if (!req.body.operator) {
                 req.body.operator = CART_OPERATOS.TRUE;
@@ -64,12 +68,6 @@ export class CartItemController {
                     data: error.details.map((err:any) => err.message),
                 };
             }
-
-            
-            const { cart } = req
-            // Select strategy
-            const journey = await this.strategyJourney(cart as Cart ,value)
-            this.cartStrategy = journey as CART_JOURNEYS
 
             const data = await this.cartItemService?.addItem(accessToken, cart!, value);
             let response: ApiResponse

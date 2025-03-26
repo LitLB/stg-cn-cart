@@ -205,13 +205,6 @@ export class CommercetoolsCartClient implements IAdapter {
 				value: journey
 			})
 		}
-		if (lineItems.length === 0) {
-			updateCartCustomFields.push({
-				action: 'setCustomField',
-				name: 'journey',
-				value: journey
-			})
-		}
 
 		const cartWithDummyFlag = await this.updateCart(cart.id, cart.version, updateCartCustomFields)
 		const transformedCampaignVerifyValues = campaignVerifyValues.map((item: any) => JSON.stringify(item))
