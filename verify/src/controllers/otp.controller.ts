@@ -5,7 +5,6 @@ import { checkCustomerProfileRequest, verifyOtpRequest } from "../interfaces/otp
 import { createLogModel, LogModel } from "../utils/logger.utils";
 import { LOG_APPS } from "../constants/log.constant";
 import moment from "moment";
-import { RedisAdapter } from "../adapters/redis.adapter";
 
 export class OtpController {
     private readonly otpService: OtpService;
@@ -53,9 +52,10 @@ export class OtpController {
         try {
 
             const { mobileNumber, refCode, pin, journey }: verifyOtpRequest = req.query as unknown as verifyOtpRequest;
-            const { sourceSystemId, correlatorId, sessionId } = req.headers
+            const { sourcesystemid, correlatorid, sessionid } = req.headers
 
-            await this.otpService.verifyOtp(mobileNumber, refCode, pin, journey, sourceSystemId as string, correlatorId as string,sessionId as string);
+
+            await this.otpService.verifyOtp(mobileNumber, refCode, pin, journey, sourcesystemid as string, correlatorid as string, sessionid as string);
 
             res.status(200).send({
                 statusCode: HTTP_STATUSES.OK,

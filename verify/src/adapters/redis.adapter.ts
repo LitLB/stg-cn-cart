@@ -9,14 +9,23 @@ export class RedisAdapter {
         }
 
         this.client = createClient();
-        this.client.on('error', (err) => console.error('Redis Client Error:', err));
 
+        this.client.on('error', (err) => {
+            console.error('Redis Client Error:', err)
+            throw {
+                statusCode: '500.1010',
+                statusMessage: 'Error inserting data into Redis',
+            };
+        });
         try {
             await this.client.connect();
             console.log('Connected to Redis successfully.');
         } catch (error) {
-            console.error('Error connecting to Redis:', error);
-            throw error;
+            console.error('Failed to connect to Redis:', error);
+            throw {
+                statusCode: '500.1010',
+                statusMessage: 'Error inserting data into Redis',
+            }
         }
 
         return this.client;
