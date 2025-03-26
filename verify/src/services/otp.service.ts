@@ -16,6 +16,7 @@ import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile } from "../validators/operator.validators";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
 import { transformError } from "../middleware/error-handler.middleware";
+import { RedisAdapter } from "../adapters/redis.adapter";
 
 dayjs.extend(utc);
 
@@ -89,10 +90,12 @@ export class OtpService {
         }
     }
 
-    public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string) {
+    public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string, sourceSystemId: string, correlatorId: string, sessionId: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
         const isMockOtp = this.config.otp.isMock as string
+
+        const redisAdapter = new RedisAdapter()
 
 
         let verifyOtpPayload
@@ -211,7 +214,10 @@ export class OtpService {
                     logInformation.refCode = refCode
                     logInformation.status = "Pass"
                     logInformation.reason = "Verify OTP successfully"
+                    const redisKey = ``
+                    const redisValue = ``
 
+                    await redisAdapter.set(redisKey, redisValue, 12345)
                     logger.info(JSON.stringify(logInformation))
 
                 } else if (otpErrorMap[pin]) {
@@ -236,9 +242,22 @@ export class OtpService {
                 logInformation.refCode = refCode
                 logInformation.status = "Pass"
                 logInformation.reason = "Verify OTP successfully"
+
+                const redisKey = `${sourceSystemId}:customer:verify:guest:${journey}:mobile:${correlatorId}`
+                const redisValue = {
+                    sessionId,
+                    verifyValue: "0883360853",
+                    verifyOtpStatus: "success",
+                    verifyCustStatus: "fail",
+                    createAt: "2022-09-19 17:44:17.858167",
+                    updateAt: "2022-09-19 17:44:17.858167",
+                }
+
+                await redisAdapter.set(redisKey, JSON.stringify(redisValue), 12345)
+
                 logger.info(JSON.stringify(logInformation))
 
-                return
+
             }
 
         } catch (e: any) {
