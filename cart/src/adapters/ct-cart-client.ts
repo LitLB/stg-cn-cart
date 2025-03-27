@@ -15,6 +15,7 @@ import { HttpStatusCode } from 'axios';
 import { validateInventory } from '../utils/cart.utils';
 import { CART_HAS_CHANGED_NOTICE_MESSAGE, CART_JOURNEYS } from '../constants/cart.constant';
 import { IAdapter } from '../interfaces/adapter.interface';
+import _ from 'lodash';
 
 
 
@@ -329,10 +330,12 @@ export class CommercetoolsCartClient implements IAdapter {
 		const updateActionAfterRecalculated: CartUpdateAction[] = []
 		
 		//HOTFIX: bundle_existing	
+        const journey = _.get(updatedCart, 'custom.fields.journey')
+        const customerGroupId = journey === CART_JOURNEYS.DEVICE_ONLY ? readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly : readConfiguration().ctPriceCustomerGroupIdRrp
 		recalculatedCart.lineItems.filter((lineItem) => lineItem.custom?.fields?.productType).map((lineItem: LineItem) => {
 			const validPrice = CommercetoolsProductClient.findValidPrice({
 				prices: lineItem.variant.prices || [],
-				customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
+				customerGroupId: customerGroupId,
 				date: new Date(),
 			});
 

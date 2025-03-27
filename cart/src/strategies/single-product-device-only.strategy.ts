@@ -98,9 +98,10 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy {
 
             validateSkuStatus(variant.attributes)
 
+            const customerGroupId = journey === CART_JOURNEYS.DEVICE_ONLY ? readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly : readConfiguration().ctPriceCustomerGroupIdRrp
             const validPrice = this.adapters.commercetoolsProductClient.findValidPrice({
                 prices: variant.prices,
-                customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
+                customerGroupId: customerGroupId,
                 date: now,
             });
             if (!validPrice) {
