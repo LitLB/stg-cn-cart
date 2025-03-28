@@ -16,7 +16,6 @@ import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile, validateSharePlan } from "../validators/operator.validators";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
 import { transformError } from "../middleware/error-handler.middleware";
-import { RedisAdapter } from "../adapters/redis.adapter";
 
 dayjs.extend(utc);
 
@@ -93,15 +92,10 @@ export class OtpService {
     public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string, sourceSystemId: string, correlatorId: string, sessionId: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
-        const redisAdapter = new RedisAdapter()
         const apigeeClientAdapter = new ApigeeClientAdapter
         const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
         const isMockOtp = this.config.otp.isMock as string
-        const now = dayjs();
-        const formatted = now.format('YYYY-MM-DD HH:mm:ss.SSS');
         const thailandMobile = convertToThailandMobile(decryptedMobile)
-        const mobileForRedis = '0' + thailandMobile.substring(2);
-
 
         let verifyOtpPayload
         const logInformation = {
@@ -215,35 +209,11 @@ export class OtpService {
                     logInformation.refCode = refCode
                     logInformation.status = "Pass"
                     logInformation.reason = "Verify OTP successfully"
-                    const redisKey = `${sourceSystemId}:customer:verify:guest:${journey}:mobile:${correlatorId}`
-                    const redisValue = {
-                        sessionId,
-                        verifyValue: mobileForRedis,
-                        verifyOtpStatus: "success",
-                        verifyCustStatus: "pending",
-                        createAt: formatted,
-                        updateAt: formatted,
-                    }
-
-                    isMockOtp ? console.log("redis save success", { redisKey, redisValue }) : await redisAdapter.set(redisKey, JSON.stringify(redisValue), 86400)
+                  
                     logger.info(JSON.stringify(logInformation))
 
                 } else if (otpErrorMap[pin]) {
                     logService(verifyOtpPayload, otpErrorMap[pin], logStepModel)
-
-                    const redisKey = `${sourceSystemId}:customer:verify:guest:${journey}:mobile:${correlatorId}`
-                    const redisValue = {
-                        sessionId,
-                        verifyValue: thailandMobile,
-                        verifyOtpStatus: "fail",
-                        verifyCustStatus: "pending",
-                        createAt: formatted,
-                        updateAt: formatted,
-                    }
-
-                    console.log("redis save success", { redisKey, redisValue })
-
-                    await redisAdapter.set(redisKey, JSON.stringify(redisValue), 86400)
 
                     logger.info(JSON.stringify(logInformation))
 
@@ -268,17 +238,7 @@ export class OtpService {
                 logInformation.status = "Pass"
                 logInformation.reason = "Verify OTP successfully"
 
-                const redisKey = `${sourceSystemId}:customer:verify:guest:${journey}:mobile:${correlatorId}`
-                const redisValue = {
-                    sessionId,
-                    verifyValue: mobileForRedis,
-                    verifyOtpStatus: "fail",
-                    verifyCustStatus: "pending",
-                    createAt: formatted,
-                    updateAt: formatted,
-                }
-
-                isMockOtp ? console.log("redis save success", { redisKey, redisValue }) : await redisAdapter.set(redisKey, JSON.stringify(redisValue), 86400)
+               
 
                 logger.info(JSON.stringify(logInformation))
 
@@ -294,19 +254,6 @@ export class OtpService {
                 status: "Failed",
                 reason: e.response?.data.message || e.errorCode || e.statusMessage || e.message || "Internal Server Error"
             });
-
-            const redisKey = `${sourceSystemId}:customer:verify:guest:${journey}:mobile:${correlatorId}`
-            const redisValue = {
-                sessionId,
-                verifyValue: mobileForRedis,
-                verifyOtpStatus: "fail",
-                verifyCustStatus: "pending",
-                createAt: formatted,
-                updateAt: formatted,
-            }
-
-            await redisAdapter.set(redisKey, JSON.stringify(redisValue), 86400)
-
 
             logger.error(JSON.stringify(logInformation));
 
