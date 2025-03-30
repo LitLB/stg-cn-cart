@@ -52,10 +52,8 @@ export class OtpController {
         try {
 
             const { mobileNumber, refCode, pin, journey }: verifyOtpRequest = req.query as unknown as verifyOtpRequest;
-            const { sourcesystemid, correlatorid, sessionid } = req.headers
 
-
-            await this.otpService.verifyOtp(mobileNumber, refCode, pin, journey, sourcesystemid as string, correlatorid as string, sessionid as string);
+            await this.otpService.verifyOtp(mobileNumber, refCode, pin, journey);
 
             res.status(200).send({
                 statusCode: HTTP_STATUSES.OK,
@@ -79,9 +77,11 @@ export class OtpController {
         try {
             const { mobileNumber, journey } = req.query as unknown as checkCustomerProfileRequest;
 
-            const { correlatorId } = req.headers
+            const { sourcesystemid, correlatorid, sessionid } = req.headers
 
-            const responseBody = await this.otpService.getCustomerProfile(correlatorId as string, mobileNumber, journey);
+            console.log({ sourcesystemid, correlatorid, sessionid })
+
+            const responseBody = await this.otpService.getCustomerProfile(correlatorid as string, mobileNumber, journey);
 
             res.status(200).json({
                 statusCode: HTTP_STATUSES.OK,

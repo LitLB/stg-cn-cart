@@ -89,7 +89,7 @@ export class OtpService {
         }
     }
 
-    public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string, sourceSystemId: string, correlatorId: string, sessionId: string) {
+    public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
         const apigeeClientAdapter = new ApigeeClientAdapter
