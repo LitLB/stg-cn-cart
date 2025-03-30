@@ -51,6 +51,27 @@ export const validateCheckCustomerProfile: ValidationChain[] = [
         .withMessage('journey must be a string'),
 ];
 
+export const validateCheckCustomerTier: ValidationChain[] = [
+    query('mobileNumber')
+        .exists({ checkFalsy: true })
+        .withMessage('mobileNumber is required')
+        .isString()
+        .withMessage('mobileNumber must be a string'),
+
+    query('journey')
+        .exists({ checkFalsy: true })
+        .withMessage('journey is required')
+        .isString()
+        .withMessage('journey must be a string'),
+
+
+    query('operator')
+        .exists({ checkFalsy: true })
+        .withMessage('operator is required')
+        .isString()
+        .withMessage('operator must be a string'),
+];
+
 // Middleware to check for errors from express-validator
 export const handleValidationErrors = (
     req: Request,
