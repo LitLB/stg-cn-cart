@@ -1108,7 +1108,10 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 
 	async mapAvailableBenefits(availableBenefits: any[], journey: CART_JOURNEYS) {
 		const mappedAvailableBenefits = availableBenefits.map((availableBenefit: any) => {
-            const customerGroupId = journey === CART_JOURNEYS.DEVICE_ONLY ? readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly : readConfiguration().ctPriceCustomerGroupIdRrp
+            let customerGroupId = readConfiguration().ctPriceCustomerGroupIdRrp
+            if (journey === CART_JOURNEYS.DEVICE_ONLY) {
+                customerGroupId = readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly
+            }
             
 			const { benefitType, freeGiftProducts = [], addOnProducts = [] } = availableBenefit
 
