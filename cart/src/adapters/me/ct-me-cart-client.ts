@@ -719,6 +719,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 			(total, item) => total + item.priceAfterDiscount,
 			0
 		);
+		const totalPriceAfterCampaignDiscount = lineItemsTotalPrice
 
 		// Use the new function to calculate the total price of custom line items
 		const customLineItemsTotalPrice = this.calculateCustomLineItemsTotalPrice(customLineItems);
@@ -753,6 +754,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 			subtotalPrice,
 			totalDiscount,
 			totalPriceAfterDiscount,
+			totalPriceAfterCampaignDiscount,
 			shippingCost,
 			grandTotal,
 			currencyCode: ctCart.totalPrice.currencyCode,

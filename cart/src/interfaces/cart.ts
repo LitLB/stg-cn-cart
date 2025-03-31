@@ -16,6 +16,7 @@ export interface ICart {
 	subtotalPrice: number;
 	totalDiscount: number;
 	totalPriceAfterDiscount: number;
+	totalPriceAfterCampaignDiscount: number;
 	// totalVatAmount: number;
 	shippingCost: number;
 	grandTotal: number;
