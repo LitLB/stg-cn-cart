@@ -278,7 +278,10 @@ export class CommercetoolsProductClient implements IAdapter {
 	async checkCartHasChanged(ctCart: Cart): Promise<Cart> {
 		let  { lineItems } = ctCart;
         const journey = _.get(ctCart, 'custom.fields.journey')
-        const customerGroupId = journey === CART_JOURNEYS.DEVICE_ONLY ? readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly : readConfiguration().ctPriceCustomerGroupIdRrp
+        let customerGroupId = readConfiguration().ctPriceCustomerGroupIdRrp
+        if (journey === CART_JOURNEYS.DEVICE_ONLY) {
+            customerGroupId = readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly
+        }
 
 		//HOTFIX: bundle_existing
 		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType)
