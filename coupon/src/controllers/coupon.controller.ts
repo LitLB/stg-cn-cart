@@ -40,7 +40,7 @@ export class CouponController {
         try {
             const {
                 totalPrice,
-                containsDiscountedProducts,
+                // containsDiscountedProducts,
                 allowStacking,
                 campaignGroup,
                 loyalty,
@@ -55,7 +55,7 @@ export class CouponController {
 
             const filter = {
                 ...(totalPrice ? { totalPrice } : {}),
-                ...(typeof containsDiscountedProducts === 'boolean' ? { containsDiscountedProducts } : {}),
+                // ...(typeof containsDiscountedProducts === 'boolean' ? { containsDiscountedProducts } : {}),
                 ...(typeof allowStacking === 'boolean' ? { allowStacking } : {}),
                 ...(campaignGroup ? { campaignGroup } : {}),
                 ...(loyalty ? { loyalty } : {}),

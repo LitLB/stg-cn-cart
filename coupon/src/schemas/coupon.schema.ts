@@ -5,10 +5,9 @@ export const getCouponsQuerySchema = Joi.object({
         "number.base": `"totalPrice" must be a number`,
         "number.positive": `"totalPrice" must be a positive number`,
     }),
-
-    containsDiscountedProducts: Joi.boolean().truthy("true").falsy("false").optional().messages({
-        "boolean.base": `"containsDiscountedProducts" must be true or false`,
-    }),
+    // containsDiscountedProducts: Joi.boolean().truthy("true").falsy("false").optional().messages({
+    //     "boolean.base": `"containsDiscountedProducts" must be true or false`,
+    // }),
     allowStacking: Joi.boolean().truthy("true").falsy("false").optional().messages({
         "boolean.base": `"allowStacking" must be true or false`,
     }),

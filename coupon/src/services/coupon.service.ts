@@ -416,7 +416,7 @@ export class CouponService {
         const {
             totalPrice = null,
             allowStacking = null,
-            containsDiscountedProducts = null,
+            // containsDiscountedProducts = null,
             campaignGroup = null,
             journey = null,
             customerType = null,
@@ -431,7 +431,7 @@ export class CouponService {
         const {
             minimum_purchase = 0,
             allow_stacking = false,
-            allow_with_discounted_products = false,
+            // allow_with_discounted_products = false,
             allowed_campaign_groups: allowedCampaignGroups = [],
             allowed_journeys: allowedJourneys = [],
             customer_types: customerTypes = [],
@@ -456,9 +456,9 @@ export class CouponService {
             return false
         }
 
-        if (containsDiscountedProducts !== null && containsDiscountedProducts !== allow_with_discounted_products) {
-            return false
-        }
+        // if (containsDiscountedProducts !== null && containsDiscountedProducts !== allow_with_discounted_products) {
+        //     return false
+        // }
 
         if (campaignGroup !== null && !this.checkInAllowedList([campaignGroup], allowedCampaignGroups)) {
             return false
