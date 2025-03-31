@@ -530,11 +530,14 @@ export class OtpService {
         }
     }
 
-    public async getCustomerTier(id: string, mobileNumber: string, operator: string) {
+    public async getCustomerTier(id: string, mobileNumber: string, journey: string) {
+
+
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_GET_CUSTOMER_TIER, logModel);
+        const apigeeClientAdapter = new ApigeeClientAdapter
+        const operator = await this.checkOperator(id, mobileNumber)
         try {
-            const apigeeClientAdapter = new ApigeeClientAdapter
 
             if (!id) {
                 throw {
@@ -552,13 +555,6 @@ export class OtpService {
                 }
             }
 
-            if (!operator) {
-                throw {
-                    statusCode: 400,
-                    statusMessage: 'Operator is required',
-                    errorCode: 'OPERATOR_IS_REQUIRED'
-                }
-            }
 
             if (operator === OPERATOR.TRUE) {
                 const response = await apigeeClientAdapter.getCustomerTierTrue(mobileNumber)
@@ -595,7 +591,7 @@ export class OtpService {
                 }
 
             }
-            
+
 
         } catch (e: any) {
             logService({ id, operator, mobileNumber }, e, logStepModel)

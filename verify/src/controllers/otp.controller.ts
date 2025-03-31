@@ -102,11 +102,11 @@ export class OtpController {
         LogModel.initialize(logModel);
 
         try {
-            const { mobileNumber, journey, operator } = req.query as unknown as checkCustomerProfileRequest;
+            const { mobileNumber, journey } = req.query as unknown as checkCustomerProfileRequest;
 
             const { correlatorid } = req.headers
 
-            const responseBody = await this.otpService.getCustomerTier(correlatorid as string, mobileNumber, operator as string)
+            const responseBody = await this.otpService.getCustomerTier(correlatorid as string, mobileNumber, journey)
 
 
             res.status(200).json({
