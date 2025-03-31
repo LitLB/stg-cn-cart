@@ -421,11 +421,11 @@ export class CommercetoolsProductClient implements IAdapter {
 		};
 	}
 
-	getProductCategorySlug(categories: any[]) {
-		const parentCategorySlug = categories?.[0]?.obj?.parent?.obj?.slug || null
-		const categorySlug = categories?.[0]?.obj?.slug || null
+	getProductCategoryName(categories: any[]) {
+		const parentCategoryName = categories?.[0]?.obj?.parent?.obj?.name || null
+		const categoryName = categories?.[0]?.obj?.name || null
 
-		return parentCategorySlug ? parentCategorySlug : categorySlug
+		return parentCategoryName ? parentCategoryName : categoryName
 	}
 }
 

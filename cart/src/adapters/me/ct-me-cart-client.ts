@@ -682,7 +682,6 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 					productName: lineItem.name,
 					ctProductType: lineItem.productType,
 					productSlug: lineItem.productSlug,
-					productCategorySlug: (lineItem as any).productCategorySlug,
 					variantId: lineItem.variant.id,
 					sku: lineItem.variant.sku,
 					productType,
@@ -1367,7 +1366,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 		};
 	}
 
-	async attachProductCategorySlugToICart(iCart: any) {
+	async attachProductCategoryNameToICart(iCart: any) {
 		const { items } = iCart
 		if (!items.length) {
 			return iCart
@@ -1375,19 +1374,19 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 		const allSkus = items.map((item:any) => item.sku)
 		const { body } = await this.ctProductClient.getProductsBySkus(allSkus, ['categories[*].parent'])
 		const skuItems = body.results;
-		const withProductCategorySlugItems = items.map((item:any) => {
+		const withProductCategoryNameItems = items.map((item:any) => {
 			const matchingSkuItem = skuItems.find(
 				(skuItem: any) => item.productId === skuItem.id
 			);
-			const productCategorySlug = this.ctProductClient.getProductCategorySlug(matchingSkuItem?.categories)
+			const productCategoryName = this.ctProductClient.getProductCategoryName(matchingSkuItem?.categories)
 			return {
 				...item,
-				productCategorySlug
+				productCategoryName
 			}
 		})
 		return {
 			...iCart,
-			items: withProductCategorySlugItems
+			items: withProductCategoryNameItems
 		}
 	}
 
@@ -1450,7 +1449,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 
 		let iCart: ICart = this.mapCartToICart(ctCart);
 		iCart = await this.attachInsuranceToICart(iCart);
-		iCart = await this.attachProductCategorySlugToICart(iCart);
+		iCart = await this.attachProductCategoryNameToICart(iCart);
 
 		this.mapInventoryToItems(iCart.items, inventoryMap);
 

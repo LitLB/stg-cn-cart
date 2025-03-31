@@ -62,7 +62,7 @@ export interface IItem {
 	productName: LocalizedString;
 	ctProductType: ProductTypeReference;
 	productSlug?: LocalizedString;
-	productCategorySlug?: LocalizedString;
+	productCategoryName?: LocalizedString;
 	variantId: number;
 	sku: string;
 	productType: ProductType;
