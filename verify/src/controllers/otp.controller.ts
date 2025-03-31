@@ -14,6 +14,7 @@ export class OtpController {
         this.requestOtp = this.requestOtp.bind(this);
         this.verifyOtp = this.verifyOtp.bind(this);
         this.getCustomerProfile = this.getCustomerProfile.bind(this);
+        this.getPackageOffer = this.getPackageOffer.bind(this);
     }
 
     public async requestOtp(req: Request, res: Response, next: NextFunction) {
@@ -52,7 +53,6 @@ export class OtpController {
         try {
 
             const { mobileNumber, refCode, pin, journey }: verifyOtpRequest = req.query as unknown as verifyOtpRequest;
-            const { sourceSystemId } = req.headers
 
             await this.otpService.verifyOtp(mobileNumber, refCode, pin, journey);
 
@@ -78,9 +78,36 @@ export class OtpController {
         try {
             const { mobileNumber, journey } = req.query as unknown as checkCustomerProfileRequest;
 
-            const { correlatorId } = req.headers
+            const { correlatorid } = req.headers
 
-            const responseBody = await this.otpService.getCustomerProfile(correlatorId as string, mobileNumber, journey);
+            const responseBody = await this.otpService.getCustomerProfile(correlatorid as string, mobileNumber, journey);
+
+            res.status(200).json({
+                statusCode: HTTP_STATUSES.OK,
+                statusMessage: HTTP_MESSAGE.OK,
+                data: responseBody
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    public async getPackageOffer(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> {
+        const logModel = createLogModel(LOG_APPS.STORE_WEB, "PackageOffer");
+        logModel.start_date = moment().toISOString();
+        LogModel.initialize(logModel);
+
+        try {
+            const { mobileNumber, journey } = req.query as unknown as checkCustomerProfileRequest;
+
+            const { correlatorid } = req.headers
+
+            const responseBody = await this.otpService.getCustomerTier(correlatorid as string, mobileNumber, journey)
+
 
             res.status(200).json({
                 statusCode: HTTP_STATUSES.OK,

@@ -187,6 +187,18 @@ class ApigeeClientAdapter {
         return response;
     }
 
+    async checkSharePlanDtac(id:string) {
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/customerManagement/v1/customerProf?id=${id}`;
+        const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
+    }
+
     async getContractAndQuotaDtac(id: string, thaiId: string) {
         await this.init()
         const headers = {

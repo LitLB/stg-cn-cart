@@ -13,7 +13,7 @@ import { getValueByKey } from "../utils/object.utils";
 import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { OPERATOR } from "../constants/operator.constant";
-import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile } from "../validators/operator.validators";
+import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile, validateSharePlan } from "../validators/operator.validators";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
 import { transformError } from "../middleware/error-handler.middleware";
 
@@ -92,8 +92,10 @@ export class OtpService {
     public async verifyOtp(phoneNumber: string, refCode: string, pin: string, journey: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_VERIFY_OTP, logModel);
+        const apigeeClientAdapter = new ApigeeClientAdapter
+        const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
         const isMockOtp = this.config.otp.isMock as string
-
+        const thailandMobile = convertToThailandMobile(decryptedMobile)
 
         let verifyOtpPayload
         const logInformation = {
@@ -104,12 +106,8 @@ export class OtpService {
             reason: "",
             date_time: dayjs().toISOString()
         }
+
         try {
-
-            const apigeeClientAdapter = new ApigeeClientAdapter
-            const decryptedMobile = await apigeeClientAdapter.apigeeDecrypt(phoneNumber)
-
-            const thailandMobile = convertToThailandMobile(decryptedMobile)
 
             verifyOtpPayload = {
                 id: refCode,
@@ -216,6 +214,9 @@ export class OtpService {
 
                 } else if (otpErrorMap[pin]) {
                     logService(verifyOtpPayload, otpErrorMap[pin], logStepModel)
+
+                    logger.info(JSON.stringify(logInformation))
+
                     throw otpErrorMap[pin]
 
                 } else {
@@ -236,9 +237,12 @@ export class OtpService {
                 logInformation.refCode = refCode
                 logInformation.status = "Pass"
                 logInformation.reason = "Verify OTP successfully"
+
+
+
                 logger.info(JSON.stringify(logInformation))
 
-                return
+
             }
 
         } catch (e: any) {
@@ -250,7 +254,6 @@ export class OtpService {
                 status: "Failed",
                 reason: e.response?.data.message || e.errorCode || e.statusMessage || e.message || "Internal Server Error"
             });
-
 
             logger.error(JSON.stringify(logInformation));
 
@@ -331,7 +334,8 @@ export class OtpService {
             // * Check operator active
             this.checkActive(operator, journey),
             // * Get Profile & Package
-            this.getProfileAndPackage(id, operator, mobileNumber)
+            this.getProfileAndPackage(id, operator, mobileNumber),
+            this.checkSharePlan(operator, mobileNumber)
         ]);
 
         const customerProfile = operator === OPERATOR.TRUE
@@ -347,6 +351,30 @@ export class OtpService {
         ]);
 
         return customerProfile;
+    }
+
+    private async checkSharePlan(operator: string, mobileNumber: string) {
+
+        if (operator === OPERATOR.TRUE) return
+
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_SHARE_PLAN, logModel);
+        const apigeeClientAdapter = new ApigeeClientAdapter();
+
+        try {
+
+            const response = await apigeeClientAdapter.checkSharePlanDtac(mobileNumber)
+            logService(mobileNumber, response, logStepModel);
+
+            validateSharePlan(response.data)
+
+        } catch (e) {
+            logService(mobileNumber, e, logStepModel);
+            throw {
+                statusCode: "400.4035",
+                statusMessage: 'Get customer type fail',
+            };
+        }
     }
 
     private async getProfileAndPackage(id: string, operator: string, mobileNumber: string) {
@@ -502,11 +530,14 @@ export class OtpService {
         }
     }
 
-    private async getCustomerTier(id: string, mobileNumber: string, operator: string) {
+    public async getCustomerTier(id: string, mobileNumber: string, journey: string) {
+
+
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_GET_CUSTOMER_TIER, logModel);
+        const apigeeClientAdapter = new ApigeeClientAdapter
+        const operator = await this.checkOperator(id, mobileNumber)
         try {
-            const apigeeClientAdapter = new ApigeeClientAdapter
 
             if (!id) {
                 throw {
@@ -524,38 +555,42 @@ export class OtpService {
                 }
             }
 
-            if (!operator) {
-                throw {
-                    statusCode: 400,
-                    statusMessage: 'Operator is required',
-                    errorCode: 'OPERATOR_IS_REQUIRED'
+
+            if (operator === OPERATOR.TRUE) {
+                const response = await apigeeClientAdapter.getCustomerTierTrue(mobileNumber)
+                logService({ mobileNumber }, response, logStepModel)
+                const { data } = response.data
+
+                return {
+                    customerTierCode: data.accountGrade.type,
+                    customerTierName: data.trueCart.type
                 }
+
             }
 
-            // if (operator === 'true') {
-            //     const response = await apigeeClientAdapter.getCustomerTierTrue(mobileNumber)
-            //     logService({ mobileNumber }, response, logStepModel)
-            //     const { data } = response.data
+            if (operator === OPERATOR.DTAC) {
 
-            // }
+                const mobileDecrypt = await apigeeClientAdapter.apigeeDecrypt(mobileNumber)
+                const thMobile = convertToThailandMobile(mobileDecrypt)
 
-            // if (operator === 'dtac') {
-
-            const mobileDecrypt = await apigeeClientAdapter.apigeeDecrypt(mobileNumber)
-
-            console.log({ mobileDecrypt })
+                const response = await apigeeClientAdapter.getCustomerTierDtac(id, thMobile)
+                logService({ id, mobileDecrypt, operator }, response, logStepModel)
+                const { data } = response.data
 
 
-            const response = await apigeeClientAdapter.getCustomerTierDtac(id, mobileDecrypt)
-            logService({ id, mobileDecrypt, operator }, response, logStepModel)
-            const res = response.data
+                const tierName: Record<string, string> = {
+                    '1000': 'Platinum Blue',
+                    '2000': 'Gold',
+                    '3000': 'Silver',
+                    '4000': 'Welcome',
+                };
 
-            console.log({ res })
+                return {
+                    customerTierCode: data.segmentCode,
+                    customerTierName: tierName[data.segmentCode]
+                }
 
-
-            // }
-
-
+            }
 
 
         } catch (e: any) {
