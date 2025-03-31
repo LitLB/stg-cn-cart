@@ -185,10 +185,12 @@ export class CommercetoolsProductClient implements IAdapter {
 		customerGroupId: string;
 		date?: Date;
 	}): any | null {
+        const defaultPriceGroupId = readConfiguration().ctPriceCustomerGroupIdRrp
+
 		// Filter prices matching the customer group and valid at the given date
 		const validPrices = prices.filter((price) => {
 			const priceCustomerGroupId = price.customerGroup?.id;
-			if (priceCustomerGroupId !== customerGroupId) {
+			if (priceCustomerGroupId !== customerGroupId && priceCustomerGroupId !== defaultPriceGroupId) {
 				return false;
 			}
 			const validFrom = price.validFrom ? new Date(price.validFrom) : null;
