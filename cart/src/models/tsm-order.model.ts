@@ -1,9 +1,13 @@
 import { apigeeEncrypt } from '../utils/apigeeEncrypt.utils'
+import { Package } from '../interfaces/package.interface';
+import _ from 'lodash'
+
 export default class TsmOrderModel {
     private readonly ctCart: any
     private readonly config: any
     private readonly orderNumber: string
     private readonly couponDiscounts: any
+
     constructor({
         ctCart,
         orderNumber,
@@ -24,71 +28,166 @@ export default class TsmOrderModel {
 
     toPayload() {
         // ! Config
-        const shopCode = this.config.tsmOrder.shopCode
-        const saleCode = this.config.tsmOrder.saleCode
-        const saleName = this.config.tsmOrder.saleName
+        try {
+            const shopCode = this.config.tsmOrder.shopCode
+            const saleCode = this.config.tsmOrder.saleCode
+            const saleName = this.config.tsmOrder.saleName
+            const ApigeePrivateKeyEncryption = this.config.apigee.privateKeyEncryption
+            // ! Generate
+            const orderId = this.orderNumber
 
-        const ApigeePrivateKeyEncryption = this.config.apigee.privateKeyEncryption
-
-        // ! Generate
-        const orderId = this.orderNumber
-
-        // ! Cart
-        const { shippingAddress, lineItems } = this.ctCart
-        const campaignVerifyValues = this.getCampaignVerifyValues(lineItems)
-        const thaiId = campaignVerifyValues.find((v: any) => v.name === 'ThaiId')?.value || ''
-        const encryptedThaiId = thaiId ? apigeeEncrypt(thaiId, ApigeePrivateKeyEncryption) : ''
-
-        const customer = {
-            thaiId: encryptedThaiId,
-            firstName: shippingAddress.firstName,
-            lastName: shippingAddress.lastName,
-        }
-
-        // TODO filter lineItems by selected 
-        let sequenceCounter = 1
-        const sequenceItems = lineItems.flatMap((lineItem: any) => {
-            const productCode = lineItem.variant.sku
-            const productGroup = lineItem.custom?.fields?.productGroup
-            const productType = lineItem.custom?.fields?.productType
-            let privilege = lineItem?.custom?.fields?.privilege
-            privilege = privilege && JSON.parse(privilege);
-
-            const campaignVerifyValues = this.getCampaignVerifyValuesFromCurrentLineItem(lineItem, lineItems)
-            const privilegeRequiredValue = campaignVerifyValues.reduce((acc: any, v: any) => {
-                return `${acc ? `${acc},` : ''}${v.name}=${v.value}`
-            }, '')
-        
-            const {
-                promotionSetCode = '',
-                promotionSetProposition = 999, //999,
-            } = privilege || {};
-
-            let {
-                campaignCode = '',
-                campaignName = '',
-            } = privilege || {};
-
-            const price = lineItem.price.value.centAmount
-            let quantity = lineItem.quantity
-            let noOfItem = 1
-            if (this.getProductType(productType) === 'P') {
-                quantity = 1
-                noOfItem = lineItem.quantity
+            // ! Cart
+            const { shippingAddress, lineItems } = this.ctCart
+            const campaignVerifyValues = this.getCampaignVerifyValues(lineItems)
+            const thaiId = campaignVerifyValues.find((v: any) => v.name === 'ThaiId')?.value || ''
+            const mobile = campaignVerifyValues.find((v: any) => v.name === 'Msisdn')?.value || ''
+            const encryptedThaiId = thaiId ? apigeeEncrypt(thaiId, ApigeePrivateKeyEncryption) : ''
+            const encryptedMobile = mobile ? apigeeEncrypt(mobile, ApigeePrivateKeyEncryption) : ''
+            const customer = {
+                thaiId: encryptedThaiId,
+                firstName: shippingAddress.firstName,
+                lastName: shippingAddress.lastName,
             }
+            const journey = this.ctCart?.custom?.fields?.journey || '';
+            const packageInfo: Package = this.ctCart?.custom?.fields?.package?.obj?.value || {};
+            const advancePayment = _.get(packageInfo, 't1.advancedPayment', '').toString();
 
-            //! items.totalAmount = ค่า price * quantity
-            const totalAmount = price * quantity
+            // TODO filter lineItems by selected 
+            let sequenceCounter = 1
+            const sequenceItems = lineItems.flatMap((lineItem: any) => {
+                const productCode = lineItem.variant.sku
+                const productGroup = lineItem.custom?.fields?.productGroup || '1'
+                const productType = lineItem.custom?.fields?.productType
+                let privilege = lineItem?.package
+                privilege = privilege && JSON.parse(privilege);                
 
-            return Array.from({ length: noOfItem }, () => {
-                const sequence = `${sequenceCounter++}`.toString()
+                const campaignVerifyValues = this.getCampaignVerifyValuesFromCurrentLineItem(lineItem, lineItems)
+                const privilegeRequiredValue = campaignVerifyValues.reduce((acc: any, v: any) => {
+                    return `${acc ? `${acc},` : ''}${v.name}=${v.value}`
+                }, '')
+            
+                let {
+                    promotionSetCode = '',
+                    promotionSetProposition = 999, //999,
+                } = privilege || {};
 
-                if (sequence !== '1') {
-                    campaignCode = ''
-                    campaignName = ''
+                let {
+                    campaignCode = '',
+                    campaignName = '',
+                } = privilege || {};
+
+                const price = lineItem.price.value.centAmount
+                let quantity = lineItem.quantity
+                let noOfItem = 1
+                if (this.getProductType(productType) === 'P') {
+                    quantity = 1
+                    noOfItem = lineItem.quantity
                 }
 
-                if (productType === 'free_gift') {
+                if (['device_bundle_existing'].includes(journey) && advancePayment) noOfItem = 2;
+
+                //! items.totalAmount = ค่า price * quantity
+                const totalAmount = price * quantity
+
+                return Array.from({ length: noOfItem }, () => {
+                    const sequence = `${sequenceCounter++}`.toString()
+
+                    if (sequence !== '1') {
+                        campaignCode = ''
+                        campaignName = ''
+                    }
+
+                    if (['free_gift'].includes(productType)) {
+                        return {
+                            id: orderId,
+                            sequence: sequence,
+                            campaign: {
+                                code: campaignCode,
+                                name: campaignName,
+                            },
+                            proposition: '' + promotionSetProposition,
+                            promotionSet: promotionSetCode,
+                            promotionType: this.getPromotionType(productType),
+                            group: '' + productGroup,
+                            product: {
+                                productType: this.getProductType(productType),
+                                productCode,
+                            },
+                            mobile: '',
+                            price: '0',
+                            quantity: '' + quantity,
+                            totalAmount: '0',
+                            installmentAmount: '0',
+                            depositAmount: '0',
+                            netAmount: '0',
+                            discountAmount: '0',
+                            otherPaymentAmount: '0',
+                            privilegeRequiredValue,
+                            discounts: [],
+                            otherPayments: [],
+                            serials: [],
+                            range: [],
+                        }
+                    }
+
+                    if (['device_bundle_existing'].includes(journey) && advancePayment && sequence == noOfItem.toString()) {
+                        return {
+                            id: orderId,
+                            sequence: sequence,
+                            campaign: {
+                                code: '',
+                                name: '',
+                            },
+                            proposition: '' + _.get(packageInfo, 't1.advancedPaymentProposition', ''),
+                            promotionSet: _.get(packageInfo, 't1.advancedPaymentPromotionSet', ''),
+                            promotionType: this.getPromotionType('service'),
+                            group: '' + productGroup,
+                            product: {
+                                productType: this.getProductType('service'),
+                                productCode: _.get(packageInfo, 't1.advancedPaymentCode', ''),
+                            },
+                            mobile: '',
+                            price: advancePayment,
+                            quantity: '' + quantity,
+                            totalAmount: advancePayment,
+                            installmentAmount: '0',
+                            depositAmount: '0',
+                            netAmount: advancePayment,
+                            discountAmount: '0',
+                            otherPaymentAmount: '0',
+                            privilegeRequiredValue: '',
+                            discounts: [],
+                            otherPayments: [],
+                            serials: [],
+                            range: [],
+                        }
+                    }
+
+                    //! items.discountAmount = ค่า amount ใน discounts ทั้งหมดรวมกัน
+                    const { discountAmount: discountAmountBaht, discounts } = this.getItemDiscount({
+                        orderId,
+                        lineItem,
+                        sequence
+                    })
+
+                    //! items.otherPaymentAmount = ค่า amount ใน otherPayments ทั้งหมดรวมกัน
+                    const { otherPaymentAmount: otherPaymentAmountBaht, otherPayments } = this.getItemOtherPayment({
+                        orderId,
+                        lineItem,
+                        sequence
+                    })
+
+                    //! items.netAmount = ค่า (price * quantity) - discountAmount
+                    let netAmount = price * quantity
+                    netAmount -= this.BahtToStang(discountAmountBaht)
+
+                    if (['device_bundle_existing'].includes(journey)) {
+                        campaignCode = _.get(packageInfo, 'package_code', '');
+                        campaignName = _.get(packageInfo, 'name.th-TH', '');
+                        promotionSetProposition = _.get(packageInfo, 't1.proposition', '');
+                        promotionSetCode = _.get(packageInfo, 't1.promotionSet', '');
+                    }
+
                     return {
                         id: orderId,
                         sequence: sequence,
@@ -99,119 +198,73 @@ export default class TsmOrderModel {
                         proposition: '' + promotionSetProposition,
                         promotionSet: promotionSetCode,
                         promotionType: this.getPromotionType(productType),
-                        group: '' + productGroup,
+                        group: '1',
                         product: {
                             productType: this.getProductType(productType),
                             productCode,
                         },
-                        mobile: '',
-                        price: '0',
+                        mobile: encryptedMobile,
+                        price: '' + this.stangToBaht(price),
                         quantity: '' + quantity,
-                        totalAmount: '0',
+                        totalAmount: '' + this.stangToBaht(totalAmount),
                         installmentAmount: '0',
                         depositAmount: '0',
-                        netAmount: '0',
-                        discountAmount: '0',
-                        otherPaymentAmount: '0',
+                        netAmount: '' + this.stangToBaht(netAmount),
+                        discountAmount: '' + discountAmountBaht, //todo recheck discount campaing existing
+                        otherPaymentAmount: '' + otherPaymentAmountBaht, //todo recheck otherPaymentAmount campaing existing
                         privilegeRequiredValue,
-                        discounts: [],
-                        otherPayments: [],
+                        discounts,
+                        otherPayments,
                         serials: [],
                         range: [],
                     }
-                }
-
-                //! items.discountAmount = ค่า amount ใน discounts ทั้งหมดรวมกัน
-                const { discountAmount: discountAmountBaht, discounts } = this.getItemDiscount({
-                    orderId,
-                    lineItem,
-                    sequence
                 })
+            })
 
-                //! items.otherPaymentAmount = ค่า amount ใน otherPayments ทั้งหมดรวมกัน
-                const { otherPaymentAmount: otherPaymentAmountBaht, otherPayments } = this.getItemOtherPayment({
+            //! ค่า netAmount ใน items ทั้งหมดรวมกัน
+            const totalAmount = sequenceItems.reduce((total: any, item: any) => total + +item.netAmount, 0,)
+            //! From Custom Object
+            const {discounts, otherPayments} = this.couponDiscounts
+            //! ค่า discounts (นอก items) ทั้งหมดรวมกัน
+            const discountAmount = discounts.reduce((total: any, discount: any) => total + +discount.amount, 0,)
+            //! ค่า ค่า otherPayments (นอก items) ทั้งหมดรวมกัน
+            const otherPaymentAmount = otherPayments.reduce((total: any, otherPayment: any) => total + +otherPayment.amount, 0,)
+            //! ค่า totalAmount - discountAmount
+            const totalAfterDiscount = totalAmount - discountAmount
+
+            //! ค่า totalAmount - discountAmount - otherPaymentAmount - (ผลรวมของ otherPaymentAmount ใน items) 
+            const itemOtherPaymentAmount = sequenceItems.reduce((total: any, item: any) => total + +item.otherPaymentAmount, 0,)
+            const grandTotal = totalAmount - discountAmount - otherPaymentAmount - itemOtherPaymentAmount
+
+            return {
+                order: {
                     orderId,
-                    lineItem,
-                    sequence
-                })
-
-                //! items.netAmount = ค่า (price * quantity) - discountAmount
-                let netAmount = price * quantity
-                netAmount -= this.BahtToStang(discountAmountBaht)
-
-                return {
-                    id: orderId,
-                    sequence: sequence,
-                    campaign: {
-                        code: campaignCode,
-                        name: campaignName,
+                    customer: {
+                        id: customer.thaiId,
+                        name: `${customer.firstName} ${customer.lastName}`,
+                        address: this.getCustomerAddress(),
                     },
-                    proposition: '' + promotionSetProposition,
-                    promotionSet: promotionSetCode,
-                    promotionType: this.getPromotionType(productType),
-                    group: '1',
-                    product: {
-                        productType: this.getProductType(productType),
-                        productCode,
+                    shop: {
+                        code: shopCode,
                     },
-                    mobile: '',
-                    price: '' + this.stangToBaht(price),
-                    quantity: '' + quantity,
-                    totalAmount: '' + this.stangToBaht(totalAmount),
-                    installmentAmount: '0',
-                    depositAmount: '0',
-                    netAmount: '' + this.stangToBaht(netAmount),
-                    discountAmount: '' + discountAmountBaht,
-                    otherPaymentAmount: '' + otherPaymentAmountBaht,
-                    privilegeRequiredValue,
+                    sale: {
+                        code: saleCode,
+                        name: saleName,
+                    },
+                    totalAmount: '' + totalAmount,
+                    discountAmount: '' + discountAmount,
+                    totalAfterDiscount: '' + totalAfterDiscount,
+                    otherPaymentAmount: '' + otherPaymentAmount,
+                    grandTotal: '' + grandTotal,
                     discounts,
                     otherPayments,
-                    serials: [],
-                    range: [],
-                }
-            })
-        })
-
-        //! ค่า netAmount ใน items ทั้งหมดรวมกัน
-        const totalAmount = sequenceItems.reduce((total: any, item: any) => total + +item.netAmount, 0,)
-        //! From Custom Object
-        const {discounts, otherPayments} = this.couponDiscounts
-        //! ค่า discounts (นอก items) ทั้งหมดรวมกัน
-        const discountAmount = discounts.reduce((total: any, discount: any) => total + +discount.amount, 0,)
-        //! ค่า ค่า otherPayments (นอก items) ทั้งหมดรวมกัน
-        const otherPaymentAmount = otherPayments.reduce((total: any, otherPayment: any) => total + +otherPayment.amount, 0,)
-        //! ค่า totalAmount - discountAmount
-        const totalAfterDiscount = totalAmount - discountAmount
-
-        //! ค่า totalAmount - discountAmount - otherPaymentAmount - (ผลรวมของ otherPaymentAmount ใน items) 
-        const itemOtherPaymentAmount = sequenceItems.reduce((total: any, item: any) => total + +item.otherPaymentAmount, 0,)
-        const grandTotal = totalAmount - discountAmount - otherPaymentAmount - itemOtherPaymentAmount
-
-        return {
-            order: {
-                orderId,
-                customer: {
-                    id: customer.thaiId,
-                    name: `${customer.firstName} ${customer.lastName}`,
-                    address: this.getCustomerAddress(),
+                    items: sequenceItems,
                 },
-                shop: {
-                    code: shopCode,
-                },
-                sale: {
-                    code: saleCode,
-                    name: saleName,
-                },
-                totalAmount: '' + totalAmount,
-                discountAmount: '' + discountAmount,
-                totalAfterDiscount: '' + totalAfterDiscount,
-                otherPaymentAmount: '' + otherPaymentAmount,
-                grandTotal: '' + grandTotal,
-                discounts,
-                otherPayments,
-                items: sequenceItems,
-            },
-        };
+            };
+        } catch (error) {
+            console.log('TSM-Order-Model toPayload error: ', error);
+            throw error;
+        }
     }
 
     getPromotionType = (lineItemType: any) => {
@@ -380,24 +433,22 @@ export default class TsmOrderModel {
 
     getCampaignVerifyValues (lineItems: any[]) {
         const mainProductlineItems = lineItems.find((lineItem: any) => {
-            return lineItem.custom?.fields?.productType === 'main_product'
+            return lineItem?.custom?.fields?.productType === 'main_product'
         })
 
-        const campaignVerifyValues = (mainProductlineItems.custom?.fields?.campaignVerifyValues  ?? []).map((v: any) => JSON.parse(v))
+        const campaignVerifyValues = (mainProductlineItems?.custom?.fields?.campaignVerifyValues  ?? []).map((v: any) => JSON.parse(v))
 
         return campaignVerifyValues
     }
 
     getCampaignVerifyValuesFromCurrentLineItem = (currentLineItem: any, lineItems: any[]) => {
-        const productGroup = currentLineItem.custom?.fields?.productGroup
+        const productGroup = currentLineItem?.custom?.fields?.productGroup
         const mainProductlineItems = lineItems.find((lineItem: any) => {
-            return lineItem.custom?.fields?.productGroup === productGroup && lineItem.custom?.fields?.productType === 'main_product'
+            return lineItem?.custom?.fields?.productGroup === productGroup && lineItem?.custom?.fields?.productType === 'main_product'
         })
 
-        const campaignVerifyValues = (mainProductlineItems.custom?.fields?.campaignVerifyValues  ?? []).map((v: any) => JSON.parse(v))
+        const campaignVerifyValues = (mainProductlineItems?.custom?.fields?.campaignVerifyValues  ?? []).map((v: any) => JSON.parse(v))
 
         return campaignVerifyValues
     }
-
-
 }
