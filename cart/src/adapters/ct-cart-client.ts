@@ -330,13 +330,17 @@ export class CommercetoolsCartClient implements IAdapter {
 		const updateActionAfterRecalculated: CartUpdateAction[] = []
 		
 		//HOTFIX: bundle_existing	
-        const journey = _.get(updatedCart, 'custom.fields.journey')
-        let customerGroupId = readConfiguration().ctPriceCustomerGroupIdRrp
-        if (journey === CART_JOURNEYS.DEVICE_ONLY) {
-            customerGroupId = readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly
-        }
+        const cartJourney = _.get(updatedCart, 'custom.fields.journey')
         
 		recalculatedCart.lineItems.filter((lineItem) => lineItem.custom?.fields?.productType).map((lineItem: LineItem) => {
+            const itemJourney = _.get(lineItem, 'custom.fields.journey')
+            const journey = itemJourney || cartJourney
+
+            let customerGroupId = readConfiguration().ctPriceCustomerGroupIdRrp
+            if (journey === CART_JOURNEYS.DEVICE_ONLY) {
+                customerGroupId = readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly
+            }
+
 			const validPrice = CommercetoolsProductClient.findValidPrice({
 				prices: lineItem.variant.prices || [],
 				customerGroupId: customerGroupId,

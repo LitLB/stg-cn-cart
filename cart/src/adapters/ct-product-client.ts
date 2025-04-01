@@ -279,11 +279,7 @@ export class CommercetoolsProductClient implements IAdapter {
 
 	async checkCartHasChanged(ctCart: Cart): Promise<Cart> {
 		let  { lineItems } = ctCart;
-        const journey = _.get(ctCart, 'custom.fields.journey')
-        let customerGroupId = readConfiguration().ctPriceCustomerGroupIdRrp
-        if (journey === CART_JOURNEYS.DEVICE_ONLY) {
-            customerGroupId = readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly
-        }
+        const cartJourney = _.get(ctCart, 'custom.fields.journey')
 
 		//HOTFIX: bundle_existing
 		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType)
@@ -294,7 +290,11 @@ export class CommercetoolsProductClient implements IAdapter {
 			(item: LineItem) => item.custom?.fields?.productType === 'main_product',
 		);
 
-		const skus = lineItems.map((item: LineItem) => item.variant.sku);
+        const itemJourneys: Record<string, string> = {}
+		const skus = lineItems.map((item: LineItem) => {
+            itemJourneys[item.variant.sku!] = _.get(item, 'custom.fields.journey')
+            return item.variant.sku
+        });
 		const inventoryKey = skus.map((sku: any) => sku).join(',');
 		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
 
@@ -302,6 +302,14 @@ export class CommercetoolsProductClient implements IAdapter {
 		const skuItems = body.results;
 
 		const findValidPrice = (variants: any) => {
+            const itemJourney = itemJourneys[variants.sku]
+            const journey = itemJourney || cartJourney
+
+            let customerGroupId = readConfiguration().ctPriceCustomerGroupIdRrp
+            if (journey === CART_JOURNEYS.DEVICE_ONLY) {
+                customerGroupId = readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly
+            }
+
 			return this.findValidPrice({
 				prices: variants.prices,
 				customerGroupId: customerGroupId,

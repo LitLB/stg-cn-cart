@@ -1087,10 +1087,12 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 
 	async attachBenefitToICart(iCart: any, lineItemWithCampaignBenefits: any[]) {
 		const { items } = iCart
-        const journey = _.get(iCart, 'custom.fields.journey')
+        const cartJourney = _.get(iCart, 'custom.fields.journey')
 		const promises = items.map(async (item: any) => {
 			const sku = item.sku
 			const lineItem = lineItemWithCampaignBenefits.find((lineItem: any) => lineItem.variant.sku === sku)
+            const itemJourney = _.get(lineItem, 'custom.fields.journey')
+            const journey = itemJourney || cartJourney
 
 			const availableBenefits = lineItem?.availableBenefits || []
 			const mappedAvailableBenefits = await this.mapAvailableBenefits(availableBenefits, journey)
@@ -1119,10 +1121,6 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 
 	async mapAvailableBenefits(availableBenefits: any[], journey: CART_JOURNEYS) {
 		const mappedAvailableBenefits = availableBenefits.map((availableBenefit: any) => {
-            let customerGroupId = readConfiguration().ctPriceCustomerGroupIdRrp
-            if (journey === CART_JOURNEYS.DEVICE_ONLY) {
-                customerGroupId = readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly
-            }
             
 			const { benefitType, freeGiftProducts = [], addOnProducts = [] } = availableBenefit
 
@@ -1148,6 +1146,14 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 						totalSelectedItem,
 					} = variant
 
+                    const itemJourney = _.get(variant, 'custom.fields.journey')
+                    const _journey = journey || itemJourney
+
+                    let customerGroupId = readConfiguration().ctPriceCustomerGroupIdRrp
+                    if (_journey === CART_JOURNEYS.DEVICE_ONLY) {
+                        customerGroupId = readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly
+                    }
+                    
 					const price = this.ctProductClient.findValidPrice({
 						prices,
 						customerGroupId: customerGroupId
