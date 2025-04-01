@@ -33,7 +33,6 @@ import { COUNTRIES } from '../../constants/country.constant';
 import { HTTP_STATUSES } from '../../constants/http.constant';
 import { LOCALES } from '../../constants/locale.constant';
 import { IAdapter } from '../../interfaces/adapter.interface';
-import _ from 'lodash';
 
 export default class CommercetoolsMeCartClient implements IAdapter {
 	public name = 'commercetoolsMeCartClient'
@@ -1087,15 +1086,12 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 
 	async attachBenefitToICart(iCart: any, lineItemWithCampaignBenefits: any[]) {
 		const { items } = iCart
-        const cartJourney = _.get(iCart, 'custom.fields.journey')
 		const promises = items.map(async (item: any) => {
 			const sku = item.sku
 			const lineItem = lineItemWithCampaignBenefits.find((lineItem: any) => lineItem.variant.sku === sku)
-            const itemJourney = _.get(lineItem, 'custom.fields.journey')
-            const journey = itemJourney || cartJourney
 
 			const availableBenefits = lineItem?.availableBenefits || []
-			const mappedAvailableBenefits = await this.mapAvailableBenefits(availableBenefits, journey)
+			const mappedAvailableBenefits = await this.mapAvailableBenefits(availableBenefits)
 			const privilege = lineItem?.privilege || null
 			const discounts = lineItem?.discounts || []
 			const otherPayments = lineItem?.otherPayments || []
@@ -1119,7 +1115,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 		return newICart
 	}
 
-	async mapAvailableBenefits(availableBenefits: any[], journey: CART_JOURNEYS) {
+	async mapAvailableBenefits(availableBenefits: any[]) {
 		const mappedAvailableBenefits = availableBenefits.map((availableBenefit: any) => {
             
 			const { benefitType, freeGiftProducts = [], addOnProducts = [] } = availableBenefit
@@ -1145,18 +1141,10 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 						prices,
 						totalSelectedItem,
 					} = variant
-
-                    const itemJourney = _.get(variant, 'custom.fields.journey')
-                    const _journey = journey || itemJourney
-
-                    let customerGroupId = readConfiguration().ctPriceCustomerGroupIdRrp
-                    if (_journey === CART_JOURNEYS.DEVICE_ONLY) {
-                        customerGroupId = readConfiguration().ctPriceCustomerGroupIdTrueMassDeviceOnly
-                    }
                     
 					const price = this.ctProductClient.findValidPrice({
 						prices,
-						customerGroupId: customerGroupId
+						customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp
 					})
 					const unitPrice = price?.value.centAmount
 					const image = images?.[0] || null
@@ -1209,7 +1197,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 
 					const price = this.ctProductClient.findValidPrice({
 						prices,
-						customerGroupId: customerGroupId
+						customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp
 					})
 					const unitPrice = price?.value.centAmount
 					const image = images?.[0] || null

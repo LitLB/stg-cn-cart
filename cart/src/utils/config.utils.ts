@@ -39,7 +39,6 @@ export const readConfiguration = () => {
     ctpSupplyChannel: process.env.CTP_SUPPLY_CHANNEL_ID as string,
 
     ctPriceCustomerGroupIdRrp: process.env.CT_PRICE_CUSTOMER_GROUP_ID_RRP as string,
-    ctPriceCustomerGroupIdTrueMassDeviceOnly: process.env.CT_PRICE_CUSTOMER_GROUP_ID_TRUE_MASS_DEVICE_ONLY as string,
 
     t1: {
       apiKey: process.env.T1_API_KEY as string,
