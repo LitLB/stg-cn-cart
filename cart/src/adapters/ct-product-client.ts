@@ -294,11 +294,14 @@ export class CommercetoolsProductClient implements IAdapter {
 		const { body } = await this.getProductsBySkus(skus);
 		const skuItems = body.results;
 
-		const findValidPrice = (variants: any) => this.findValidPrice({
-            prices: variants.prices,
-            customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
-            date: new Date(),
-        });
+		const findValidPrice = (variants: any) => {
+			return this.findValidPrice({
+				prices: variants.prices,
+				customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
+				date: new Date(),
+			});
+		}
+
 
 		const processedItems = lineItems.map((cartItem: LineItem) => {
 			const parentQuantity = mainProductLineItems
