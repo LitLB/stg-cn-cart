@@ -140,6 +140,12 @@ export class OtpService {
                         statusCode: '400.4004',
                         statusMessage: 'OTP has expired',
                         errorCode: 'OTP_HAS_EXPIRED'
+                    },
+                    '100004': {
+                        status: 400,
+                        statusCode: '400.4028',
+                        statusMessage: 'Verify OTP Fail',
+                        errorCode: 'VERIFY_OTP_FAIL'
                     }
 
                 };
@@ -257,7 +263,7 @@ export class OtpService {
 
             logger.error(JSON.stringify(logInformation));
 
-            throw transformError(e)
+            throw transformError(e, 'Verify OTP fail', '400.4028')
         }
     }
 
@@ -285,7 +291,7 @@ export class OtpService {
         } catch (e: any) {
             logService(checkOperatorPayload, e, logStepModel)
             logger.error('Error checkOperator')
-            throw e
+            throw transformError(e, 'Get operator fail', '400.4016')
         }
     }
 
