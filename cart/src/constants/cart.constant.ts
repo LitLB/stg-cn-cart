@@ -16,7 +16,7 @@ export enum CART_INVENTORY_MODES {
 
 export const CART_EXPIRATION_DAYS = 1;
 
-export const COUPON_CUSTOM_EFFECT = 'coupon_custom_effect_v3';
+export const COUPON_CUSTOM_EFFECT = 'coupon_custom_effect_v4';
 
 export const journeyConfigMap: Record<CART_JOURNEYS, CartJourneyInventoryMap> = {
     [CART_JOURNEYS.SINGLE_PRODUCT]: {
@@ -48,7 +48,7 @@ export enum CART_OPERATOS {
     TRUE = 'TRUE',
 }
 
-export enum CART_HAS_CHANGED_NOTICE_MESSAGE  {
+export enum CART_HAS_CHANGED_NOTICE_MESSAGE {
     UNPUBLISH_PRODUCT = "The cart items have changed; some items have been removed, and the course items have been unpublished.",
     OUT_OF_STOCK = "The items in the cart have changed; some have been removed, and the stock type has been updated.",
     DUMMY_TO_PHYSICAL_OUT_OF_STOCK = "The items in the cart have changed; some have been removed, and insufficient stock item in cart > available",

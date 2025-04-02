@@ -6,6 +6,7 @@ import {
     CartUpdateAction
 } from '@commercetools/platform-sdk';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
+import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { logger } from '../utils/logger.utils';
 import { createStandardizedError } from '../utils/error.utils';
@@ -14,12 +15,17 @@ import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 import { COUPON_REJECTION_REASONS } from '../interfaces/talon-one.interface';
 import { Coupon } from '../interfaces/coupon.interface';
+import { readConfiguration } from '../utils/config.utils';
 
 export class CouponService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
+    private readonly ctProductClient;
+    private readonly ctpAddCustomOtherPaymentLineItemPrefix;
 
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
+        this.ctProductClient = CommercetoolsProductClient;
+        this.ctpAddCustomOtherPaymentLineItemPrefix = readConfiguration().ctpAddCustomOtherPaymentLineItemPrefix as string;
     }
 
     // T1 auto clear invalid coupons
@@ -30,11 +36,9 @@ export class CouponService {
         permanentlyInvalidRejectedCoupons: Coupon[];
     }> {
         try {
+            const cartInfoForCouponValidation = await this.getCartInfoForCouponValidation(ctCart)
             // 1) Gather current coupon codes
-            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
-                ctCart.id,
-                ctCart.lineItems
-            );
+            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCart(ctCart, cartInfoForCouponValidation);
 
             const currentCouponCodes: string[] =
                 couponEffects?.coupons?.acceptedCoupons?.map((c: any) => c.code) ?? [];
@@ -57,10 +61,10 @@ export class CouponService {
                 ctCart.id,
                 customerSessionPayload
             );
-
             // 3) Process any effects
             const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(
-                updatedSession.effects
+                updatedSession.effects,
+                cartInfoForCouponValidation
             );
 
             processedCouponEffects.rejectedCoupons = [...processedCouponEffects.rejectedCoupons, ...couponEffects.coupons.rejectedCoupons];
@@ -95,7 +99,7 @@ export class CouponService {
             );
 
             // 6) Build updateActions from new effects to remove discount line items, etc.
-            const newProcessedEffects = this.talonOneCouponAdapter.processCouponEffects(reUpdatedSession.effects);
+            const newProcessedEffects = this.talonOneCouponAdapter.processCouponEffects(reUpdatedSession.effects, cartInfoForCouponValidation);
             const { updateActions, couponsInformation } =
                 this.talonOneCouponAdapter.buildCouponActions(ctCart, newProcessedEffects);
 
@@ -139,20 +143,24 @@ export class CouponService {
         }
     }
 
-    public async autoRemoveInvalidCouponsAndReturnOnce(ctCart: Cart,isRemoveAllCoupon?: boolean): Promise<{
+    public async autoRemoveInvalidCouponsAndReturnOnce(ctCart: Cart, isRemoveAllCoupon?: boolean): Promise<{
         updatedCart: Cart;
         permanentlyInvalidRejectedCoupons: Coupon[];
     }> {
         try {
             //HOTFIX: bundle_existing
-            let lineItems = ctCart.lineItems.filter((lineItem) => lineItem.custom?.fields?.productType)
+            const lineItems = ctCart.lineItems.filter((lineItem) => lineItem.custom?.fields?.productType)
 
             // 1) Gather current coupon codes
-            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
-                ctCart.id,
+            const cartInfoForCouponValidation = await this.getCartInfoForCouponValidation({
+                ...ctCart,
                 lineItems
-            );
-
+            })
+            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCart({
+                ...ctCart,
+                lineItems
+            }, cartInfoForCouponValidation);
+            console.log('couponEffects', JSON.stringify(couponEffects))
             const currentCouponCodes: string[] =
                 couponEffects?.coupons?.acceptedCoupons?.map((coupons: any) => coupons.code) ?? [];
 
@@ -179,7 +187,8 @@ export class CouponService {
 
             // 3) Process any effects
             const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(
-                updatedSession.effects
+                updatedSession.effects,
+                cartInfoForCouponValidation
             );
 
             processedCouponEffects.rejectedCoupons = [...processedCouponEffects.rejectedCoupons, ...couponEffects.coupons.rejectedCoupons]
@@ -214,17 +223,17 @@ export class CouponService {
             );
 
             // 6) Build updateActions from new effects to remove discount line items, etc.
-            const newProcessedEffects = this.talonOneCouponAdapter.processCouponEffects(reUpdatedSession.effects);
+            const newProcessedEffects = this.talonOneCouponAdapter.processCouponEffects(reUpdatedSession.effects, cartInfoForCouponValidation);
             const { updateActions, couponsInformation } =
                 this.talonOneCouponAdapter.buildCouponActions(ctCart, newProcessedEffects);
-            
+
             // Update CustomObject with coupon information
             await this.addCouponInformation(
                 updateActions,
                 ctCart.id,
                 couponsInformation
-            );    
-                
+            );
+
 
             if (updateActions.length === 0) {
                 // No cart changes needed
@@ -260,6 +269,7 @@ export class CouponService {
             };
 
         } catch (error: any) {
+            console.log('error', error)
             throw createStandardizedError(error, 'autoRemoveInvalidCouponsAndReturnOnce');
         }
     }
@@ -359,7 +369,8 @@ export class CouponService {
     */
     public async clearAllCoupons(ctCart: Cart, customerSession: any): Promise<Cart> {
         try {
-            const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(customerSession.effects);
+            const cartInfoForCouponValidation = await this.getCartInfoForCouponValidation(ctCart)
+            const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(customerSession.effects, cartInfoForCouponValidation);
             if (processedCouponEffects.acceptedCoupons.length === 0) {
                 return ctCart;
             }
@@ -374,7 +385,7 @@ export class CouponService {
                 clearAllCouponsPayload
             );
 
-            const clearAllCouponsEffects = this.talonOneCouponAdapter.processCouponEffects(clearAllCouponsUpdatedCustomerSession.effects);
+            const clearAllCouponsEffects = this.talonOneCouponAdapter.processCouponEffects(clearAllCouponsUpdatedCustomerSession.effects, cartInfoForCouponValidation);
             const { updateActions } =
                 this.talonOneCouponAdapter.buildCouponActions(ctCart, clearAllCouponsEffects);
 
@@ -398,24 +409,94 @@ export class CouponService {
         }
     }
 
-    private async syncCustomObjectCouponInformation(ctCart: any, processedCouponEffects: any) : Promise<Cart> {
+    private async syncCustomObjectCouponInformation(ctCart: any, processedCouponEffects: any): Promise<Cart> {
         const { updateActions, couponsInformation } = this.talonOneCouponAdapter.buildCouponActions(ctCart, processedCouponEffects);
-        
+
         // Update CustomObject with coupon information
         await this.addCouponInformation(updateActions, ctCart.id, couponsInformation);
-        
+
         if (updateActions.length === 0) {
             // No cart changes needed
             return ctCart
         }
-    
+
         // Update the cart in CT
         const cartAfterUpdateCustomObject = await CommercetoolsCartClient.updateCart(
             ctCart.id,
             ctCart.version,
             updateActions
         );
-    
+
         return cartAfterUpdateCustomObject;
+    }
+
+    private calculateLineItemOtherPaymentAmount(lineItem: any, customLineItems: any[]) {
+        const lineItemId = lineItem.id
+
+        const otherPaymentCustomLineItems =
+            customLineItems.filter((item: any) => item.slug.startsWith(`${lineItemId}-${this.ctpAddCustomOtherPaymentLineItemPrefix}`))
+        const lineItemOtherPaymentAmount = otherPaymentCustomLineItems.reduce((acc: number, current: any) => {
+            return acc + Math.abs(current?.totalPrice?.centAmount)
+        }, 0)
+
+        return lineItemOtherPaymentAmount
+    }
+
+    getCartInfoForCouponValidation = async (ctCart: any) => {
+        const campaignGroup = ctCart.custom.fields.campaignGroup
+        const journey = ctCart.custom.fields.journey
+
+        const lineItems = ctCart.lineItems
+        const customLineItems = ctCart.customLineItems
+
+        const totalPriceAfterCampaignDiscount = lineItems.reduce((total: number, lineItem: any) => {
+            const otherPaymentAmount = this.calculateLineItemOtherPaymentAmount(lineItem, customLineItems);
+            return total + (lineItem.totalPrice.centAmount - otherPaymentAmount)
+        }, 0)
+
+        const allSkus = lineItems.map((item: any) => item.variant.sku)
+        let products = []
+        if (allSkus.length) {
+            const { body } = await this.ctProductClient.getProductsBySkus(allSkus, ['categories[*].parent'])
+            products = body.results;
+        }
+
+        const productIdToProducts = products.reduce((acc: any, product: any) => {
+            acc[product.id] = product
+            return acc
+        }, [])
+
+        const filterLineItems = lineItems.map((lineItem: any, lineItemIndex: number) => {
+            const lineItemId = lineItem.id
+            const productType = lineItem.custom.fields.productType
+            const sku = lineItem.variant.sku
+            const attributes: any = lineItem?.attributes?.reduce((acc: any, current: any) => {
+                const name = current.name
+                const value = current.value
+                acc[name] = value
+                return acc
+            }, {})
+
+            const product = productIdToProducts?.[lineItem.productId] || {}
+            const parentCategoryName = product?.categories?.[0]?.obj?.parent?.obj?.name || null
+            const categoryName = product?.categories?.[0]?.obj?.name || null
+
+            const category = parentCategoryName || categoryName
+            return {
+                lineItemId,
+                index: lineItemIndex,
+                productType,
+                sku,
+                ...(attributes?.series ? { series: attributes?.series } : {}),
+                ...(category ? { category: category?.['en-US'] } : {}),
+                ...(attributes?.brand_name?.label ? { brand: attributes?.brand_name?.label } : {})
+            }
+        })
+        return {
+            campaignGroup,
+            journey,
+            totalPriceAfterCampaignDiscountInBaht: totalPriceAfterCampaignDiscount / 100,
+            lineItems: filterLineItems
+        }
     }
 }
