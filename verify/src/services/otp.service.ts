@@ -15,7 +15,6 @@ import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile, validateSharePlan } from "../validators/operator.validators";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
-import { transformError } from "../middleware/error-handler.middleware";
 
 dayjs.extend(utc);
 
@@ -263,7 +262,7 @@ export class OtpService {
 
             logger.error(JSON.stringify(logInformation));
 
-            throw transformError(e, 'Verify OTP fail', '400.4028')
+            throw e
         }
     }
 
@@ -290,8 +289,7 @@ export class OtpService {
             return result
         } catch (e: any) {
             logService(checkOperatorPayload, e, logStepModel)
-            logger.error('Error checkOperator')
-            throw transformError(e, 'Get operator fail', '400.4016')
+            throw e
         }
     }
 
