@@ -56,19 +56,7 @@ export class CouponService {
             }
 
             // Update local couponCodes array with Talon.One's final list
-            couponCodes.splice(0, couponCodes.length, ...resultCoupons.applyCoupons);
-
-            // 3) Get the Commercetools cart
-            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-            const ctCart = await commercetoolsMeCartClient.getCartById(id);
-            if (!ctCart) {
-                logger.info('Commercetools getCartById error');
-                throw {
-                    statusCode: HTTP_STATUSES.NOT_FOUND,
-                    errorCode: 'APPLY_COUPON_CT_FAILED',
-                    statusMessage: 'Cart not found or has expired',
-                };
-            }
+            couponCodes = [...resultCoupons.applyCoupons]
 
             // 4) Update Talon.One session to reflect final coupon codes
             const payload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
@@ -109,7 +97,7 @@ export class CouponService {
                 }
 
                 // Update local couponCodes array to reflect final state
-                couponCodes.splice(0, couponCodes.length, ...removeResult.applyCoupons);
+                couponCodes = [...removeResult.applyCoupons]
 
                 // Optionally re-update the session to get a “clean” effect list
                 const cleanedPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
@@ -172,7 +160,7 @@ export class CouponService {
                     rejectedCoupons: uniqueRejectedByCode,
                 },
                 couponsInformation,
-                acceptedCouponsOld: acceptedCoupons
+                acceptedCouponsOld,
             };
         } catch (error: any) {
             if (error.status && error.message) {
