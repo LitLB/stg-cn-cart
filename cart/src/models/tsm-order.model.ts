@@ -58,7 +58,7 @@ export default class TsmOrderModel {
                 const productCode = lineItem.variant.sku
                 const productGroup = lineItem.custom?.fields?.productGroup || '1'
                 const productType = lineItem.custom?.fields?.productType
-                let privilege = lineItem?.package
+                let privilege = lineItem?.custom?.fields?.privilege
                 privilege = privilege && JSON.parse(privilege);                
 
                 const campaignVerifyValues = this.getCampaignVerifyValuesFromCurrentLineItem(lineItem, lineItems)
