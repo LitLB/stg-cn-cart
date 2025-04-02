@@ -1,8 +1,7 @@
 // src/server/adapters/ct-product-client.ts
 
-import type { ApiRoot, Product, ProductDraft, ProductVariant } from '@commercetools/platform-sdk';
+import type { ApiRoot } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
-import { CT_PRODUCT_ACTIONS } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
 
 class CommercetoolsProductClient {
@@ -22,114 +21,16 @@ class CommercetoolsProductClient {
 		return CommercetoolsProductClient.instance;
 	}
 
-	async createProduct(productDraft: ProductDraft): Promise<Product> {
-		const product = await this.apiRoot
-			.withProjectKey({ projectKey: this.projectKey })
-			.products()
-			.post({ body: productDraft })
-			.execute();
-
-		return product.body;
-	}
-
-	async getProductById(id: string): Promise<Product> {
-		const product = await this.apiRoot
-			.withProjectKey({ projectKey: this.projectKey })
-			.products()
-			.withId({ ID: id })
-			.get()
-			.execute();
-
-		return product.body;
-	}
-
-	async getProductByKey(key: string): Promise<Product> {
-		const product = await this.apiRoot
-			.withProjectKey({ projectKey: this.projectKey })
-			.products()
-			.withKey({ key: key })
-			.get()
-			.execute();
-
-		return product.body;
-	}
-
-	async getProductByAkeneoId(akeneoIds: any[]): Promise<any> {
-		let search = ''
-		const products = await this.apiRoot
-			.withProjectKey({ projectKey: this.projectKey })
-			.products()
-			.get({
-				queryArgs: {
-					where: search.concat(`masterData(staged(variants(attributes(name="akeneo_id" and value in (${akeneoIds}))))) or masterData(staged(masterVariant(attributes(name="akeneo_id" and value in (${akeneoIds})))))`)
-				},
-			})
-			.execute();
-
-		return products;
-	}
-
-	async updateProduct(id: string, updateActions: any): Promise<Product> {
-		const product = await this.apiRoot
-			.withProjectKey({ projectKey: this.projectKey })
-			.products()
-			.withId({ ID: id })
-			.post({
-				body: {
-					version: updateActions.version,
-					actions: updateActions.actions,
-				},
-			})
-			.execute();
-
-		return product.body;
-	}
-
-	async deleteProduct(id: string, version: number): Promise<Product> {
-		const product = await this.apiRoot
-			.withProjectKey({ projectKey: this.projectKey })
-			.products()
-			.withId({ ID: id })
-			.delete({ queryArgs: { version } })
-			.execute();
-
-		return product.body;
-	}
-
-	async publishProduct(id: string, version: number): Promise<Product> {
-		const updateActions = {
-			version,
-			actions: [{ action: CT_PRODUCT_ACTIONS.PUBLISH }],
-		};
-		const product = await this.updateProduct(id, updateActions);
-		return product;
-	}
-
-	async unpublishProduct(id: string, version: number): Promise<Product> {
-		const updateActions = {
-			version,
-			actions: [{ action: CT_PRODUCT_ACTIONS.UNPUBLISH }],
-		};
-		const product = await this.updateProduct(id, updateActions);
-		return product;
-	}
-
-	findVariantBySku(product: Product, sku: string): ProductVariant | null {
-		const currentData = product.masterData.current;
-		const variants = [currentData.masterVariant, ...currentData.variants];
-		const variant = variants.find((v) => v.sku === sku);
-		return variant || null;
-	}
-
-	async getProductsBySkus(skus: any[]): Promise<any> {
-		const filter = `variants.sku: ${skus.map(sku => `"${sku}"`).join(',')}`
+	async getProductsBySkus(skus: any[], expand?: string[]): Promise<any> {
+		const skusFilter = `variants.sku: ${skus.map(sku => `"${sku}"`).join(',')}`
 		const products = await this.apiRoot
 			.withProjectKey({ projectKey: this.projectKey })
 			.productProjections()
 			.search()
 			.get({
 				queryArgs: {
-					filter
+					filter: skusFilter,
+					expand,
 				}
 			}).execute()
 
