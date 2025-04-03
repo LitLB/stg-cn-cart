@@ -461,13 +461,6 @@ export class OtpService {
 
         } catch (e: any) {
             logService({ id, thaiId, operator, custValue }, e, logStepModel)
-            if (operator === OPERATOR.TRUE && e.status === 400) {
-                throw {
-                    statusCode: '400.4006',
-                    statusMessage: 'Black Listed Customer is not allowed',
-                    errorCode: 'BLACK_LISTED_CUSTOMER_IS_NOT_ALLOWED'
-                }
-            }
             throw e
         }
     }
