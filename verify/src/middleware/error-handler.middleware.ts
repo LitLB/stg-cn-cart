@@ -32,19 +32,21 @@ export const errorHandler = (
         data: err.data ? err.response?.data : undefined,
     };
 
-    res.status(status).json(response);
+
+    const transformed = transformError(response)
+
+    res.status(status).json(transformed);
 };
 
 
 
-export function transformError(error: any): { statusCode: string; statusMessage: string; errorCode: string } {
+export function transformError(error: any): { statusCode: string; statusMessage: string; errorCode: string; data?: any } {
 
     const statusMessages: Record<string, string> = {
         '400.010.0015': 'OTP is not match',
         '400.010.0016': 'OTP is not match for 5 times',
         '400.010.0014': 'OTP has expired',
         '400.087.0008': 'Offer package not found',
-
     };
 
     const statusCodes: Record<string, string> = {
