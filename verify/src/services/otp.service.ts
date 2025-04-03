@@ -271,9 +271,7 @@ export class OtpService {
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_OPERATOR, logModel);
         let checkOperatorPayload
 
-        const isMockOtp = this.config.otp.isMock as string
-        const txid = isMockOtp === 'true' ? "1234567" : id
-
+        const txid = id.substring(id.length - 7)
 
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
@@ -364,20 +362,18 @@ export class OtpService {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_SHARE_PLAN, logModel);
         const apigeeClientAdapter = new ApigeeClientAdapter();
+        const decryptMobile = await apigeeClientAdapter.apigeeDecrypt(mobileNumber)
+        const thMobile = convertToThailandMobile(decryptMobile)
+        const encryptMobile = await apigeeClientAdapter.apigeeEncrypt(thMobile)
 
         try {
-
-            const response = await apigeeClientAdapter.checkSharePlanDtac(mobileNumber)
+            const response = await apigeeClientAdapter.checkSharePlanDtac(encryptMobile)
             logService(mobileNumber, response, logStepModel);
-
             validateSharePlan(response.data)
 
         } catch (e) {
             logService(mobileNumber, e, logStepModel);
-            throw {
-                statusCode: "400.4035",
-                statusMessage: 'Get customer type fail',
-            };
+            throw e
         }
     }
 
@@ -385,7 +381,6 @@ export class OtpService {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_GET_PROFILE_AND_PACKAGE, logModel);
         const apigeeClientAdapter = new ApigeeClientAdapter();
-
 
         const basePayload = { id, channel: operator };
         const getProfilePayload = operator === OPERATOR.TRUE
@@ -525,9 +520,8 @@ export class OtpService {
             if (operator === OPERATOR.TRUE && e.status === 400) {
 
                 throw {
-                    statusCode: '400.4013',
-                    statusMessage: 'Not allowed to extend contract',
-                    errorCode: 'NOT_ALLOWED_TO_EXTERNAL_CONTRACT'
+                    statusCode: '400.4008',
+                    statusMessage: 'Get contract fail',
                 }
             }
             throw e

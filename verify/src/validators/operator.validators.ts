@@ -54,11 +54,9 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
         }
     }
 
-
-
     const aging = data.characteristic.find((row: Characteristic) => row.name === "TOTL_DAYS").value
 
-    if (aging < "90") {
+    if (Number(aging) < 90) {
         throw {
             statusCode: "400.4034",
             statusMessage: "The age of use does not meet the required criteria"
@@ -121,7 +119,7 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
         }
     }
 
-    if (data.aging < "90") {
+    if (Number(data.aging) < 90) {
         throw {
             statusCode: "400.4034",
             statusMessage: "The age of use does not meet the required criteria",
@@ -160,7 +158,6 @@ export const validateContractAndQuotaTrue = (data: any) => {
     const filteredProduct = product.map((item: any) => {
 
         if (parseInt(item.fee) > 0 && parseInt(item.term) > 0) {
-
             return {
                 contractTerm: parseInt(item.term),
                 contractFee: parseInt(item.fee),
@@ -207,7 +204,7 @@ export const validateContractAndQuotaDtac = (data: any) => {
 }
 
 export const validateSharePlan = (data: any) => {
-    if(data.account[0].type === "P"){
+    if (data.account[0].type === "P") {
         throw {
             statusCode: '400.4021',
             statusMessage: 'Package is share plan',
