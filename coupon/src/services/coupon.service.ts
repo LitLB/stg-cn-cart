@@ -54,9 +54,15 @@ export class CouponService {
             const customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
 
             // *** condition ***
-            const cartInfoForCouponValidation = await this.getCartInfoForCouponValidation(ctCart)
+            let cartInfoForCouponValidation: any = await this.getCartInfoForCouponValidation(ctCart)
             // Get Current Effects
-            const { acceptedCoupons: acceptedCouponsOld } = this.talonOneCouponAdapter.processCouponEffects(customerSession.effects, cartInfoForCouponValidation);
+            const { acceptedCoupons: acceptedCouponsOld, isAllowStackingCouponCart, notAllowStackingCouponId } = this.talonOneCouponAdapter.processCouponEffects(customerSession.effects, cartInfoForCouponValidation);
+
+            cartInfoForCouponValidation = {
+                ...cartInfoForCouponValidation,
+                isAllowStackingCouponCart,
+                notAllowStackingCouponId
+            }
 
             // Validate coupon limit
             const validateError = await validateCouponLimit(couponCodes.length, removeCouponCodes.length);
