@@ -226,7 +226,7 @@ export class CommercetoolsCustomObjectClient implements IAdapter {
 			}
 
 			// หาก couponInformation มีค่า ให้ดำเนินการ merge และอัปเดต
-			const existingObject = await this.getCustomObjectByContainerAndKey(container, key);	
+			const existingObject = await this.getCustomObjectByContainerAndKey(container, key);
 			const updatedValue = this.mergeCouponInformation(existingObject?.value, couponInformation);
 			return await this.createOrUpdateCustomObject({ container, key, value: updatedValue });
 
@@ -299,7 +299,8 @@ export class CommercetoolsCustomObjectClient implements IAdapter {
 			if (updatedItem) {
 				if (
 					orig.discountPrice !== updatedItem.discountPrice ||
-					orig.discountPercentage !== updatedItem.discountPercentage
+					orig.discountPercentage !== updatedItem.discountPercentage ||
+					orig.maximumDiscount !== updatedItem.maximumDiscount
 				) {
 					changes.push({ code: orig.couponCode, reason: 'CouponPriceChange' });
 				}

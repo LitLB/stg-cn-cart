@@ -160,7 +160,7 @@ export class CouponService {
                 ...ctCart,
                 lineItems
             }, cartInfoForCouponValidation);
-            console.log('couponEffects', JSON.stringify(couponEffects))
+
             const currentCouponCodes: string[] =
                 couponEffects?.coupons?.acceptedCoupons?.map((coupons: any) => coupons.code) ?? [];
 
