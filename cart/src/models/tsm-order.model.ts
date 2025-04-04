@@ -50,7 +50,7 @@ export default class TsmOrderModel {
             }
             const journey = this.ctCart?.custom?.fields?.journey || '';
             const packageInfo: Package = this.ctCart?.custom?.fields?.package?.obj?.value || {};
-            const advancePayment = _.get(packageInfo, 't1.advancedPayment', '').toString();
+            const advancePayment = _.get(packageInfo, 't1.advancedPayment', 0);
 
             // TODO filter lineItems by selected 
             let sequenceCounter = 1
@@ -84,7 +84,7 @@ export default class TsmOrderModel {
                     noOfItem = lineItem.quantity
                 }
 
-                if (['device_bundle_existing'].includes(journey) && advancePayment) noOfItem = 2;
+                if (['device_bundle_existing'].includes(journey) && advancePayment > 0) noOfItem = 2;
 
                 //! items.totalAmount = ค่า price * quantity
                 const totalAmount = price * quantity
@@ -147,12 +147,12 @@ export default class TsmOrderModel {
                                 productCode: _.get(packageInfo, 't1.advancedPaymentCode', ''),
                             },
                             mobile: '',
-                            price: advancePayment,
+                            price: this.stangToBaht(advancePayment),
                             quantity: '' + quantity,
-                            totalAmount: advancePayment,
+                            totalAmount: this.stangToBaht(advancePayment),
                             installmentAmount: '0',
                             depositAmount: '0',
-                            netAmount: advancePayment,
+                            netAmount: this.stangToBaht(advancePayment),
                             discountAmount: '0',
                             otherPaymentAmount: '0',
                             privilegeRequiredValue: '',
