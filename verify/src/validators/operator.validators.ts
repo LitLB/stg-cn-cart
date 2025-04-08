@@ -161,7 +161,7 @@ export const validateContractAndQuotaTrue = (data: any) => {
             return {
                 contractTerm: parseInt(item.term),
                 contractFee: parseInt(item.fee),
-                contractRemain: now.diff(dayjs(item.contractExpirationDate), "day")
+                contractRemain: dayjs(item.contractExpirationDate).diff(now, "day")
             }
         }
 
