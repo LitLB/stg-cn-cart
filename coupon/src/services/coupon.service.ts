@@ -4,6 +4,7 @@ import { ICart } from '../interfaces/cart';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import { TalonOneCouponAdapter } from '../adapters/talon-one-coupon.adapter';
 import CommercetoolsCartClient from '../adapters/ct-cart-client';
+import CommercetoolsProductClient from '../adapters/ct-product-client';
 import CommercetoolsCustomObjectClient from '../adapters/ct-custom-object-client';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit, validateCouponDiscount } from '../validators/coupon.validator';
@@ -15,12 +16,17 @@ import {
     CartSetCustomFieldAction,
     CartUpdateAction
 } from '@commercetools/platform-sdk';
+import { readConfiguration } from '../utils/config.utils';
 
 export class CouponService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
+    private readonly ctProductClient;
+    private readonly ctpAddCustomOtherPaymentLineItemPrefix;
 
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
+        this.ctProductClient = CommercetoolsProductClient;
+        this.ctpAddCustomOtherPaymentLineItemPrefix = readConfiguration().ctpAddCustomOtherPaymentLineItemPrefix as string;
     }
 
     public applyCoupons = async (
@@ -30,13 +36,33 @@ export class CouponService {
     ): Promise<any> => {
         try {
             // 1) Grab new codes from the request body
-            const couponCodes = body.couponCodes || [];
+            let couponCodes = body.couponCodes || [];
             const removeCouponCodes = body.removeCouponCodes || [];
+
+            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+            const ctCart = await commercetoolsMeCartClient.getCartById(id);
+
+            if (!ctCart) {
+                logger.info('Commercetools getCartById error');
+                throw {
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    errorCode: 'APPLY_COUPON_CT_FAILED',
+                    statusMessage: 'Cart not found or has expired',
+                };
+            }
 
             const customerSession = await talonOneIntegrationAdapter.getCustomerSession(id);
 
+            // *** condition ***
+            let cartInfoForCouponValidation: any = await this.getCartInfoForCouponValidation(ctCart)
             // Get Current Effects
-            const { acceptedCoupons } = this.talonOneCouponAdapter.processCouponEffects(customerSession.effects);
+            const { acceptedCoupons: acceptedCouponsOld, isAllowStackingCouponCart, notAllowStackingCouponId } = this.talonOneCouponAdapter.processCouponEffects(customerSession.effects, cartInfoForCouponValidation);
+
+            cartInfoForCouponValidation = {
+                ...cartInfoForCouponValidation,
+                isAllowStackingCouponCart,
+                notAllowStackingCouponId
+            }
 
             // Validate coupon limit
             const validateError = await validateCouponLimit(couponCodes.length, removeCouponCodes.length);
@@ -56,19 +82,7 @@ export class CouponService {
             }
 
             // Update local couponCodes array with Talon.One's final list
-            couponCodes.splice(0, couponCodes.length, ...resultCoupons.applyCoupons);
-
-            // 3) Get the Commercetools cart
-            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-            const ctCart = await commercetoolsMeCartClient.getCartById(id);
-            if (!ctCart) {
-                logger.info('Commercetools getCartById error');
-                throw {
-                    statusCode: HTTP_STATUSES.NOT_FOUND,
-                    errorCode: 'APPLY_COUPON_CT_FAILED',
-                    statusMessage: 'Cart not found or has expired',
-                };
-            }
+            couponCodes = [...resultCoupons.applyCoupons]
 
             // 4) Update Talon.One session to reflect final coupon codes
             const payload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
@@ -82,9 +96,7 @@ export class CouponService {
             );
 
             // 5) Process returned effects
-            const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(
-                updatedCustomerSession.effects
-            );
+            const processedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(updatedCustomerSession.effects, cartInfoForCouponValidation);
 
             // 5.1) Identify “permanently invalid” coupons and remove them if found
             const permanentlyInvalid = this.findPermanentlyInvalidCoupons(
@@ -109,7 +121,7 @@ export class CouponService {
                 }
 
                 // Update local couponCodes array to reflect final state
-                couponCodes.splice(0, couponCodes.length, ...removeResult.applyCoupons);
+                couponCodes = [...removeResult.applyCoupons]
 
                 // Optionally re-update the session to get a “clean” effect list
                 const cleanedPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
@@ -125,7 +137,7 @@ export class CouponService {
 
             // Re-process effects if the session was updated again
             const finalEffects = updatedCustomerSession.effects;
-            const finalProcessedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(finalEffects);
+            const finalProcessedCouponEffects = this.talonOneCouponAdapter.processCouponEffects(finalEffects, cartInfoForCouponValidation);
             // console.log('finalProcessedCouponEffects', finalProcessedCouponEffects);
 
             // 6) Build final cart update actions from the coupon effects
@@ -172,7 +184,7 @@ export class CouponService {
                     rejectedCoupons: uniqueRejectedByCode,
                 },
                 couponsInformation,
-                acceptedCouponsOld: acceptedCoupons
+                acceptedCouponsOld,
             };
         } catch (error: any) {
             if (error.status && error.message) {
@@ -385,7 +397,9 @@ export class CouponService {
                     clearCouponsPayload
                 );
 
-                const clearCouponsEffects = this.talonOneCouponAdapter.processCouponEffects(clearCouponsUpdatedCustomerSession.effects);
+                const cartInfoForCouponValidation = await this.getCartInfoForCouponValidation(ctCart)
+
+                const clearCouponsEffects = this.talonOneCouponAdapter.processCouponEffects(clearCouponsUpdatedCustomerSession.effects, cartInfoForCouponValidation);
                 const { updateActions } = this.talonOneCouponAdapter.buildCouponActions(ctCart, clearCouponsEffects);
 
                 if (updateActions.length > 0) {
@@ -543,5 +557,71 @@ export class CouponService {
         }
 
         return false
+    }
+
+    private calculateLineItemOtherPaymentAmount(lineItem: any, customLineItems: any[]) {
+        const lineItemId = lineItem.id
+
+        const otherPaymentCustomLineItems =
+            customLineItems.filter((item: any) => item.slug.startsWith(`${lineItemId}-${this.ctpAddCustomOtherPaymentLineItemPrefix}`))
+        const lineItemOtherPaymentAmount = otherPaymentCustomLineItems.reduce((acc: number, current: any) => {
+            return acc + Math.abs(current?.totalPrice?.centAmount)
+        }, 0)
+
+        return lineItemOtherPaymentAmount
+    }
+
+    private getCartInfoForCouponValidation = async (ctCart: any) => {
+        const campaignGroup = ctCart.custom.fields.campaignGroup
+        const journey = ctCart.custom.fields.journey
+
+        const lineItems = ctCart.lineItems
+        const customLineItems = ctCart.customLineItems
+
+        const totalPriceAfterCampaignDiscount = lineItems.reduce((total: number, lineItem: any) => {
+            const otherPaymentAmount = this.calculateLineItemOtherPaymentAmount(lineItem, customLineItems);
+            return total + (lineItem.totalPrice.centAmount - otherPaymentAmount)
+        }, 0)
+
+        const allSkus = lineItems.map((item: any) => item.variant.sku)
+        const { body } = await this.ctProductClient.getProductsBySkus(allSkus, ['categories[*].parent'])
+        const products = body.results;
+        const productIdToProducts = products.reduce((acc: any, product: any) => {
+            acc[product.id] = product
+            return acc
+        }, [])
+
+        const filterLineItems = lineItems.map((lineItem: any, lineItemIndex: number) => {
+            const lineItemId = lineItem.id
+            const productType = lineItem.custom.fields.productType
+            const sku = lineItem.variant.sku
+            const attributes: any = lineItem?.attributes?.reduce((acc: any, current: any) => {
+                const name = current.name
+                const value = current.value
+                acc[name] = value
+                return acc
+            }, {})
+
+            const product = productIdToProducts?.[lineItem.productId] || {}
+            const parentCategoryName = product?.categories?.[0]?.obj?.parent?.obj?.name || null
+            const categoryName = product?.categories?.[0]?.obj?.name || null
+
+            const category = parentCategoryName || categoryName
+            return {
+                lineItemId,
+                index: lineItemIndex,
+                productType,
+                sku,
+                ...(attributes?.series ? { series: attributes?.series } : {}),
+                ...(category ? { category: category?.['en-US'] } : {}),
+                ...(attributes?.brand_name?.label ? { brand: attributes?.brand_name?.label } : {})
+            }
+        })
+        return {
+            campaignGroup,
+            journey,
+            totalPriceAfterCampaignDiscountInBaht: totalPriceAfterCampaignDiscount / 100,
+            lineItems: filterLineItems
+        }
     }
 }

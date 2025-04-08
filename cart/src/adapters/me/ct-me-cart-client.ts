@@ -801,7 +801,6 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 
 	calculateLineItemOtherPaymentAmount(lineItem: any, customLineItems: any[]) {
 		const lineItemId = lineItem.id
-		this.ctpAddCustomOtherPaymentLineItemPrefix
 		const otherPaymentCustomLineItems =
 			customLineItems.filter((item: any) => item.slug.startsWith(`${lineItemId}-${this.ctpAddCustomOtherPaymentLineItemPrefix}`))
 		const lineItemOtherPaymentAmount = otherPaymentCustomLineItems.reduce((acc: number, current: any) => {

@@ -196,7 +196,7 @@ export class CartService {
             // * STEP #4 - Validate Available Quantity (Commercetools)
             await this.validateAvailableQuantity(ctCart)
 
-            ctCart = await this.handleAutoRemoveCoupons(ctCart, cartId);
+            ctCart = await this.handleAutoRemoveCoupons(ctCart);
 
             ctCart = await this.removeUnselectedItems(ctCart);
 
@@ -247,24 +247,22 @@ export class CartService {
         }
     };
 
-    private async handleAutoRemoveCoupons(ctCart: Cart, cartId: string): Promise<Cart> {
+    private async handleAutoRemoveCoupons(ctCart: Cart): Promise<Cart> {
         // 1. Auto-remove invalid coupons
         const { updatedCart } =
             await this.couponService.autoRemoveInvalidCouponsAndReturnOnceV2(ctCart);
         ctCart = updatedCart;
 
         // 2. Grab coupon data
-        const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
-            ctCart.id,
-            ctCart.lineItems
-        );
+        const cartInfoForCouponValidation = await this.couponService.getCartInfoForCouponValidation(ctCart)
+        const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCart(ctCart, cartInfoForCouponValidation);
 
         // 3. Construct updateActions from coupon effects
         const updateActions: CartUpdateAction[] = [];
         const { couponsEffects, talonOneUpdateActions } =
-            await this.talonOneCouponAdapter.fetchCouponEffectsAndUpdateActionsById(
-                ctCart.id,
+            await this.talonOneCouponAdapter.fetchCouponEffectsAndUpdateActionsByCtCart(
                 ctCart,
+                cartInfoForCouponValidation,
                 couponEffects.coupons
             );
 
@@ -327,16 +325,13 @@ export class CartService {
                     statusMessage: 'Cart not found or has expired',
                 };
             }
-
-            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(
-                ctCart.id,
-                ctCart.lineItems
-            );
+            const cartInfoForCouponValidation = await this.couponService.getCartInfoForCouponValidation(ctCart)
+            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCart(ctCart, cartInfoForCouponValidation);
 
             const { talonOneUpdateActions } =
-                await this.talonOneCouponAdapter.fetchCouponEffectsAndUpdateActionsById(
-                    ctCart.id,
+                await this.talonOneCouponAdapter.fetchCouponEffectsAndUpdateActionsByCtCart(
                     ctCart,
+                    cartInfoForCouponValidation,
                     couponEffects.coupons
                 );
 
@@ -546,7 +541,9 @@ export class CartService {
 
                 cartAfterAutoRemove = _cartAfterAutoRemove;
                 permanentlyInvalidRejectedCoupons = _permanentlyInvalidRejectedCoupons;
-                couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCartId(cartAfterAutoRemove.id, cartAfterAutoRemove.lineItems);
+
+                const cartInfoForCouponValidation = await this.couponService.getCartInfoForCouponValidation(cartAfterAutoRemove)
+                couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCart(cartAfterAutoRemove, cartInfoForCouponValidation);
 
                 // * I pushed expend (couponsInfomation) to update method in CT but CT return only object id without object value
                 const ctCartWithUpdateCouponEffect = await commercetoolsMeCartClient.getCartById(id);
@@ -1112,7 +1109,7 @@ export class CartService {
         let discountNo = 1;
         let otherPaymentNo = 1;
 
-        couponResult.forEach((item: any) => {
+        couponResult.filter((item: any) => !item?.lineItemId).forEach((item: any) => {
 
             if (item.discountCode.toUpperCase() !== "NULL") {
                 discounts.push({
