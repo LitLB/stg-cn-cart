@@ -90,7 +90,7 @@ export class TalonOneCouponAdapter {
         const applyCoupons: { code: string; }[] = [];
 
 
-        const validEffects = this.getValidCouponEffects(effects, cartInfoForCouponValidation)
+        const { validEffects } = this.getValidCouponEffects(effects, cartInfoForCouponValidation)
         // Process effects to build mappings
         validEffects.forEach(effect => {
             const { effectType, props, triggeredByCoupon } = effect;
@@ -255,7 +255,7 @@ export class TalonOneCouponAdapter {
         const { acceptedCoupons, couponIdToCode, couponIdToEffects } = processedEffects;
 
         // Keep track of coupons that have custom line items
-        const couponsWithCustomLineItems = new Set<string>();
+        const mapCouponCodeToLineItemId: any = {}
         const couponsInformation: any[] = [];
 
         // Process accepted coupons and their associated effects
@@ -269,7 +269,7 @@ export class TalonOneCouponAdapter {
                 switch (effectType) {
                     case 'setDiscount':
                         this.handleSetDiscountEffect(ctCart, updateActions, couponCode, props);
-                        couponsWithCustomLineItems.add(couponCode);
+                        mapCouponCodeToLineItemId[couponCode] = props?.lineItemId || null
                         break;
 
                     case 'addFreeItem':
@@ -291,66 +291,66 @@ export class TalonOneCouponAdapter {
         const applyCoupons = acceptedCoupons?.map((coupon: any) => coupon) ?? [];
 
         // Remove custom line items for rejected or missing coupons
-        this.removeInvalidCustomLineItems(ctCart, updateActions, couponsWithCustomLineItems, applyCoupons);
+        this.removeInvalidCustomLineItems(ctCart, updateActions, applyCoupons, mapCouponCodeToLineItemId);
 
         return { updateActions, couponsInformation };
     }
 
-    public buildCouponActionsV2(
-        ctCart: Cart,
-        processedEffects: {
-            acceptedCoupons: Coupon[];
-            rejectedCoupons: Coupon[];
-            couponIdToCode: { [key: number]: string };
-            couponIdToEffects: { [key: number]: any[] };
-        }
-    ): { updateActions: CartUpdateAction[]; couponsInformation: any[] } {
-        const updateActions: CartUpdateAction[] = [];
-        const { acceptedCoupons, couponIdToCode, couponIdToEffects } = processedEffects;
+    // public buildCouponActionsV2(
+    //     ctCart: Cart,
+    //     processedEffects: {
+    //         acceptedCoupons: Coupon[];
+    //         rejectedCoupons: Coupon[];
+    //         couponIdToCode: { [key: number]: string };
+    //         couponIdToEffects: { [key: number]: any[] };
+    //     }
+    // ): { updateActions: CartUpdateAction[]; couponsInformation: any[] } {
+    //     const updateActions: CartUpdateAction[] = [];
+    //     const { acceptedCoupons, couponIdToCode, couponIdToEffects } = processedEffects;
 
-        // Keep track of coupons that have custom line items
-        const couponsInformation: any[] = [];
+    //     // Keep track of coupons that have custom line items
+    //     const couponsInformation: any[] = [];
 
-        // Process accepted coupons and their associated effects
-        for (const triggeredByCoupon in couponIdToCode) {
-            const couponCode = couponIdToCode[triggeredByCoupon];
-            const associatedEffects = couponIdToEffects[triggeredByCoupon];
+    //     // Process accepted coupons and their associated effects
+    //     for (const triggeredByCoupon in couponIdToCode) {
+    //         const couponCode = couponIdToCode[triggeredByCoupon];
+    //         const associatedEffects = couponIdToEffects[triggeredByCoupon];
 
-            associatedEffects.forEach(effect => {
-                const { effectType, props } = effect;
+    //         associatedEffects.forEach(effect => {
+    //             const { effectType, props } = effect;
 
-                switch (effectType) {
-                    case 'setDiscount':
-                        this.handleSetDiscountEffect(ctCart, updateActions, couponCode, props);
-                        break;
+    //             switch (effectType) {
+    //                 case 'setDiscount':
+    //                     this.handleSetDiscountEffect(ctCart, updateActions, couponCode, props);
+    //                     break;
 
-                    case 'addFreeItem':
-                        this.handleAddFreeItemEffect(updateActions, props);
-                        break;
+    //                 case 'addFreeItem':
+    //                     this.handleAddFreeItemEffect(updateActions, props);
+    //                     break;
 
-                    case 'customEffect':
-                        couponsInformation.push(this.prepareCouponInformation(couponCode, props));
-                        break;
+    //                 case 'customEffect':
+    //                     couponsInformation.push(this.prepareCouponInformation(couponCode, props));
+    //                     break;
 
-                    default:
-                        // do nothing
+    //                 default:
+    //                     // do nothing
 
-                        break;
-                }
-            });
-        }
+    //                     break;
+    //             }
+    //         });
+    //     }
 
-        // Remove custom line items for rejected or missing coupons
-        this.removeInvalidCustomLineItemsV2(ctCart, updateActions, acceptedCoupons);
+    //     // Remove custom line items for rejected or missing coupons
+    //     this.removeInvalidCustomLineItemsV2(ctCart, updateActions, acceptedCoupons);
 
-        return { updateActions, couponsInformation };
-    }
+    //     return { updateActions, couponsInformation };
+    // }
 
     private removeInvalidCustomLineItems(
         ctCart: Cart,
         updateActions: CartUpdateAction[],
-        couponsWithCustomLineItems: Set<string>,
-        acceptedCoupons: string[]
+        acceptedCoupons: string[],
+        mapCouponCodeToLineItemId: any
     ): void {
         // Get all custom line items that are coupon discounts
         const couponCustomLineItems = ctCart.customLineItems.filter((item: any) =>
@@ -359,7 +359,14 @@ export class TalonOneCouponAdapter {
 
         // Build a set of accepted coupon slugs
         const acceptedCouponSlugs = new Set(
-            acceptedCoupons.map(code => `${this.ctpAddCustomCouponLineItemPrefix}${code}`)
+            acceptedCoupons.map(code => {
+                let slug = `${this.ctpAddCustomCouponLineItemPrefix}${code}`
+                const lineItemId = mapCouponCodeToLineItemId?.[code]
+                if (lineItemId) {
+                    slug = `${this.ctpAddCustomCouponLineItemPrefix}${code}-${lineItemId}`
+                }
+                return slug
+            })
         );
 
         // For each coupon custom line item, if it's not in the accepted coupons, remove it
@@ -409,7 +416,10 @@ export class TalonOneCouponAdapter {
         couponCode: string,
         props: any
     ): void {
-        const slug = `${this.ctpAddCustomCouponLineItemPrefix}${couponCode}`;
+        let slug = `${this.ctpAddCustomCouponLineItemPrefix}${couponCode}`;
+        if (props?.line_item_id) {
+            slug = `${this.ctpAddCustomCouponLineItemPrefix}${couponCode}-${props.line_item_id}`;
+        }
         const existingCustomLineItem = ctCart.customLineItems.find(
             (item: any) => item.slug === slug
         );
@@ -420,7 +430,7 @@ export class TalonOneCouponAdapter {
             // Add new custom line item
             const customLineItem: CartAddCustomLineItemAction = {
                 action: 'addCustomLineItem',
-                name: { en: `${this.ctpAddCustomCouponLineItemPrefix}${couponCode}` },
+                name: { en: slug },
                 money: {
                     centAmount: discountAmount,
                     currencyCode: ctCart.totalPrice.currencyCode,
@@ -490,7 +500,6 @@ export class TalonOneCouponAdapter {
 
         try {
             const { effects: talonEffects } = await talonOneIntegrationAdapter.getCustomerSession(id);
-            console.log('cartInfoForCouponValidation', JSON.stringify(cartInfoForCouponValidation))
             const { applyCoupons: acceptedCoupons, rejectedCoupons } = this.processCouponEffects(talonEffects, cartInfoForCouponValidation);
 
             return { coupons: { acceptedCoupons, rejectedCoupons } };
@@ -622,7 +631,9 @@ export class TalonOneCouponAdapter {
             allowedCategories: (props.payload.allowed_categories ?? []).filter((v: any) => v !== 'null'),
             excludedCategories: (props.payload.excluded_categories ?? []).filter((v: any) => v !== 'null'),
             allowedPackages: (props.payload.allowed_packages ?? []).filter((v: any) => v !== 'null'),
-            excludedPackages: (props.payload.excluded_packages ?? []).filter((v: any) => v !== 'null')
+            excludedPackages: (props.payload.excluded_packages ?? []).filter((v: any) => v !== 'null'),
+            lineItemId: props.payload.line_item_id,
+            calculatedDiscountPrice: props.payload.calculated_discount_price
         };
     }
 
@@ -636,7 +647,10 @@ export class TalonOneCouponAdapter {
         const otherEffects = effects.filter((effect: any) => !isAcceptCouponEffect(effect) && !isCouponSetDiscount(effect) && !isCouponCustomEffect(effect))
 
         const invalidCouponIds: any = []
+        const mapCouponCodeToLineItemId: any = {}
+        const couponAllowStackingValues: any = []
         const { campaignGroup, journey, totalPriceAfterCampaignDiscountInBaht, lineItems, customerType, loyaltyGroup } = cartInfoForCouponValidation
+
         for (const couponCustomEffect of couponCustomEffects) {
             const { triggeredByCoupon: couponId, props } = couponCustomEffect
             const couponAttribute = props.payload
@@ -647,6 +661,10 @@ export class TalonOneCouponAdapter {
                 allowed_journeys: allowedJourneys = [],
                 customer_types: customerTypes = [],
                 loyalty_groups: loyaltyGroups = [],
+                allow_stacking: allowStacking
+            } = couponAttribute || {};
+
+            let {
                 allowed_products: allowedProducts = [],
                 excluded_products: excludedProducts = [],
                 allowed_series: allowedSeries = [],
@@ -655,8 +673,8 @@ export class TalonOneCouponAdapter {
                 excluded_brands: excludedBrands = [],
                 allowed_categories: allowedCategories = [],
                 excluded_categories: excludedCategories = [],
-                // allowed_packages: allowedPackages = [],
-                // excluded_packages: excludedPackages = [],
+                allowed_packages: allowedPackages = [],
+                excluded_packages: excludedPackages = [],
             } = couponAttribute || {};
 
             if (totalPriceAfterCampaignDiscountInBaht < minimumPurchase) {
@@ -684,58 +702,196 @@ export class TalonOneCouponAdapter {
                 continue
             }
 
+            allowedProducts = allowedProducts.filter((allowedProduct: any) => allowedProduct !== 'null')
+            excludedProducts = excludedProducts.filter((excludedProduct: any) => excludedProduct !== 'null')
+            allowedSeries = allowedSeries.filter((allowedSerie: any) => allowedSerie !== 'null')
+            excludedSeries = excludedSeries.filter((excludedSeries: any) => excludedSeries !== 'null')
+            allowedBrands = allowedBrands.filter((allowedBrand: any) => allowedBrand !== 'null')
+            excludedBrands = excludedBrands.filter((excludedBrand: any) => excludedBrand !== 'null')
+            allowedCategories = allowedCategories.filter((allowedCategory: any) => allowedCategory !== 'null')
+            excludedCategories = excludedCategories.filter((excludedCategory: any) => excludedCategory !== 'null')
+            allowedPackages = allowedPackages.filter((allowedPackage: any) => allowedPackage !== 'null')
+            excludedPackages = excludedPackages.filter((excludedPackage: any) => excludedPackage !== 'null')
 
-            const matchesSomeLineItem = lineItems.some((lineItem: any) => {
-                const {
-                    // lineItemId,
-                    // index,
-                    // productType,
-                    sku,
-                    series,
-                    category,
-                    brand,
-                } = lineItem
-                const isAllowedProduct = this.checkInAllowedList([sku], allowedProducts)
-                const isAllowedSeries = this.checkInAllowedList([series], allowedSeries)
-                const isAllowedCategory = this.checkInAllowedList([category], allowedCategories)
-                const isAllowedBrand = this.checkInAllowedList([brand], allowedBrands)
+            const haveProductConditions = allowedProducts.length
+                || excludedProducts.length
+                || allowedSeries.length
+                || excludedSeries.length
+                || allowedBrands.length
+                || excludedBrands.length
+                || allowedCategories.length
+                || excludedCategories.length
+                || allowedPackages.length
+                || excludedPackages.length
+            const havePackageConditions = allowedPackages.length || excludedPackages.length
 
-                const isNotInExcludedProduct = !this.checkInExcludedList([sku], excludedProducts)
-                const isNotInExcludedSeries = !this.checkInExcludedList([series], excludedSeries)
-                const isNotInExcludedCategory = !this.checkInExcludedList([category], excludedCategories)
-                const isNotInExcludedBrand = !this.checkInExcludedList([brand], excludedBrands)
+            const isByProductCoupon = haveProductConditions
+            const isByBillCoupon = !isByProductCoupon
+            if (isByProductCoupon) {
+                const matchedLineItemProduct = lineItems.filter((lineItem: any) => lineItem.productType === 'main_product').find((lineItem: any) => {
+                    const {
+                        sku,
+                        series,
+                        category,
+                        brand,
+                    } = lineItem
+                    const isAllowedProduct = this.checkInAllowedList([sku], allowedProducts)
+                    const isAllowedSeries = this.checkInAllowedList([series], allowedSeries)
+                    const isAllowedCategory = this.checkInAllowedList([category], allowedCategories)
+                    const isAllowedBrand = this.checkInAllowedList([brand], allowedBrands)
+
+                    const isNotInExcludedProduct = !this.checkInExcludedList([sku], excludedProducts)
+                    const isNotInExcludedSeries = !this.checkInExcludedList([series], excludedSeries)
+                    const isNotInExcludedCategory = !this.checkInExcludedList([category], excludedCategories)
+                    const isNotInExcludedBrand = !this.checkInExcludedList([brand], excludedBrands)
 
 
-                return isAllowedProduct &&
-                    isAllowedSeries &&
-                    isAllowedCategory &&
-                    isAllowedBrand &&
-                    isNotInExcludedProduct &&
-                    isNotInExcludedSeries &&
-                    isNotInExcludedCategory &&
-                    isNotInExcludedBrand
-            })
+                    return isAllowedProduct &&
+                        isAllowedSeries &&
+                        isAllowedCategory &&
+                        isAllowedBrand &&
+                        isNotInExcludedProduct &&
+                        isNotInExcludedSeries &&
+                        isNotInExcludedCategory &&
+                        isNotInExcludedBrand
+                })
 
-            if (!matchesSomeLineItem) {
-                invalidCouponIds.push(couponId)
-                continue
+                let matchedSomeLineItemPackage = true
+                if (havePackageConditions) {
+                    matchedSomeLineItemPackage = lineItems.filter((lineItem: any) => !lineItem.productType).some((lineItem: any) => {
+                        const {
+                            sku
+                        } = lineItem
+                        const isAllowedPackage = this.checkInAllowedList([sku], allowedPackages)
+                        const isNotInExcludedPackage = !this.checkInExcludedList([sku], excludedPackages)
+                        return isAllowedPackage &&
+                            isNotInExcludedPackage
+                    })
+                }
+
+
+                if (matchedLineItemProduct && matchedSomeLineItemPackage) {
+                    mapCouponCodeToLineItemId[couponId] = matchedLineItemProduct.lineItemId
+                    couponAllowStackingValues.push({
+                        couponId,
+                        allowStacking
+                    })
+                } else {
+                    invalidCouponIds.push(couponId)
+                    continue
+                }
             }
-            // !TODO: allowed_packages
-            // !TODO: excluded_packages
+
+            if (isByBillCoupon) {
+                let matchedSomeLineItemPackage = true
+                if (havePackageConditions) {
+                    matchedSomeLineItemPackage = lineItems.filter((lineItem: any) => !lineItem.productType).some((lineItem: any) => {
+                        const {
+                            sku
+                        } = lineItem
+                        const isAllowedPackage = this.checkInAllowedList([sku], allowedPackages)
+                        const isNotInExcludedPackage = !this.checkInExcludedList([sku], excludedPackages)
+                        return isAllowedPackage &&
+                            isNotInExcludedPackage
+                    })
+                }
+                if (matchedSomeLineItemPackage) {
+                    const matchedLineItemProduct = lineItems.filter((lineItem: any) => lineItem.productType === 'main_product')
+                    mapCouponCodeToLineItemId[couponId] = journey === 'device_bundle_existing' ? matchedLineItemProduct.lineItemId : null
+                    couponAllowStackingValues.push({
+                        couponId,
+                        allowStacking
+                    })
+                } else {
+                    invalidCouponIds.push(couponId)
+                    continue
+                }
+            }
 
         }
 
+        let invalidStackingCouponIds = []
+        const allSameAllowStackingValue = couponAllowStackingValues
+            .every((couponAllowStackingValue: any) => couponAllowStackingValue.allowStacking === couponAllowStackingValues?.[0]?.allowStacking)
+        if (!allSameAllowStackingValue) {
+            invalidStackingCouponIds = couponAllowStackingValues
+                .map((couponAllowStackingValue: any) => couponAllowStackingValue.couponId)
+        }
         // ! Step#1 -> check customEffect
         // ! Step#2 -> if invalid then
         // ! Step#3.1 -> remove "acceptCoupon"
-        const newAcceptCouponEffects = acceptCouponEffects.filter((acceptCouponEffect: any) => !invalidCouponIds.includes(acceptCouponEffect.triggeredByCoupon))
+        const newAcceptCouponEffects = acceptCouponEffects
+            .filter((acceptCouponEffect: any) => !invalidCouponIds.includes(acceptCouponEffect.triggeredByCoupon))
+            .filter((acceptCouponEffect: any) => !invalidStackingCouponIds.includes(acceptCouponEffect.triggeredByCoupon))
         // ! Step#3.2 -> remove "setDiscount"
-        const newSetDiscountEffects = setDiscountEffects.filter((setDiscountEffect: any) => !invalidCouponIds.includes(setDiscountEffect.triggeredByCoupon))
+        const newSetDiscountEffects = setDiscountEffects
+            .filter((setDiscountEffect: any) => !invalidCouponIds.includes(setDiscountEffect.triggeredByCoupon))
+            .filter((setDiscountEffect: any) => !invalidStackingCouponIds.includes(setDiscountEffect.triggeredByCoupon))
+            .map((setDiscountEffect: any) => {
+                const lineItemId = mapCouponCodeToLineItemId[setDiscountEffect.triggeredByCoupon]
+                const couponCustomEffect = couponCustomEffects.find((couponCustomEffect: any) => couponCustomEffect.triggeredByCoupon === setDiscountEffect.triggeredByCoupon)
+
+                const {
+                    discount_percentage: discountPercentage = 0,
+                    maximum_discount: maximumDiscount = 0
+                } = couponCustomEffect.props.payload || {}
+
+                const hasPercentageDiscount = discountPercentage > 0;
+                const hasMaxCap = maximumDiscount > 0;
+
+                let calculatedDiscountPrice = setDiscountEffect.props.value
+
+                if (hasPercentageDiscount) {
+                    const rawDiscount = (totalPriceAfterCampaignDiscountInBaht * discountPercentage) / 100;
+                    calculatedDiscountPrice = hasMaxCap ? Math.min(rawDiscount, maximumDiscount) : rawDiscount;
+                }
+                return {
+                    ...setDiscountEffect,
+                    props: {
+                        ...setDiscountEffect.props,
+                        value: calculatedDiscountPrice,
+                        ...(lineItemId ? { line_item_id: lineItemId } : {})
+                    }
+                }
+            })
         // ! Step#3.3 -> remove "customEffect"
-        const newCouponCustomEffects = couponCustomEffects.filter((couponCustomEffect: any) => !invalidCouponIds.includes(couponCustomEffect.triggeredByCoupon))
+        const newCouponCustomEffects = couponCustomEffects
+            .filter((couponCustomEffect: any) => !invalidCouponIds.includes(couponCustomEffect.triggeredByCoupon))
+            .filter((couponCustomEffect: any) => !invalidStackingCouponIds.includes(couponCustomEffect.triggeredByCoupon))
+            .map((couponCustomEffect: any) => {
+                const lineItemId = mapCouponCodeToLineItemId[couponCustomEffect.triggeredByCoupon]
+
+                const {
+                    discount_price: discountPrice = 0,
+                    discount_percentage: discountPercentage = 0,
+                    maximum_discount: maximumDiscount = 0
+                } = couponCustomEffect.props.payload || {}
+
+                const hasPercentageDiscount = discountPercentage > 0;
+                const hasMaxCap = maximumDiscount > 0;
+
+                let calculatedDiscountPrice = discountPrice
+
+                if (hasPercentageDiscount) {
+                    const rawDiscount = (totalPriceAfterCampaignDiscountInBaht * discountPercentage) / 100;
+                    calculatedDiscountPrice = hasMaxCap ? Math.min(rawDiscount, maximumDiscount) : rawDiscount;
+                }
+
+                return {
+                    ...couponCustomEffect,
+                    props: {
+                        ...couponCustomEffect.props,
+                        payload: {
+                            ...couponCustomEffect.props.payload,
+                            ...(lineItemId ? { line_item_id: lineItemId } : {}),
+                            calculated_discount_price: calculatedDiscountPrice
+                        }
+                    }
+                }
+            })
         // ! Step#3.4 -> move from "acceptCoupon" to "rejectCoupon"
 
-        const rejectCouponEffects = acceptCouponEffects.filter((effect: any) => invalidCouponIds.includes(effect.triggeredByCoupon))
+        const rejectCouponEffects = acceptCouponEffects.filter((effect: any) => invalidCouponIds.includes(effect.triggeredByCoupon) || invalidStackingCouponIds.includes(effect.triggeredByCoupon))
             .map((effect: any) => {
                 return {
                     ...effect,
@@ -755,7 +911,9 @@ export class TalonOneCouponAdapter {
             ...newCouponCustomEffects,
             ...rejectCouponEffects
         ]
-        return validEffects
+        return {
+            validEffects
+        }
     }
 
     private checkInAllowedList(filterList: any[], allowedList: any[]) {

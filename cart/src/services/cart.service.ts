@@ -1109,7 +1109,7 @@ export class CartService {
         let discountNo = 1;
         let otherPaymentNo = 1;
 
-        couponResult.forEach((item: any) => {
+        couponResult.filter((item: any) => !item?.lineItemId).forEach((item: any) => {
 
             if (item.discountCode.toUpperCase() !== "NULL") {
                 discounts.push({
