@@ -103,7 +103,7 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
         }
     }
 
-    if (data.characteristic.name === "installmentType" && data.characteristic.value === "FSIM") {
+    if (data.productInfo.installationType === "FSIM") {
         throw {
             statusCode: '400.4021',
             statusMessage: 'Package is share plan',
@@ -111,13 +111,24 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
         }
     }
 
-    if (data.characteristic.name === "system" && data.characteristic.value !== "CCBS") {
-        throw {
-            statusCode: '400.4011',
-            statusMessage: 'Subscriber type is not postpaid',
-            errorCode: 'SUBSCRIBER_TYPE_IS_NOT_POSTPAID'
+    data.characteristic.forEach((element: { name: string; value: string }) => {
+        if (element.name === 'installmentType' && element.value === 'FSIM') {
+            throw {
+                statusCode: '400.4021',
+                statusMessage: 'Package is share plan',
+                errorCode: 'PACKAGE_IS_SHARE_PLAN'
+            }
         }
-    }
+
+        if (element.name === 'system' && element.value !== "CCBS") {
+            throw {
+                statusCode: '400.4011',
+                statusMessage: 'Subscriber type is not postpaid',
+                errorCode: 'SUBSCRIBER_TYPE_IS_NOT_POSTPAID'
+            }
+        }
+    });
+
 
     if (Number(data.aging) < 90) {
         throw {
