@@ -103,7 +103,7 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
         }
     }
 
-    if (data.productInfo.installationType && data.productInfo.installationType === "FSIM") {
+    if (data.productInfo?.installationType && data.productInfo?.installationType === "FSIM") {
         throw {
             statusCode: '400.4021',
             statusMessage: 'Package is share plan',

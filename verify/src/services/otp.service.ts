@@ -512,6 +512,10 @@ export class OtpService {
 
             if (operator === OPERATOR.TRUE && e.status === 400) {
 
+                if (e.response?.data?.code === "400.209.0020") {
+                    return
+                }
+
                 throw {
                     statusCode: '400.4008',
                     statusMessage: 'Get contract fail',
