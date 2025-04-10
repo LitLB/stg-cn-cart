@@ -40,7 +40,7 @@ import { validateCouponLimit, validateCouponDiscount } from '../validators/coupo
 import { FUNC_CHECKOUT } from '../constants/func.constant';
 import { CART_HAS_CHANGED_NOTICE_MESSAGE } from '../constants/cart.constant';
 import { ApiResponse } from '../interfaces/response.interface';
-import { attachPackageToCart } from '../helpers/cart.helper';
+import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -585,6 +585,7 @@ export class CartService {
             // 3) Map to ICart
             let iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartWithFilteredItems);
             iCartWithBenefit = await attachPackageToCart(iCartWithBenefit, ctCart);
+            iCartWithBenefit = attachSimToCart(iCartWithBenefit)
 
             const response = {
                 ...iCartWithBenefit,

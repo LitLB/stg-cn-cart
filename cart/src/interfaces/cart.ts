@@ -57,6 +57,7 @@ export interface CustomProductProjection extends ProductProjection {
 }
 
 export interface IItem {
+    item: IItem[];
 	productId: string;
 	productKey?: string;
 	productName: LocalizedString;
@@ -70,6 +71,7 @@ export interface IItem {
 	addOnGroup?: string;
 	freeGiftGroup?: string;
 	package?: CustomProductProjection;
+	sim?: IItem;
 	quantity: number;
 	unitPrice: number;
 	totalUnitPrice: number;

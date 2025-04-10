@@ -288,8 +288,8 @@ export class CommercetoolsCartClient implements IAdapter {
 		const lineItemHasChanged: Record<string, HasChangedAction> = {}
 		const updateLineItemQuantityPayload: CartChangeLineItemQuantityAction[] = []
 
-		//HOTFIX: bundle_existing
-		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType)
+		//Only `main_package`
+		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType !== 'bundle' || lineItem.custom?.fields?.productType !== 'sim')
 
 		const updateActions: CartUpdateAction[] = lineItems.map((lineItem: CustomLineItemHasChanged) => {
 			const { id, price, hasChangedAction } = lineItem
@@ -329,8 +329,8 @@ export class CommercetoolsCartClient implements IAdapter {
 		const recalculatedCart = await this.recalculateCart(updatedCart.id, updatedCart.version)
 		const updateActionAfterRecalculated: CartUpdateAction[] = []
 		
-		//HOTFIX: bundle_existing
-		recalculatedCart.lineItems.filter((lineItem) => lineItem.custom?.fields?.productType).map((lineItem: LineItem) => {
+		//Only `main_product`
+		recalculatedCart.lineItems.filter((lineItem) => lineItem.custom?.fields?.productType !== 'bundle' && lineItem.custom?.fields?.productType !== 'sim').map((lineItem: LineItem) => {
 			const validPrice = CommercetoolsProductClient.findValidPrice({
 				prices: lineItem.variant.prices || [],
 				customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
@@ -463,8 +463,8 @@ export class CommercetoolsCartClient implements IAdapter {
 		let { lineItems, version, id } = ctCart;
 		let notice = "";
 
-		//HOTFIX: bundle_existing
-		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType)
+		//Only `main_product`
+		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType !== 'bundle' && lineItem.custom?.fields?.productType !== 'sim')
 
 		// 1. Early exit if no line items
 		if (!lineItems || lineItems.length === 0) {

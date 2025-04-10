@@ -4,6 +4,7 @@ import {
   MyCartUpdateAction,
   Product,
   ProductVariant,
+  Attribute,
 } from '@commercetools/platform-sdk';
 import { CommercetoolsCartClient } from '../adapters/ct-cart-client';
 import { CommercetoolsInventoryClient } from '../adapters/ct-inventory-client';
@@ -27,7 +28,7 @@ import { validateInventory } from '../utils/cart.utils';
 import { LINE_ITEM_INVENTORY_MODES } from '../constants/lineItem.constant';
 import { CommercetoolsCustomObjectClient } from '../adapters/ct-custom-object-client';
 import _ from 'lodash';
-import { attachPackageToCart } from '../helpers/cart.helper';
+import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
 
 export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
   constructor() {
@@ -87,6 +88,36 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
     }
 
     return mainPackage.results[0];
+  }
+
+  protected async getSimBySku(sku: string): Promise<Product> {
+    const sim = await this.adapters.commercetoolsProductClient.queryProducts({
+      where: `masterData(current(masterVariant(sku="${sku}")))`,
+    });
+
+    if (!sim.results.length) {
+      throw {
+        statusCode: HTTP_STATUSES.NOT_FOUND,
+        statusMessage: 'SIM not found',
+      };
+    }
+
+    if (
+      !sim.results[0].masterData.published ||
+      _.isEmpty(
+        sim.results[0].masterData.current.masterVariant.attributes.find(
+          (attr: Attribute) =>
+            attr.name === 'status' && attr.value.key === 'enabled'
+        )
+      )
+    ) {
+      throw {
+        statusCode: HTTP_STATUSES.NOT_FOUND,
+        statusMessage: 'SIM is no longer available.',
+      };
+    }
+
+    return sim.results[0];
   }
 
   protected getVariantBySku(product: Product, sku: string): ProductVariant {
@@ -254,12 +285,12 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
     return packageCustomObj;
   }
 
-  protected validateDeviceBundleExisting(
+  protected validateDeviceBundleNew(
     body: any,
     cart: Cart,
     variant: ProductVariant
   ) {
-    const { package: mainPackage, sku } = body;
+    const { package: mainPackage, sim: simInfo } = body;
 
     const mainProductLineItems = cart.lineItems.filter(
       (item: LineItem) => item.custom?.fields?.productType === 'main_product'
@@ -274,30 +305,29 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
       throw {
         statusCode: HTTP_STATUSES.BAD_REQUEST,
         statusMessage:
-          '"package.code" is required for journey "device_bundle_existing"',
+          '"package.code" is required for journey "device_bundle_new"',
       };
     }
 
-    // if (totalCartQuantity > 1) {
-    //     throw {
-    //         statusCode: HTTP_STATUSES.BAD_REQUEST,
-    //         statusMessage: `Cannot have more than 1 unit of SKU ${sku} in the cart.`,
-    //     };
-    // }
+    if (_.isEmpty(simInfo)) {
+      throw {
+        statusCode: HTTP_STATUSES.BAD_REQUEST,
+        statusMessage: '"sim.sku" is required for journey "device_bundle_new"',
+      };
+    }
 
     if (
       !variant.attributes?.some(
         (value) =>
           value.name === 'journey' &&
           value.value.some(
-            (journey: any) =>
-              journey.key === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING
+            (journey: any) => journey.key === CART_JOURNEYS.DEVICE_BUNDLE_NEW
           )
       )
     ) {
       throw {
         statusCode: HTTP_STATUSES.BAD_REQUEST,
-        statusMessage: `Cannot add a non-"device_bundle_existing" item to a "device_bundle_existing" cart.`,
+        statusMessage: `Cannot add a non-"device_bundle_new" item to a "device_bundle_new" cart.`,
       };
     }
   }
@@ -349,6 +379,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
       const now = new Date();
       const {
         package: packageInfo,
+        sim: simInfo,
         productId,
         sku,
         quantity,
@@ -367,9 +398,10 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
 
       const product = await this.getProductById(productId);
       const variant = this.getVariantBySku(product, sku);
-      this.validateDeviceBundleExisting(payload, cart, variant);
+      this.validateDeviceBundleNew(payload, cart, variant);
       const validPrice = this.getValidPrice(variant, now);
       const mainPackage = await this.getPackageByCode(packageInfo.code);
+      const sim = await this.getSimBySku(simInfo.sku);
       const packageAdditionalInfo = await this.getPackageAdditionalInfo(
         cart,
         mainPackage.masterData.current.masterVariant
@@ -443,6 +475,32 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
               },
             },
             {
+              action: 'addLineItem',
+              productId: sim.id,
+              variantId: sim.masterData.current.masterVariant.id,
+              quantity: 1,
+              inventoryMode:
+                sim.masterData.current.masterVariant.attributes?.find(
+                  (attr: Attribute) => attr.name === 'sim_source_type'
+                )?.value === 'e_sim'
+                  ? LINE_ITEM_INVENTORY_MODES.NONE
+                  : LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
+              externalPrice: {
+                currencyCode: 'THB',
+                centAmount: 0,
+              },
+              custom: {
+                type: {
+                  typeId: 'type',
+                  key: 'lineItemCustomType',
+                },
+                fields: {
+                  productType: 'sim',
+                  selected: false,
+                },
+              },
+            },
+            {
               action: 'addCustomLineItem',
               name: {
                 'en-US': 'Advanced Payment',
@@ -454,6 +512,23 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
                 centAmount: 420000,
               },
               slug: 'advance-payment',
+              taxCategory: {
+                typeId: 'tax-category',
+                id: readConfiguration().ctpTaxCategoryId,
+              },
+            },
+            {
+              action: 'addCustomLineItem',
+              name: {
+                'en-US': 'Extra Advanced Payment',
+                'th-TH': 'ค่าบริการล่วงหน้าเพิ่มเติม',
+              },
+              quantity: 1,
+              money: {
+                currencyCode: 'THB',
+                centAmount: 110000,
+              },
+              slug: 'extra-advance-payment',
               taxCategory: {
                 typeId: 'tax-category',
                 id: readConfiguration().ctpTaxCategoryId,
@@ -488,7 +563,8 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
           updateCartWithOperator
         );
 
-      return await attachPackageToCart(iCartWithBenefit, updatedCart);
+      const icart = await attachPackageToCart(iCartWithBenefit, updatedCart);
+      return attachSimToCart(icart)
     } catch (error: any) {
       console.log('error', error);
 
@@ -528,7 +604,8 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
         );
       // iCartWithBenefit = updateCartFlag(iCartWithBenefit)
 
-      return await attachPackageToCart(iCartWithBenefit, updatedCart);
+      const icart = await attachPackageToCart(iCartWithBenefit, updatedCart);
+      return attachSimToCart(icart)
     } catch (error: any) {
       if (error.status && error.message) {
         throw error;
@@ -612,7 +689,8 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
           updateCartWithOperator
         );
 
-      return await attachPackageToCart(iCartWithBenefit, cart);
+        const icart = await attachPackageToCart(iCartWithBenefit, cart);
+        return attachSimToCart(icart)
     } catch (error: any) {
       if (error.status && error.message) {
         throw error;
@@ -717,7 +795,8 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
           cartWithUpdatedPrice
         );
 
-      return await attachPackageToCart(iCartWithBenefit, updatedCart);
+        const icart = await attachPackageToCart(iCartWithBenefit, updatedCart);
+        return attachSimToCart(icart)
     } catch (error: any) {
       if (error.status && error.message) {
         throw error;

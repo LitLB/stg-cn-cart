@@ -278,8 +278,8 @@ export class CommercetoolsProductClient implements IAdapter {
 	async checkCartHasChanged(ctCart: Cart): Promise<Cart> {
 		let  { lineItems } = ctCart;
 
-		//HOTFIX: bundle_existing
-		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType)
+		//Only `main_product`
+		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType !== 'bundle' && lineItem.custom?.fields?.productType !== 'sim')
 		
 		if (lineItems.length === 0) return { ...ctCart, lineItems: [] }
 

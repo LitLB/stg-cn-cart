@@ -148,8 +148,8 @@ export class CouponService {
         permanentlyInvalidRejectedCoupons: Coupon[];
     }> {
         try {
-            //HOTFIX: bundle_existing
-            const lineItems = ctCart.lineItems.filter((lineItem) => lineItem.custom?.fields?.productType)
+            //Only `main_product`
+            const lineItems = ctCart.lineItems.filter((lineItem) => lineItem.custom?.fields?.productType !== 'bundle' && lineItem.custom?.fields?.productType !== 'sim')
 
             // 1) Gather current coupon codes
             const cartInfoForCouponValidation = await this.getCartInfoForCouponValidation({

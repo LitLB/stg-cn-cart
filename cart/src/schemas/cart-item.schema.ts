@@ -100,6 +100,9 @@ export type AddItemCartBodyRequest = {
 	package?: {
 		code: string;
 	};
+	sim?: {
+		sku: string;
+	};
 };
   
 export function validateAddItemCartBody(body: any) {
@@ -187,6 +190,12 @@ export function validateAddItemCartBody(body: any) {
 				'string.empty': 'Package Code cannot be empty',
 				'any.required': 'Product Code is required',
 			}),
+		}).optional(),
+		sim: Joi.object({
+			sku: Joi.string().required().messages({
+				'string.empty': 'SIM SKU cannot be empty',
+				'any.required': 'SIM SKU is required',
+			}),
 		}).optional()
 	}).validate(body, { abortEarly: false });
 }
@@ -249,6 +258,12 @@ export function validateUpdateCartItemBody(body: any) {
 			code: Joi.string().required().messages({
 				'string.empty': 'Package Code cannot be empty',
 				'any.required': 'Product Code is required',
+			}),
+		}).optional(),
+		sim: Joi.object({
+			sku: Joi.string().required().messages({
+				'string.empty': 'SIM SKU cannot be empty',
+				'any.required': 'SIM SKU is required',
 			}),
 		}).optional()
 	}).validate(body, { abortEarly: false });

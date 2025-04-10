@@ -1,4 +1,4 @@
-export type ProductType = 'main_product' | 'add_on' | 'service' | 'free_gift';
+export type ProductType = 'main_product' | 'add_on' | 'service' | 'free_gift' | 'bundle' | 'sim';
 export type CampaignGroup = 'mass' | 'flashsale' | 'combo_set';
 export type Journey = 'device_only' | 'mnp';
 export type LoyaltyTier = 'red' | 'black';
