@@ -268,6 +268,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
               priceplanRcc: priceplanRc?.value,
               penalty: 1_000_000,
               advancedPayment: 42000,
+              extraAdvancedPayment: 11000,
               contractTerm: 12,
             },
             connector: {
