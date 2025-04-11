@@ -41,7 +41,7 @@ export const createAnonymousCartSchema = Joi.object({
 		'string.max': 'Campaign Group must not exceed 100 characters',
 	}),
 	journey: Joi.string()
-		.valid(CART_JOURNEYS.SINGLE_PRODUCT, CART_JOURNEYS.DEVICE_ONLY, CART_JOURNEYS.DEVICE_BUNDLE_EXISTING)
+		.valid(CART_JOURNEYS.SINGLE_PRODUCT, CART_JOURNEYS.DEVICE_ONLY, CART_JOURNEYS.DEVICE_BUNDLE_EXISTING, CART_JOURNEYS.DEVICE_BUNDLE_NEW)
 		.required()
 		.messages({
 			'string.empty': 'Journey cannot be empty',

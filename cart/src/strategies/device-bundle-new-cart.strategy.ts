@@ -27,10 +27,10 @@ import { readConfiguration } from '../utils/config.utils';
 import { validateInventory } from '../utils/cart.utils';
 import { LINE_ITEM_INVENTORY_MODES } from '../constants/lineItem.constant';
 import { CommercetoolsCustomObjectClient } from '../adapters/ct-custom-object-client';
-import _ from 'lodash';
+import _, { update } from 'lodash';
 import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
 
-export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
+export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
   constructor() {
     super(
       CommercetoolsProductClient,
@@ -564,7 +564,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
         );
 
       const icart = await attachPackageToCart(iCartWithBenefit, updatedCart);
-      return attachSimToCart(icart)
+      return attachSimToCart(icart, updatedCart)
     } catch (error: any) {
       console.log('error', error);
 
@@ -605,7 +605,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
       // iCartWithBenefit = updateCartFlag(iCartWithBenefit)
 
       const icart = await attachPackageToCart(iCartWithBenefit, updatedCart);
-      return attachSimToCart(icart)
+      return attachSimToCart(icart, updatedCart)
     } catch (error: any) {
       if (error.status && error.message) {
         throw error;
@@ -690,7 +690,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
         );
 
         const icart = await attachPackageToCart(iCartWithBenefit, cart);
-        return attachSimToCart(icart)
+        return attachSimToCart(icart, cart)
     } catch (error: any) {
       if (error.status && error.message) {
         throw error;
@@ -796,7 +796,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy {
         );
 
         const icart = await attachPackageToCart(iCartWithBenefit, updatedCart);
-        return attachSimToCart(icart)
+        return attachSimToCart(icart, updatedCart)
     } catch (error: any) {
       if (error.status && error.message) {
         throw error;

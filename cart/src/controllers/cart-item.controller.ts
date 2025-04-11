@@ -12,6 +12,7 @@ import { ICartStrategy } from '../interfaces/cart';
 import { DeviceBundleExistingCartStrategy } from '../strategies/device-bundle-existing-cart.strategy';
 import { SingleProductDeviceOnlyCartStrategy } from '../strategies/single-product-device-only.strategy';
 import { Cart } from '@commercetools/platform-sdk';
+import { DeviceBundleNewCartStrategy } from '../strategies/device-bundle-new-cart.strategy';
 
 export class CartItemController {
     private cartItemService?: CartItemService<ICartStrategy>;
@@ -20,6 +21,9 @@ export class CartItemController {
 
     set cartStrategy(journey: CART_JOURNEYS) {
         switch(journey) {
+            case CART_JOURNEYS.DEVICE_BUNDLE_NEW:
+                this.cartItemService = new CartItemService<DeviceBundleNewCartStrategy>(DeviceBundleNewCartStrategy)
+                break
             case CART_JOURNEYS.DEVICE_BUNDLE_EXISTING:
                 this.cartItemService = new CartItemService<DeviceBundleExistingCartStrategy>(DeviceBundleExistingCartStrategy)
                 break

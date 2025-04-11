@@ -105,8 +105,8 @@ export async function attachPackageToCart(iCart: ICart, ctCart: Cart): Promise<I
 }
 
 
-export function attachSimToCart(iCart: ICart): ICart {
-    const sim = iCart.items.find((item) =>  item.productType === 'sim')
+export function attachSimToCart(iCart: ICart, ctCart: Cart): ICart {
+    const sim = ctCart.lineItems.find((item) =>  item.custom?.fields?.productType === 'sim')
 
     iCart.items = iCart.items.filter((item) => item.productType === 'main_product')
     iCart.items = iCart.items.map((item) => {

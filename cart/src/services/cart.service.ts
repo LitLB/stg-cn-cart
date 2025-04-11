@@ -585,7 +585,9 @@ export class CartService {
             // 3) Map to ICart
             let iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartWithFilteredItems);
             iCartWithBenefit = await attachPackageToCart(iCartWithBenefit, ctCart);
-            iCartWithBenefit = attachSimToCart(iCartWithBenefit)
+            iCartWithBenefit = attachSimToCart(iCartWithBenefit, ctCart)
+
+            console.log(iCartWithBenefit)
 
             const response = {
                 ...iCartWithBenefit,
