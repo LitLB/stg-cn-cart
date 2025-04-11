@@ -1109,7 +1109,7 @@ export class TalonOneEffectConverter implements IAdapter {
 					discountPercent,
 					haveOtp,
 					forcePromotion
-				} = product
+				} = product || {}
 
 				// Find other payments
 				const otherPayment = otherPaymentsFromGroup.find((otherPayment: any) => otherPayment.productCode === sku)
