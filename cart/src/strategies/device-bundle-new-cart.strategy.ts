@@ -92,7 +92,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
 
   protected async getSimBySku(sku: string): Promise<Product> {
     const sim = await this.adapters.commercetoolsProductClient.queryProducts({
-      where: `masterData(current(masterVariant(sku="${sku}")))`,
+      where: `masterData(current(masterVariant(sku="${sku}"))) or masterData(current(variants(sku="${sku}")))`,
     });
 
     if (!sim.results.length) {
