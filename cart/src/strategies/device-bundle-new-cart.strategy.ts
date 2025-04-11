@@ -483,7 +483,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
               inventoryMode:
                 sim.masterData.current.masterVariant.attributes?.find(
                   (attr: Attribute) => attr.name === 'sim_source_type'
-                )?.value === 'e_sim'
+                )?.value.some(({key}:any) => key === 'e_sim')
                   ? LINE_ITEM_INVENTORY_MODES.NONE
                   : LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
               externalPrice: {
