@@ -95,13 +95,15 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
         }
     }
 
-    if (data.subscriberInfo.status.code !== "A") {
-        throw {
-            statusCode: '400.4019',
-            statusMessage: 'Customer status is not active',
-            errorCode: 'CUSTOMER_STATUS_IS_NOT_ACTIVE'
-        }
-    }
+
+    // ! TRUE บอกว่าไม่มีเคสนี้
+    // if (data.subscriberInfo.status.code !== "A") {
+    //     throw {
+    //         statusCode: '400.4019',
+    //         statusMessage: 'Customer status is not active',
+    //         errorCode: 'CUSTOMER_STATUS_IS_NOT_ACTIVE'
+    //     }
+    // }
 
     if (data.productInfo?.installationType && data.productInfo?.installationType === "FSIM") {
         throw {
@@ -199,9 +201,14 @@ export const validateContractAndQuotaTrue = (data: any) => {
 
 export const validateContractAndQuotaDtac = (data: any) => {
 
-    const allowFlagY = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag").value === "Y"
-    const allowFlagN = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag").value === "N"
-    const quotaStatus = data.characteristic.find((r: Characteristic) => r.name === "QuotaStatus").value === "Y"
+    // const allowFlagY = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag").value === "Y"
+    const allowFlagY = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag")
+    // const allowFlagN = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag").value === "N"
+    const allowFlagN = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag")
+    // const quotaStatus = data.characteristic.find((r: Characteristic) => r.name === "QuotaStatus").value === "Y"
+    const quotaStatus = data.characteristic.find((r: Characteristic) => r.name === "QuotaStatus")
+
+ 
 
     if (allowFlagY || (allowFlagN && quotaStatus)) {
         return
