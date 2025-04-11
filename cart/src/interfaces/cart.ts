@@ -57,7 +57,6 @@ export interface CustomProductProjection extends ProductProjection {
 }
 
 export interface IItem {
-    item: IItem[];
 	productId: string;
 	productKey?: string;
 	productName: LocalizedString;
