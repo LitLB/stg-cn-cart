@@ -292,12 +292,29 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
     return packageCustomObj;
   }
 
+  protected async getBillingAddressInfo(
+    cart: Cart,
+    billingAddress: any
+  ): Promise<any> {
+    const packageCustomObj =
+      await this.adapters.commercetoolsCustomObjectClient.createOrUpdateCustomObject(
+        {
+          container: 'billing-address-info',
+          key: `billing-address-${cart.id}`,
+          value: billingAddress
+        }
+      );
+
+    return packageCustomObj;
+  }
+
+
   protected validateDeviceBundleNew(
     body: any,
     cart: Cart,
     variant: ProductVariant
   ) {
-    const { package: mainPackage, sim: simInfo } = body;
+    const { package: mainPackage, sim: simInfo, billingAddress } = body;
 
     const mainProductLineItems = cart.lineItems.filter(
       (item: LineItem) => item.custom?.fields?.productType === 'main_product'
@@ -320,6 +337,13 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
       throw {
         statusCode: HTTP_STATUSES.BAD_REQUEST,
         statusMessage: '"sim.sku" is required for journey "device_bundle_new"',
+      };
+    }
+
+    if (_.isEmpty(billingAddress)) {
+      throw {
+        statusCode: HTTP_STATUSES.BAD_REQUEST,
+        statusMessage: '"billingAddress" is required for journey "device_bundle_new"',
       };
     }
 
@@ -395,6 +419,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
       const {
         package: packageInfo,
         sim: simInfo,
+        billingAddress,
         productId,
         sku,
         quantity,
@@ -421,6 +446,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
         cart,
         mainPackage.masterData.current.masterVariant
       );
+      const billingAddressInfo = await this.getBillingAddressInfo(cart, billingAddress)
       this.validateReleaseDate(variant.attributes!, now);
       this.validateStatus(variant);
       this.validateQuantity(productType, cart, sku, product, variant, quantity);
@@ -550,6 +576,14 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
               value: {
                 typeId: 'key-value-document',
                 id: packageAdditionalInfo.id,
+              },
+            },
+            {
+              action: 'setCustomField',
+              name: 'billingAddress',
+              value: {
+                typeId: 'key-value-document',
+                id: billingAddressInfo.id,
               },
             },
           ]
