@@ -307,9 +307,8 @@ export class OtpService {
 
             if (!journeyItem) {
                 throw {
-                    statusCode: 400,
-                    statusMessage: 'Invalid journey',
-                    errorCode: 'INVALID_JOURNEY'
+                    statusCode: "400.1001",
+                    statusMessage: 'Input parameter is blank or invalid',
                 }
             }
 
@@ -317,9 +316,8 @@ export class OtpService {
 
             if (!isActive) {
                 throw {
-                    statusCode: 400,
-                    statusMessage: 'Journey not active by operator',
-                    errorCode: 'JOURNAL_NOT_ACTIVE_BY_OPERATOR'
+                    statusCode: "400.4018",
+                    statusMessage: "Company is not allow",
                 }
             }
 
