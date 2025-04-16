@@ -109,6 +109,21 @@ export type AddItemCartBodyRequest = {
 	sim?: {
 		sku: string;
 	};
+	billingAddress?: {
+		firstName: string;
+		lastName: string;
+		custom_houseNo: string;
+		custom_moo: string;
+		custom_village: string;
+		building: string;
+		custom_floor: string;
+		custom_roomNo: string;
+		custom_soi: string;
+		streetName: string;
+		custom_smartSearch: string;
+		phone: string;
+		email: string
+	}
 };
   
 export function validateAddItemCartBody(body: any) {
@@ -202,6 +217,39 @@ export function validateAddItemCartBody(body: any) {
 				'string.empty': 'SIM SKU cannot be empty',
 				'any.required': 'SIM SKU is required',
 			}),
+		}).optional(),
+		billingAddress: Joi.object({
+			firstName: Joi.string().required().messages({
+				'string.empty': 'First name cannot be empty',
+				'any.required': 'First name is required',
+			}),
+			lastName: Joi.string().required().messages({
+				'string.empty': 'Last name cannot be empty',
+				'any.required': 'Last name is required',
+			}),
+			custom_houseNo: Joi.string().required().messages({
+				'string.empty': 'House no cannot be empty',
+				'any.required': 'House no is required',
+			}),
+			custom_moo: Joi.string().allow(''),
+			custom_village: Joi.string().allow(''),
+			building: Joi.string().allow(''),
+			custom_floor: Joi.string().allow(''),
+			custom_roomNo: Joi.string().allow(''),
+			custom_soi: Joi.string().allow(''),
+			streetName: Joi.string().allow(''),
+			custom_smartSearch: Joi.string().required().messages({
+				'string.empty': 'Custom smart search cannot be empty',
+				'any.required': 'Custom smart search is required',
+			}),
+			phone: Joi.string().required().messages({
+				'string.empty': 'Phone cannot be empty',
+				'any.required': 'Phone is required',
+			}),
+			email: Joi.string().email().required().messages({
+				'string.empty': 'Email cannot be empty',
+				'any.required': 'Email is required',
+			})
 		}).optional()
 	}).validate(body, { abortEarly: false });
 }
