@@ -67,6 +67,12 @@ export function validateSelectCartItemBody(body: any) {
 							'string.empty': 'Package Code cannot be empty',
 							'any.required': 'Product Code is required',
 						}),
+					}).optional(),
+					sim: Joi.object({
+						sku: Joi.string().required().messages({
+							'string.empty': 'SIM SKU cannot be empty',
+							'any.required': 'SIM SKU is required',
+						}),
 					}).optional()
 				}),
 			)

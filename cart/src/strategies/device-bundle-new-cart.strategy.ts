@@ -90,7 +90,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
     return mainPackage.results[0];
   }
 
-  protected async getSimBySku(sku: string): Promise<Product> {
+  protected async getSimBySku(sku: string): Promise<[Product, ProductVariant]> {
     const sim = await this.adapters.commercetoolsProductClient.queryProducts({
       where: `masterData(current(masterVariant(sku="${sku}"))) or masterData(current(variants(sku="${sku}")))`,
     });
@@ -117,7 +117,13 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
       };
     }
 
-    return sim.results[0];
+    const simProduct = sim.results[0];
+
+    if (simProduct.masterData.current.masterVariant.sku === sku) {
+      return [simProduct, simProduct.masterData.current.masterVariant]
+    } else {
+      return [simProduct, simProduct.masterData.current.variants.find((variant: ProductVariant) => variant.sku === sku)]
+    }
   }
 
   protected getVariantBySku(product: Product, sku: string): ProductVariant {
@@ -333,6 +339,14 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
     }
   }
 
+  private selectSimInventoryMode(variant: ProductVariant): LINE_ITEM_INVENTORY_MODES {
+    return variant.attributes?.find(
+      (attr: Attribute) => attr.name === 'sim_source_type'
+    )?.value.some(({key}:any) => key === 'e_sim')
+      ? LINE_ITEM_INVENTORY_MODES.NONE
+      : LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER
+  }
+
   private calculateProductGroup = ({
     cart,
     productId,
@@ -477,15 +491,10 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
             },
             {
               action: 'addLineItem',
-              productId: sim.id,
-              variantId: sim.masterData.current.masterVariant.id,
+              productId: sim[0].id,
+              variantId: sim[1].id,
               quantity: 1,
-              inventoryMode:
-                sim.masterData.current.masterVariant.attributes?.find(
-                  (attr: Attribute) => attr.name === 'sim_source_type'
-                )?.value.some(({key}:any) => key === 'e_sim')
-                  ? LINE_ITEM_INVENTORY_MODES.NONE
-                  : LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
+              inventoryMode: this.selectSimInventoryMode(sim[1]),
               externalPrice: {
                 currencyCode: 'THB',
                 centAmount: 0,
@@ -719,6 +728,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
       for (const item of items) {
         const {
           package: packageInfo,
+          sim: simInfo,
           sku,
           productType,
           productGroup,
@@ -730,6 +740,14 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
             statusCode: HTTP_STATUSES.BAD_REQUEST,
             statusMessage: 'Validation failed',
             data: '"package" field is missing',
+          };
+        }
+
+        if (!simInfo) {
+          throw {
+            statusCode: HTTP_STATUSES.BAD_REQUEST,
+            statusMessage: 'Validation failed',
+            data: '"sim" field is missing',
           };
         }
 
@@ -747,6 +765,9 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
               attribute.value === packageInfo.code
           );
         });
+        const simItem = cart.lineItems.find((lineItem: any) => {
+          return lineItem.variant.sku === sku
+        });
 
         if (!lineItem) {
           throw {
@@ -757,7 +778,13 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
         if (!packageItem) {
           throw {
             statusCode: HTTP_STATUSES.NOT_FOUND,
-            statusMessage: `Line item with SKU ${sku} not found in the cart.`,
+            statusMessage: `Line item with Package Code ${packageInfo.code} not found in the cart.`,
+          };
+        }
+        if (!simItem) {
+          throw {
+            statusCode: HTTP_STATUSES.NOT_FOUND,
+            statusMessage: `Line item with SIM ${simInfo.sku} not found in the cart.`,
           };
         }
 
@@ -771,6 +798,13 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
         updateActions.push({
           action: 'setLineItemCustomField',
           lineItemId: packageItem.id,
+          name: 'selected',
+          value: selected,
+        });
+
+        updateActions.push({
+          action: 'setLineItemCustomField',
+          lineItemId: simItem.id,
           name: 'selected',
           value: selected,
         });
