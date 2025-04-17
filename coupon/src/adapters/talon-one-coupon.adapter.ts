@@ -385,17 +385,17 @@ export class TalonOneCouponAdapter {
             allowedPackages = allowedPackages.filter((allowedPackage: any) => allowedPackage !== 'null')
             excludedPackages = excludedPackages.filter((excludedPackage: any) => excludedPackage !== 'null')
 
-            const haveProductConditions = allowedProducts.length
-                || excludedProducts.length
-                || allowedSeries.length
-                || excludedSeries.length
-                || allowedBrands.length
-                || excludedBrands.length
-                || allowedCategories.length
-                || excludedCategories.length
-                || allowedPackages.length
-                || excludedPackages.length
-            const havePackageConditions = allowedPackages.length || excludedPackages.length
+            const haveProductConditions = !!allowedProducts.length
+                || !!excludedProducts.length
+                || !!allowedSeries.length
+                || !!excludedSeries.length
+                || !!allowedBrands.length
+                || !!excludedBrands.length
+                || !!allowedCategories.length
+                || !!excludedCategories.length
+                || !!allowedPackages.length
+                || !!excludedPackages.length
+            const havePackageConditions = !!allowedPackages.length || !!excludedPackages.length
 
             const isByProductCoupon = haveProductConditions
             const isByBillCoupon = !isByProductCoupon
@@ -501,7 +501,12 @@ export class TalonOneCouponAdapter {
             if (allSameAllowStackingValue) {
                 isAllowStackingCouponCart = couponAllowStackingValues?.[0]?.allowStacking ?? null
                 if (isAllowStackingCouponCart === false) {
-                    notAllowStackingCouponId = couponAllowStackingValues?.[0].couponId
+                    if (couponAllowStackingValues?.length > 1) {
+                        invalidStackingCouponIds = couponAllowStackingValues
+                            .map((couponAllowStackingValue: any) => couponAllowStackingValue.couponId)
+                    } else {
+                        notAllowStackingCouponId = couponAllowStackingValues?.[0].couponId
+                    }
                 }
             } else {
                 invalidStackingCouponIds = couponAllowStackingValues
