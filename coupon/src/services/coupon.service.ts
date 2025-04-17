@@ -595,7 +595,7 @@ export class CouponService {
             const lineItemId = lineItem.id
             const productType = lineItem.custom.fields.productType
             const sku = lineItem.variant.sku
-            const attributes: any = lineItem?.attributes?.reduce((acc: any, current: any) => {
+            const attributes: any = lineItem?.variant?.attributes?.reduce((acc: any, current: any) => {
                 const name = current.name
                 const value = current.value
                 acc[name] = value
