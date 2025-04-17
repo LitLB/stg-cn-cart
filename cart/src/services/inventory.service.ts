@@ -2,7 +2,7 @@
 
 import type { Cart, LineItem } from '@commercetools/platform-sdk';
 import { createStandardizedError } from '../utils/error.utils';
-import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
+import { CART_INVENTORY_MODES, CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import CommercetoolsInventoryClient from '../adapters/ct-inventory-client';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { InventoryUtils } from '../utils/inventory.utils';
@@ -107,7 +107,9 @@ export class InventoryService {
 
         for (const lineItem of ctCart.lineItems) {
             const itemJourney = (lineItem.custom?.fields?.journey as CART_JOURNEYS) || journey;
-            await this.commitLineItemStockUsage(lineItem, itemJourney);
+            const productType = lineItem.custom?.fields?.productType;
+            const inventoryMode = lineItem.inventoryMode;
+            if (productType !== 'bundle' && (productType === 'sim' && inventoryMode === CART_INVENTORY_MODES.RESERVE_ON_ORDER)) await this.commitLineItemStockUsage(lineItem, itemJourney);
         }
     }
 }
