@@ -520,6 +520,10 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
               productId: sim[0].id,
               variantId: sim[1].id,
               quantity: 1,
+              supplyChannel: {
+                typeId: 'channel',
+                id: readConfiguration().ctpSupplyChannel,
+              },
               inventoryMode: this.selectSimInventoryMode(sim[1]),
               externalPrice: {
                 currencyCode: 'THB',

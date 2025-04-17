@@ -489,6 +489,7 @@ export class CartService {
 
             // 1) Fetch the cart
             const ctCart = await commercetoolsMeCartClient.getCartById(id);
+
             if (!ctCart) {
                 throw createStandardizedError({
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -586,8 +587,6 @@ export class CartService {
             let iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartWithFilteredItems);
             iCartWithBenefit = await attachPackageToCart(iCartWithBenefit, ctCart);
             iCartWithBenefit = attachSimToCart(iCartWithBenefit, ctCart)
-
-            console.log(iCartWithBenefit)
 
             const response = {
                 ...iCartWithBenefit,

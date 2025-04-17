@@ -24,6 +24,7 @@ export interface ICart {
 	totalQuantity: number;
 	shippingAddress: Address | null;
 	billingAddress: Address | null;
+	rccBillingAddress?: any
 	shippingMethod: ShippingMethodReference | null;
 	paymentMethod: any; // TODO
 	quantitiesByProductType: {

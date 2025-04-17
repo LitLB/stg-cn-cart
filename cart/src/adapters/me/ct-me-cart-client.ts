@@ -761,6 +761,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 			paymentMethod: ctCart.custom?.fields?.paymentMethod || null,
 			shippingAddress: ctCart.shippingAddress || null,
 			billingAddress: ctCart.billingAddress || null,
+			rccBillingAddress: ctCart.custom?.fields?.billingAddress?.obj?.value,
 			quantitiesByProductType,
 			items,
 			triggeredCampaigns: [],
