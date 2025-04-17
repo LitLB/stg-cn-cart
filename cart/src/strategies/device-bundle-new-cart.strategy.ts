@@ -800,7 +800,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
           );
         });
         const simItem = cart.lineItems.find((lineItem: any) => {
-          return lineItem.variant.sku === sku
+          return lineItem.variant.sku === simInfo.sku
         });
 
         if (!lineItem) {
