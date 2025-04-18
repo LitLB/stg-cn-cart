@@ -56,6 +56,7 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
 
     const aging = data.characteristic.find((row: Characteristic) => row.name === "TOTL_DAYS").value
 
+
     if (Number(aging) < 90) {
         throw {
             statusCode: "400.4034",
@@ -201,14 +202,13 @@ export const validateContractAndQuotaTrue = (data: any) => {
 
 export const validateContractAndQuotaDtac = (data: any) => {
 
-    // const allowFlagY = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag").value === "Y"
-    const allowFlagY = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag")
-    // const allowFlagN = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag").value === "N"
-    const allowFlagN = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag")
-    // const quotaStatus = data.characteristic.find((r: Characteristic) => r.name === "QuotaStatus").value === "Y"
-    const quotaStatus = data.characteristic.find((r: Characteristic) => r.name === "QuotaStatus")
+    const allowFlagY = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag").value === "Y"
+    // const allowFlagY = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag")
+    const allowFlagN = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag").value === "N"
+    // const allowFlagN = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag")
+    const quotaStatus = data.characteristic.find((r: Characteristic) => r.name === "QuotaStatus").value === "Y"
+    // const quotaStatus = data.characteristic.find((r: Characteristic) => r.name === "QuotaStatus")
 
- 
 
     if (allowFlagY || (allowFlagN && quotaStatus)) {
         return
