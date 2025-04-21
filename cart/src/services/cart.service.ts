@@ -314,7 +314,7 @@ export class CartService {
                 };
             }
 
-            const { shippingAddress, billingAddress, shippingMethodId, payment } = value;
+            const { shippingAddress, billingAddress, shippingMethodId, payment, simInfo } = value;
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
@@ -401,6 +401,11 @@ export class CartService {
                         id: shippingMethodId,
                     },
                 });
+            }
+
+            const getUpdateActionSim = await this.getUpdateActionSim(ctCart);
+            if (getUpdateActionSim) {
+                updateActions.push(getUpdateActionSim);
             }
 
             if (payment && payment?.key) { // no payment
@@ -1158,4 +1163,32 @@ export class CartService {
             };
         }
     };
+
+    private async getUpdateActionSim(ctCart: any) {
+        try {
+            const sim = ctCart.lineItems.filter((lineItem: any) => lineItem.custom?.fields?.productType === 'sim');
+            if (sim.length === 0) return;
+            const simType = sim[0]?.variant?.attributes?.find((attr: any) => attr.name === 'sim_source_type')?.value?.[0]?.key === 'e_sim'? 'eSim': 'Physical';
+            const result: CartUpdateAction = {
+                action: "setLineItemCustomField",
+                lineItemId: sim[0].id,
+                name: "simInfo",
+                value: [
+                    JSON.stringify({
+                        "name": sim[0].name,
+                        "number":"091-2345-678",
+                        "simType": simType,
+                        "groupNumber":{
+                            "th-TH":"ประเภทเบอร์ทั่วไป",
+                            "en-US":"General number"
+                        },
+                        "prices": 199
+                    })
+                ]
+            };
+            return result;
+        } catch (error: any) {;
+            return;
+        }
+    }
 }
