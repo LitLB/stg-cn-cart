@@ -24,6 +24,7 @@ export class CartItemController {
             case CART_JOURNEYS.DEVICE_BUNDLE_NEW:
                 this.cartItemService = new CartItemService<DeviceBundleNewCartStrategy>(DeviceBundleNewCartStrategy)
                 break
+            case CART_JOURNEYS.DEVICE_BUNDLE_P2P:
             case CART_JOURNEYS.DEVICE_BUNDLE_EXISTING:
                 this.cartItemService = new CartItemService<DeviceBundleExistingCartStrategy>(DeviceBundleExistingCartStrategy)
                 break
