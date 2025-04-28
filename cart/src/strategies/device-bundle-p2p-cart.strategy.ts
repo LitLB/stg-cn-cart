@@ -1,4 +1,5 @@
 import {
+    Attribute,
     Cart,
     LineItem,
     MyCartUpdateAction,
@@ -253,6 +254,22 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy {
         return packageCustomObj;
     }
 
+    protected async getBillingAddressInfo(
+        cart: Cart,
+        billingAddress: any
+    ): Promise<any> {
+        const packageCustomObj =
+            await this.adapters.commercetoolsCustomObjectClient.createOrUpdateCustomObject(
+                {
+                    container: 'billing-address-info',
+                    key: `billing-address-${cart.id}`,
+                    value: billingAddress
+                }
+            );
+
+        return packageCustomObj;
+    }
+
     protected validateDeviceBundleExisting(
         body: any,
         cart: Cart,
@@ -347,7 +364,24 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy {
         try {
             const now = new Date();
             const {
-                package: packageInfo = { code: '' },
+                package: packageInfo = { 
+                    code: 'ESSMEP45', 
+                },
+                billingAddress = {
+                    firstName: "device_bundle_p2p",
+                    lastName: "journey",
+                    custom_houseNo: "982/12",
+                    custom_moo: "8",
+                    custom_village: "8",
+                    building: "8",
+                    custom_floor: "8",
+                    custom_roomNo: "8",
+                    custom_soi: "8",
+                    streetName: "8",
+                    custom_smartSearch: "10400",
+                    phone: "0912345678",
+                    email: "device_bundle_p2p@vc.com",
+                },
                 productId,
                 sku,
                 quantity,
@@ -364,9 +398,6 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy {
                 payload.campaignVerifyValues && payload.campaignVerifyValues.length > 0
             );
 
-            // Mock: PackageInfo For PDP Page
-            _.set(packageInfo, "code", "PACKAGE_CODE 21 - Updated (by New)")
-
             const product = await this.getProductById(productId);
             const variant = this.getVariantBySku(product, sku);
             // TODO: Back to implement to use with journey PreToPost
@@ -377,6 +408,7 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy {
                 cart,
                 mainPackage.masterData.current.masterVariant
             );
+            const billingAddressInfo = await this.getBillingAddressInfo(cart, billingAddress)
             this.validateReleaseDate(variant.attributes!, now);
             this.validateStatus(variant);
             this.validateQuantity(productType, cart, sku, product, variant, quantity);
@@ -485,6 +517,14 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy {
                             value: {
                                 typeId: 'key-value-document',
                                 id: packageAdditionalInfo.id,
+                            },
+                        },
+                        {
+                            action: 'setCustomField',
+                            name: 'billingAddress',
+                            value: {
+                                typeId: 'key-value-document',
+                                id: billingAddressInfo.id,
                             },
                         },
                     ]
@@ -659,15 +699,14 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy {
 
             for (const item of items) {
                 const {
-                    package: packageInfo = {code: ''},
+                    package: packageInfo = { 
+                        code: 'ESSMEP45', 
+                    },
                     sku,
                     productType,
                     productGroup,
                     selected,
                 } = item;
-
-                // Mock: PackageInfo For PDP Page
-                _.set(packageInfo, "code", "PACKAGE_CODE 21 - Updated (by New)")
 
                 if (!packageInfo) {
                     throw {
@@ -701,7 +740,7 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy {
                 if (!packageItem) {
                     throw {
                         statusCode: HTTP_STATUSES.NOT_FOUND,
-                        statusMessage: `Line item with SKU ${sku} not found in the cart.`,
+                        statusMessage: `Package on Line item with SKU ${sku} not found in the cart.`,
                     };
                 }
 
