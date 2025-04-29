@@ -10,6 +10,7 @@ import { GetAllOrderStatesResult, OrderHistoryItem, OrderHistoryResult } from '.
 import { AttributeValue } from '@aws-sdk/client-dynamodb';
 import { LOCALES } from '../constants/locale.constant';
 import { readConfiguration } from '../utils/config.utils';
+import { attachPackageToOrder } from '../helpers/order.helper';
 
 export class OrderService {
     public getOrderById = async (id: string): Promise<IOrder> => {
@@ -21,7 +22,8 @@ export class OrderService {
                     statusMessage: 'Order not found.',
                 }, 'getOrderById');
             }
-            const iOrder = commercetoolsOrderClient.mapOrderToIOrder(ctOrder);
+            let iOrder = commercetoolsOrderClient.mapOrderToIOrder(ctOrder);
+            iOrder = await attachPackageToOrder(iOrder, ctOrder);
 
             return iOrder;
         } catch (error: any) {

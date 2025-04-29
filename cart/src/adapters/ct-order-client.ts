@@ -27,7 +27,11 @@ class CommercetoolsOrderClient {
                 .withProjectKey({ projectKey: this.projectKey })
                 .orders()
                 .withId({ ID: orderId })
-                .get()
+                .get({
+                    queryArgs: {
+                        expand: ['custom.fields.packageAdditionalInfo']
+                    }
+                })
                 .execute();
 
             return response.body;

@@ -1,7 +1,8 @@
 // cart/src/interfaces/order.ts
 
-import type { Address, Attribute, LocalizedString, ProductTypeReference, ShippingMethodReference } from '@commercetools/platform-sdk';
+import type { Address, Attribute, LineItem, LocalizedString, ProductTypeReference, ShippingMethodReference } from '@commercetools/platform-sdk';
 import { ProductType } from '../types/share.types';
+import { CustomProductProjection } from './cart';
 
 export interface IOrder {
     orderId: string;
@@ -41,12 +42,15 @@ export interface IOrderItem {
     productName: LocalizedString;
     ctProductType: ProductTypeReference;
     productSlug?: LocalizedString;
+    productCategoryName?: LocalizedString;
     variantId: number;
     sku: string;
     productType: ProductType;
     productGroup?: number;
     addOnGroup?: string;
     freeGiftGroup?: string;
+    package?: CustomProductProjection;
+    sim?: LineItem;
     quantity: number;
     unitPrice: number;
     totalUnitPrice: number;
@@ -60,6 +64,9 @@ export interface IOrderItem {
     attributes: Attribute[];
     selected: boolean;
     image: IOrderImage | null;
+    inventory?: any;
+    hasChanged?: any
+    journey?: string
 }
 
 export interface IOrderImage {
