@@ -496,8 +496,10 @@ export class OtpService {
                         errorCode: 'THAI_ID_NOT_FOUND'
                     }
                 }
+                const decryptedThaiId = await apigeeClientAdapter.apigeeDecrypt(thaiId)
 
-                const newThaiId = encryptedOFB(thaiId, key)
+                const newThaiId = encryptedOFB(decryptedThaiId, key)
+                
                 const response = await apigeeClientAdapter.getContractAndQuotaDtac(id, newThaiId)
                 logService({ id, operator, thaiId }, response.data, logStepModel)
                 const data = response.data
