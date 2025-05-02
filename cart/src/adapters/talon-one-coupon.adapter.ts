@@ -269,7 +269,7 @@ export class TalonOneCouponAdapter {
                 switch (effectType) {
                     case 'setDiscount':
                         this.handleSetDiscountEffect(ctCart, updateActions, couponCode, props);
-                        mapCouponCodeToLineItemId[couponCode] = props?.lineItemId || null
+                        mapCouponCodeToLineItemId[couponCode] = props?.line_item_id || null
                         break;
 
                     case 'addFreeItem':

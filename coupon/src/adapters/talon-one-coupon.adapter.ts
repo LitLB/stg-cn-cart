@@ -125,7 +125,7 @@ export class TalonOneCouponAdapter {
                 switch (effectType) {
                     case 'setDiscount':
                         this.handleSetDiscountEffect(cart, updateActions, couponCode, props);
-                        mapCouponCodeToLineItemId[couponCode] = props?.lineItemId || null
+                        mapCouponCodeToLineItemId[couponCode] = props?.line_item_id || null
                         break;
 
                     case 'addFreeItem':
@@ -532,7 +532,7 @@ export class TalonOneCouponAdapter {
                     discount_percentage: discountPercentage = 0,
                     maximum_discount: maximumDiscount = 0
                 } = couponCustomEffect.props.payload || {}
-                // 
+                //
                 const hasPercentageDiscount = discountPercentage > 0;
                 const hasMaxCap = maximumDiscount > 0;
 
