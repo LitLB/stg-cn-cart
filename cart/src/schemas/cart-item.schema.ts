@@ -232,6 +232,14 @@ export function validateAddItemCartBody(body: any) {
 				'string.empty': 'Group number cannot be empty',
 				'any.required': 'Group number is required',
 			}),
+			correlatorId: Joi.string().required().messages({
+				'string.empty': 'correlatorId cannot be empty',
+				'any.required': 'correlatorId is required',
+			}),
+			selectNumberCreateAt: Joi.string().required().messages({
+				'string.empty': 'selectNumberCreateAt cannot be empty',
+				'any.required': 'selectNumberCreateAt is required',
+			}),
 		}).optional(),
 		billingAddress: Joi.object({
 			firstName: Joi.string().required().messages({
