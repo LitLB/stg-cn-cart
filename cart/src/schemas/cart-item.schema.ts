@@ -217,6 +217,21 @@ export function validateAddItemCartBody(body: any) {
 				'string.empty': 'SIM SKU cannot be empty',
 				'any.required': 'SIM SKU is required',
 			}),
+			number: Joi.string().required().messages({
+				'string.empty': 'mobile number cannot be empty',
+				'any.required': 'mobile number is required',
+			}),
+			simType: Joi.string().required().messages({
+				'string.empty': 'simType cannot be empty',
+				'any.required': 'simType is required',
+			}).allow('eSim', 'Physical'),
+			groupNumber:Joi.object({
+				'en-US': Joi.string().required(),
+				'th-TH': Joi.string().required(),
+			}).required().messages({
+				'string.empty': 'Group number cannot be empty',
+				'any.required': 'Group number is required',
+			}),
 		}).optional(),
 		billingAddress: Joi.object({
 			firstName: Joi.string().required().messages({

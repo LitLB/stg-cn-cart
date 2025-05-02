@@ -537,6 +537,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
                 fields: {
                   productType: 'sim',
                   selected: false,
+                  simInfo: [JSON.stringify(simInfo)]
                 },
               },
             },

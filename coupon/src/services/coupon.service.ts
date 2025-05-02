@@ -13,6 +13,8 @@ import { createStandardizedError } from '../utils/error.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { COUPON_REJECTION_REASONS } from '../constants/talon-one.interface';
 import {
+    LineItem,
+    Cart,
     CartSetCustomFieldAction,
     CartUpdateAction
 } from '@commercetools/platform-sdk';
@@ -160,9 +162,12 @@ export class CouponService {
                 updateActions
             );
 
+            const selectedLineItems: LineItem[] = commercetoolsMeCartClient.filterSelectedLineItems(updatedCart.lineItems, true);
+            const cartWithFilteredItems: Cart = { ...updatedCart, lineItems: selectedLineItems };
+
 
             // 8) Convert to ICart for the response
-            const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(updatedCart);
+            const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cartWithFilteredItems);
 
             const finalRejected = [
                 ...initiallyRejectedCoupons,

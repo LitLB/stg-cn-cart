@@ -314,7 +314,7 @@ export class CartService {
                 };
             }
 
-            const { shippingAddress, billingAddress, shippingMethodId, payment } = value;
+            const { shippingAddress, billingAddress, shippingMethodId, payment, simInfo } = value;
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
