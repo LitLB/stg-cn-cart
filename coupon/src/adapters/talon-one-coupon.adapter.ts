@@ -322,6 +322,7 @@ export class TalonOneCouponAdapter {
         const couponAllowStackingValues: any = []
         let { isAllowStackingCouponCart, notAllowStackingCouponId } = cartInfoForCouponValidation
         const { campaignGroup, journey, totalPriceAfterCampaignDiscountInBaht, lineItems, customerType, loyaltyGroup } = cartInfoForCouponValidation
+
         for (const couponCustomEffect of couponCustomEffects) {
             const { triggeredByCoupon: couponId, props } = couponCustomEffect
             const couponAttribute = props.payload
@@ -616,9 +617,15 @@ export class TalonOneCouponAdapter {
 
     private checkInAllowedList(filterList: any[], allowedList: any[]) {
         allowedList = allowedList.filter((v) => v !== 'null')
+
         if (filterList.length > 0 && allowedList.length > 0) {
+
             const allowedSet = new Set(allowedList);
-            const intersect = filterList.filter(value => allowedSet.has(value));
+
+            const intersect = filterList.filter(value => {
+                const byPassSingleProduct = value === 'single_product' ? 'device_only' : value
+                return allowedSet.has(byPassSingleProduct)
+            });
 
             return !!intersect.length
         }
