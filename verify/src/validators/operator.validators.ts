@@ -38,13 +38,14 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
         }
     }
 
-    if (data.subscriberInfo.status.code !== "A") {
-        throw {
-            statusCode: '400.4019',
-            statusMessage: 'Customer status is not active',
-            errorCode: 'CUSTOMER_STATUS_IS_NOT_ACTIVE'
-        }
-    }
+    // ! ทาง DTAC แจ้งว่าไม่สามารถ return ค่านี้ได้
+    // if (data.subscriberInfo.status.code !== "A") {
+    //     throw {
+    //         statusCode: '400.4019',
+    //         statusMessage: 'Customer status is not active',
+    //         errorCode: 'CUSTOMER_STATUS_IS_NOT_ACTIVE'
+    //     }
+    // }
 
     if (data.subscriberInfo.telType !== "T") {
         throw {
@@ -55,6 +56,7 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
     }
 
     const aging = data.characteristic.find((row: Characteristic) => row.name === "TOTL_DAYS").value
+
 
     if (Number(aging) < 90) {
         throw {
@@ -201,16 +203,11 @@ export const validateContractAndQuotaTrue = (data: any) => {
 
 export const validateContractAndQuotaDtac = (data: any) => {
 
-    // const allowFlagY = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag").value === "Y"
-    const allowFlagY = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag")
-    // const allowFlagN = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag").value === "N"
-    const allowFlagN = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag")
-    // const quotaStatus = data.characteristic.find((r: Characteristic) => r.name === "QuotaStatus").value === "Y"
-    const quotaStatus = data.characteristic.find((r: Characteristic) => r.name === "QuotaStatus")
+    const allowFlag = data.characteristic.find((r: Characteristic) => r.name === "AllowFlag").value === "Y"
+    const quotaStatusFlag = data.characteristic.find((r: Characteristic) => r.name === "QuotaStatus").value === "Y"
+    const totalContractActiveFlag = data.characteristic.find((r: Characteristic) => r.name === "TotalActiveContract").value === "0"
 
- 
-
-    if (allowFlagY || (allowFlagN && quotaStatus)) {
+    if (allowFlag || (!allowFlag && quotaStatusFlag && totalContractActiveFlag)) {
         return
     } else {
         throw {

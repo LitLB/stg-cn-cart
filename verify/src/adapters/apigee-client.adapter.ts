@@ -187,7 +187,7 @@ class ApigeeClientAdapter {
         return response;
     }
 
-    async checkSharePlanDtac(id:string) {
+    async checkSharePlanDtac(id: string) {
         await this.init()
         const headers = {
             'Content-Type': 'application/json',
