@@ -1,12 +1,15 @@
+// src/services/otp.service.ts
+
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone"; // Required for specific timezone formatting
 
 
 import ApigeeClientAdapter from "../adapters/apigee-client.adapter";
 import { readConfiguration } from "../utils/config.utils";
 import { getOTPReferenceCodeFromArray } from "../utils/array.utils";
 import { generateTransactionId } from "../utils/date.utils";
-import { convertToThailandMobile } from "../utils/formatter.utils";
+import { convertToThailandMobile, safeStringify } from "../utils/formatter.utils"; // Added safeStringify
 import { validateOperator } from "../utils/operator.utils";
 import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client"
 import { getValueByKey } from "../utils/object.utils";
@@ -15,8 +18,14 @@ import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile, validateSharePlan } from "../validators/operator.validators";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
+import { CART_JOURNEYS } from "../constants/cart.constant";
+import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
+import { PerformDopaPopStatusVerificationParams, VerifyDopaInternalResult, VerifyDopaPOPStatusApiRequest } from "../interfaces/dopa.interface";
+import { CustomerVerifyQueryParams, INewDeviceBundleVerifyResult } from "../interfaces/verify.interface";
+import { AxiosError } from "axios";
 
 dayjs.extend(utc);
+dayjs.extend(timezone); // Extend dayjs with timezone plugin
 
 export class OtpService {
 
@@ -594,4 +603,187 @@ export class OtpService {
         }
     }
 
+    // TODO: Parent
+    // TODO: How to get?
+    public async handleCustomerVerification(
+        correlatorid: string,
+        queryParams: CustomerVerifyQueryParams
+    ): Promise<ICheckCustomerProfileResponse | { verifyResult: INewDeviceBundleVerifyResult }> {
+        const {
+            journey,        // string
+            mobileNumber,   // string (Encrypted)
+            verifyState,    // string or string[]
+            certificationId, // string (Encrypted) - for new_device_bundle
+            dateOfBirth,    // string (Encrypted, DDMMYYYY) - for new_device_bundle
+            // certificationType, // string - for headless
+            // campaignCode,      // string - for headless
+            // productCode,       // string - for headless
+            // propoId            // string - for headless
+        } = queryParams;
+
+        if (journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
+            return await this.getCustomerProfile(correlatorid, mobileNumber, journey);
+        } else {
+            const verifyResult: INewDeviceBundleVerifyResult = {
+                verifyDopaStatus: 'pending',
+                verifyLock3StepStatus: 'skip', // Default to skip unless headless is called
+                verify45DayNonShopStatus: 'skip',
+                verifyThaiId5NumberStatus: 'skip',
+                verifyMaxAllowStatus: 'skip',
+                verifyCheckCrossStatus: 'skip',
+                verify4DScoreStatus: 'skip',
+                verify4DScoreValue: null,
+                totalProductTrue: null,
+            };
+
+            const apigeeClient = new ApigeeClientAdapter();
+            let decryptedCertificationId: string | undefined;
+            let decryptedDateOfBirth: string | undefined;
+            let decryptedMobileNumber: string | undefined;
+
+            // Attempt to decrypt inputs needed for DOPA or Headless
+            // Errors during decryption will be caught and will lead to 'fail' statuses or throw
+            try {
+                if (certificationId && typeof certificationId === 'string') {
+                    decryptedCertificationId = await apigeeClient.apigeeDecrypt(certificationId);
+                }
+                if (dateOfBirth && typeof dateOfBirth === 'string') {
+                    decryptedDateOfBirth = await apigeeClient.apigeeDecrypt(dateOfBirth);
+                }
+                if (mobileNumber && typeof mobileNumber === 'string') { // Only if MSSIDN is needed by DOPA
+                    decryptedMobileNumber = await apigeeClient.apigeeDecrypt(mobileNumber);
+                }
+            } catch (decryptionError: any) {
+                // If decryption fails, DOPA check cannot proceed meaningfully
+                verifyResult.verifyDopaStatus = 'fail';
+                // Propagate specific decryption error
+                if (decryptionError.errorCode === "FAILED_TO_DECRYPT_DATA") {
+                    throw decryptionError;
+                }
+                throw { statusCode: "500", statusMessage: "Critical input decryption failed", data: decryptionError };
+            }
+
+            const statesToVerify = Array.isArray(verifyState) ? verifyState : (verifyState ? [verifyState] : []);
+
+            if (statesToVerify.includes('dopa')) {
+                if (!decryptedCertificationId || !decryptedDateOfBirth) {
+                    verifyResult.verifyDopaStatus = 'fail';
+                } else {
+                    const dopaInternalResult = await this.performDopaPopStatusVerification({
+                        correlatorId: correlatorid,
+                        idNumber: decryptedCertificationId,
+                        dateOfBirth: decryptedDateOfBirth,
+                        mobileNumber: decryptedMobileNumber,
+                        journey: journey as CART_JOURNEYS
+                    });
+                    verifyResult.verifyDopaStatus = dopaInternalResult.status;
+                }
+            } else {
+                verifyResult.verifyDopaStatus = 'skip'; // Skip if 'dopa' is not in verifyState
+            }
+
+            // Placeholder for Headless Non-Commerce logic (as per VECOM-4491, this is a stub for now)
+            if (statesToVerify.includes('hlPreverFull') || statesToVerify.includes('hl4DScore')) {
+                logger.info(`[Stub] Headless non-commerce verification would be called for states: ${statesToVerify.join(', ')}`);
+                // const headlessParams = { /* ... */ };
+                // const headlessResult = await this.verifyHeadlessNonCommerce(headlessParams);
+                // Update verifyResult based on headlessResult (e.g., verifyLock3StepStatus, etc.)
+                // For now, keeping them as 'skip' or their initial 'pending'
+            }
+
+            // return { verifyResult };
+            return {
+                // dopa: ...
+                // headless: ...
+            }
+        }
+    }
+
+    private async performDopaPopStatusVerification(params: PerformDopaPopStatusVerificationParams): Promise<VerifyDopaInternalResult> {
+        const logModel = LogModel.getInstance(); // Assumes LogModel is initialized by the caller
+        const logStepModel = createLogModel(LOG_APPS.VERIFY, '[DOPA] Perform POP Status Verification', logModel);
+
+        const apigeeClient = new ApigeeClientAdapter();
+
+        // Date of Birth is already decrypted and expected to be DDMMYYYY.
+        // Timestamp for DOPA request, using Asia/Bangkok timezone.
+        const dopaTimestamp = dayjs().tz("Asia/Bangkok").format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+
+        const dopaApiPayload: VerifyDopaPOPStatusApiRequest = {
+            verifyDopaPOPstatus: {
+                requestId: params.correlatorId,
+                channel: "ECP", // Fixed value from DOPA spec page 1
+                idNumber: params.idNumber,     // Decrypted ID Card number
+                dateOfBirth: params.dateOfBirth, // Decrypted DOB, format DDMMYYYY
+                timeStamp: dopaTimestamp,
+            }
+        };
+
+        // Add MSSIDN (decrypted mobile number) if available and journey requires it
+        // For 'new_device_bundle', MSSIDN is optional in DOPA request.
+        // It might be used for specific DOPA checks or logging.
+        if (params.mobileNumber) {
+            dopaApiPayload.verifyDopaPOPstatus.MSSIDN = params.mobileNumber;
+        }
+
+        logStepModel.request = dopaApiPayload; // Log the request payload to DOPA
+
+        try {
+            const response = await apigeeClient.verifyDopaPOPStatus(dopaApiPayload);
+            logService(dopaApiPayload, response, logStepModel); // Log DOPA success response
+
+            const { resultResponse } = response.data;
+
+            if (resultResponse && resultResponse.resultCode === "200") {
+                if (resultResponse.resultInfo && resultResponse.resultInfo.code === "00") {
+                    // As per "TO BE" on DOPA spec page 3, flagBypass is now present
+                    if (resultResponse.resultInfo.flagBypass === "N") {
+                        return { status: 'success', dopaResponse: resultResponse.resultInfo };
+                    } else if (resultResponse.resultInfo.flagBypass === "Y") {
+                        return { status: 'bypass', dopaResponse: resultResponse.resultInfo };
+                    } else {
+                        // Fallback if flagBypass is missing or has an unexpected value, treat as fail.
+                        return { status: 'fail', dopaResponse: resultResponse.resultInfo, errorMessage: "Missing or invalid flagBypass in DOPA success response" };
+                    }
+                } else {
+                    // resultCode is 200, but resultInfo.code is not "00" (e.g., "04" or "06" from DOPA spec page 3)
+                    // or resultInfo is missing
+                    return { status: 'fail', dopaResponse: resultResponse.resultInfo, errorMessage: resultResponse.resultMessage || "DOPA verification failed with code: " + resultResponse.resultInfo?.code };
+                }
+            } else {
+                // resultCode is not "200" (e.g., "421" from DOPA spec page 3)
+                return { status: 'fail', dopaResponse: resultResponse?.resultInfo, errorMessage: resultResponse?.resultMessage || "DOPA verification returned non-200 result code" };
+            }
+
+        } catch (error: any) {
+            logService(dopaApiPayload, error, logStepModel); // Log DOPA failure/error response
+            if (error instanceof AxiosError && error.response) {
+                // Handle specific HTTP status codes from APIGEE/DOPA
+                // As per "Enhance auto bypass" on DOPA spec page 2 for 5xx errors
+                if (error.response.status >= 500 && error.response.status <= 599) {
+                    return { status: 'bypass', errorMessage: `DOPA Gateway error (HTTP ${error.response.status}): ${error.response.data?.message || error.message}` };
+                }
+                // For other HTTP errors (e.g., 4xx from APIGEE proxy itself)
+                return { status: 'fail', errorMessage: `APIGEE/DOPA request failed (HTTP ${error.response.status}): ${error.response.data?.message || error.message}` };
+            }
+            // Network errors or other issues not related to HTTP response
+            return { status: 'fail', errorMessage: error.message || 'Unknown error during DOPA POP status verification' };
+        }
+    }
+
+    // Stub for Headless Non-Commerce Verification (Not part of VECOM-4491 minimal changes)
+    private async verifyHeadlessNonCommerce(params: any): Promise<any> {
+        // This would return a structure to populate parts of INewDeviceBundleVerifyResult
+        return {
+            // Example structure, to be defined by headless spec
+            lock3StepStatus: 'skip',
+            fortyFiveDayNonShopStatus: 'skip',
+            thaiId5NumberStatus: 'skip',
+            maxAllowStatus: 'skip',
+            checkCrossStatus: 'skip',
+            scoreStatus: 'skip',
+            scoreValue: null,
+            totalProductTrue: null,
+        };
+    }
 }
