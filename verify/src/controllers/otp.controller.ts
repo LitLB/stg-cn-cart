@@ -15,7 +15,6 @@ export class OtpController {
         this.otpService = new OtpService();
         this.requestOtp = this.requestOtp.bind(this);
         this.verifyOtp = this.verifyOtp.bind(this);
-        this.getCustomerProfile = this.getCustomerProfile.bind(this);
         this.getPackageOffer = this.getPackageOffer.bind(this);
         this.handleCustomerVerification = this.handleCustomerVerification.bind(this);
     }
