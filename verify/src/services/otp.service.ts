@@ -1,12 +1,15 @@
+// src/services/otp.service.ts
+
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone"; // Required for specific timezone formatting
 
 
 import ApigeeClientAdapter, { apigeeClientAdapter } from "../adapters/apigee-client.adapter";
 import { readConfiguration } from "../utils/config.utils";
 import { getOTPReferenceCodeFromArray } from "../utils/array.utils";
 import { generateTransactionId } from "../utils/date.utils";
-import { convertToThailandMobile } from "../utils/formatter.utils";
+import { convertToThailandMobile, safeStringify } from "../utils/formatter.utils"; // Added safeStringify
 import { validateOperator } from "../utils/operator.utils";
 import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client"
 import { getValueByKey } from "../utils/object.utils";
@@ -26,6 +29,7 @@ import { VERIFY_DOPA_POP_STATUS_CHANNEL } from "../constants/verify.constant";
 import { omniService } from "./omni.service";
 
 dayjs.extend(utc);
+dayjs.extend(timezone); // Extend dayjs with timezone plugin
 
 export class OtpService {
 

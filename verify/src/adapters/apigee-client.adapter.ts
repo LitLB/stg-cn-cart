@@ -2,7 +2,7 @@ import axios, { AxiosResponse } from 'axios'
 import { readConfiguration } from "../utils/config.utils";
 import * as crypto from 'crypto';
 import { IGetProfileDtacRequest, IGetProfileTrueRequest, RequestOTPToApigee, VerifyOTPToApigee } from '../interfaces/otp.interface';
-
+import { VerifyDopaPOPStatusApiRequest, VerifyDopaPOPStatusApiResponse } from '../interfaces/dopa.interface';
 
 class ApigeeClientAdapter {
     private readonly client: any
@@ -249,6 +249,30 @@ class ApigeeClientAdapter {
         };
         const url = `/loyaltyManagement/v1/loyaltyProgramMember?relatedParty.id=${relatedPartyId}&relatedParty.href=${relatedPartyHref}&type=true&customerIdnNo=${mobileNumber}&fields=hasCard%3BtrueCard%3BaccountGrade%3BadditionalData%3BmainPointsBalance%3BisEmployee%3BhasProduct%3BhasTrueId%3BredemptionEnabled%3BfirstName%3BlastName%3Bmultiplier%3BloyaltyCustomerId&idnType=TMH&extensions=trueCard%2CaccountGrade%2CadditionalData`;
         const response: AxiosResponse = await this.client.get(`${url}`, { headers });
+        return response;
+    }
+
+    async verifyDopaPOPStatus(payload: VerifyDopaPOPStatusApiRequest): Promise<AxiosResponse<VerifyDopaPOPStatusApiResponse>> {
+        // No need to call this.init() if using separate API key for this endpoint
+        // However, if it uses the same oauth token, then this.init() is needed.
+        // Based on spec, it seems to use 'x-api-key', not Bearer token for this proxy.
+        // If it ALSO needs Bearer, then uncomment:
+        // await this.init();
+
+        const headers: Record<string, string> = { // Define headers type
+            'Content-Type': 'application/json',
+            'x-api-key': this.apigeeConfig.apiKey
+        };
+        // If Bearer token is also needed:
+        // if (this.accessToken) {
+        //     headers['Authorization'] = `Bearer ${this.accessToken}`;
+        // } else {
+        //      await this.init(); // Ensure token is fetched if not present
+        //      headers['Authorization'] = `Bearer ${this.accessToken}`;
+        // }
+
+        const url = '/proxy/verifyDopaPOPstatus'; // Path from OMX-verifyDopaPOPstatus-100225-042038.pdf
+        const response: AxiosResponse<VerifyDopaPOPStatusApiResponse> = await this.client.post(url, payload, { headers });
         return response;
     }
 }

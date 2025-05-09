@@ -12,5 +12,4 @@ otpRouter.get('/v1/preverify/otp/verify', validateVerifyOtp, handleValidationErr
 otpRouter.get('/v1/preverify/customer/verify', otpController.handleCustomerVerification)
 otpRouter.get('/v1/package/offer', validateCheckCustomerTier, handleValidationErrors, otpController.getPackageOffer)
 
-
 export default otpRouter;

@@ -34,6 +34,7 @@ export const readConfiguration = () => {
       clientId: process.env.APIGW_CLIENT_ID as string,
       clientSecret: process.env.APIGW_CLIENT_SECRET as string,
       privateKeyEncryption: process.env.APIGW_PRIVATE_KEY_ENCRYPTION as string,
+      apiKey: process.env.APIGW_API_KEY as string,
     },
     otp: {
       expireTime: process.env.OTP_NUMBER_MINUTE_EXPIRE as string,

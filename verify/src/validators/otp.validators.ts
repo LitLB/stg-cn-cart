@@ -1,5 +1,8 @@
-import { query, ValidationChain, validationResult } from 'express-validator';
+// src/validators/otp.validators.ts
+
+import { query, header, ValidationChain, validationResult, check } from 'express-validator';
 import { Request, Response, NextFunction } from 'express';
+import { CART_JOURNEYS } from '../constants/cart.constant';
 
 export const validateVerifyOtp: ValidationChain[] = [
     query('mobileNumber')
@@ -37,13 +40,11 @@ export const validateRequestOtp: ValidationChain[] = [
         .withMessage('mobileNumber must be a string'),
 ]
 
+// Modified validateCheckCustomerProfile 
 export const validateCheckCustomerProfile: ValidationChain[] = [
-    query('mobileNumber')
-        .exists({ checkFalsy: true })
-        .withMessage('mobileNumber is required')
-        .isString()
-        .withMessage('mobileNumber must be a string'),
-
+    header('correlatorid')
+        .exists({ checkFalsy: true }).withMessage('correlatorid header is required')
+        .isString().withMessage('correlatorid must be a string'),
     query('journey')
         .exists({ checkFalsy: true })
         .withMessage('journey is required')
@@ -66,6 +67,7 @@ export const validateCheckCustomerProfile: ValidationChain[] = [
         .notEmpty()
         .withMessage('verifyState must be a non-empty string'),
 ];
+// End of modified validateCheckCustomerProfile
 
 export const validateCheckCustomerTier: ValidationChain[] = [
     query('mobileNumber')
@@ -89,10 +91,13 @@ export const handleValidationErrors = (
 ) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        // Log validation errors for debugging
+        // logger.error("Validation Errors:", JSON.stringify(errors.array()));
         return res.status(400).json({
             statusCode: "400.1001",
             statusMessage: 'Input parameter is blank or invalid',
             errorCode: 'INPUT_PARAMETER_IS_BLANK_OR_INVALID',
+            // errors: errors.array() // Optionally include detailed errors in non-prod environments
         });
     }
     next();
