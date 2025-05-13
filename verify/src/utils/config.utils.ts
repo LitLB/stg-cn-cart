@@ -42,6 +42,12 @@ export const readConfiguration = () => {
       isMock: process.env.OTP_IS_MOCK as string,
       relatedPartyId: process.env.OTP_RELATED_PARTY_ID as string,
       relatedPartyHref: process.env.OTP_RELATED_PARTY_HREF as string,
+    },
+    omni: {
+      baseUrl: process.env.OMNI_BASE_URL as string || process.env.OMNI_BASE_URL as string,
+      apiKey: process.env.OMNI_API_KEY as string || process.env.OMNI_API_KEY as string,
+      timeout: process.env.OMNI_TIMEOUT ? parseInt(process.env.OMNI_TIMEOUT) : 30000,
+      maxRetries: process.env.OMNI_MAX_RETRIES ? parseInt(process.env.OMNI_MAX_RETRIES) : 3,
     }
   };
 

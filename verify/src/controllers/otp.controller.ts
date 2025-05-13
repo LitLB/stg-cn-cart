@@ -16,6 +16,7 @@ export class OtpController {
         this.requestOtp = this.requestOtp.bind(this);
         this.verifyOtp = this.verifyOtp.bind(this);
         this.getPackageOffer = this.getPackageOffer.bind(this);
+        this.handleCustomerVerification = this.handleCustomerVerification.bind(this);
     }
 
     public async requestOtp(req: Request, res: Response, next: NextFunction) {

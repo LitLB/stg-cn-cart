@@ -4,22 +4,17 @@ import { CART_JOURNEYS } from "../constants/cart.constant";
 import { VerificationStatus } from "./verify.interface"; // Import new type
 
 /**
- * Request payload for the verifyDopaPOPstatus APIGEE endpoint.
+ * Request payload for the verifyDopaPOPstatus OMNI endpoint.
  */
-export interface VerifyDopaPOPStatusRequestPayload {
-    requestId: string;
-    channel: string;
-    MSSIDN?: string; // Optional, used for new_device_bundle journey
-    idNumber: string;
-    dateOfBirth: string; // Format: DDMMYYYY
-    timeStamp: string;   // Format: ISO 8601
-}
-
-/**
- * Main request structure for the verifyDopaPOPstatus APIGEE endpoint.
- */
-export interface VerifyDopaPOPStatusApiRequest {
-    verifyDopaPOPstatus: VerifyDopaPOPStatusRequestPayload;
+export interface VerifyDopaPOPStatusRequestBody {
+    verifyDopaPOPstatus: {
+        requestId: string;
+        channel: string;
+        MSSIDN?: string; // Optional, used for new_device_bundle journey
+        idNumber: string;
+        dateOfBirth: string; // Format: DDMMYYYY
+        timeStamp: Date;
+    }
 }
 
 /**
@@ -42,9 +37,9 @@ export interface DopaResultResponse {
 }
 
 /**
- * Main response structure from the verifyDopaPOPstatus APIGEE endpoint.
+ * Main response structure from the verifyDopaPOPstatus OMNI endpoint.
  */
-export interface VerifyDopaPOPStatusApiResponse {
+export interface VerifyDopaPOPApiResponse {
     resultResponse: DopaResultResponse;
 }
 
