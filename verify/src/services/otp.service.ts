@@ -291,7 +291,7 @@ export class OtpService {
         }
     }
 
-    private async checkActive(operator: string, journey: string) {
+    private async checkActive(journey: string, operator: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.CT_CHECK_OPERATOR_JOURNEY_ACTIVATION, logModel);
         let checkJourneyActivationPayload
@@ -328,34 +328,61 @@ export class OtpService {
         }
     }
 
-    public async getCustomerProfile(id: string, mobileNumber: string, journey: string) {
-        const operator = await this.checkOperator(id, mobileNumber);
+    public async getCustomerProfile(id: string, journey: string, verifyStates: string[], mobileNumber: string) {
+        let operator: typeof OPERATOR[keyof typeof OPERATOR] = 'unknown';
+
+        // Step 2: Check operator
+        if (verifyStates.includes('operator')) {
+            operator = await this.checkOperator(id, mobileNumber);
+        }
+
         const [_, response] = await Promise.all([
-            // * Check operator active
-            this.checkActive(operator, journey),
-            // * Get Profile & Package
-            this.getProfileAndPackage(id, operator, mobileNumber),
-            this.checkSharePlan(operator, mobileNumber)
+            // Step 2: Check operator (verify company)
+            verifyStates.includes('operator')
+                ? this.checkActive(journey, operator)
+                : Promise.resolve(),
+
+            // Step 3: Check profile & package
+            verifyStates.includes('profileAndPackage')
+                ? this.getProfileAndPackage(id, operator, mobileNumber)
+                : Promise.resolve(),
+
+            // Step 4: Check share plan for DTAC only
+            verifyStates.includes('sharePlan')
+                ? this.checkSharePlan(operator, mobileNumber)
+                : Promise.resolve()
         ]);
 
-        const customerProfile = operator === OPERATOR.TRUE
-            ? validateCustomerTrueProfile(response.data)
-            : validateCustomerDtacProfile(response.data);
+        let customerProfile
+
+        // Step 3: Check profile & package
+        if (verifyStates.includes('profileAndPackage')) {
+            if (operator === OPERATOR.TRUE) {
+                customerProfile = validateCustomerTrueProfile(response.data);
+            }
+            if (operator === OPERATOR.DTAC) {
+                customerProfile = validateCustomerDtacProfile(response.data);
+            }
+        }
 
         // Run post-checks concurrently.
         await Promise.all([
-            // * Check backlist
-            this.checkBacklist(id, customerProfile.thaiId, operator, customerProfile.customerNo),
-            // * Check Contract & Quota
-            this.checkContractAndQuota(id, operator, customerProfile.thaiId, customerProfile.agreementId)
+            // Step 5: Check blacklist
+            verifyStates.includes('blacklist')
+                ? this.checkBacklist(id, operator, customerProfile?.thaiId, customerProfile?.customerNo)
+                : Promise.resolve(),
+
+            // Step 6: Check contract & quota (DTAC only)
+            verifyStates.includes('contractAndQuota')
+                ? this.checkContractAndQuota(id, operator, customerProfile?.thaiId, customerProfile?.agreementId)
+                : Promise.resolve(),
         ]);
 
         return customerProfile;
     }
 
     private async checkSharePlan(operator: string, mobileNumber: string) {
-
-        if (operator === OPERATOR.TRUE) return
+        if (operator !== OPERATOR.DTAC) return;
 
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_SHARE_PLAN, logModel);
@@ -376,6 +403,8 @@ export class OtpService {
     }
 
     private async getProfileAndPackage(id: string, operator: string, mobileNumber: string) {
+        if (operator !== OPERATOR.TRUE && operator !== OPERATOR.DTAC) return;
+
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_GET_PROFILE_AND_PACKAGE, logModel);
         const apigeeClientAdapter = new ApigeeClientAdapter();
@@ -412,7 +441,7 @@ export class OtpService {
         }
     }
 
-    private async checkBacklist(id: string, thaiId: string, operator: string, custValue?: string) {
+    private async checkBacklist(id: string, operator: string, thaiId?: string, custValue?: string) {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_BACKLIST, logModel);
 
@@ -420,6 +449,14 @@ export class OtpService {
             const apigeeClientAdapter = new ApigeeClientAdapter
 
             if (operator === OPERATOR.TRUE) {
+                if (!thaiId) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Thai ID value is required',
+                        errorCode: 'THAI_ID_VALUE_REQUIRED'
+                    }
+                }
+
                 const response = await apigeeClientAdapter.checkBacklistTrue(id, thaiId)
                 logService({ id, thaiId, operator }, response, logStepModel)
 
@@ -435,6 +472,14 @@ export class OtpService {
             }
 
             if (operator === OPERATOR.DTAC) {
+                if (!thaiId) {
+                    throw {
+                        statusCode: 400,
+                        statusMessage: 'Thai ID value is required',
+                        errorCode: 'THAI_ID_VALUE_REQUIRED'
+                    }
+                }
+
                 if (!custValue) {
                     throw {
                         statusCode: 400,
@@ -499,7 +544,7 @@ export class OtpService {
                 const decryptedThaiId = await apigeeClientAdapter.apigeeDecrypt(thaiId)
 
                 const newThaiId = encryptedOFB(decryptedThaiId, key)
-                
+
                 const response = await apigeeClientAdapter.getContractAndQuotaDtac(id, newThaiId)
                 logService({ id, operator, thaiId }, response.data, logStepModel)
                 const data = response.data

@@ -3,4 +3,4 @@ export const OPERATOR = {
     DTAC: 'dtac',
     OTHERS: 'others',
     UNKNOWN: 'unknown',
-}
+} as const
