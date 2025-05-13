@@ -49,24 +49,24 @@ export const validateCheckCustomerProfile: ValidationChain[] = [
         .exists({ checkFalsy: true }).withMessage('journey is required')
         .isString().withMessage('journey must be a string')
         .isIn(Object.values(CART_JOURNEYS)).withMessage(`Invalid journey value. Must be one of: ${Object.values(CART_JOURNEYS).join(', ')}`),
-    query('mobileNumber') // Optional for new_device_bundle unless specific verifyState (like DOPA with MSSIDN) needs it.
+    query('mobileNumber') // Optional for new_device_bundle unless specific customerVerifyStateFlow (like DOPA with MSSIDN) needs it.
         .optional({ checkFalsy: true }) // if present, must be a string
         .isString().withMessage('mobileNumber must be a string if provided'),
-    query('verifyState')
-        .exists({ checkFalsy: true }).withMessage('verifyState is required')
+    query('customerVerifyStateFlow')
+        .exists({ checkFalsy: true }).withMessage('customerVerifyStateFlow is required')
         .custom((value) => {
             if (typeof value === 'string' || (Array.isArray(value) && value.every(item => typeof item === 'string'))) {
                 return true;
             }
-            throw new Error('verifyState must be a string or an array of strings');
+            throw new Error('customerVerifyStateFlow must be a string or an array of strings');
         }),
 
-    // Conditional validations based on journey and verifyState
+    // Conditional validations based on journey and customerVerifyStateFlow
     check().custom((value, { req }) => {
-        const { journey, verifyState, certificationId, dateOfBirth, certificationType, campaignCode, productCode, propoId } = req.query;
+        const { journey, customerVerifyStateFlow, certificationId, dateOfBirth, certificationType, campaignCode, productCode, propoId } = req.query;
         
-        // Ensure verifyState is an array for easier checking
-        const statesToCheck = Array.isArray(verifyState) ? verifyState : (verifyState ? [verifyState] : []);
+        // Ensure customerVerifyStateFlow is an array for easier checking
+        const statesToCheck = Array.isArray(customerVerifyStateFlow) ? customerVerifyStateFlow : (customerVerifyStateFlow ? [customerVerifyStateFlow] : []);
 
         if (journey === CART_JOURNEYS.DEVICE_BUNDLE_NEW) {
             if (statesToCheck.includes('dopa')) {

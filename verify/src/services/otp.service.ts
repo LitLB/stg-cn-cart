@@ -23,6 +23,7 @@ import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.i
 import { PerformDopaPopStatusVerificationParams, VerifyDopaInternalResult, VerifyDopaPOPStatusApiRequest } from "../interfaces/dopa.interface";
 import { CustomerVerifyQueryParams, INewDeviceBundleVerifyResult } from "../interfaces/verify.interface";
 import { AxiosError } from "axios";
+import { CUSTOMER_VERIFY_STATE_FLOW_CONFIG_CONTAINER } from "../constants/ct.constant";
 
 dayjs.extend(utc);
 dayjs.extend(timezone); // Extend dayjs with timezone plugin
@@ -508,7 +509,7 @@ export class OtpService {
                 const decryptedThaiId = await apigeeClientAdapter.apigeeDecrypt(thaiId)
 
                 const newThaiId = encryptedOFB(decryptedThaiId, key)
-                
+
                 const response = await apigeeClientAdapter.getContractAndQuotaDtac(id, newThaiId)
                 logService({ id, operator, thaiId }, response.data, logStepModel)
                 const data = response.data
@@ -604,22 +605,45 @@ export class OtpService {
     }
 
     // TODO: Parent
-    // TODO: How to get?
+    // TODO: customerVerifyStateFlow will on BFF.
     public async handleCustomerVerification(
         correlatorid: string,
         queryParams: CustomerVerifyQueryParams
     ): Promise<ICheckCustomerProfileResponse | { verifyResult: INewDeviceBundleVerifyResult }> {
+        const verifyStateQueryParam = queryParams.customerVerifyStateFlow; // This is what comes from the GET request
         const {
+            // eslint-disable-next-line prefer-const
             journey,        // string
+            // eslint-disable-next-line prefer-const
             mobileNumber,   // string (Encrypted)
-            verifyState,    // string or string[]
+            // eslint-disable-next-line prefer-const
             certificationId, // string (Encrypted) - for new_device_bundle
+            // eslint-disable-next-line prefer-const
             dateOfBirth,    // string (Encrypted, DDMMYYYY) - for new_device_bundle
             // certificationType, // string - for headless
             // campaignCode,      // string - for headless
             // productCode,       // string - for headless
             // propoId            // string - for headless
         } = queryParams;
+        let processedVerifyState: string | string[];
+
+        if (!verifyStateQueryParam) {
+            const customObject = await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey(
+                CUSTOMER_VERIFY_STATE_FLOW_CONFIG_CONTAINER,
+                CART_JOURNEYS.DEVICE_BUNDLE_NEW // Or dynamically based on journey query param
+            );
+            // Process the customObject.value to get an array of active states
+            if (customObject && typeof customObject.value === 'object' && customObject.value !== null) {
+                processedVerifyState = Object.entries(customObject.value)
+                    .filter(([key, isActive]) => isActive === true)
+                    .map(([key]) => key); // This will be like ["dopa", "hlPreverFull", ...]
+            } else {
+                processedVerifyState = []; // Or handle error: configuration not found/invalid
+            }
+        } else {
+            processedVerifyState = verifyStateQueryParam;
+        }
+        console.log('processedVerifyState', processedVerifyState);
 
         if (journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
             return await this.getCustomerProfile(correlatorid, mobileNumber, journey);
@@ -663,7 +687,7 @@ export class OtpService {
                 throw { statusCode: "500", statusMessage: "Critical input decryption failed", data: decryptionError };
             }
 
-            const statesToVerify = Array.isArray(verifyState) ? verifyState : (verifyState ? [verifyState] : []);
+            const statesToVerify = Array.isArray(processedVerifyState) ? processedVerifyState : (processedVerifyState ? [processedVerifyState] : []);
 
             if (statesToVerify.includes('dopa')) {
                 if (!decryptedCertificationId || !decryptedDateOfBirth) {
@@ -679,7 +703,7 @@ export class OtpService {
                     verifyResult.verifyDopaStatus = dopaInternalResult.status;
                 }
             } else {
-                verifyResult.verifyDopaStatus = 'skip'; // Skip if 'dopa' is not in verifyState
+                verifyResult.verifyDopaStatus = 'skip'; // Skip if 'dopa' is not in customerVerifyStateFlow
             }
 
             // Placeholder for Headless Non-Commerce logic (as per VECOM-4491, this is a stub for now)
