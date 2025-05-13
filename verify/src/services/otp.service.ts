@@ -488,7 +488,8 @@ export class OtpService {
                     }
                 }
 
-                const response = await apigeeClientAdapter.checkBacklistDtac(id, thaiId, custValue)
+                const decryptedThaiId = await apigeeClientAdapter.apigeeDecrypt(thaiId)
+                const response = await apigeeClientAdapter.checkBacklistDtac(id, decryptedThaiId, custValue)
 
                 logService({ id, thaiId, operator }, response, logStepModel)
                 const { status } = response.data
