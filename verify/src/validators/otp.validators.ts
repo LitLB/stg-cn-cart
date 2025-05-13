@@ -49,6 +49,22 @@ export const validateCheckCustomerProfile: ValidationChain[] = [
         .withMessage('journey is required')
         .isString()
         .withMessage('journey must be a string'),
+
+    query('verifyState')
+        .exists({ checkFalsy: true })
+        .withMessage('verifyState is required')
+        .bail()
+        .customSanitizer(value => {
+            if (Array.isArray(value)) return value;
+            if (typeof value === 'string') return [value];
+            return [];
+        }),
+
+    query('verifyState.*')
+        .isString()
+        .withMessage('verifyState must be a string')
+        .notEmpty()
+        .withMessage('verifyState must be a non-empty string'),
 ];
 
 export const validateCheckCustomerTier: ValidationChain[] = [
