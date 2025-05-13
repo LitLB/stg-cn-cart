@@ -1,3 +1,4 @@
+/* eslint-disable no-case-declarations */
 // src/services/otp.service.ts
 
 import dayjs from "dayjs";
@@ -19,13 +20,12 @@ import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile, validateSharePlan } from "../validators/operator.validators";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
 import { CART_JOURNEYS } from "../constants/cart.constant";
-import { PerformDopaPopStatusVerificationParams, VerifyDopaInternalResult, VerifyDopaPOPStatusApiRequest } from "../interfaces/dopa.interface";
+import { VerifyDopaPOPStatusRequestBody } from "../interfaces/dopa.interface";
 import { CustomerVerificationData, CustomerVerifyQueryParams } from "../interfaces/verify.interface";
-import { AxiosError } from "axios";
-import { CUSTOMER_VERIFY_STATE_FLOW_CONFIG_CONTAINER } from "../constants/ct.constant";
 import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
 import { omniService } from "./omni.service";
 import { VERIFY_DOPA_POP_STATUS_CHANNEL } from "../constants/verify.constant";
+import { CUSTOMER_VERIFY_STATES } from "../constants/ct.constant";
 
 dayjs.extend(utc);
 dayjs.extend(timezone); // Extend dayjs with timezone plugin
@@ -607,18 +607,19 @@ export class OtpService {
     }
 
     // TODO: Parent
-    // TODO: customerVerifyStateFlow will on BFF.
+    // TODO: verifyState will on BFF.
+    // {"journey":"device_bundle_new","verifyState":"dopa","certificationId":"gwD4BuVTabasxGfX5z2fCL2DHUA3sxonqpRkHEfdHkZl0OZCVDrSPm7n8PXFW3CO","certificationType":"I","dateOfBirth":"ex//LGC9s9poK5HhPBeZ9wJlagAMMvp6VmHAcpqEsp4=","campaignCode":"JN120","productCode":"3000112512","propoId":"0196625"}
+    // {"journey":"device_bundle_new","verifyState":"hlPreverFull","certificationId":"gwD4BuVTabasxGfX5z2fCL2DHUA3sxonqpRkHEfdHkZl0OZCVDrSPm7n8PXFW3CO","certificationType":"I","dateOfBirth":"ex//LGC9s9poK5HhPBeZ9wJlagAMMvp6VmHAcpqEsp4=","campaignCode":"JN120","productCode":"3000112512","propoId":"0196625"}
     public async handleCustomerVerification(
         correlatorid: string,
         queryParams: CustomerVerifyQueryParams
     ): Promise<ICheckCustomerProfileResponse | CustomerVerificationData> {
-    // ): Promise<any> {
-        const verifyStateQueryParam = queryParams.customerVerifyStateFlow; // This is what comes from the GET request
+        // ): Promise<any> {
+        const mobileNumber = queryParams.mobileNumber as string; // intended override
         const {
             // eslint-disable-next-line prefer-const
             journey,        // string
             // eslint-disable-next-line prefer-const
-            mobileNumber,   // string (Encrypted)
             // eslint-disable-next-line prefer-const
             certificationId, // string (Encrypted) - for new_device_bundle
             // eslint-disable-next-line prefer-const
@@ -627,63 +628,49 @@ export class OtpService {
             // campaignCode,      // string - for headless
             // productCode,       // string - for headless
             // propoId            // string - for headless
+            verifyState,
         } = queryParams;
-        let processedVerifyState: string | string[];
-
-        if (!verifyStateQueryParam) {
-            const customObject = await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey(
-                CUSTOMER_VERIFY_STATE_FLOW_CONFIG_CONTAINER,
-                CART_JOURNEYS.DEVICE_BUNDLE_NEW // Or dynamically based on journey query param
-            );
-            // Process the customObject.value to get an array of active states
-            if (customObject && typeof customObject.value === 'object' && customObject.value !== null) {
-                processedVerifyState = Object.entries(customObject.value)
-                    .filter(([key, isActive]) => isActive === true)
-                    .map(([key]) => key); // This will be like ["dopa", "hlPreverFull", ...]
-            } else {
-                processedVerifyState = []; // Or handle error: configuration not found/invalid
-            }
-        } else {
-            processedVerifyState = verifyStateQueryParam;
-        }
-        console.log('processedVerifyState', processedVerifyState);
 
         if (journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
             const customerProfile: ICheckCustomerProfileResponse = await this.getCustomerProfile(correlatorid, mobileNumber, journey);
             return customerProfile;
         } else {
-            const statesToVerify = Array.isArray(processedVerifyState) ? processedVerifyState : (processedVerifyState ? [processedVerifyState] : []);
-            const [decryptedCertificationId, decryptedDateOfBirth, decryptedMobileNumber] = await Promise.all([
-                apigeeClientAdapter.apigeeDecrypt(certificationId),
-                apigeeClientAdapter.apigeeDecrypt(dateOfBirth),
-                apigeeClientAdapter.apigeeDecrypt(mobileNumber),
-            ])
+            switch (verifyState) {
+                case CUSTOMER_VERIFY_STATES.dopa:
+                    let decryptedMobileNumber;
+                    const decryptedCertificationId = await apigeeClientAdapter.apigeeDecrypt(certificationId);
+                    const decryptedDateOfBirth = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
 
-            const verifyDopaPOPStatusRequestBody = {
-                verifyDopaPOPstatus: {
-                    requestId: correlatorid,
-                    channel: VERIFY_DOPA_POP_STATUS_CHANNEL.CRM,
-                    idNumber: decryptedCertificationId,
-                    dateOfBirth: decryptedDateOfBirth,
-                    MSSIDN: decryptedMobileNumber,
-                    timeStamp: new Date(),
-                },
-            };
-            const verifyDopaPOPStatusResponse = await omniService.verifyDopaPOPStatus(verifyDopaPOPStatusRequestBody);
-            console.log('verifyDopaPOPStatusResponse', verifyDopaPOPStatusResponse);
+                    if (mobileNumber) {
+                        decryptedMobileNumber = await apigeeClientAdapter.apigeeDecrypt(mobileNumber);
+                    }
 
-            // Placeholder for Headless Non-Commerce logic (as per VECOM-4491, this is a stub for now)
-            if (statesToVerify.includes('hlPreverFull') || statesToVerify.includes('hl4DScore')) {
-                logger.info(`[Stub] Headless non-commerce verification would be called for states: ${statesToVerify.join(', ')}`);
-                // const headlessParams = { /* ... */ };
-                // const headlessResult = await this.verifyHeadlessNonCommerce(headlessParams);
-                // Update verifyResult based on headlessResult (e.g., verifyLock3StepStatus, etc.)
-                // For now, keeping them as 'skip' or their initial 'pending'
-            }
+                    const verifyDopaPOPStatusRequestBody: VerifyDopaPOPStatusRequestBody = {
+                        verifyDopaPOPstatus: {
+                            requestId: correlatorid,
+                            channel: VERIFY_DOPA_POP_STATUS_CHANNEL.CRM,
+                            idNumber: decryptedCertificationId,
+                            dateOfBirth: decryptedDateOfBirth,
+                            timeStamp: new Date(),
+                        },
+                    };
 
-            return {
-                ...verifyDopaPOPStatusResponse
-                // headless: ...
+                    if (decryptedMobileNumber) {
+                        verifyDopaPOPStatusRequestBody.verifyDopaPOPstatus.MSSIDN = decryptedMobileNumber;
+                    }
+
+                    const verifyDopaPOPStatusResponse = await omniService.verifyDopaPOPStatus(verifyDopaPOPStatusRequestBody);
+                    console.log('verifyDopaPOPStatusResponse', verifyDopaPOPStatusResponse);
+                    // return verifyDopaPOPStatusResponse
+                    break;
+                case CUSTOMER_VERIFY_STATES.hlPreverFull:
+                    console.log('a');
+                    break;
+                case CUSTOMER_VERIFY_STATES.hl4DScore:
+                    console.log('a');
+                    break;
+                default:
+                    throw new Error(`This verifyState = ${verifyState} is unsupported`)
             }
         }
     }

@@ -107,6 +107,8 @@ export class OtpController {
         try {
             const { correlatorid } = req.headers;
 
+            console.log('req.query', req.query);
+
             const customerVerification = await this.otpService.handleCustomerVerification(
                 correlatorid as string,
                 req.query as unknown as CustomerVerifyQueryParams,

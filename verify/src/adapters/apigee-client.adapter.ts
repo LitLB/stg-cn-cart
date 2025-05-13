@@ -2,7 +2,7 @@ import axios, { AxiosResponse } from 'axios'
 import { readConfiguration } from "../utils/config.utils";
 import * as crypto from 'crypto';
 import { IGetProfileDtacRequest, IGetProfileTrueRequest, RequestOTPToApigee, VerifyOTPToApigee } from '../interfaces/otp.interface';
-import { VerifyDopaPOPStatusApiRequest, VerifyDopaPOPApiResponse } from '../interfaces/dopa.interface';
+
 
 class ApigeeClientAdapter {
     private readonly client: any
@@ -77,6 +77,7 @@ class ApigeeClientAdapter {
             // Return the decrypted text as a UTF-8 string
             return decryptedBuffer.toString('utf-8');
         } catch (error: any) {
+            console.error('apigeeDecrypt.error:', error.message, error.stack);
 
             const normalizedError = {
                 statusCode: 400,
@@ -252,32 +253,49 @@ class ApigeeClientAdapter {
         return response;
     }
 
-    async verifyDopaPOPStatus(payload: VerifyDopaPOPStatusApiRequest): Promise<AxiosResponse<VerifyDopaPOPApiResponse>> {
-        // No need to call this.init() if using separate API key for this endpoint
-        // However, if it uses the same oauth token, then this.init() is needed.
-        // Based on spec, it seems to use 'x-api-key', not Bearer token for this proxy.
-        // If it ALSO needs Bearer, then uncomment:
-        // await this.init();
+    /**
+   * Decrypts data that was encrypted by the client-side 'apigeeEncrypt' function.
+   * This uses a fixed 32-byte key derivation for AES-256.
+   * @param encryptedInputBase64 - The Base64 encoded encrypted string from the client.
+   * @returns The decrypted plaintext string.
+   */
+    async decryptDataFromClient(encryptedInputBase64: string): Promise<string> {
+        try {
+            const ivSize = 16; // AES block size / IV size for CBC
+            const keyString = this.config.apigee.privateKeyEncryption; // The raw key string from config
 
-        const headers: Record<string, string> = { // Define headers type
-            'Content-Type': 'application/json',
-            'x-api-key': this.apigeeConfig.apiKey
-        };
-        // If Bearer token is also needed:
-        // if (this.accessToken) {
-        //     headers['Authorization'] = `Bearer ${this.accessToken}`;
-        // } else {
-        //      await this.init(); // Ensure token is fetched if not present
-        //      headers['Authorization'] = `Bearer ${this.accessToken}`;
-        // }
+            const combinedIvAndCiphertext = Buffer.from(encryptedInputBase64, 'base64');
 
-        const url = '/proxy/verifyDopaPOPstatus'; // Path from OMX-verifyDopaPOPstatus-100225-042038.pdf
-        const response: AxiosResponse<VerifyDopaPOPApiResponse> = await this.client.post(url, payload, { headers });
-        return response;
+            const iv = combinedIvAndCiphertext.slice(0, ivSize);
+            const ciphertext = combinedIvAndCiphertext.slice(ivSize);
+
+            // Key derivation: SHA-256 hash of the keyString, then take first 32 bytes for AES-256.
+            // This matches the client's encryption logic.
+            const hash = crypto.createHash('sha256');
+            hash.update(Buffer.from(keyString, 'utf-8'));
+            const derivedKeyBytes = hash.digest().slice(0, 32); // Use 32 bytes for AES-256
+
+            const decipher = crypto.createDecipheriv('aes-256-cbc', derivedKeyBytes, iv);
+            // PKCS#7 padding is handled automatically by Node.js crypto if it was used during encryption.
+            // Client-side used setAutoPadding(true), which is default PKCS#7.
+
+            let decrypted = decipher.update(ciphertext);
+            decrypted = Buffer.concat([decrypted, decipher.final()]);
+
+            return decrypted.toString('utf-8');
+        } catch (error: any) {
+            console.error('decryptDataFromClient Error:', error.message, error.stack);
+            const normalizedError = {
+                statusCode: 400,
+                statusMessage: "Client data decryption failed. Invalid format or key.",
+                errorCode: "FAILED_TO_DECRYPT_CLIENT_DATA"
+            };
+            throw normalizedError;
+        }
     }
+
 }
 
 export const apigeeClientAdapter = new ApigeeClientAdapter();
-
 
 export default ApigeeClientAdapter

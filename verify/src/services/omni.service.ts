@@ -40,7 +40,7 @@ export class OmniService extends ApiClientService {
         const url = '/proxy/verifyDopaPOPstatus'; // As per the provided DOPA spec
         const config: AxiosRequestConfig = {
             headers: {
-                'x-api-key': this.omniApiKey,
+                'ApiKey': this.omniApiKey,
             },
         };
         const response = await this.post<VerifyDopaPOPApiResponse>(url, body, config);
