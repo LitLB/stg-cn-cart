@@ -1,15 +1,16 @@
 import { Cart } from '@commercetools/platform-sdk';
-import { IAdapter } from '../interfaces/adapter.interface';
+import { IAdapter, AdapterConstructor } from '../interfaces/adapter.interface';
 import { ICartStrategy } from '../interfaces/cart';
 
-export class BaseCartStrategy implements ICartStrategy {
-  protected adapters: Record<string, any> = {};
+export class BaseCartStrategy<T extends Record<string, IAdapter>> implements ICartStrategy {
+ 
+  protected adapters: T = {} as T;
 
-  constructor(...args: (new () => IAdapter)[]) {
-    args.forEach((arg) => {
-      const adapter = new arg();
-      this.adapters[adapter.name] = adapter;
-    });
+  constructor(...args: Array<AdapterConstructor<keyof T & string, T[keyof T & string]>>) {
+      args.forEach((arg) => {
+        const adapter = new arg();
+        this.adapters[adapter.name as keyof T & string] = adapter;
+      });
   }
 
   set accessToken(value: string) {

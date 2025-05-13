@@ -22,17 +22,25 @@ import { updateCartFlag, validateInventory } from '../utils/cart.utils';
 import { TalonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { CouponService } from '../services/coupon.service';
 import { TalonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
+import { AdapterConstructor } from '../interfaces/adapter.interface';
 
-export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy {
+export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
+  'commercetoolsMeCartClient': CommercetoolsMeCartClient,
+  'commercetoolsProductClient': CommercetoolsProductClient,
+  'commercetoolsCartClient': CommercetoolsCartClient,
+  'commercetoolsInventoryClient': CommercetoolsInventoryClient,
+  'talonOneEffectConverter': TalonOneEffectConverter,
+  'talonOneIntegrationAdapter': TalonOneIntegrationAdapter
+}> {
   private couponService: CouponService;
 
   constructor() {
     super(
-      CommercetoolsProductClient,
-      CommercetoolsCartClient,
-      CommercetoolsInventoryClient,
-      TalonOneEffectConverter,
-      TalonOneIntegrationAdapter
+      CommercetoolsProductClient as AdapterConstructor<'commercetoolsProductClient', CommercetoolsProductClient>,
+      CommercetoolsCartClient as AdapterConstructor<'commercetoolsCartClient', CommercetoolsCartClient>,
+      CommercetoolsInventoryClient as AdapterConstructor<'commercetoolsInventoryClient', CommercetoolsInventoryClient>,
+      TalonOneEffectConverter as AdapterConstructor<'talonOneEffectConverter', TalonOneEffectConverter>,
+      TalonOneIntegrationAdapter as AdapterConstructor<'talonOneIntegrationAdapter', TalonOneIntegrationAdapter>,
     );
 
     this.couponService = new CouponService();
@@ -809,7 +817,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy {
       const [foundJourney] =
         this.adapters.commercetoolsProductClient.findProductJourney(product);
       journey = foundJourney?.key
-        ? foundJourney.key
+        ? foundJourney.key as CART_JOURNEYS
         : CART_JOURNEYS.SINGLE_PRODUCT;
     } else {
       journey = payloadJourney as CART_JOURNEYS;

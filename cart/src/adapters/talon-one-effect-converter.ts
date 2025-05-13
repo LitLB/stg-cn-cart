@@ -32,7 +32,7 @@ const getAddOnType = (promotionDetailType: PromotionDetailType) => {
 };
 
 export class TalonOneEffectConverter implements IAdapter {
-	public name = 'talonOneEffectConverter'
+	public readonly name = 'talonOneEffectConverter' as const
 	private readonly ctProductClient;
 	private readonly talonOneIntegrationAdapter;
 	constructor() {
