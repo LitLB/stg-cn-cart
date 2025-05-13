@@ -6,7 +6,7 @@ import { logger } from "../utils/logger.utils";
 import { validateCouponLimit } from "../validators/coupon.validator";
 
 export class TalonOneIntegrationAdapter {
-	public name = 'talonOneIntegrationAdapter'
+	public readonly name = 'talonOneIntegrationAdapter' as const
 	private readonly integrationApi: talonOne.IntegrationApi;
 	constructor() {
 		const defaultClient = talonOne.ApiClient.instance;

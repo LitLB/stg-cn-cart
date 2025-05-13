@@ -20,7 +20,7 @@ import _ from 'lodash';
 
 
 export class CommercetoolsCartClient implements IAdapter {
-	public name = 'commercetoolsCartClient'
+	public readonly name = 'commercetoolsCartClient' as const
 	private static instance: CommercetoolsCartClient;
 	private apiRoot: ApiRoot;
 	private projectKey: string;

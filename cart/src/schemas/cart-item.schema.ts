@@ -65,7 +65,7 @@ export function validateSelectCartItemBody(body: any) {
 					package: Joi.object({
 						code: Joi.string().required().messages({
 							'string.empty': 'Package Code cannot be empty',
-							'any.required': 'Product Code is required',
+							'any.required': 'Package Code is required',
 						}),
 					}).optional(),
 					sim: Joi.object({
@@ -209,7 +209,7 @@ export function validateAddItemCartBody(body: any) {
 		package: Joi.object({
 			code: Joi.string().required().messages({
 				'string.empty': 'Package Code cannot be empty',
-				'any.required': 'Product Code is required',
+				'any.required': 'Package Code is required',
 			}),
 		}).optional(),
 		sim: Joi.object({
@@ -334,7 +334,7 @@ export function validateUpdateCartItemBody(body: any) {
 		package: Joi.object({
 			code: Joi.string().required().messages({
 				'string.empty': 'Package Code cannot be empty',
-				'any.required': 'Product Code is required',
+				'any.required': 'Package Code is required',
 			}),
 		}).optional(),
 		sim: Joi.object({
