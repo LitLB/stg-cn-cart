@@ -26,6 +26,7 @@ import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.i
 import { omniService } from "./omni.service";
 import { VERIFY_DOPA_POP_STATUS_CHANNEL } from "../constants/verify.constant";
 import { CUSTOMER_VERIFY_STATES } from "../constants/ct.constant";
+import { EXCEPTION_MESSAGES } from "../utils/messages.utils";
 
 dayjs.extend(utc);
 dayjs.extend(timezone); // Extend dayjs with timezone plugin
@@ -606,71 +607,117 @@ export class OtpService {
         }
     }
 
-    // TODO: Parent
-    // TODO: verifyState will on BFF.
-    // {"journey":"device_bundle_new","verifyState":"dopa","certificationId":"gwD4BuVTabasxGfX5z2fCL2DHUA3sxonqpRkHEfdHkZl0OZCVDrSPm7n8PXFW3CO","certificationType":"I","dateOfBirth":"ex//LGC9s9poK5HhPBeZ9wJlagAMMvp6VmHAcpqEsp4=","campaignCode":"JN120","productCode":"3000112512","propoId":"0196625"}
-    // {"journey":"device_bundle_new","verifyState":"hlPreverFull","certificationId":"gwD4BuVTabasxGfX5z2fCL2DHUA3sxonqpRkHEfdHkZl0OZCVDrSPm7n8PXFW3CO","certificationType":"I","dateOfBirth":"ex//LGC9s9poK5HhPBeZ9wJlagAMMvp6VmHAcpqEsp4=","campaignCode":"JN120","productCode":"3000112512","propoId":"0196625"}
+    private async performVerifyDopaStatus(
+        correlatorid: string,
+        decryptedCertificationId: string,
+        decryptedDateOfBirth: string,
+        decryptedMobileNumber?: string
+    ): Promise<CustomerVerificationData> {
+        const verifyDopaPOPStatusRequestBody: VerifyDopaPOPStatusRequestBody = {
+            verifyDopaPOPstatus: {
+                requestId: correlatorid,
+                channel: VERIFY_DOPA_POP_STATUS_CHANNEL.CRM,
+                idNumber: decryptedCertificationId,
+                dateOfBirth: decryptedDateOfBirth,
+                timeStamp: new Date(),
+            },
+        };
+
+        if (decryptedMobileNumber) {
+            verifyDopaPOPStatusRequestBody.verifyDopaPOPstatus.MSSIDN = decryptedMobileNumber;
+        }
+
+        const response: CustomerVerificationData = {
+            verifyResult: {
+                verifyDopaStatus: 'skip',
+            }
+        }
+
+        try {
+            const verifyDopaPOPStatusResponse = await omniService.verifyDopaPOPStatus(verifyDopaPOPStatusRequestBody);
+            const { resultCode, resultInfo } = verifyDopaPOPStatusResponse?.resultResponse || {};
+            const { code, flagBypass } = resultInfo || {};
+
+            if (resultCode === '200' && code === '00') {
+                if (flagBypass === 'N') {
+                    response.verifyResult.verifyDopaStatus = 'success';
+                } else {
+                    response.verifyResult.verifyDopaStatus = 'bypass';
+                }
+            } else if (resultCode && resultCode !== '200') {
+                response.verifyResult.verifyDopaStatus = 'fail';
+            }
+
+            return response;
+        } catch (error) {
+            return response;
+        }
+    }
+
+    private async _handleVerificationByState(
+        verifyState: string | undefined,
+        correlatorid: string,
+        decryptedCertificationId: string,
+        decryptedDateOfBirth: string,
+        decryptedMobileNumber?: string
+    ): Promise<CustomerVerificationData> {
+        switch (verifyState) {
+            case CUSTOMER_VERIFY_STATES.dopa:
+                return this.performVerifyDopaStatus(
+                    correlatorid,
+                    decryptedCertificationId,
+                    decryptedDateOfBirth,
+                    decryptedMobileNumber
+                );
+            case CUSTOMER_VERIFY_STATES.hlPreverFull:
+                throw new Error(`This verifyState = ${verifyState} is unsupported`);
+            case CUSTOMER_VERIFY_STATES.hl4DScore:
+                throw new Error(`This verifyState = ${verifyState} is unsupported`);
+            default:
+                throw new Error(`This verifyState = ${String(verifyState)} is unsupported`);
+        }
+    }
+
     public async handleCustomerVerification(
         correlatorid: string,
         queryParams: CustomerVerifyQueryParams
     ): Promise<ICheckCustomerProfileResponse | CustomerVerificationData> {
-        // ): Promise<any> {
-        const mobileNumber = queryParams.mobileNumber as string; // intended override
-        const {
-            // eslint-disable-next-line prefer-const
-            journey,        // string
-            // eslint-disable-next-line prefer-const
-            // eslint-disable-next-line prefer-const
-            certificationId, // string (Encrypted) - for new_device_bundle
-            // eslint-disable-next-line prefer-const
-            dateOfBirth,    // string (Encrypted, DDMMYYYY) - for new_device_bundle
-            // certificationType, // string - for headless
-            // campaignCode,      // string - for headless
-            // productCode,       // string - for headless
-            // propoId            // string - for headless
-            verifyState,
-        } = queryParams;
+        try {
+            const mobileNumber = queryParams.mobileNumber as string; // intended override
+            const {
+                journey,
+                certificationId,
+                dateOfBirth,
+                // certificationType, // string - for headless
+                // campaignCode,      // string - for headless
+                // productCode,       // string - for headless
+                // propoId            // string - for headless
+                verifyState,
+            } = queryParams;
 
-        if (journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
-            const customerProfile: ICheckCustomerProfileResponse = await this.getCustomerProfile(correlatorid, mobileNumber, journey);
-            return customerProfile;
-        } else {
-            switch (verifyState) {
-                case CUSTOMER_VERIFY_STATES.dopa:
-                    let decryptedMobileNumber;
-                    const decryptedCertificationId = await apigeeClientAdapter.apigeeDecrypt(certificationId);
-                    const decryptedDateOfBirth = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
+            if (journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
+                const customerProfile: ICheckCustomerProfileResponse = await this.getCustomerProfile(correlatorid, mobileNumber, journey);
+                return customerProfile;
+            } else {
+                let decryptedMobileNumber;
+                const decryptedCertificationId = await apigeeClientAdapter.apigeeDecrypt(certificationId);
+                const decryptedDateOfBirth = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
+                if (mobileNumber) {
+                    decryptedMobileNumber = await apigeeClientAdapter.apigeeDecrypt(mobileNumber);
+                }
 
-                    if (mobileNumber) {
-                        decryptedMobileNumber = await apigeeClientAdapter.apigeeDecrypt(mobileNumber);
-                    }
-
-                    const verifyDopaPOPStatusRequestBody: VerifyDopaPOPStatusRequestBody = {
-                        verifyDopaPOPstatus: {
-                            requestId: correlatorid,
-                            channel: VERIFY_DOPA_POP_STATUS_CHANNEL.CRM,
-                            idNumber: decryptedCertificationId,
-                            dateOfBirth: decryptedDateOfBirth,
-                            timeStamp: new Date(),
-                        },
-                    };
-
-                    if (decryptedMobileNumber) {
-                        verifyDopaPOPStatusRequestBody.verifyDopaPOPstatus.MSSIDN = decryptedMobileNumber;
-                    }
-
-                    const verifyDopaPOPStatusResponse = await omniService.verifyDopaPOPStatus(verifyDopaPOPStatusRequestBody);
-                    console.log('verifyDopaPOPStatusResponse', verifyDopaPOPStatusResponse);
-                    // return verifyDopaPOPStatusResponse
-                    break;
-                case CUSTOMER_VERIFY_STATES.hlPreverFull:
-                    console.log('a');
-                    break;
-                case CUSTOMER_VERIFY_STATES.hl4DScore:
-                    console.log('a');
-                    break;
-                default:
-                    throw new Error(`This verifyState = ${verifyState} is unsupported`)
+                return this._handleVerificationByState(
+                    verifyState,
+                    correlatorid,
+                    decryptedCertificationId,
+                    decryptedDateOfBirth,
+                    decryptedMobileNumber
+                );
+            }
+        } catch (error) {
+            throw {
+                statusCode: 500,
+                statusMessage: EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR,
             }
         }
     }

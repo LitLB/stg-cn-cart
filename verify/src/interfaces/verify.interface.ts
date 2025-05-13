@@ -7,14 +7,11 @@ export type VerificationStatus = 'success' | 'fail' | 'bypass' | 'skip' | 'pendi
 
 // Describes the structure of the 'verifyResult' object
 export interface VerifyResult {
-    // Fields for 'device_bundle_existing' journey
     verifyOperatorStatus?: VerificationStatus;
     verifyCustomerAndPackageStatus?: VerificationStatus;
     verifySharePlanStatus?: VerificationStatus;
     verifyBlacklistStatus?: VerificationStatus;
     verifyContractStatus?: VerificationStatus;
-
-    // Fields for 'new_device_bundle' journey (and potentially other headless flows)
     verifyDopaStatus?: VerificationStatus;
     verifyLock3StepStatus?: VerificationStatus; // From headless non-commerce
     verify45DayNonShopStatus?: VerificationStatus; // From headless non-commerce
@@ -34,10 +31,9 @@ export enum BLACKLIST_COLORS {
 
 // This is the structure for the 'data' field in the successful API response
 export interface CustomerVerificationData {
-    totalProduct?: number;
-    hasProduct?: boolean;
+    totalProduct?: string;
+    hasProduct?: string;
     blacklistColor?: BLACKLIST_COLORS; // Represents 4D score color (e.g., "Green", "Yellow", "Red")
-
     verifyResult: VerifyResult;
 }
 
