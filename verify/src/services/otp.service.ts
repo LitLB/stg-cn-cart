@@ -742,7 +742,7 @@ export class OtpService {
                 verifyState,
             } = queryParams;
 
-            if (journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
+            if (journey === CART_JOURNEYS.DEVICE_ONLY || journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
                 const verifyStateArr: Array<string> = [verifyState].flat();
                 const customerProfile = await this.getCustomerProfile(correlatorid, journey, verifyStateArr, mobileNumber) as ICheckCustomerProfileResponse;
                 return customerProfile;
@@ -763,6 +763,8 @@ export class OtpService {
                 );
             }
         } catch (error) {
+            console.log('handleCustomerVerification.error', error);
+
             throw {
                 statusCode: STATUS_CODES.DESTINATION_ERROR_500,
                 statusMessage: EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR,
