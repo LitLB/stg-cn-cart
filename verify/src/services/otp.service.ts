@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 
 
-import ApigeeClientAdapter from "../adapters/apigee-client.adapter";
+import ApigeeClientAdapter, { apigeeClientAdapter } from "../adapters/apigee-client.adapter";
 import { readConfiguration } from "../utils/config.utils";
 import { getOTPReferenceCodeFromArray } from "../utils/array.utils";
 import { generateTransactionId } from "../utils/date.utils";
@@ -15,6 +15,15 @@ import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile, validateSharePlan } from "../validators/operator.validators";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
+import { CustomerVerificationData, CustomerVerifyQueryParams } from "../interfaces/verify.interface";
+import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
+import { CART_JOURNEYS } from "../constants/cart.constant";
+import { STATUS_CODES } from "http";
+import { EXCEPTION_MESSAGES } from "../constants/messages.constant";
+import { CUSTOMER_VERIFY_STATES } from "../constants/ct.constant";
+import { VerifyDopaPOPStatusRequestBody } from "../interfaces/dopa.interface";
+import { VERIFY_DOPA_POP_STATUS_CHANNEL } from "../constants/verify.constant";
+import { omniService } from "./omni.service";
 
 dayjs.extend(utc);
 
@@ -640,4 +649,120 @@ export class OtpService {
         }
     }
 
+    private async performVerifyDopaStatus(
+        correlatorid: string,
+        decryptedCertificationId: string,
+        decryptedDateOfBirth: string,
+        decryptedMobileNumber?: string
+    ): Promise<CustomerVerificationData> {
+        const verifyDopaPOPStatusRequestBody: VerifyDopaPOPStatusRequestBody = {
+            verifyDopaPOPstatus: {
+                requestId: correlatorid,
+                channel: VERIFY_DOPA_POP_STATUS_CHANNEL.CRM,
+                idNumber: decryptedCertificationId,
+                dateOfBirth: decryptedDateOfBirth,
+                timeStamp: new Date(),
+            },
+        };
+
+        if (decryptedMobileNumber) {
+            verifyDopaPOPStatusRequestBody.verifyDopaPOPstatus.MSSIDN = decryptedMobileNumber;
+        }
+
+        const response: CustomerVerificationData = {
+            verifyResult: {
+                verifyDopaStatus: 'skip',
+            }
+        }
+
+        try {
+            const verifyDopaPOPStatusResponse = await omniService.verifyDopaPOPStatus(verifyDopaPOPStatusRequestBody);
+            const { resultCode, resultInfo } = verifyDopaPOPStatusResponse?.resultResponse || {};
+            const { code, flagBypass } = resultInfo || {};
+
+            if (resultCode === '200' && code === '00') {
+                if (flagBypass === 'N') {
+                    response.verifyResult.verifyDopaStatus = 'success';
+                } else {
+                    response.verifyResult.verifyDopaStatus = 'bypass';
+                }
+            } else if (resultCode && resultCode !== '200') {
+                response.verifyResult.verifyDopaStatus = 'fail';
+            }
+
+            return response;
+        } catch (error) {
+            return response;
+        }
+    }
+
+    private async _handleVerificationByState(
+        verifyState: string | undefined,
+        correlatorid: string,
+        decryptedCertificationId: string,
+        decryptedDateOfBirth: string,
+        decryptedMobileNumber?: string
+    ): Promise<CustomerVerificationData> {
+        switch (verifyState) {
+            case CUSTOMER_VERIFY_STATES.dopa:
+                return this.performVerifyDopaStatus(
+                    correlatorid,
+                    decryptedCertificationId,
+                    decryptedDateOfBirth,
+                    decryptedMobileNumber
+                );
+            case CUSTOMER_VERIFY_STATES.hlPreverFull:
+                throw new Error(`This verifyState = ${verifyState} is unsupported`);
+            case CUSTOMER_VERIFY_STATES.hl4DScore:
+                throw new Error(`This verifyState = ${verifyState} is unsupported`);
+            default:
+                throw new Error(`This verifyState = ${String(verifyState)} is unsupported`);
+        }
+    }
+
+    // Parent
+    public async handleCustomerVerification(
+        correlatorid: string,
+        queryParams: CustomerVerifyQueryParams
+    ): Promise<ICheckCustomerProfileResponse | CustomerVerificationData> {
+        try {
+            const mobileNumber = queryParams.mobileNumber as string; // intended override
+            const {
+                journey,
+                certificationId,
+                dateOfBirth,
+                // certificationType, // string - for headless
+                // campaignCode,      // string - for headless
+                // productCode,       // string - for headless
+                // propoId            // string - for headless
+                verifyState,
+            } = queryParams;
+
+            if (journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
+                const verifyStateArr: Array<string> = [verifyState].flat();
+                const customerProfile = await this.getCustomerProfile(correlatorid, journey, verifyStateArr, mobileNumber) as ICheckCustomerProfileResponse;
+                return customerProfile;
+            } else {
+                let decryptedMobileNumber;
+                const decryptedCertificationId = await apigeeClientAdapter.apigeeDecrypt(certificationId);
+                const decryptedDateOfBirth = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
+                if (mobileNumber) {
+                    decryptedMobileNumber = await apigeeClientAdapter.apigeeDecrypt(mobileNumber);
+                }
+
+                return this._handleVerificationByState(
+                    verifyState,
+                    correlatorid,
+                    decryptedCertificationId,
+                    decryptedDateOfBirth,
+                    decryptedMobileNumber
+                );
+            }
+        } catch (error) {
+            throw {
+                statusCode: STATUS_CODES.DESTINATION_ERROR_500,
+                statusMessage: EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR,
+            }
+        }
+    }
 }

@@ -46,6 +46,7 @@
     "@commercetools/sdk-middleware-http": "^7.0.4",
     "@commercetools/ts-client": "^3.0.4",
     "axios": "^1.7.7",
+    "axios-retry": "^4.5.0",
     "body-parser": "^1.20.2",
     "dayjs": "^1.11.13",
     "dotenv": "^16.3.1",

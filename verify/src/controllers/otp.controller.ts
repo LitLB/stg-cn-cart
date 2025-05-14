@@ -5,6 +5,8 @@ import { checkCustomerProfileRequest, verifyOtpRequest } from "../interfaces/otp
 import { createLogModel, LogModel } from "../utils/logger.utils";
 import { LOG_APPS } from "../constants/log.constant";
 import moment from "moment";
+import { ApiResponse } from "../types/response.type";
+import { CustomerVerifyQueryParams } from "../interfaces/verify.interface";
 
 export class OtpController {
     private readonly otpService: OtpService;
@@ -15,6 +17,7 @@ export class OtpController {
         this.verifyOtp = this.verifyOtp.bind(this);
         this.getCustomerProfile = this.getCustomerProfile.bind(this);
         this.getPackageOffer = this.getPackageOffer.bind(this);
+        this.handleCustomerVerification = this.handleCustomerVerification.bind(this);
     }
 
     public async requestOtp(req: Request, res: Response, next: NextFunction) {
@@ -124,6 +127,35 @@ export class OtpController {
                 data: responseBody
             });
         } catch (err) {
+            next(err);
+        }
+    }
+
+    public async handleCustomerVerification(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> {
+        const logModel = createLogModel(LOG_APPS.STORE_WEB, "");
+        logModel.start_date = moment().toISOString();
+        LogModel.initialize(logModel);
+
+        try {
+            const { correlatorid } = req.headers;
+
+            const customerVerification = await this.otpService.handleCustomerVerification(
+                correlatorid as string,
+                req.query as unknown as CustomerVerifyQueryParams,
+            );
+
+            const response: ApiResponse = {
+                statusCode: String(HTTP_STATUSES.OK),
+                statusMessage: HTTP_MESSAGE.OK,
+                data: customerVerification
+            };
+
+            res.status(HTTP_STATUSES.OK).json(response);
+        } catch (err: any) {
             next(err);
         }
     }

@@ -253,4 +253,6 @@ class ApigeeClientAdapter {
     }
 }
 
+export const apigeeClientAdapter = new ApigeeClientAdapter();
+
 export default ApigeeClientAdapter
