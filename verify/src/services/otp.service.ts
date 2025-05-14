@@ -27,6 +27,7 @@ import { omniService } from "./omni.service";
 import { VERIFY_DOPA_POP_STATUS_CHANNEL } from "../constants/verify.constant";
 import { CUSTOMER_VERIFY_STATES } from "../constants/ct.constant";
 import { EXCEPTION_MESSAGES } from "../utils/messages.utils";
+import { STATUS_CODES } from "../constants/http.constant";
 
 dayjs.extend(utc);
 dayjs.extend(timezone); // Extend dayjs with timezone plugin
@@ -716,7 +717,7 @@ export class OtpService {
             }
         } catch (error) {
             throw {
-                statusCode: 500,
+                statusCode: STATUS_CODES.DESTINATION_ERROR_500,
                 statusMessage: EXCEPTION_MESSAGES.INTERNAL_SERVER_ERROR,
             }
         }
