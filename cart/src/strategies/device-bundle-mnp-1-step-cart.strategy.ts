@@ -353,7 +353,7 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
     try {
       const now = new Date();
 
-      // TODO: Initial package, delete in after.
+      //TODO: Initial package, delete in after.
       if (!payload.package) {
         payload.package = { code: 'ESSMEP45' };
       } else if (!payload.package.code) {
@@ -380,7 +380,7 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
 
       const product = await this.getProductById(productId);
       const variant = this.getVariantBySku(product, sku);
-      // this.validateDeviceBundleMNPOneStep(payload, cart, variant);
+      // this.validateDeviceBundleMNPOneStep(payload, cart, variant); //TODO: 
       const validPrice = this.getValidPrice(variant, now);
       const mainPackage = await this.getPackageByCode(packageInfo.code);
       const packageAdditionalInfo = await this.getPackageAdditionalInfo(
@@ -391,7 +391,9 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
       this.validateStatus(variant);
       this.validateQuantity(productType, cart, sku, product, variant, quantity);
 
-      /* const inventories = await this.getInventories(sku);
+      /* 
+      * //TODO: 
+      const inventories = await this.getInventories(sku);
       const inventory = inventories[0];
 
       const { isDummyStock } = this.validateInventory(inventory);
@@ -402,7 +404,8 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
         sku,
         productType,
         productGroup,
-      }); */
+      }); 
+      */
 
       const updatedCart =
         await this.adapters.commercetoolsCartClient.updateCart(
@@ -637,6 +640,8 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
 
   public async selectItem(cart: Cart, body: any): Promise<any> {
     try {
+      /* 
+      * //TODO:
       const { value, error } = validateSelectCartItemBody(body);
       if (error) {
         throw {
@@ -646,7 +651,9 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
         };
       }
 
-      const { items } = value;
+      const { items } = value; 
+      */
+      const { items } = body;
 
       const updateActions: MyCartUpdateAction[] = [];
 
