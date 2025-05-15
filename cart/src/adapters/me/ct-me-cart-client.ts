@@ -35,7 +35,7 @@ import { LOCALES } from '../../constants/locale.constant';
 import { IAdapter } from '../../interfaces/adapter.interface';
 
 export default class CommercetoolsMeCartClient implements IAdapter {
-	public name = 'commercetoolsMeCartClient'
+	public readonly name = 'commercetoolsMeCartClient' as const
 	private apiRoot: ApiRoot;
 	private projectKey: string;
 	private onlineChannel: string;

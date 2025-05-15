@@ -27,16 +27,23 @@ import { readConfiguration } from '../utils/config.utils';
 import { validateInventory } from '../utils/cart.utils';
 import { LINE_ITEM_INVENTORY_MODES } from '../constants/lineItem.constant';
 import { CommercetoolsCustomObjectClient } from '../adapters/ct-custom-object-client';
-import _, { update } from 'lodash';
+import _ from 'lodash';
 import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
+import { AdapterConstructor } from '../interfaces/adapter.interface';
 
-export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
+export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
+  'commercetoolsMeCartClient': CommercetoolsMeCartClient,
+  'commercetoolsProductClient': CommercetoolsProductClient,
+  'commercetoolsCartClient': CommercetoolsCartClient,
+  'commercetoolsInventoryClient': CommercetoolsInventoryClient,
+  'commercetoolsCustomObjectClient': CommercetoolsCustomObjectClient
+}> {
   constructor() {
     super(
-      CommercetoolsProductClient,
-      CommercetoolsCartClient,
-      CommercetoolsInventoryClient,
-      CommercetoolsCustomObjectClient
+      CommercetoolsProductClient as AdapterConstructor<'commercetoolsProductClient', CommercetoolsProductClient>,
+      CommercetoolsCartClient as AdapterConstructor<'commercetoolsCartClient', CommercetoolsCartClient>,
+      CommercetoolsInventoryClient as AdapterConstructor<'commercetoolsInventoryClient', CommercetoolsInventoryClient>,
+      CommercetoolsCustomObjectClient as AdapterConstructor<'commercetoolsCustomObjectClient', CommercetoolsCustomObjectClient>
       // TalonOneEffectConverter,
       // TalonOneIntegrationAdapter
     );
@@ -49,7 +56,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
 
   protected async getProductById(id: string): Promise<Product> {
     const product =
-      await this.adapters.commercetoolsProductClient.getProductById(id);
+      await this.adapters.commercetoolsProductClient.getProductById(id)
     if (!product) {
       throw {
         statusCode: HTTP_STATUSES.NOT_FOUND,
@@ -105,7 +112,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
     if (
       !sim.results[0].masterData.published ||
       _.isEmpty(
-        sim.results[0].masterData.current.masterVariant.attributes.find(
+        sim.results[0].masterData.current?.masterVariant?.attributes?.find(
           (attr: Attribute) =>
             attr.name === 'status' && attr.value.key === 'enabled'
         )
@@ -122,7 +129,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
     if (simProduct.masterData.current.masterVariant.sku === sku) {
       return [simProduct, simProduct.masterData.current.masterVariant]
     } else {
-      return [simProduct, simProduct.masterData.current.variants.find((variant: ProductVariant) => variant.sku === sku)]
+      return [simProduct, simProduct.masterData?.current?.variants?.find((variant: ProductVariant) => variant.sku === sku)!]
     }
   }
 
@@ -172,7 +179,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy {
 
   protected getValidPrice(variant: ProductVariant, today: Date) {
     const validPrice = this.adapters.commercetoolsProductClient.findValidPrice({
-      prices: variant.prices,
+      prices: variant.prices!,
       customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
       date: today,
     });

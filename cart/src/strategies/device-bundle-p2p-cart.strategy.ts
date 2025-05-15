@@ -29,14 +29,21 @@ import { LINE_ITEM_INVENTORY_MODES } from '../constants/lineItem.constant';
 import { CommercetoolsCustomObjectClient } from '../adapters/ct-custom-object-client';
 import _ from 'lodash';
 import { attachPackageToCart } from '../helpers/cart.helper';
+import { AdapterConstructor } from '../interfaces/adapter.interface';
 
-export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy {
+export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy<{
+  'commercetoolsMeCartClient': CommercetoolsMeCartClient,
+  'commercetoolsProductClient': CommercetoolsProductClient,
+  'commercetoolsCartClient': CommercetoolsCartClient,
+  'commercetoolsInventoryClient': CommercetoolsInventoryClient,
+  'commercetoolsCustomObjectClient': CommercetoolsCustomObjectClient
+}> {
     constructor() {
         super(
-            CommercetoolsProductClient,
-            CommercetoolsCartClient,
-            CommercetoolsInventoryClient,
-            CommercetoolsCustomObjectClient
+            CommercetoolsProductClient as AdapterConstructor<'commercetoolsProductClient', CommercetoolsProductClient>,
+            CommercetoolsCartClient as AdapterConstructor<'commercetoolsCartClient', CommercetoolsCartClient>,
+            CommercetoolsInventoryClient as AdapterConstructor<'commercetoolsInventoryClient', CommercetoolsInventoryClient>,
+            CommercetoolsCustomObjectClient as AdapterConstructor<'commercetoolsCustomObjectClient', CommercetoolsCustomObjectClient>
         );
     }
 
@@ -134,7 +141,7 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy {
 
     protected getValidPrice(variant: ProductVariant, today: Date) {
         const validPrice = this.adapters.commercetoolsProductClient.findValidPrice({
-            prices: variant.prices,
+            prices: variant.prices!,
             customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
             date: today,
         });

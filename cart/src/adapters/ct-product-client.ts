@@ -12,7 +12,7 @@ import { IAdapter } from '../interfaces/adapter.interface';
 import _ from 'lodash';
 
 export class CommercetoolsProductClient implements IAdapter {
-	public name = 'commercetoolsProductClient'
+	public readonly name = 'commercetoolsProductClient' as const
 	private static instance: CommercetoolsProductClient;
 	private apiRoot: ApiRoot;
 	private projectKey: string;

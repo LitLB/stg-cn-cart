@@ -7,7 +7,7 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { IAdapter } from '../interfaces/adapter.interface';
 
 export class CommercetoolsInventoryClient implements IAdapter {
-	public name = 'commercetoolsInventoryClient'
+	public readonly name = 'commercetoolsInventoryClient' as const
 	private static instance: CommercetoolsInventoryClient;
 	private apiRoot: ApiRoot;
 	private projectKey: string;

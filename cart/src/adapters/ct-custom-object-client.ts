@@ -10,7 +10,7 @@ import { Coupon } from '../interfaces/coupon.interface';
 import { IAdapter } from '../interfaces/adapter.interface';
 
 export class CommercetoolsCustomObjectClient implements IAdapter {
-	public name = 'commercetoolsCustomObjectClient'
+	public readonly name = 'commercetoolsCustomObjectClient' as const
 	private static instance: CommercetoolsCustomObjectClient;
 	private apiRoot: ApiRoot;
 	private projectKey: string;
