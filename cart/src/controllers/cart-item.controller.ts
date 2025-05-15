@@ -14,6 +14,7 @@ import { SingleProductDeviceOnlyCartStrategy } from '../strategies/single-produc
 import { Cart } from '@commercetools/platform-sdk';
 import { DeviceBundleNewCartStrategy } from '../strategies/device-bundle-new-cart.strategy';
 import { DeviceBundlePreToPostCartStrategy } from '../strategies/device-bundle-p2p-cart.strategy';
+import { DeviceBundleMNPOneStepCartStrategy } from '../strategies/device-bundle-mnp-1-step-cart.strategy';
 
 export class CartItemController {
     private cartItemService?: CartItemService<ICartStrategy>;
@@ -34,6 +35,9 @@ export class CartItemController {
             case CART_JOURNEYS.SINGLE_PRODUCT:
             case CART_JOURNEYS.DEVICE_ONLY:
                 this.cartItemService = new CartItemService<SingleProductDeviceOnlyCartStrategy>(SingleProductDeviceOnlyCartStrategy)
+                break
+            case CART_JOURNEYS.DEVICE_BUNDLE_MNP_1_STEP:
+                this.cartItemService = new CartItemService<DeviceBundleMNPOneStepCartStrategy>(DeviceBundleMNPOneStepCartStrategy)
                 break
             default:
                 throw new Error(`Unsupported journey: ${journey}`);

@@ -8,6 +8,7 @@ export enum CART_JOURNEYS {
     DEVICE_BUNDLE_EXISTING = 'device_bundle_existing',
     DEVICE_BUNDLE_NEW = 'device_bundle_new',
     DEVICE_BUNDLE_P2P = 'device_bundle_p2p',
+    DEVICE_BUNDLE_MNP_1_STEP = 'device_bundle_mnp_1_step',
 }
 
 export enum CART_INVENTORY_MODES {
@@ -52,6 +53,14 @@ export const journeyConfigMap: Record<CART_JOURNEYS, CartJourneyInventoryMap> = 
         },
     },
     [CART_JOURNEYS.DEVICE_BUNDLE_P2P]: {
+        inventory: {
+            maximumKey: 'maximumStockAllocationDeviceBundleExisting',
+            totalKey: 'totalPurchaseStockAllocationDeviceBundleExisting',
+            dummyKey: 'dummyStock',
+            dummyPurchaseKey: 'dummyPurchase',
+        },
+    },
+    [CART_JOURNEYS.DEVICE_BUNDLE_MNP_1_STEP]: {
         inventory: {
             maximumKey: 'maximumStockAllocationDeviceBundleExisting',
             totalKey: 'totalPurchaseStockAllocationDeviceBundleExisting',
