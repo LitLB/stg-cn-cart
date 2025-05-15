@@ -658,6 +658,13 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
       const updateActions: MyCartUpdateAction[] = [];
 
       for (const item of items) {
+        //TODO: Initial package, delete in after.
+        if (!item.package) {
+          item.package = { code: 'ESSMEP45' };
+        } else if (!item.package.code) {
+          item.package.code = 'ESSMEP45';
+        }
+
         const {
           package: packageInfo,
           sku,
