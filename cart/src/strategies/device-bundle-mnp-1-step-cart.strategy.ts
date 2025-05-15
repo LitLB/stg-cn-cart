@@ -279,7 +279,7 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
       throw {
         statusCode: HTTP_STATUSES.BAD_REQUEST,
         statusMessage:
-          '"package.code" is required for journey "device_bundle_existing"',
+          '"package.code" is required for journey "device_bundle_mnp_1_step"',
       };
     }
 
@@ -296,13 +296,13 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
           value.name === 'journey' &&
           value.value.some(
             (journey: any) =>
-              journey.key === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING
+              journey.key === CART_JOURNEYS.DEVICE_BUNDLE_MNP_1_STEP
           )
       )
     ) {
       throw {
         statusCode: HTTP_STATUSES.BAD_REQUEST,
-        statusMessage: `Cannot add a non-"device_bundle_existing" item to a "device_bundle_existing" cart.`,
+        statusMessage: `Cannot add a non-"device_bundle_mnp_1_step" item to a "device_bundle_mnp_1_step" cart.`,
       };
     }
   }
@@ -352,6 +352,14 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
   public async addItem(cart: Cart, payload: any): Promise<any> {
     try {
       const now = new Date();
+
+      // TODO: Initial package, delete in after.
+      if (!payload.package) {
+        payload.package = { code: 'ESSMEP45' };
+      } else if (!payload.package.code) {
+        payload.package.code = 'ESSMEP45';
+      }
+
       const {
         package: packageInfo,
         productId,
@@ -372,7 +380,7 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
 
       const product = await this.getProductById(productId);
       const variant = this.getVariantBySku(product, sku);
-      this.validateDeviceBundleMNPOneStep(payload, cart, variant);
+      // this.validateDeviceBundleMNPOneStep(payload, cart, variant);
       const validPrice = this.getValidPrice(variant, now);
       const mainPackage = await this.getPackageByCode(packageInfo.code);
       const packageAdditionalInfo = await this.getPackageAdditionalInfo(
@@ -383,7 +391,7 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
       this.validateStatus(variant);
       this.validateQuantity(productType, cart, sku, product, variant, quantity);
 
-      const inventories = await this.getInventories(sku);
+      /* const inventories = await this.getInventories(sku);
       const inventory = inventories[0];
 
       const { isDummyStock } = this.validateInventory(inventory);
@@ -394,7 +402,7 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
         sku,
         productType,
         productGroup,
-      });
+      }); */
 
       const updatedCart =
         await this.adapters.commercetoolsCartClient.updateCart(
