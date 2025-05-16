@@ -41,7 +41,7 @@ export interface CustomerVerificationData {
 export interface CustomerVerifyQueryParams {
     journey: CART_JOURNEYS | string; // Allow specific enum or general string
     mobileNumber?: string;          // Encrypted, optional depending on journey/verifyState
-    verifyState: string;
+    verifyState: string[];
 
     // Parameters for 'new_device_bundle' journey, DOPA verification
     certificationId: string;       // Encrypted

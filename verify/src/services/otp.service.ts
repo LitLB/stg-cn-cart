@@ -745,11 +745,11 @@ export class OtpService {
         queryParams: CustomerVerifyQueryParams
     ): Promise<ICheckCustomerProfileResponse | CustomerVerificationData> {
         try {
-            const mobileNumber = queryParams.mobileNumber as string; // intended override
             const {
                 journey,
                 certificationId,
                 dateOfBirth,
+                mobileNumber,
                 // certificationType, // string - for headless
                 // campaignCode,      // string - for headless
                 // productCode,       // string - for headless
@@ -758,10 +758,12 @@ export class OtpService {
             } = queryParams;
 
             if (journey === CART_JOURNEYS.DEVICE_ONLY || journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
+                const mobileNumberStr = queryParams.mobileNumber as string;
                 const verifyStateArr: Array<string> = [verifyState].flat();
-                const customerProfile = await this.getCustomerProfile(correlatorid, journey, verifyStateArr, mobileNumber) as ICheckCustomerProfileResponse;
+                const customerProfile = await this.getCustomerProfile(correlatorid, journey, verifyStateArr, mobileNumberStr) as ICheckCustomerProfileResponse;
                 return customerProfile;
             } else {
+                const verifyStateString = verifyState?.[0];
                 let decryptedMobileNumber;
                 const decryptedCertificationId = await apigeeClientAdapter.apigeeDecrypt(certificationId);
                 const decryptedDateOfBirth = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
@@ -770,7 +772,7 @@ export class OtpService {
                 }
 
                 return this._handleVerificationByState(
-                    verifyState,
+                    verifyStateString,
                     correlatorid,
                     decryptedCertificationId,
                     decryptedDateOfBirth,
@@ -778,7 +780,7 @@ export class OtpService {
                 );
             }
         } catch (error) {
-            console.log('handleCustomerVerification.error', error);
+            logger.error(`OtpService.handleCustomerVerification.error`, error);
 
             throw {
                 statusCode: STATUS_CODES.DESTINATION_ERROR_500,
