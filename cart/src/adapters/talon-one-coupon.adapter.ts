@@ -920,7 +920,10 @@ export class TalonOneCouponAdapter {
         allowedList = allowedList.filter((v) => v !== 'null')
         if (filterList.length > 0 && allowedList.length > 0) {
             const allowedSet = new Set(allowedList);
-            const intersect = filterList.filter(value => allowedSet.has(value));
+            const intersect = filterList.filter(value => {
+                const byPassSingleProduct = value === 'single_product' ? 'device_only' : value
+                return allowedSet.has(byPassSingleProduct)
+            });
 
             return !!intersect.length
         }
