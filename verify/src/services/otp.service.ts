@@ -779,7 +779,10 @@ export class OtpService {
                     decryptedMobileNumber
                 );
             }
-        } catch (error) {
+        } catch (error: any) {
+            if (error.statusCode) {
+                throw error;
+            }
             logger.error(`OtpService.handleCustomerVerification.error`, error);
 
             throw {
