@@ -1,12 +1,13 @@
 import { NextFunction, Request, Response } from "express";
 import { OtpService } from "../services/otp.service";
-import { HTTP_MESSAGE, HTTP_STATUSES } from "../constants/http.constant";
+import { HTTP_MESSAGE, HTTP_STATUSES, STATUS_CODES } from "../constants/http.constant";
 import { checkCustomerProfileRequest, verifyOtpRequest } from "../interfaces/otp.interface";
 import { createLogModel, LogModel } from "../utils/logger.utils";
 import { LOG_APPS } from "../constants/log.constant";
 import moment from "moment";
 import { ApiResponse } from "../types/response.type";
 import { CustomerVerifyQueryParams } from "../interfaces/verify.interface";
+import { logger } from '../utils/logger.utils';
 
 export class OtpController {
     private readonly otpService: OtpService;
@@ -113,14 +114,16 @@ export class OtpController {
             );
 
             const response: ApiResponse = {
-                statusCode: String(HTTP_STATUSES.OK),
+                statusCode: STATUS_CODES.SUCCESSFULLY_PROCESSED, 
                 statusMessage: HTTP_MESSAGE.OK,
                 data: customerVerification
             };
 
             res.status(HTTP_STATUSES.OK).json(response);
-        } catch (err: any) {
-            next(err);
+        } catch (error: any) {
+            logger.error(`OtpController.handleCustomerVerification.error`, error);
+
+            next(error);
         }
     }
 }
