@@ -1,0 +1,121 @@
+{
+    "8023978753699": {
+        "totalProductTrue": 3,
+        "hasProduct": true,
+        "blacklistColor": "Green",
+        "verifyResult": {
+            "verifyOperatorStatus": "success",
+            "verifyCustomerAndPackageStatus": "success",
+            "verifySharePlanStatus": "success",
+            "verifyBlacklistStatus": "success",
+            "verifyContractStatus": "success",
+            "verifyDopaStatus": "success",
+            "verifyLock3StepStatus": "success",
+            "verify45DayNonShopStatus": "success",
+            "verifyThaiId5NumberStatus": "success",
+            "verifyMaxAllowStatus": "success",
+            "verifyCheckCrossStatus": "success",
+            "verify4DScoreStatus": "success"
+        }
+    },
+    "7423274806971": {
+        "statusCode": "400.4005",
+        "statusMessage": "Operator not TRUE or DTAC"
+    },
+    "3798167449449": {
+        "statusCode": "400.4016",
+        "statusMessage": "Get operator fail"
+    },
+    "9994322319985": {
+        "statusCode": "400.4006",
+        "statusMessage": "Black listed customer is not allowed"
+    },
+    "1261805087815": {
+        "statusCode": "400.4042",
+        "statusMessage": "Customer in collection"
+    },
+    "2275973978910": {
+        "statusCode": "400.4043",
+        "statusMessage": "Customer fraud flagged"
+    },
+    "7234637773623": {
+        "statusCode": "400.4022",
+        "statusMessage": "Get black listed fail"
+    },
+    "3741802967409": {
+        "statusCode": "400.4008",
+        "statusMessage": "Get contract fail"
+    },
+    "2216281641714": {
+        "statusCode": "400.4010",
+        "statusMessage": "Get profile info fail"
+    },
+    "7641045296289": {
+        "statusCode": "400.4017",
+        "statusMessage": "Customer type is not eligible"
+    },
+    "4749024162170": {
+        "statusCode": "400.4023",
+        "statusMessage": "This number requested service cancellation or switch from a postpaid to a prepaid plan"
+    },
+    "9139201525306": {
+        "statusCode": "400.4018",
+        "statusMessage": "Company is not allow"
+    },
+    "5487957646295": {
+        "statusCode": "400.4019",
+        "statusMessage": "Customer is not active"
+    },
+    "5937706368273": {
+        "statusCode": "400.4020",
+        "statusMessage": "Customer is suspended"
+    },
+    "4992346063601": {
+        "statusCode": "400.4021",
+        "statusMessage": "Package is share plan"
+    },
+    "4868715685441": {
+        "statusCode": "400.4011",
+        "statusMessage": "Subscriber type is not postpaid"
+    },
+    "2040431111657": {
+        "statusCode": "400.4034",
+        "statusMessage": "The age of use does not meet the required criteria"
+    },
+    "8477825287721": {
+        "statusCode": "400.4035",
+        "statusMessage": "Get customer type fail"
+    },
+    "4821154808047": {
+        "statusCode": "400.4013",
+        "statusMessage": "Not allowed to extend contract"
+    },
+    "4241692422759": {
+        "statusCode": "400.4059",
+        "statusMessage": "Verify headless non commerce fail"
+    },
+    "3700408740661": {
+        "statusCode": "400.4060",
+        "statusMessage": "Invalid lock 3 step"
+    },
+    "2328456250655": {
+        "statusCode": "400.4061",
+        "statusMessage": "Invalid activated less than 45 days ago"
+    },
+    "7605418804784": {
+        "statusCode": "400.4062",
+        "statusMessage": "Over max allow (6 number)"
+    },
+    "7147785254989": {
+        "statusCode": "400.4063",
+        "statusMessage": "NBTC 1 ID 5 Number"
+    },
+    "8609061662001": {
+        "statusCode": "500.9999",
+        "statusMessage": "Unknown error"
+    },
+    "9958488594220": {
+        "statusCode": "500",
+        "statusMessage": "Something went wrong"
+    }
+}

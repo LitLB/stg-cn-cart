@@ -6,6 +6,7 @@ import timezone from "dayjs/plugin/timezone"; // Required for specific timezone 
 
 
 import ApigeeClientAdapter, { apigeeClientAdapter } from "../adapters/apigee-client.adapter";
+import { hlClientAdapter } from '../adapters/headless-client.adapter'
 import { readConfiguration } from "../utils/config.utils";
 import { getOTPReferenceCodeFromArray } from "../utils/array.utils";
 import { generateTransactionId } from "../utils/date.utils";
@@ -700,6 +701,20 @@ export class OtpService {
         }
     }
 
+    private performHLPreVerify(certificationId: string): CustomerVerificationData {
+        const result = hlClientAdapter.preVerify(certificationId) as unknown as CustomerVerificationData
+
+        if ((result as unknown as Record<string, unknown>)['statusCode']) {
+            throw {
+                status: 400,
+                statusCode: (result as unknown as Record<string, unknown>)['statusCode'],
+                statusMessage: (result as unknown as Record<string, unknown>)['statusMessage']
+            }
+        }
+
+        return result
+    }
+
     private async _handleVerificationByState(
         verifyState: string | undefined,
         correlatorid: string,
@@ -716,7 +731,7 @@ export class OtpService {
                     decryptedMobileNumber
                 );
             case CUSTOMER_VERIFY_STATES.hlPreverFull:
-                throw new Error(`This verifyState = ${verifyState} is unsupported`);
+                return this.performHLPreVerify(decryptedCertificationId)
             case CUSTOMER_VERIFY_STATES.hl4DScore:
                 throw new Error(`This verifyState = ${verifyState} is unsupported`);
             default:

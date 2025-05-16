@@ -2,7 +2,7 @@ import axios, { AxiosResponse } from 'axios'
 import { readConfiguration } from "../utils/config.utils";
 import * as crypto from 'crypto';
 import { IGetProfileDtacRequest, IGetProfileTrueRequest, RequestOTPToApigee, VerifyOTPToApigee } from '../interfaces/otp.interface';
-import { VerifyDopaPOPStatusApiRequest, VerifyDopaPOPStatusApiResponse } from '../interfaces/dopa.interface';
+import { VerifyDopaPOPStatusRequestBody, VerifyDopaPOPApiResponse } from '../interfaces/dopa.interface';
 
 class ApigeeClientAdapter {
     private readonly client: any
@@ -252,7 +252,7 @@ class ApigeeClientAdapter {
         return response;
     }
 
-    async verifyDopaPOPStatus(payload: VerifyDopaPOPStatusApiRequest): Promise<AxiosResponse<VerifyDopaPOPStatusApiResponse>> {
+    async verifyDopaPOPStatus(payload: VerifyDopaPOPStatusRequestBody): Promise<AxiosResponse<VerifyDopaPOPApiResponse>> {
         // No need to call this.init() if using separate API key for this endpoint
         // However, if it uses the same oauth token, then this.init() is needed.
         // Based on spec, it seems to use 'x-api-key', not Bearer token for this proxy.
@@ -272,7 +272,7 @@ class ApigeeClientAdapter {
         // }
 
         const url = '/proxy/verifyDopaPOPstatus'; // Path from OMX-verifyDopaPOPstatus-100225-042038.pdf
-        const response: AxiosResponse<VerifyDopaPOPStatusApiResponse> = await this.client.post(url, payload, { headers });
+        const response: AxiosResponse<VerifyDopaPOPApiResponse> = await this.client.post(url, payload, { headers });
         return response;
     }
 }
