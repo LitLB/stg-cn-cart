@@ -48,6 +48,9 @@ export const readConfiguration = () => {
       apiKey: process.env.OMNI_API_KEY as string || process.env.OMNI_API_KEY as string,
       timeout: process.env.OMNI_TIMEOUT ? parseInt(process.env.OMNI_TIMEOUT) : 30000,
       maxRetries: process.env.OMNI_MAX_RETRIES ? parseInt(process.env.OMNI_MAX_RETRIES) : 3,
+    },
+    hl: {
+      baseUrl: process.env.HL_BASE_URL as string || process.env.HL_BASE_URL as string,
     }
   };
 
