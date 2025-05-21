@@ -34,7 +34,7 @@ import { CartValidator } from '../validators/cart.validator';
 import { COUPON_INFO_CONTAINER } from '../constants/ct.constant';
 import { InventoryValidator } from '../validators/inventory.validator';
 import { InventoryService } from './inventory.service';
-import { validateInventory } from '../utils/cart.utils';
+import { compareBillingInfoAddressData, compareConsentData, compareEkycData, compareOfferData, comparePdpData, compareSelectNumberData, compareVerificationData, validateInventory } from '../utils/cart.utils';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit, validateCouponDiscount } from '../validators/coupon.validator';
 import { FUNC_CHECKOUT } from '../constants/func.constant';
@@ -1155,6 +1155,76 @@ export class CartService {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 errorCode: "PRICE_HAS_BEEN_CHANGED",
                 statusMessage: 'price has changed',
+            };
+        }
+    };
+
+    public checkUpdateCart = async (
+        accessToken: any,
+        body: any
+    ): Promise<any> => {
+        try {
+            const { cartId, redisData, flows } = body
+
+            // step 1: Get Active flows
+            const activeFlows = Object.keys(flows).filter(key => flows[key]);
+
+            // step 2: Get Cart
+            const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
+            const ctCart = await commercetoolsMeCartClient.getCartById(cartId);
+            if (!ctCart) {
+                throw createStandardizedError({
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Cart not found or has expired'
+                });
+            }
+
+            console.log('ctCart :', ctCart)
+            console.log('redisData :', redisData)
+            console.log('activeFlows :', activeFlows)
+
+            // step 3: Map flows with redisData
+            const mapRedisData = activeFlows.reduce((result, key) => {
+                if (redisData[key]) { result[key] = redisData[key];}
+                return result;
+            }, {} as Record<string, any>);
+            console.log('filteredArray :', mapRedisData);
+
+            for (const key of Object.keys(mapRedisData)) {
+                const data = mapRedisData[key];
+                switch (key) {
+                    case 'pdp':
+                        comparePdpData(data, ctCart);
+                    break;
+                    case 'select_number':
+                        compareSelectNumberData(data, ctCart);
+                    break;
+                    case 'verification':
+                        compareVerificationData(data, ctCart);
+                    break;
+                    case 'consent':
+                        compareConsentData(data, ctCart);
+                    break;
+                    case 'offer':
+                        compareOfferData(data, ctCart);
+                    break;
+                    case 'ekyc':
+                        compareEkycData(data, ctCart);
+                    break;
+                    case 'billing_info_address':
+                        compareBillingInfoAddressData(data, ctCart);
+                    break;
+                    default:
+                        break;
+                }
+            }
+            return ctCart;
+        } catch(error) {
+            console.error(error)
+            throw {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
+                errorCode: 'CHECK_UPDATE_CART_FAILED'
             };
         }
     };

@@ -30,6 +30,7 @@ cartRouter.post('/v1/carts/:id/items/select', authenticate, cart, cartItemContro
 cartRouter.delete('/v1/carts/:id/items/bulk-delete', authenticate, cart, cartItemController.bulkDelete);
 cartRouter.put('/v1/carts/:id/items/:itemId', authenticate, cart, cartItemController.updateItemQuantityById);
 cartRouter.delete('/v1/carts/:id/items/:itemId', authenticate, cart, cartItemController.deleteItemById);
+cartRouter.post('/v1/carts/sync', authenticate, cartController.checkUpdateCart);
 
 cartRouter.post('/v1/order/check-blacklist', blacklistController.checkBlacklist);
 cartRouter.post('/v1/orders', authenticate, cartController.createOrder);

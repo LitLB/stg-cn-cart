@@ -176,4 +176,24 @@ export class CartController {
             next(error);
         }
     }
+
+    public checkUpdateCart = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const accessToken = req.accessToken as string;
+            const body = req.body;
+
+            const cart = await this.cartService.checkUpdateCart(accessToken, body);
+
+            const response: ApiResponse = {
+                statusCode: HTTP_STATUSES.OK,
+                statusMessage: RESPONSE_MESSAGES.CREATED,
+                data: cart,
+            };
+
+            res.status(200).json(response);
+        } catch (error: any) {
+            logger.error(`CartController.checkupdatecart.error`, error);
+            next(error);
+        }
+    };
 }
