@@ -9,7 +9,6 @@
             "verifySharePlanStatus": "success",
             "verifyBlacklistStatus": "success",
             "verifyContractStatus": "success",
-            "verifyDopaStatus": "success",
             "verifyLock3StepStatus": "success",
             "verify45DayNonShopStatus": "success",
             "verifyThaiId5NumberStatus": "success",

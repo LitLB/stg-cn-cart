@@ -10,7 +10,7 @@ import { hlClientAdapter } from '../adapters/headless-client.adapter'
 import { readConfiguration } from "../utils/config.utils";
 import { getOTPReferenceCodeFromArray } from "../utils/array.utils";
 import { generateTransactionId } from "../utils/date.utils";
-import { convertToThailandMobile, safeStringify } from "../utils/formatter.utils"; // Added safeStringify
+import { convertToThailandMobile } from "../utils/formatter.utils";
 import { validateOperator } from "../utils/operator.utils";
 import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client"
 import { getValueByKey } from "../utils/object.utils";
@@ -739,7 +739,6 @@ export class OtpService {
         }
     }
 
-    // Parent
     public async handleCustomerVerification(
         correlatorid: string,
         queryParams: CustomerVerifyQueryParams
@@ -757,33 +756,46 @@ export class OtpService {
                 verifyState,
             } = queryParams;
 
+            const verifyStateArr: Array<string> = [verifyState].flat();
+
             if (journey === CART_JOURNEYS.DEVICE_ONLY || journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
                 const mobileNumberStr = queryParams.mobileNumber as string;
-                const verifyStateArr: Array<string> = [verifyState].flat();
                 const customerProfile = await this.getCustomerProfile(correlatorid, journey, verifyStateArr, mobileNumberStr) as ICheckCustomerProfileResponse;
                 return customerProfile;
             } else {
-                const verifyStateString = verifyState?.[0];
-                let decryptedMobileNumber;
+                // DOPA, hlPreverFull (MOCK)
                 const decryptedCertificationId = await apigeeClientAdapter.apigeeDecrypt(certificationId);
                 const decryptedDateOfBirth = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
-                if (mobileNumber) {
-                    decryptedMobileNumber = await apigeeClientAdapter.apigeeDecrypt(mobileNumber);
-                }
+                const decryptedMobileNumber = mobileNumber ? await apigeeClientAdapter.apigeeDecrypt(mobileNumber) : undefined;
 
-                return this._handleVerificationByState(
-                    verifyStateString,
+                const verifyStatePromises = verifyStateArr.map((currentState) => this._handleVerificationByState(
+                    currentState,
                     correlatorid,
                     decryptedCertificationId,
                     decryptedDateOfBirth,
                     decryptedMobileNumber
-                );
+                ))
+                const verifyStateResults = await Promise.all(verifyStatePromises);
+
+                const initialAccumulator: CustomerVerificationData = {
+                    verifyResult: {}
+                }
+                const mergedCustomerVerificationData: CustomerVerificationData = verifyStateResults.reduce((accumulator: CustomerVerificationData, currentValue: CustomerVerificationData) => {
+                    return {
+                        ...accumulator,
+                        ...currentValue,
+                        verifyResult: { ...accumulator.verifyResult, ...currentValue.verifyResult },
+                    };
+                }, initialAccumulator);
+
+                return mergedCustomerVerificationData;
             }
         } catch (error: any) {
+            logger.error(`OtpService.handleCustomerVerification.error`, error);
+
             if (error.statusCode) {
                 throw error;
             }
-            logger.error(`OtpService.handleCustomerVerification.error`, error);
 
             throw {
                 statusCode: STATUS_CODES.DESTINATION_ERROR_500,
