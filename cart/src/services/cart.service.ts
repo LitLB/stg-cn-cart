@@ -1,7 +1,7 @@
 // cart/src/services/cart.service.ts
 
 import _ from 'lodash'
-import { Cart, CartUpdateAction, LineItem, Order } from '@commercetools/platform-sdk';
+import { Cart, CartUpdateAction, LineItem, MyCartUpdateAction, Order } from '@commercetools/platform-sdk';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -34,25 +34,29 @@ import { CartValidator } from '../validators/cart.validator';
 import { COUPON_INFO_CONTAINER } from '../constants/ct.constant';
 import { InventoryValidator } from '../validators/inventory.validator';
 import { InventoryService } from './inventory.service';
-import { compareBillingInfoAddressData, compareConsentData, compareEkycData, compareOfferData, comparePdpData, compareSelectNumberData, compareVerificationData, validateInventory } from '../utils/cart.utils';
+import { validateInventory } from '../utils/cart.utils';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit, validateCouponDiscount } from '../validators/coupon.validator';
 import { FUNC_CHECKOUT } from '../constants/func.constant';
 import { CART_HAS_CHANGED_NOTICE_MESSAGE } from '../constants/cart.constant';
 import { ApiResponse } from '../interfaces/response.interface';
 import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
+import { CartTransformer } from '../transforms/cart.transforms';
+import { CompareRedisData } from '../types/share.types';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
     private blacklistService: BlacklistService;
     private couponService: CouponService;
     private inventoryService: InventoryService;
+    private cartTransformer: CartTransformer;
 
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
         this.blacklistService = new BlacklistService()
         this.couponService = new CouponService()
         this.inventoryService = new InventoryService()
+        this.cartTransformer = new CartTransformer();
     }
 
     async getCurrentAndUpdatedCouponEffects(accessToken: string, id: string, body: any): Promise<any> {
@@ -1164,7 +1168,7 @@ export class CartService {
         body: any
     ): Promise<any> => {
         try {
-            const { cartId, redisData, flows } = body
+            const { cartId, correlationid, redisData, flows } = body
 
             // step 1: Get Active flows
             const activeFlows = Object.keys(flows).filter(key => flows[key]);
@@ -1179,51 +1183,92 @@ export class CartService {
                 });
             }
 
-            console.log('ctCart :', ctCart)
-            console.log('redisData :', redisData)
-            console.log('activeFlows :', activeFlows)
-
             // step 3: Map flows with redisData
             const mapRedisData = activeFlows.reduce((result, key) => {
                 if (redisData[key]) { result[key] = redisData[key];}
                 return result;
             }, {} as Record<string, any>);
-            console.log('filteredArray :', mapRedisData);
 
+            const updateActions: MyCartUpdateAction[] = [];
             for (const key of Object.keys(mapRedisData)) {
                 const data = mapRedisData[key];
+                let compareed: CompareRedisData;
+
                 switch (key) {
                     case 'pdp':
-                        comparePdpData(data, ctCart);
-                    break;
+                        compareed = await this.cartTransformer.comparePdpData(data, ctCart);
+                        if (!compareed.isEqual) {
+                            const action = await this.cartTransformer.updatePdpData(compareed.dataChange, ctCart);
+                            if (action.length > 0) {
+                                updateActions.push(...action);
+                            }
+                        }
+                        break;
+
                     case 'select_number':
-                        compareSelectNumberData(data, ctCart);
-                    break;
+                        compareed = await this.cartTransformer.compareSelectNumberData(data, ctCart);
+                        if (!compareed.isEqual) {
+                            const action = await this.cartTransformer.updateSelectNumberData(compareed.dataChange, correlationid, ctCart);
+                            if (action.length > 0) {
+                                updateActions.push(...action);
+                            }
+                        }
+                        break;
+
                     case 'verification':
-                        compareVerificationData(data, ctCart);
-                    break;
+                        compareed = await this.cartTransformer.compareVerificationData(data, ctCart);
+                        // Add an update function to update data if changes are detected.
+                        break;
+
                     case 'consent':
-                        compareConsentData(data, ctCart);
-                    break;
+                        compareed = await this.cartTransformer.compareConsentData(data, ctCart);
+                        // Add an update function to update data if changes are detected.
+                        break;
+
                     case 'offer':
-                        compareOfferData(data, ctCart);
-                    break;
+                        compareed = await this.cartTransformer.compareOfferData(data, ctCart);
+                        if (!compareed.isEqual) {
+                            const action = await this.cartTransformer.updateOfferData(compareed.dataChange, ctCart);
+                            if (action.length > 0) {
+                                updateActions.push(...action);
+                            }
+                        }
+                        break;
+
                     case 'ekyc':
-                        compareEkycData(data, ctCart);
-                    break;
+                        compareed = await this.cartTransformer.compareEkycData(data, ctCart);
+                        // Add an update function to update data if changes are detected.
+                        break;
+
                     case 'billing_info_address':
-                        compareBillingInfoAddressData(data, ctCart);
-                    break;
+                        compareed = await this.cartTransformer.compareBillingInfoAddressData(data, ctCart);
+                        if (!compareed.isEqual) {
+                            const action = await this.cartTransformer.updateBillingInfoAddressData(compareed.dataChange, ctCart);
+                            if (action.length > 0) {
+                                updateActions.push(...action);
+                            }
+                        }
+                        break;
+
                     default:
                         break;
                 }
             }
-            return ctCart;
-        } catch(error) {
+
+            if (updateActions.length > 0) {
+                const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
+                const updatedCart = await CommercetoolsCartClient.updateCart(cartWithCheckPublicPublish.id, cartWithCheckPublicPublish.version, updateActions);
+                const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
+                const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
+                return cartWithUpdatedPrice;
+            } else {
+                return ctCart;
+            }
+        } catch(error: any) {
             console.error(error)
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
+                statusMessage: error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
                 errorCode: 'CHECK_UPDATE_CART_FAILED'
             };
         }
