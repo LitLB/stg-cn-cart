@@ -343,56 +343,75 @@ export class OtpService {
     }
 
     public async getCustomerProfile(id: string, journey: string, verifyStates: string[], mobileNumber: string) {
+
+        const steps = new Set(verifyStates);
         let operator: typeof OPERATOR[keyof typeof OPERATOR] = 'unknown';
-
-        // Step 2: Check operator
-        if (verifyStates.includes('operator')) {
-            operator = await this.checkOperator(id, mobileNumber);
+        let response: CustomerVerificationData = {
+            verifyResult: {}
         }
-
-        const [_, response] = await Promise.all([
-            // Step 2: Check operator (verify company)
-            verifyStates.includes('operator')
-                ? this.checkActive(journey, operator)
-                : Promise.resolve(),
-
-            // Step 3: Check profile & package
-            verifyStates.includes('profileAndPackage')
-                ? this.getProfileAndPackage(id, operator, mobileNumber)
-                : Promise.resolve(),
-
-            // Step 4: Check share plan for DTAC only
-            verifyStates.includes('sharePlan')
-                ? this.checkSharePlan(operator, mobileNumber)
-                : Promise.resolve()
-        ]);
 
         let customerProfile
 
-        // Step 3: Check profile & package
-        if (verifyStates.includes('profileAndPackage')) {
-            if (operator === OPERATOR.TRUE) {
-                customerProfile = validateCustomerTrueProfile(response.data);
+
+        // Step 2: Check operator and Active company
+
+        if (steps.has("operator")) {
+            operator = await this.checkOperator(id, mobileNumber);
+            await this.checkActive(journey, operator);
+            response.verifyResult.verifyOperatorStatus = "success";
+        }
+
+
+        // Step 3: Check Profile and Share plan.
+        if (steps.has("profileAndPackage") || steps.has("sharePlan")) {
+            const [profileRes, _sharePlan] = await Promise.all([
+                steps.has("profileAndPackage")
+                    ? this.getProfileAndPackage(id, operator, mobileNumber)
+                    : Promise.resolve(undefined),
+                steps.has("sharePlan")
+                    ? this.checkSharePlan(operator, mobileNumber)
+                    : Promise.resolve(undefined),
+            ]);
+
+            if (_sharePlan === undefined && steps.has("sharePlan")) {
+                response.verifyResult.verifySharePlanStatus = "success";
             }
-            if (operator === OPERATOR.DTAC) {
-                customerProfile = validateCustomerDtacProfile(response.data);
+
+            if (profileRes) {
+
+                if (operator === OPERATOR.TRUE) {
+                    customerProfile = validateCustomerTrueProfile(profileRes.data);
+                }
+                if (operator === OPERATOR.DTAC) {
+                    customerProfile = validateCustomerDtacProfile(profileRes.data);
+                }
+                response.verifyResult.verifyCustomerAndPackageStatus = "success";
+
             }
         }
 
-        // Run post-checks concurrently.
-        await Promise.all([
-            // Step 5: Check blacklist
-            verifyStates.includes('blacklist')
-                ? this.checkBacklist(id, operator, customerProfile?.thaiId, customerProfile?.customerNo)
-                : Promise.resolve(),
+        // Step 4: Check Blacklist and Contract/Quota
+        if ((steps.has("blacklist") || steps.has("contractAndQuota")) && customerProfile) {
+            const { thaiId, customerNo, agreementId } = customerProfile;
 
-            // Step 6: Check contract & quota (DTAC only)
-            verifyStates.includes('contractAndQuota')
-                ? this.checkContractAndQuota(id, operator, customerProfile?.thaiId, customerProfile?.agreementId)
-                : Promise.resolve(),
-        ]);
+            if (steps.has("blacklist")) {
+                await this.checkBacklist(id, operator, thaiId, customerNo);
+                response.verifyResult.verifyBlacklistStatus = "success";
+            }
 
-        return customerProfile;
+            if (steps.has("contractAndQuota")) {
+                await this.checkContractAndQuota(
+                    id,
+                    operator,
+                    thaiId,
+                    agreementId
+                );
+                response.verifyResult.verifyContractStatus = "success";
+            }
+
+        }
+
+        return response;
     }
 
     private async checkSharePlan(operator: string, mobileNumber: string) {
@@ -417,7 +436,13 @@ export class OtpService {
     }
 
     private async getProfileAndPackage(id: string, operator: string, mobileNumber: string) {
-        if (operator !== OPERATOR.TRUE && operator !== OPERATOR.DTAC) return;
+        if (operator !== OPERATOR.TRUE && operator !== OPERATOR.DTAC) {
+            throw {
+                statusCode: "400.4010",
+                statusMessage: 'Get profile info fail',
+                errorCode: 'GET_PROFILE_INFO_FAIL'
+            };
+        };
 
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_GET_PROFILE_AND_PACKAGE, logModel);
@@ -456,8 +481,18 @@ export class OtpService {
     }
 
     private async checkBacklist(id: string, operator: string, thaiId?: string, custValue?: string) {
+
+
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_BACKLIST, logModel);
+
+        if (operator !== OPERATOR.TRUE && operator !== OPERATOR.DTAC) {
+            throw {
+                statusCode: "400.4010",
+                statusMessage: 'Get profile info fail',
+                errorCode: 'GET_PROFILE_INFO_FAIL'
+            };
+        };
 
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
@@ -742,7 +777,7 @@ export class OtpService {
     public async handleCustomerVerification(
         correlatorid: string,
         queryParams: CustomerVerifyQueryParams
-    ): Promise<ICheckCustomerProfileResponse | CustomerVerificationData> {
+    ): Promise<CustomerVerificationData> {
         try {
             const {
                 journey,
