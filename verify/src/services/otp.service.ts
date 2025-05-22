@@ -793,9 +793,10 @@ export class OtpService {
 
             const verifyStateArr: Array<string> = [verifyState].flat();
 
+
             if (journey === CART_JOURNEYS.DEVICE_ONLY || journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
                 const mobileNumberStr = queryParams.mobileNumber as string;
-                const customerProfile = await this.getCustomerProfile(correlatorid, journey, verifyStateArr, mobileNumberStr) as ICheckCustomerProfileResponse;
+                const customerProfile = await this.getCustomerProfile(correlatorid, journey, verifyStateArr, mobileNumberStr);
                 return customerProfile;
             } else {
                 // DOPA, hlPreverFull (MOCK)
