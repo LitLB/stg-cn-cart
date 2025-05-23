@@ -503,11 +503,12 @@ export class CartTransformer {
 
     updateBillingInfoAddressData = async (dataChange: any, ctCart: Cart) => {
         try {
+            const address = dataChange.data
             const billingAddressInfo = await CommercetoolsCustomObjectClient.createOrUpdateCustomObject(
                 {
                     container: 'billing-address-info',
                     key: `billing-address-${ctCart.id}`,
-                    value: transformAddress(dataChange.data.billingAddress)
+                    value: await transformAddress(address)
                 }
             );
 
@@ -534,6 +535,17 @@ export class CartTransformer {
 
             throw createStandardizedError(error, 'compareBillingInfoAddressData');
         }
+    }
+
+    getUpdateSelectItem = async (ctCart: Cart) => {
+        const lineItems = ctCart.lineItems
+        const updateActions: MyCartUpdateAction[] = lineItems.map((item) => ({
+            action: 'setLineItemCustomField',
+            lineItemId: item.id,
+            name: 'selected',
+            value: true,
+        }));
+        return updateActions;
     }
 }
 

@@ -1260,7 +1260,11 @@ export class CartService {
                 const updatedCart = await CommercetoolsCartClient.updateCart(cartWithCheckPublicPublish.id, cartWithCheckPublicPublish.version, updateActions);
                 const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
                 const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
-                return cartWithUpdatedPrice;
+                const updateSelectItems = await this.cartTransformer.getUpdateSelectItem(cartWithUpdatedPrice);
+                const updatedCartSelected = await CommercetoolsCartClient.updateCart(cartWithUpdatedPrice.id, cartWithUpdatedPrice.version, updateSelectItems);
+                const ctCartWithSelected = await CommercetoolsProductClient.checkCartHasChanged(updatedCartSelected)
+                const { ctCart: cartWithSelected, compared: comparedSelected } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithSelected)
+                return cartWithSelected;
             } else {
                 return ctCart;
             }
