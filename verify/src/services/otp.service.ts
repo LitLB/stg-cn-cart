@@ -766,9 +766,8 @@ export class OtpService {
                     decryptedMobileNumber
                 );
             case CUSTOMER_VERIFY_STATES.hlPreverFull:
-                return this.performHLPreVerify(decryptedCertificationId)
             case CUSTOMER_VERIFY_STATES.hl4DScore:
-                throw new Error(`This verifyState = ${verifyState} is unsupported`);
+                return this.performHLPreVerify(decryptedCertificationId)
             default:
                 throw new Error(`This verifyState = ${String(verifyState)} is unsupported`);
         }
@@ -799,7 +798,7 @@ export class OtpService {
                 const customerProfile = await this.getCustomerProfile(correlatorid, journey, verifyStateArr, mobileNumberStr);
                 return customerProfile;
             } else {
-                // DOPA, hlPreverFull (MOCK)
+                // DOPA, hlPreverFull, hl4DScore (MOCK)
                 const decryptedCertificationId = await apigeeClientAdapter.apigeeDecrypt(certificationId);
                 const decryptedDateOfBirth = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
                 const decryptedMobileNumber = mobileNumber ? await apigeeClientAdapter.apigeeDecrypt(mobileNumber) : undefined;
