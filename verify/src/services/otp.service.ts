@@ -828,7 +828,7 @@ export class OtpService {
         } catch (error: any) {
             logger.error(`OtpService.handleCustomerVerification.error`, error);
 
-            if (error.statusCode) {
+            if (error?.response?.data?.code || error?.statusCode) {
                 throw error;
             }
 
