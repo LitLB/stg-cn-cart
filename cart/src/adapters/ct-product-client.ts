@@ -428,6 +428,7 @@ export class CommercetoolsProductClient implements IAdapter {
 
 			const hasChanged = {
 				quantity_over_stock: quantityOverStock,
+				price: validPrice.value.centAmount !== cartItem.price.value.centAmount,
 			};
 
 			const updatedItem = {
@@ -443,7 +444,7 @@ export class CommercetoolsProductClient implements IAdapter {
 			}
 
 			return updatedItem;
-		}).filter(Boolean);
+		}).filter(Boolean));
 
 		// Recalculate total cart values
 		const totalPrice = processedItems.reduce(
