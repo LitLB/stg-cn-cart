@@ -1,7 +1,7 @@
 import { LineItem } from '@commercetools/platform-sdk';
 // src/server/adapters/ct-product-client.ts
 
-import type { ApiRoot, Cart, Product, ProductDraft, ProductPagedQueryResponse, ProductVariant } from '@commercetools/platform-sdk';
+import type { ApiRoot, Cart, Price, Product, ProductDraft, ProductPagedQueryResponse, ProductVariant } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
 import { CT_PRODUCT_ACTIONS } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
@@ -10,6 +10,8 @@ import { CART_JOURNEYS, journeyConfigMap } from '../constants/cart.constant';
 import { CustomLineItemVariantAttribute, HasChangedAction } from '../types/custom.types';
 import { IAdapter } from '../interfaces/adapter.interface';
 import _ from 'lodash';
+import { CommercetoolsStandalonePricesClient } from './ct-standalone-prices-client';
+import { HTTP_STATUSES } from '../constants/http.constant';
 
 export class CommercetoolsProductClient implements IAdapter {
 	public readonly name = 'commercetoolsProductClient' as const
@@ -17,12 +19,14 @@ export class CommercetoolsProductClient implements IAdapter {
 	private apiRoot: ApiRoot;
 	private projectKey: string;
 	private readonly ctInventoryClient;
+	private readonly ctStandalonePriceClient;
 
 
 	constructor() {
 		this.apiRoot = CommercetoolsBaseClient.getApiRoot();
 		this.projectKey = readConfiguration().ctpProjectKey as string;
 		this.ctInventoryClient = CommercetoolsInventoryClient;
+		this.ctStandalonePriceClient = CommercetoolsStandalonePricesClient.getInstance();
 	}
 
 	public static getInstance(): CommercetoolsProductClient {
@@ -294,16 +298,49 @@ export class CommercetoolsProductClient implements IAdapter {
 		const { body } = await this.getProductsBySkus(skus);
 		const skuItems = body.results;
 
-		const findValidPrice = (variants: any) => {
-			return this.findValidPrice({
-				prices: variants.prices,
-				customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
-				date: new Date(),
-			});
+		const findValidPrice = async (variants: ProductVariant): Promise<Price> => {
+			try {
+
+				if (!variants.sku) {
+					throw {
+						statusCode: HTTP_STATUSES.NOT_FOUND,
+						statusMessage: 'No SKU found for the specified variant',
+					};
+
+				}
+				const standalonePrice = await this.ctStandalonePriceClient.getStandalonePricesBySku(variants.sku);
+
+				if (!standalonePrice?.length) {
+					throw {
+						statusCode: HTTP_STATUSES.NOT_FOUND,
+						statusMessage: 'No standalone price found for the specified SKU',
+					};
+				}
+
+
+				const validPrice = this.findValidPrice({
+					prices: standalonePrice,
+					customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
+					date: new Date(),
+				});
+
+				if (!validPrice) {
+					throw {
+						statusCode: HTTP_STATUSES.NOT_FOUND,
+						statusMessage: 'No valid price found for the specified criteria',
+					};
+				}
+
+				return validPrice;
+			} catch (error) {
+				console.error('Error finding valid price:', error);
+				throw error;
+			}
 		}
 
 
-		const processedItems = lineItems.map((cartItem: LineItem) => {
+		const processedItems = await Promise.all(lineItems.map(async (cartItem: LineItem) => {
+
 			const parentQuantity = mainProductLineItems
 				.filter((item: LineItem) => item.productId === cartItem.productId)
 				.reduce((sum: any, item: any) => sum + item.quantity, 0);
@@ -327,7 +364,16 @@ export class CommercetoolsProductClient implements IAdapter {
 			);
 
 
-			const validPrice = findValidPrice(matchedVariant);
+			const validPrice = await findValidPrice(matchedVariant).catch((error) => {
+				console.error('Error finding valid price:', error);
+				throw {
+					statusCode: HTTP_STATUSES.NOT_FOUND,
+					statusMessage: 'No valid price found for the specified criteria',
+				};
+			});
+
+			console.log('validPrice', validPrice)
+
 			let stockAvailable: number = matchedInventory.stock.available
 
 			const hasChangedAction: HasChangedAction = { action: 'NONE', updateValue: 0 }
@@ -404,14 +450,15 @@ export class CommercetoolsProductClient implements IAdapter {
 			(acc: number, product: any) => acc + product.totalPrice.centAmount,
 			0
 		);
+
 		const totalLineItemQuantity = processedItems.reduce(
-			(total: number, item: LineItem) => total + item.quantity,
+			(total: number, item: any) => total + item.quantity,
 			0
 		);
 
 		return {
 			...ctCart,
-			lineItems: lineItems.filter((lineItem) => !lineItem.custom?.fields?.productType).concat(processedItems) ?? [],
+			lineItems: lineItems.filter((lineItem) => !lineItem.custom?.fields?.productType).concat(processedItems as LineItem[]) ?? [],
 			totalPrice: {
 				...ctCart.totalPrice,
 				centAmount: totalPrice,
