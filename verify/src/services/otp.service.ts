@@ -3,8 +3,6 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone"; // Required for specific timezone formatting
-
-
 import ApigeeClientAdapter, { apigeeClientAdapter } from "../adapters/apigee-client.adapter";
 import { hlClientAdapter } from '../adapters/headless-client.adapter'
 import { readConfiguration } from "../utils/config.utils";
@@ -20,7 +18,6 @@ import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile, validateSharePlan } from "../validators/operator.validators";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
 import { CustomerVerificationData, CustomerVerifyQueryParams } from "../interfaces/verify.interface";
-import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
 import { CART_JOURNEYS } from "../constants/cart.constant";
 import { STATUS_CODES } from "http";
 import { EXCEPTION_MESSAGES } from "../constants/messages.constant";
@@ -28,6 +25,7 @@ import { CUSTOMER_VERIFY_STATES } from "../constants/ct.constant";
 import { VerifyDopaPOPStatusRequestBody } from "../interfaces/dopa.interface";
 import { VERIFY_DOPA_POP_STATUS_CHANNEL } from "../constants/verify.constant";
 import { omniService } from "./omni.service";
+import { DopaValidator } from "../validators/dopa.validator";
 
 dayjs.extend(utc);
 dayjs.extend(timezone); // Extend dayjs with timezone plugin
@@ -715,25 +713,30 @@ export class OtpService {
             }
         }
 
-        try {
-            const verifyDopaPOPStatusResponse = await omniService.verifyDopaPOPStatus(verifyDopaPOPStatusRequestBody);
-            const { resultCode, resultInfo } = verifyDopaPOPStatusResponse?.resultResponse || {};
-            const { code, flagBypass } = resultInfo || {};
+        const verifyDopaPOPStatusResponse = await omniService.verifyDopaPOPStatus(verifyDopaPOPStatusRequestBody);
+        const { resultCode, resultInfo } = verifyDopaPOPStatusResponse?.resultResponse || {};
+        const { code, flagBypass } = resultInfo || {};
 
-            if (resultCode === '200' && code === '00') {
-                if (flagBypass === 'N') {
-                    response.verifyResult.verifyDopaStatus = 'success';
-                } else {
-                    response.verifyResult.verifyDopaStatus = 'bypass';
-                }
-            } else if (resultCode && resultCode !== '200') {
+        if (resultCode !== '200') {
+            response.verifyResult.verifyDopaStatus = 'fail';
+        } else if (resultCode === '200' && code !== '00') {
+            if (flagBypass === 'Y') {
+                response.verifyResult.verifyDopaStatus = 'bypass';
+            } else {
                 response.verifyResult.verifyDopaStatus = 'fail';
             }
-
-            return response;
-        } catch (error) {
-            return response;
+        } else if (resultCode === '200' && code === '00') {
+            if (flagBypass === 'Y') {
+                response.verifyResult.verifyDopaStatus = 'bypass';
+            } else {
+                response.verifyResult.verifyDopaStatus = 'success';
+            }
         }
+
+        const isVerifyDopaStatusValid = DopaValidator.checkIsVerifyDopaStatusValid(response?.verifyResult?.verifyDopaStatus || "");
+        DopaValidator.handleVerifyDopaStatus(isVerifyDopaStatusValid);
+
+        return response;
     }
 
     private performHLPreVerify(certificationId: string): CustomerVerificationData {

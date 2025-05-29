@@ -1,4 +1,22 @@
 {
+    "1119900633277": {
+        "totalProductTrue": 3,
+        "hasProduct": true,
+        "blacklistColor": "Green",
+        "verifyResult": {
+            "verifyOperatorStatus": "success",
+            "verifyCustomerAndPackageStatus": "success",
+            "verifySharePlanStatus": "success",
+            "verifyBlacklistStatus": "success",
+            "verifyContractStatus": "success",
+            "verifyLock3StepStatus": "success",
+            "verify45DayNonShopStatus": "success",
+            "verifyThaiId5NumberStatus": "success",
+            "verifyMaxAllowStatus": "success",
+            "verifyCheckCrossStatus": "success",
+            "verify4DScoreStatus": "success"
+        }
+    },
     "3598980824793": {
         "totalProductTrue": 3,
         "hasProduct": true,
