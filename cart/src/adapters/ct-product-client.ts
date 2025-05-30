@@ -205,6 +205,11 @@ export class CommercetoolsProductClient implements IAdapter {
 			if (validUntil && date > validUntil) {
 				return false;
 			}
+
+			if(!price.active){
+				return false; // Skip inactive prices
+			}
+
 			return true;
 		});
 
