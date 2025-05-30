@@ -377,8 +377,6 @@ export class CommercetoolsProductClient implements IAdapter {
 				};
 			});
 
-			console.log('validPrice', validPrice)
-
 			let stockAvailable: number = matchedInventory.stock.available
 
 			const hasChangedAction: HasChangedAction = { action: 'NONE', updateValue: 0 }
