@@ -16,6 +16,7 @@ import { validateInventory } from '../utils/cart.utils';
 import { CART_HAS_CHANGED_NOTICE_MESSAGE, CART_JOURNEYS } from '../constants/cart.constant';
 import { IAdapter } from '../interfaces/adapter.interface';
 import _ from 'lodash';
+import { CommercetoolsStandalonePricesClient } from './ct-standalone-prices-client';
 
 
 
@@ -110,6 +111,7 @@ export class CommercetoolsCartClient implements IAdapter {
 		];
 		journey: string
 	}): Promise<Cart> {
+
 		const { lineItems, custom } = cart;
 
 		const existingPreOrderMainProduct = lineItems.find((lineItem: LineItem) =>
@@ -328,16 +330,28 @@ export class CommercetoolsCartClient implements IAdapter {
 
 		const recalculatedCart = await this.recalculateCart(updatedCart.id, updatedCart.version)
 		const updateActionAfterRecalculated: CartUpdateAction[] = []
-		
+
 		//Only `main_product`
-		recalculatedCart.lineItems.filter((lineItem) => lineItem.custom?.fields?.productType !== 'bundle' && lineItem.custom?.fields?.productType !== 'sim').map((lineItem: LineItem) => {
+		recalculatedCart.lineItems.filter((lineItem) => lineItem.custom?.fields?.productType !== 'bundle' && lineItem.custom?.fields?.productType !== 'sim').map(async (lineItem: LineItem) => {
+
+			if(lineItem.variant.sku === undefined) {
+				throw createStandardizedError({
+					statusCode: HttpStatusCode.BadRequest,
+					statusMessage: 'Line item variant SKU is undefined.',
+					errorCode: 'LINE_ITEM_VARIANT_SKU_UNDEFINED',
+				});
+			}
+
+			const standalonePrices = await CommercetoolsStandalonePricesClient.getInstance().getStandalonePricesBySku(lineItem.variant.sku)
+
 			const validPrice = CommercetoolsProductClient.findValidPrice({
-				prices: lineItem.variant.prices || [],
+				prices: standalonePrices || [],
 				customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
 				date: new Date(),
 			});
 
 			const externalPrice = validPrice.value;
+
 			updateActionAfterRecalculated.push({
 				action: 'setLineItemPrice',
 				lineItemId: lineItem.id,
@@ -347,7 +361,6 @@ export class CommercetoolsCartClient implements IAdapter {
 
 		const newCart = await this.updateCart(recalculatedCart.id, recalculatedCart.version, updateActionAfterRecalculated)
 
-		// console.log(JSON.stringify(recalculatedCart.lineItems, null, 2))
 		const validateProduct = await this.validateDateItems(newCart, lineItemHasChanged)
 		const compared = compareLineItemsArrays(oldCart.lineItems, validateProduct.lineItems)
 

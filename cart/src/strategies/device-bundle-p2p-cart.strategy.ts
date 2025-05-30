@@ -30,20 +30,23 @@ import { CommercetoolsCustomObjectClient } from '../adapters/ct-custom-object-cl
 import _ from 'lodash';
 import { attachPackageToCart } from '../helpers/cart.helper';
 import { AdapterConstructor } from '../interfaces/adapter.interface';
+import { CommercetoolsStandalonePricesClient } from '../adapters/ct-standalone-prices-client';
 
 export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy<{
-  'commercetoolsMeCartClient': CommercetoolsMeCartClient,
-  'commercetoolsProductClient': CommercetoolsProductClient,
-  'commercetoolsCartClient': CommercetoolsCartClient,
-  'commercetoolsInventoryClient': CommercetoolsInventoryClient,
-  'commercetoolsCustomObjectClient': CommercetoolsCustomObjectClient
+    'commercetoolsMeCartClient': CommercetoolsMeCartClient,
+    'commercetoolsProductClient': CommercetoolsProductClient,
+    'commercetoolsCartClient': CommercetoolsCartClient,
+    'commercetoolsInventoryClient': CommercetoolsInventoryClient,
+    'commercetoolsCustomObjectClient': CommercetoolsCustomObjectClient,
+    'commercetoolsStandalonePricesClient': CommercetoolsStandalonePricesClient,
 }> {
     constructor() {
         super(
             CommercetoolsProductClient as AdapterConstructor<'commercetoolsProductClient', CommercetoolsProductClient>,
             CommercetoolsCartClient as AdapterConstructor<'commercetoolsCartClient', CommercetoolsCartClient>,
             CommercetoolsInventoryClient as AdapterConstructor<'commercetoolsInventoryClient', CommercetoolsInventoryClient>,
-            CommercetoolsCustomObjectClient as AdapterConstructor<'commercetoolsCustomObjectClient', CommercetoolsCustomObjectClient>
+            CommercetoolsCustomObjectClient as AdapterConstructor<'commercetoolsCustomObjectClient', CommercetoolsCustomObjectClient>,
+            CommercetoolsStandalonePricesClient as AdapterConstructor<'commercetoolsStandalonePricesClient', CommercetoolsStandalonePricesClient>,
         );
     }
 
@@ -139,9 +142,28 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy<{
         validateSkuStatus(variant.attributes!);
     }
 
-    protected getValidPrice(variant: ProductVariant, today: Date) {
+    protected async getValidPrice(variant: ProductVariant, today: Date) {
+
+        if (!variant.sku) {
+            throw {
+                statusCode: HTTP_STATUSES.NOT_FOUND,
+                statusMessage: 'SKU not found in the specified variant',
+            };
+        }
+
+        const standalonePrice = await this.adapters.commercetoolsStandalonePricesClient.getStandalonePricesBySku(variant.sku)
+
+        if (standalonePrice.length === 0) {
+            throw {
+                statusCode: HTTP_STATUSES.NOT_FOUND,
+                statusMessage:
+                    'No standalone price found for the specified SKU',
+            };
+        }
+
+
         const validPrice = this.adapters.commercetoolsProductClient.findValidPrice({
-            prices: variant.prices!,
+            prices: standalonePrice,
             customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
             date: today,
         });
@@ -371,8 +393,8 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy<{
         try {
             const now = new Date();
             const {
-                package: packageInfo = { 
-                    code: 'ESSMEP45', 
+                package: packageInfo = {
+                    code: 'ESSMEP45',
                 },
                 billingAddress = {
                     firstName: "device_bundle_p2p",
@@ -396,7 +418,6 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy<{
                 productGroup,
             } = payload;
             const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
-
             await InventoryValidator.validateLineItemUpsert(
                 cart,
                 sku,
@@ -409,7 +430,7 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy<{
             const variant = this.getVariantBySku(product, sku);
             // TODO: Back to implement to use with journey PreToPost
             // this.validateDeviceBundleExisting(payload, cart, variant); 
-            const validPrice = this.getValidPrice(variant, now);
+            const validPrice = await this.getValidPrice(variant, now);
             const mainPackage = await this.getPackageByCode(packageInfo.code);
             const packageAdditionalInfo = await this.getPackageAdditionalInfo(
                 cart,
@@ -706,8 +727,8 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy<{
 
             for (const item of items) {
                 const {
-                    package: packageInfo = { 
-                        code: 'ESSMEP45', 
+                    package: packageInfo = {
+                        code: 'ESSMEP45',
                     },
                     sku,
                     productType,

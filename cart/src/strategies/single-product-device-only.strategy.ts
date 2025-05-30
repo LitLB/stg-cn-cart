@@ -2,6 +2,7 @@ import { Cart, MyCartUpdateAction, Product } from '@commercetools/platform-sdk';
 import { CommercetoolsCartClient } from '../adapters/ct-cart-client';
 import { CommercetoolsInventoryClient } from '../adapters/ct-inventory-client';
 import { CommercetoolsProductClient } from '../adapters/ct-product-client';
+import { CommercetoolsStandalonePricesClient } from '../adapters/ct-standalone-prices-client';
 import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import { createStandardizedError } from '../utils/error.utils';
 import { BaseCartStrategy } from './base-cart.strategy';
@@ -29,6 +30,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
   'commercetoolsProductClient': CommercetoolsProductClient,
   'commercetoolsCartClient': CommercetoolsCartClient,
   'commercetoolsInventoryClient': CommercetoolsInventoryClient,
+  'commercetoolsStandalonePricesClient': CommercetoolsStandalonePricesClient,
   'talonOneEffectConverter': TalonOneEffectConverter,
   'talonOneIntegrationAdapter': TalonOneIntegrationAdapter
 }> {
@@ -39,6 +41,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
       CommercetoolsProductClient as AdapterConstructor<'commercetoolsProductClient', CommercetoolsProductClient>,
       CommercetoolsCartClient as AdapterConstructor<'commercetoolsCartClient', CommercetoolsCartClient>,
       CommercetoolsInventoryClient as AdapterConstructor<'commercetoolsInventoryClient', CommercetoolsInventoryClient>,
+      CommercetoolsStandalonePricesClient as AdapterConstructor<'commercetoolsStandalonePricesClient', CommercetoolsStandalonePricesClient>,
       TalonOneEffectConverter as AdapterConstructor<'talonOneEffectConverter', TalonOneEffectConverter>,
       TalonOneIntegrationAdapter as AdapterConstructor<'talonOneIntegrationAdapter', TalonOneIntegrationAdapter>,
     );
@@ -136,9 +139,19 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
 
       validateSkuStatus(variant.attributes);
 
+      const standalonePrice = await this.adapters.commercetoolsStandalonePricesClient.getStandalonePricesBySku(sku)
+
+      if (standalonePrice.length === 0) {
+        throw {
+          statusCode: HTTP_STATUSES.NOT_FOUND,
+          statusMessage:
+            'No standalone price found for the specified SKU',
+        };
+      }
+
       const validPrice =
         this.adapters.commercetoolsProductClient.findValidPrice({
-          prices: variant.prices,
+          prices: standalonePrice,
           customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
           date: now,
         });

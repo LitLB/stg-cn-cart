@@ -30,20 +30,23 @@ import { CommercetoolsCustomObjectClient } from '../adapters/ct-custom-object-cl
 import _ from 'lodash';
 import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
 import { AdapterConstructor } from '../interfaces/adapter.interface';
+import { CommercetoolsStandalonePricesClient } from '../adapters/ct-standalone-prices-client';
 
 export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
   'commercetoolsMeCartClient': CommercetoolsMeCartClient,
   'commercetoolsProductClient': CommercetoolsProductClient,
   'commercetoolsCartClient': CommercetoolsCartClient,
   'commercetoolsInventoryClient': CommercetoolsInventoryClient,
-  'commercetoolsCustomObjectClient': CommercetoolsCustomObjectClient
+  'commercetoolsCustomObjectClient': CommercetoolsCustomObjectClient,
+  'commercetoolsStandalonePricesClient': CommercetoolsStandalonePricesClient,
 }> {
   constructor() {
     super(
       CommercetoolsProductClient as AdapterConstructor<'commercetoolsProductClient', CommercetoolsProductClient>,
       CommercetoolsCartClient as AdapterConstructor<'commercetoolsCartClient', CommercetoolsCartClient>,
       CommercetoolsInventoryClient as AdapterConstructor<'commercetoolsInventoryClient', CommercetoolsInventoryClient>,
-      CommercetoolsCustomObjectClient as AdapterConstructor<'commercetoolsCustomObjectClient', CommercetoolsCustomObjectClient>
+      CommercetoolsCustomObjectClient as AdapterConstructor<'commercetoolsCustomObjectClient', CommercetoolsCustomObjectClient>,
+      CommercetoolsStandalonePricesClient as AdapterConstructor<'commercetoolsStandalonePricesClient', CommercetoolsStandalonePricesClient>,
       // TalonOneEffectConverter,
       // TalonOneIntegrationAdapter
     );
@@ -177,9 +180,27 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
     validateSkuStatus(variant.attributes!);
   }
 
-  protected getValidPrice(variant: ProductVariant, today: Date) {
+  protected async getValidPrice(variant: ProductVariant, today: Date) {
+
+    if (!variant.sku) {
+      throw {
+        statusCode: HTTP_STATUSES.NOT_FOUND,
+        statusMessage: 'SKU not found in the specified variant',
+      };
+    }
+
+    const standalonePrice = await this.adapters.commercetoolsStandalonePricesClient.getStandalonePricesBySku(variant.sku)
+
+    if (standalonePrice.length === 0) {
+      throw {
+        statusCode: HTTP_STATUSES.NOT_FOUND,
+        statusMessage:
+          'No standalone price found for the specified SKU',
+      };
+    }
+
     const validPrice = this.adapters.commercetoolsProductClient.findValidPrice({
-      prices: variant.prices!,
+      prices: standalonePrice,
       customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
       date: today,
     });
@@ -446,7 +467,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
       const product = await this.getProductById(productId);
       const variant = this.getVariantBySku(product, sku);
       this.validateDeviceBundleNew(payload, cart, variant);
-      const validPrice = this.getValidPrice(variant, now);
+      const validPrice = await this.getValidPrice(variant, now);
       const mainPackage = await this.getPackageByCode(packageInfo.code);
       const sim = await this.getSimBySku(simInfo.sku);
       const packageAdditionalInfo = await this.getPackageAdditionalInfo(
