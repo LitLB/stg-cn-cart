@@ -123,6 +123,10 @@ export type AddItemCartBodyRequest = {
 		custom_smartSearch: string;
 		phone: string;
 		email: string
+	},
+	bundleProduct? : {
+		key: string;
+		promotionSetCode: string;
 	}
 };
   
@@ -272,6 +276,16 @@ export function validateAddItemCartBody(body: any) {
 			email: Joi.string().email().required().messages({
 				'string.empty': 'Email cannot be empty',
 				'any.required': 'Email is required',
+			})
+		}).optional(),
+		bundleProduct: Joi.object({
+			key: Joi.string().required().messages({
+				'string.empty': 'Bundle Product Key cannot be empty',
+				'any.required': 'Bundle Product Key is required',
+			}),
+			promotionSetCode: Joi.string().required().messages({
+				'string.empty': 'Promotion Set Code cannot be empty',
+				'any.required': 'Promotion Set Code is required',
 			})
 		}).optional()
 	}).validate(body, { abortEarly: false });

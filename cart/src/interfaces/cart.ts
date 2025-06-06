@@ -203,3 +203,24 @@ export interface ICartStrategy {
 	bulkRemoveItems(cart: Cart, body: any): Promise<any>;
 	selectItem(cart: Cart, body: any): Promise<any>
 }
+
+export interface ICartItemPayload {
+	productId: string;
+	sku: string;
+	quantity: number;
+	productType: string;
+	productGroup: number;
+	package : IPackagePayload
+	operator: string;
+	campaignVerifyValues? : string[]
+	bundleProduct: IBundleProduct
+}
+
+export interface IPackagePayload {
+	code: string;
+}
+
+export interface IBundleProduct {
+	key: string;
+	promotionSetCode: string;
+}

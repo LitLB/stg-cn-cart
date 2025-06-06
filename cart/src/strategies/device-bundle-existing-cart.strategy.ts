@@ -30,6 +30,7 @@ import _ from 'lodash';
 import { attachPackageToCart } from '../helpers/cart.helper';
 import { AdapterConstructor } from '../interfaces/adapter.interface';
 import { CommercetoolsStandalonePricesClient } from '../adapters/ct-standalone-prices-client';
+import { ICartItemPayload } from '../interfaces/cart';
 
 export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
   'commercetoolsMeCartClient': CommercetoolsMeCartClient,
@@ -373,9 +374,10 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
     return newProductGroup;
   };
 
-  public async addItem(cart: Cart, payload: any): Promise<any> {
+  public async addItem(cart: Cart, payload: ICartItemPayload): Promise<any> {
     try {
-      const now = new Date();
+
+      const now = new Date();  
       const {
         package: packageInfo,
         productId,
@@ -383,6 +385,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         quantity,
         productType,
         productGroup,
+        campaignVerifyValues
       } = payload;
       const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
 
@@ -391,7 +394,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         sku,
         quantity,
         journey,
-        payload.campaignVerifyValues && payload.campaignVerifyValues.length > 0
+        campaignVerifyValues && campaignVerifyValues.length > 0
       );
 
       const product = await this.getProductById(productId);
@@ -425,77 +428,77 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
           cart.id,
           cart.version,
           [
-            {
-              action: 'addLineItem',
-              productId: product.id,
-              variantId: variant.id,
-              quantity: quantity,
-              supplyChannel: {
-                typeId: 'channel',
-                id: readConfiguration().ctpSupplyChannel,
-              },
-              inventoryMode: LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
-              externalPrice: validPrice.value,
-              custom: {
-                type: {
-                  typeId: 'type',
-                  key: 'lineItemCustomType',
-                },
-                fields: {
-                  productType,
-                  productGroup,
-                  selected: false,
-                  isPreOrder: false,
-                  journey,
-                },
-              },
-            },
-            {
-              action: 'addLineItem',
-              productId: mainPackage.id,
-              variantId: mainPackage.masterData.current.masterVariant.id,
-              quantity: 1,
-              inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
-              externalPrice: {
-                currencyCode: 'THB',
-                centAmount: 0,
-              },
-              custom: {
-                type: {
-                  typeId: 'type',
-                  key: 'lineItemCustomType',
-                },
-                fields: {
-                  productType: 'bundle',
-                  selected: false,
-                },
-              },
-            },
-            {
-              action: 'addCustomLineItem',
-              name: {
-                'en-US': 'Advanced Payment',
-                'th-TH': 'ค่าบริการล่วงหน้า',
-              },
-              quantity: 1,
-              money: {
-                currencyCode: 'THB',
-                centAmount: 420000,
-              },
-              slug: 'advance-payment',
-              taxCategory: {
-                typeId: 'tax-category',
-                id: readConfiguration().ctpTaxCategoryId,
-              },
-            },
-            {
-              action: 'setCustomField',
-              name: 'packageAdditionalInfo',
-              value: {
-                typeId: 'key-value-document',
-                id: packageAdditionalInfo.id,
-              },
-            },
+            // {
+            //   action: 'addLineItem',
+            //   productId: product.id,
+            //   variantId: variant.id,
+            //   quantity: quantity,
+            //   supplyChannel: {
+            //     typeId: 'channel',
+            //     id: readConfiguration().ctpSupplyChannel,
+            //   },
+            //   inventoryMode: LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
+            //   externalPrice: validPrice.value,
+            //   custom: {
+            //     type: {
+            //       typeId: 'type',
+            //       key: 'lineItemCustomType',
+            //     },
+            //     fields: {
+            //       productType,
+            //       productGroup,
+            //       selected: false,
+            //       isPreOrder: false,
+            //       journey,
+            //     },
+            //   },
+            // },
+            // {
+            //   action: 'addLineItem',
+            //   productId: mainPackage.id,
+            //   variantId: mainPackage.masterData.current.masterVariant.id,
+            //   quantity: 1,
+            //   inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+            //   externalPrice: {
+            //     currencyCode: 'THB',
+            //     centAmount: 0,
+            //   },
+            //   custom: {
+            //     type: {
+            //       typeId: 'type',
+            //       key: 'lineItemCustomType',
+            //     },
+            //     fields: {
+            //       productType: 'bundle',
+            //       selected: false,
+            //     },
+            //   },
+            // },
+            // {
+            //   action: 'addCustomLineItem',
+            //   name: {
+            //     'en-US': 'Advanced Payment',
+            //     'th-TH': 'ค่าบริการล่วงหน้า',
+            //   },
+            //   quantity: 1,
+            //   money: {
+            //     currencyCode: 'THB',
+            //     centAmount: 420000,
+            //   },
+            //   slug: 'advance-payment',
+            //   taxCategory: {
+            //     typeId: 'tax-category',
+            //     id: readConfiguration().ctpTaxCategoryId,
+            //   },
+            // },
+            // {
+            //   action: 'setCustomField',
+            //   name: 'packageAdditionalInfo',
+            //   value: {
+            //     typeId: 'key-value-document',
+            //     id: packageAdditionalInfo.id,
+            //   },
+            // },
           ]
         );
       // let iCart: ICart = this.adapters.commercetoolsMeCartClient.mapCartToICart(updatedCart);
