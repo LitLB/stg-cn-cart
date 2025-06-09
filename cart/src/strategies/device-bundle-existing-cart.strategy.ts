@@ -428,52 +428,52 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
           cart.id,
           cart.version,
           [
-            // {
-            //   action: 'addLineItem',
-            //   productId: product.id,
-            //   variantId: variant.id,
-            //   quantity: quantity,
-            //   supplyChannel: {
-            //     typeId: 'channel',
-            //     id: readConfiguration().ctpSupplyChannel,
-            //   },
-            //   inventoryMode: LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
-            //   externalPrice: validPrice.value,
-            //   custom: {
-            //     type: {
-            //       typeId: 'type',
-            //       key: 'lineItemCustomType',
-            //     },
-            //     fields: {
-            //       productType,
-            //       productGroup,
-            //       selected: false,
-            //       isPreOrder: false,
-            //       journey,
-            //     },
-            //   },
-            // },
-            // {
-            //   action: 'addLineItem',
-            //   productId: mainPackage.id,
-            //   variantId: mainPackage.masterData.current.masterVariant.id,
-            //   quantity: 1,
-            //   inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
-            //   externalPrice: {
-            //     currencyCode: 'THB',
-            //     centAmount: 0,
-            //   },
-            //   custom: {
-            //     type: {
-            //       typeId: 'type',
-            //       key: 'lineItemCustomType',
-            //     },
-            //     fields: {
-            //       productType: 'bundle',
-            //       selected: false,
-            //     },
-            //   },
-            // },
+            {
+              action: 'addLineItem',
+              productId: product.id,
+              variantId: variant.id,
+              quantity: quantity,
+              supplyChannel: {
+                typeId: 'channel',
+                id: readConfiguration().ctpSupplyChannel,
+              },
+              inventoryMode: LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
+              externalPrice: validPrice.value,
+              custom: {
+                type: {
+                  typeId: 'type',
+                  key: 'lineItemCustomType',
+                },
+                fields: {
+                  productType,
+                  productGroup,
+                  selected: false,
+                  isPreOrder: false,
+                  journey,
+                },
+              },
+            },
+            {
+              action: 'addLineItem',
+              productId: mainPackage.id,
+              variantId: mainPackage.masterData.current.masterVariant.id,
+              quantity: 1,
+              inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+              externalPrice: {
+                currencyCode: 'THB',
+                centAmount: 0,
+              },
+              custom: {
+                type: {
+                  typeId: 'type',
+                  key: 'lineItemCustomType',
+                },
+                fields: {
+                  productType: 'bundle',
+                  selected: false,
+                },
+              },
+            }
             // {
             //   action: 'addCustomLineItem',
             //   name: {
