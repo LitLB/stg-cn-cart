@@ -209,30 +209,30 @@ export class CartService {
             const operator = ctCart.custom?.fields.operator
             const orderNumber = await this.generateOrderNumber(operator)
 
-            const tsmSaveOrder = {
+            let tsmSaveOrder = {
 
             }
 
-            // if (!isPreOrder) {
+            if (!isPreOrder) {
 
-            //     // * STEP #5 - Create Order On TSM Sale
-            //     const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+                // * STEP #5 - Create Order On TSM Sale
+                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
 
-            //     // //! IF available > x
-            //     // //! THEN continue
-            //     // //! ELSE 
-            //     // //! THEN throw error
+                // //! IF available > x
+                // //! THEN continue
+                // //! ELSE 
+                // //! THEN throw error
 
-            //     if (!success) {
-            //         await InventoryValidator.validateSafetyStock(ctCart)
-            //     }
+                if (!success) {
+                    await InventoryValidator.validateSafetyStock(ctCart)
+                }
 
-            //     tsmSaveOrder = {
-            //         tsmOrderIsSaved: success,
-            //         tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
-            //     }
+                tsmSaveOrder = {
+                    tsmOrderIsSaved: success,
+                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+                }
 
-            // }
+            }
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
