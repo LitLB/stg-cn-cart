@@ -350,7 +350,7 @@ export class CommercetoolsCartClient implements IAdapter {
 				date: new Date(),
 			});
 
-			const externalPrice = validPrice.value;
+			const externalPrice = (validPrice?.value ?? 0);
 
 			updateActionAfterRecalculated.push({
 				action: 'setLineItemPrice',

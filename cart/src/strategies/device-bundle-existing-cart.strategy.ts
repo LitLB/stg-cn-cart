@@ -1,5 +1,6 @@
 import {
   Cart,
+  CustomObject,
   LineItem,
   MyCartUpdateAction,
   Product,
@@ -288,8 +289,9 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
 
   protected async getPackageAdditionalInfo(
     cart: Cart,
-    mainPackage: ProductVariant
-  ): Promise<any> {
+    mainPackage: ProductVariant,
+    bundle: ProductVariant
+  ): Promise<CustomObject> {
     const packageCode = mainPackage.attributes?.find(
       (attr) => attr.name === 'package_code'
     );
@@ -300,6 +302,8 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       (attr) => attr.name === 'priceplan_rc'
     );
 
+    const contractTerm = bundle.attributes?.find((attr) => attr.name === 'contractTerm')
+    const penalty = bundle.attributes?.find((attr) => attr.name === 'contractFee')
 
     const packageCustomObj =
       await this.adapters.commercetoolsCustomObjectClient.createOrUpdateCustomObject(
@@ -311,9 +315,9 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
             name: packageName?.value,
             t1: {
               priceplanRcc: priceplanRc?.value,
-              penalty: 1_000_000,
-              advancedPayment: 42000,
-              contractTerm: 12,
+              penalty: penalty?.value,
+              advancedPayment: 5000,
+              contractTerm: contractTerm?.value || 12,
             },
             connector: {
               description: packageName?.value
@@ -455,7 +459,8 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
 
       const packageAdditionalInfo = await this.getPackageAdditionalInfo(
         cart,
-        mainPackage.masterData.current.masterVariant
+        mainPackage.masterData.current.masterVariant,
+        bundleProductInfo.masterData.current.masterVariant,
       );
 
 
@@ -578,7 +583,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
               quantity: 1,
               money: {
                 currencyCode: 'THB',
-                centAmount: packageInfo.advancePayment,
+                centAmount: 50000,
               },
               slug: 'advance-payment',
               taxCategory: {
