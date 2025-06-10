@@ -377,57 +377,58 @@ export class CommercetoolsProductClient implements IAdapter {
 				};
 			});
 
-			let stockAvailable: number = matchedInventory.stock.available
+			let stockAvailable: number = matchedInventory?.stock?.available ?? 0
 
 			const hasChangedAction: HasChangedAction = { action: 'NONE', updateValue: 0 }
 			let quantityOverStock = quantity > stockAvailable
 
-            // Check maximum stock allocation by journey
-            const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
-            const isPreOrder = ctCart.custom?.fields.preOrder as boolean || false
-            const productJourney = (cartItem.variant.attributes?.find((attr: CustomLineItemVariantAttribute) => attr.name === 'journey')?.value[0]?.key || CART_JOURNEYS.SINGLE_PRODUCT) as CART_JOURNEYS
-            const lineItemJourney = cartJourney === CART_JOURNEYS.SINGLE_PRODUCT && cartJourney !== productJourney ? productJourney : cartJourney
-            const journeyConfig = journeyConfigMap[lineItemJourney]
-            
-            let maximumStockAllocation: number | undefined
-            if (journeyConfig.inventory) {
-                // !!exclude dummy stock
-                // NOTE - stock physical when dummy stock is 0, null, undefined, blank text.
-                const dummyStock: number = matchedInventory.custom.fields[journeyConfig.inventory.dummyKey] || 0
-                const isDummyStock: boolean = isPreOrder && dummyStock > 0    
-                if (!isDummyStock) {
-                    maximumStockAllocation = matchedInventory.custom.fields[journeyConfig.inventory.maximumKey];
-                    const totalPurchase: number = matchedInventory.custom.fields[journeyConfig.inventory.totalKey] || 0
-                    // use min value of stock
-                    if (maximumStockAllocation !== undefined && maximumStockAllocation > 0) {
-                        const maximumStockAllocationAvailable = maximumStockAllocation - totalPurchase
-                        stockAvailable = Math.min(maximumStockAllocationAvailable, stockAvailable)
-                    }
+			// Check maximum stock allocation by journey
+			const cartJourney = ctCart?.custom?.fields.journey as CART_JOURNEYS
+			const isPreOrder = ctCart?.custom?.fields.preOrder as boolean || false
+			const productJourney = (cartItem?.variant.attributes?.find((attr: CustomLineItemVariantAttribute) => attr.name === 'journey')?.value[0]?.key || CART_JOURNEYS.SINGLE_PRODUCT) as CART_JOURNEYS
+			const lineItemJourney = cartJourney === CART_JOURNEYS.SINGLE_PRODUCT && cartJourney !== productJourney ? productJourney : cartJourney
+			const journeyConfig = journeyConfigMap[lineItemJourney]
+			const productType = cartItem?.custom?.fields.productType
 
-                    if (stockAvailable <= 0) {
-                        hasChangedAction.action = 'REMOVE_LINE_ITEM'
-                        quantityOverStock = true
-                    } else if ((maximumStockAllocation !== undefined && maximumStockAllocation !== 0) && quantity > stockAvailable) {
-                        // update quantity if stock allocation less than quantity
-                        hasChangedAction.action = 'UPDATE_QUANTITY'
-                        hasChangedAction.updateValue = stockAvailable
-                        quantityOverStock = true
-                    } else if (maximumStockAllocation !== undefined) {
-                        // remove if maximumStockAllocation is set to 0 or totalPurchase is less than or equal to maximumStockAllocation
-                        if (maximumStockAllocation === 0) {
-                            hasChangedAction.action = 'REMOVE_LINE_ITEM'
-                            quantityOverStock = true
-                        } else if ((totalPurchase >= maximumStockAllocation)) {
-                            hasChangedAction.action = 'REMOVE_LINE_ITEM'
-                            quantityOverStock = true
-                        }
-                    } else if ((maximumStockAllocation === undefined || maximumStockAllocation === 0 ) && quantity > stockAvailable) {
-                        hasChangedAction.action = 'UPDATE_QUANTITY'
-                        hasChangedAction.updateValue = stockAvailable
-                        quantityOverStock = true
-                    }
-                }
-            }
+			let maximumStockAllocation: number | undefined
+			if (journeyConfig.inventory && productType.includes(['main_product', 'add_on', 'sim', 'free_gift'])) {
+				// !!exclude dummy stock
+				// NOTE - stock physical when dummy stock is 0, null, undefined, blank text.
+				const dummyStock: number = matchedInventory.custom.fields[journeyConfig.inventory.dummyKey] || 0
+				const isDummyStock: boolean = isPreOrder && dummyStock > 0
+				if (!isDummyStock) {
+					maximumStockAllocation = matchedInventory.custom.fields[journeyConfig.inventory.maximumKey];
+					const totalPurchase: number = matchedInventory.custom.fields[journeyConfig.inventory.totalKey] || 0
+					// use min value of stock
+					if (maximumStockAllocation !== undefined && maximumStockAllocation > 0) {
+						const maximumStockAllocationAvailable = maximumStockAllocation - totalPurchase
+						stockAvailable = Math.min(maximumStockAllocationAvailable, stockAvailable)
+					}
+
+					if (stockAvailable <= 0) {
+						hasChangedAction.action = 'REMOVE_LINE_ITEM'
+						quantityOverStock = true
+					} else if ((maximumStockAllocation !== undefined && maximumStockAllocation !== 0) && quantity > stockAvailable) {
+						// update quantity if stock allocation less than quantity
+						hasChangedAction.action = 'UPDATE_QUANTITY'
+						hasChangedAction.updateValue = stockAvailable
+						quantityOverStock = true
+					} else if (maximumStockAllocation !== undefined) {
+						// remove if maximumStockAllocation is set to 0 or totalPurchase is less than or equal to maximumStockAllocation
+						if (maximumStockAllocation === 0) {
+							hasChangedAction.action = 'REMOVE_LINE_ITEM'
+							quantityOverStock = true
+						} else if ((totalPurchase >= maximumStockAllocation)) {
+							hasChangedAction.action = 'REMOVE_LINE_ITEM'
+							quantityOverStock = true
+						}
+					} else if ((maximumStockAllocation === undefined || maximumStockAllocation === 0) && quantity > stockAvailable) {
+						hasChangedAction.action = 'UPDATE_QUANTITY'
+						hasChangedAction.updateValue = stockAvailable
+						quantityOverStock = true
+					}
+				}
+			}
 
 			const hasChanged = {
 				quantity_over_stock: quantityOverStock,

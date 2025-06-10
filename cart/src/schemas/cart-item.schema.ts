@@ -105,6 +105,9 @@ export type AddItemCartBodyRequest = {
 	operator: 'TRUE' | 'DTAC';
 	package?: {
 		code: string;
+		advancePayment?: number;
+		contractTerm?: number;
+		penalty?: number;
 	};
 	sim?: {
 		sku: string;
@@ -215,6 +218,9 @@ export function validateAddItemCartBody(body: any) {
 				'string.empty': 'Package Code cannot be empty',
 				'any.required': 'Package Code is required',
 			}),
+			advancePayment: Joi.number().optional().allow(0),
+			contractTerm: Joi.number().optional().allow(0),
+			penalty: Joi.number().optional().allow(0),
 		}).optional(),
 		sim: Joi.object({
 			sku: Joi.string().required().messages({

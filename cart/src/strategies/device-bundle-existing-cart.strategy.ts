@@ -39,7 +39,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
   'commercetoolsInventoryClient': CommercetoolsInventoryClient,
   'commercetoolsCustomObjectClient': CommercetoolsCustomObjectClient,
   'commercetoolsStandalonePricesClient': CommercetoolsStandalonePricesClient,
-  
+
 }> {
   constructor() {
     super(
@@ -47,7 +47,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       CommercetoolsCartClient as AdapterConstructor<'commercetoolsCartClient', CommercetoolsCartClient>,
       CommercetoolsInventoryClient as AdapterConstructor<'commercetoolsInventoryClient', CommercetoolsInventoryClient>,
       CommercetoolsCustomObjectClient as AdapterConstructor<'commercetoolsCustomObjectClient', CommercetoolsCustomObjectClient>,
-            CommercetoolsStandalonePricesClient as AdapterConstructor<'commercetoolsStandalonePricesClient', CommercetoolsStandalonePricesClient>,
+      CommercetoolsStandalonePricesClient as AdapterConstructor<'commercetoolsStandalonePricesClient', CommercetoolsStandalonePricesClient>,
       // TalonOneEffectConverter,
       // TalonOneIntegrationAdapter
     );
@@ -76,6 +76,52 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
     }
 
     return product;
+  }
+
+  protected async getBundleProductByKey(key: string): Promise<Product> {
+    const bundleProduct =
+      await this.adapters.commercetoolsProductClient.queryProducts({
+        where: `masterData(current(masterVariant(sku="${key}")))`,
+      });
+
+    if (!bundleProduct.results.length) {
+      throw {
+        statusCode: HTTP_STATUSES.NOT_FOUND,
+        statusMessage: 'Bundle product not found',
+      };
+    }
+
+    if (!bundleProduct.results[0].masterData.published) {
+      throw {
+        statusCode: HTTP_STATUSES.NOT_FOUND,
+        statusMessage: 'Bundle product is no longer available.',
+      };
+    }
+
+    return bundleProduct.results[0];
+  }
+
+  protected async getPromotionSetByCode(code: string): Promise<Product> {
+    const promotionSet =
+      await this.adapters.commercetoolsProductClient.queryProducts({
+        where: `masterData(current(masterVariant(sku="${code}")))`,
+      });
+
+    if (!promotionSet.results.length) {
+      throw {
+        statusCode: HTTP_STATUSES.NOT_FOUND,
+        statusMessage: 'Promotion set not found',
+      };
+    }
+
+    if (!promotionSet.results[0].masterData.published) {
+      throw {
+        statusCode: HTTP_STATUSES.NOT_FOUND,
+        statusMessage: 'Promotion set is no longer available.',
+      };
+    }
+
+    return promotionSet.results[0];
   }
 
   protected async getPackageByCode(code: string): Promise<Product> {
@@ -146,8 +192,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
   }
 
   protected async getValidPrice(variant: ProductVariant, today: Date) {
-
-     if (!variant.sku) {
+    if (!variant.sku) {
       throw {
         statusCode: HTTP_STATUSES.NOT_FOUND,
         statusMessage: 'SKU not found in the specified variant',
@@ -255,6 +300,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       (attr) => attr.name === 'priceplan_rc'
     );
 
+
     const packageCustomObj =
       await this.adapters.commercetoolsCustomObjectClient.createOrUpdateCustomObject(
         {
@@ -270,12 +316,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
               contractTerm: 12,
             },
             connector: {
-              description: {
-                'en-US':
-                  'Monthly fee 1,299 12-month \n contract Package fee will be charged on the invoice \n Early cancellation penalty 10,000 THB',
-                'th-TH':
-                  'ค่าบริการราย 1,299 สัญญา 12 เดือน \n ค่าแพ็คเกจ รายเดือนจะเรียกเก็บในใบแจ้งค่าบริการ \n ค่าปรับกรณียกเลิกสัญญาก่อนกำหนด 10,000 บาท',
-              },
+              description: packageName?.value
             },
           },
         }
@@ -377,7 +418,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
   public async addItem(cart: Cart, payload: ICartItemPayload): Promise<any> {
     try {
 
-      const now = new Date();  
+      const now = new Date();
       const {
         package: packageInfo,
         productId,
@@ -385,7 +426,8 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         quantity,
         productType,
         productGroup,
-        campaignVerifyValues
+        campaignVerifyValues,
+        bundleProduct
       } = payload;
       const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
 
@@ -399,29 +441,36 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
 
       const product = await this.getProductById(productId);
       const variant = this.getVariantBySku(product, sku);
+
+
       this.validateDeviceBundleExisting(payload, cart, variant);
       const validPrice = await this.getValidPrice(variant, now);
       const mainPackage = await this.getPackageByCode(packageInfo.code);
+      const promotionSetInfo = await this.getPromotionSetByCode(bundleProduct.promotionSetCode)
+      const bundleProductInfo = await this.getBundleProductByKey(bundleProduct.key)
+
       const packageAdditionalInfo = await this.getPackageAdditionalInfo(
         cart,
         mainPackage.masterData.current.masterVariant
       );
+
+
       this.validateReleaseDate(variant.attributes!, now);
       this.validateStatus(variant);
       this.validateQuantity(productType, cart, sku, product, variant, quantity);
 
-      const inventories = await this.getInventories(sku);
-      const inventory = inventories[0];
+      // const inventories = await this.getInventories(sku);
+      // const inventory = inventories[0];
 
-      const { isDummyStock } = this.validateInventory(inventory);
+      // const { isDummyStock } = this.validateInventory(inventory);
 
-      const newProductGroup = this.calculateProductGroup({
-        cart,
-        productId,
-        sku,
-        productType,
-        productGroup,
-      });
+      // const newProductGroup = this.calculateProductGroup({
+      //   cart,
+      //   productId,
+      //   sku,
+      //   productType,
+      //   productGroup,
+      // });
 
       const updatedCart =
         await this.adapters.commercetoolsCartClient.updateCart(
@@ -447,7 +496,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
                 fields: {
                   productType,
                   productGroup,
-                  selected: false,
+                  selected: true,
                   isPreOrder: false,
                   journey,
                 },
@@ -469,36 +518,78 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
                   key: 'lineItemCustomType',
                 },
                 fields: {
-                  productType: 'bundle',
-                  selected: false,
+                  productType: 'package',
+                  selected: true,
                 },
               },
-            }
-            // {
-            //   action: 'addCustomLineItem',
-            //   name: {
-            //     'en-US': 'Advanced Payment',
-            //     'th-TH': 'ค่าบริการล่วงหน้า',
-            //   },
-            //   quantity: 1,
-            //   money: {
-            //     currencyCode: 'THB',
-            //     centAmount: 420000,
-            //   },
-            //   slug: 'advance-payment',
-            //   taxCategory: {
-            //     typeId: 'tax-category',
-            //     id: readConfiguration().ctpTaxCategoryId,
-            //   },
-            // },
-            // {
-            //   action: 'setCustomField',
-            //   name: 'packageAdditionalInfo',
-            //   value: {
-            //     typeId: 'key-value-document',
-            //     id: packageAdditionalInfo.id,
-            //   },
-            // },
+            },
+            {
+              action: 'addLineItem',
+              productId: bundleProductInfo.id,
+              variantId: bundleProductInfo.masterData.current.masterVariant.id,
+              quantity: 1,
+              inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+              externalPrice: {
+                currencyCode: 'THB',
+                centAmount: 0,
+              },
+              custom: {
+                type: {
+                  typeId: 'type',
+                  key: 'lineItemCustomType',
+                },
+                fields: {
+                  productType: 'bundle',
+                  selected: true,
+                },
+              },
+            },
+            {
+              action: 'addLineItem',
+              productId: promotionSetInfo.id,
+              variantId: promotionSetInfo.masterData.current.masterVariant.id,
+              quantity: 1,
+              inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+              externalPrice: {
+                currencyCode: 'THB',
+                centAmount: 0,
+              },
+              custom: {
+                type: {
+                  typeId: 'type',
+                  key: 'lineItemCustomType',
+                },
+                fields: {
+                  productType: 'promotion_set',
+                  selected: true,
+                },
+              },
+            },
+            {
+              action: 'addCustomLineItem',
+              name: {
+                'en-US': 'Advanced Payment',
+                'th-TH': 'ค่าบริการล่วงหน้า',
+              },
+              quantity: 1,
+              money: {
+                currencyCode: 'THB',
+                centAmount: packageInfo.advancePayment,
+              },
+              slug: 'advance-payment',
+              taxCategory: {
+                typeId: 'tax-category',
+                id: readConfiguration().ctpTaxCategoryId,
+              },
+            },
+            {
+              action: 'setCustomField',
+              name: 'packageAdditionalInfo',
+              value: {
+                typeId: 'key-value-document',
+                id: packageAdditionalInfo.id,
+              },
+            },
           ]
         );
       // let iCart: ICart = this.adapters.commercetoolsMeCartClient.mapCartToICart(updatedCart);

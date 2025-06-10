@@ -508,46 +508,49 @@ export class CommercetoolsCartClient implements IAdapter {
 		// 5. Check each line item
 		for (const lineItem of lineItems) {
 			const product = productMap.get(lineItem.productId);
-			const isProductPublished = product?.priceMode ?? false;
+			const isProductPublished = product?.published;
 			const isPreOrder = lineItem.custom?.fields.isPreOrder;
+			const productType = lineItem.custom?.fields.productType ?? "";
 
-			const matchedInventory = inventories.find((inv: any) => inv.sku === lineItem.variant.sku);
-			const { isDummyStock, isOutOfStock, available } = validateInventory(matchedInventory);
+			if (productType.includes(['main_product', 'sim', 'add_on'])) {
 
+				const matchedInventory = inventories.find((inv: InventoryEntry) => inv.sku === lineItem.variant.sku);
 
+				const { isDummyStock, isOutOfStock, available } = validateInventory(matchedInventory);
 
-			// A. Not published ⇒ remove
-			if (!isProductPublished) {
-				notice = CART_HAS_CHANGED_NOTICE_MESSAGE.UNPUBLISH_PRODUCT;
-				itemsForRemoval.push(lineItem);
-				continue;
-			}
-
-			// B. Not preOrder but dummy/out-of-stock ⇒ remove
-			if (!isPreOrder && isDummyStock && isOutOfStock) {
-				notice = CART_HAS_CHANGED_NOTICE_MESSAGE.OUT_OF_STOCK;
-				itemsForRemoval.push(lineItem);
-				continue;
-			}
-
-			// C. Is preOrder but not out-of-stock or dummy ⇒ update
-			if (isPreOrder && !isOutOfStock && !isDummyStock) {
-
-				// D. Is out-of-stock or quantity more than available and available equal to 0
-				if (available === 0 && lineItem.quantity > available) {
+				// A. Not published ⇒ remove
+				if (!isProductPublished) {
+					notice = CART_HAS_CHANGED_NOTICE_MESSAGE.UNPUBLISH_PRODUCT;
 					itemsForRemoval.push(lineItem);
-					notice = CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_OUT_OF_STOCK;
 					continue;
-				} else if (available > 0 && lineItem.quantity > available) {
-                    // E. is out-of-stock but available > 0
-                    // change to physical and not alert
-                    itemsForUpdate.push(lineItem);
-                    notice = CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK;
+				}
+
+				// B. Not preOrder but dummy/out-of-stock ⇒ remove
+				if (!isPreOrder && isDummyStock && isOutOfStock) {
+					notice = CART_HAS_CHANGED_NOTICE_MESSAGE.OUT_OF_STOCK;
+					itemsForRemoval.push(lineItem);
 					continue;
                 }
 
-				itemsForUpdate.push(lineItem);
-				notice = CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL;
+				// C. Is preOrder but not out-of-stock or dummy ⇒ update
+				if (isPreOrder && !isOutOfStock && !isDummyStock) {
+
+					// D. Is out-of-stock or quantity more than available and available equal to 0
+					if (available === 0 && lineItem.quantity > available) {
+						itemsForRemoval.push(lineItem);
+						notice = CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_OUT_OF_STOCK;
+						continue;
+					} else if (available > 0 && lineItem.quantity > available) {
+						// E. is out-of-stock but available > 0
+						// change to physical and not alert
+						itemsForUpdate.push(lineItem);
+						notice = CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK;
+						continue;
+					}
+
+					itemsForUpdate.push(lineItem);
+					notice = CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL;
+				}
 			}
 
 

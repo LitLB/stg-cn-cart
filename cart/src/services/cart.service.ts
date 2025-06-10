@@ -38,7 +38,7 @@ import { validateInventory } from '../utils/cart.utils';
 import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit, validateCouponDiscount } from '../validators/coupon.validator';
 import { FUNC_CHECKOUT } from '../constants/func.constant';
-import { CART_HAS_CHANGED_NOTICE_MESSAGE } from '../constants/cart.constant';
+import { CART_HAS_CHANGED_NOTICE_MESSAGE, CART_JOURNEYS } from '../constants/cart.constant';
 import { ApiResponse } from '../interfaces/response.interface';
 import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
 import { CartTransformer } from '../transforms/cart.transforms';
@@ -209,30 +209,30 @@ export class CartService {
             const operator = ctCart.custom?.fields.operator
             const orderNumber = await this.generateOrderNumber(operator)
 
-            let tsmSaveOrder = {
+            const tsmSaveOrder = {
 
             }
 
-            if (!isPreOrder) {
+            // if (!isPreOrder) {
 
-                // * STEP #5 - Create Order On TSM Sale
-                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+            //     // * STEP #5 - Create Order On TSM Sale
+            //     const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
 
-                // //! IF available > x
-                // //! THEN continue
-                // //! ELSE 
-                // //! THEN throw error
+            //     // //! IF available > x
+            //     // //! THEN continue
+            //     // //! ELSE 
+            //     // //! THEN throw error
 
-                if (!success) {
-                    await InventoryValidator.validateSafetyStock(ctCart)
-                }
+            //     if (!success) {
+            //         await InventoryValidator.validateSafetyStock(ctCart)
+            //     }
 
-                tsmSaveOrder = {
-                    tsmOrderIsSaved: success,
-                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
-                }
+            //     tsmSaveOrder = {
+            //         tsmOrderIsSaved: success,
+            //         tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+            //     }
 
-            }
+            // }
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
@@ -961,12 +961,15 @@ export class CartService {
     }
 
     private async validateAvailableQuantity(ctCart: Cart) {
+        const cartJourney = ctCart.custom?.fields.journey
         try {
             const { lineItems } = ctCart
             for (const lineItem of lineItems) {
                 const productType = lineItem.custom?.fields?.productType;
                 const sku = lineItem.variant.sku as string;
                 const productId = lineItem.productId;
+
+                if (productType !== 'main_product' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) continue
 
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {

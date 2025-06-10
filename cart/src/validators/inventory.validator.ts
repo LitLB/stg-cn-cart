@@ -112,16 +112,18 @@ export class InventoryValidator {
         const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
 
         if (!journey) return;
-
         for (const lineItem of cart.lineItems) {
             if (!lineItem.variant?.sku) continue;
             const itemJourney = (lineItem.custom?.fields?.journey as CART_JOURNEYS) || journey;
-            await InventoryValidator.validateLineItemStock(
-                cart,
-                lineItem.variant.sku,
-                lineItem.quantity,
-                itemJourney
-            );
+            const productType = lineItem.custom?.fields?.productType  
+            if(productType === 'main_product'){
+                await InventoryValidator.validateLineItemStock(
+                    cart,
+                    lineItem.variant.sku,
+                    lineItem.quantity,
+                    itemJourney
+                );
+            }
         }
     }
 

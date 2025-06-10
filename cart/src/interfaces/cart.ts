@@ -218,6 +218,9 @@ export interface ICartItemPayload {
 
 export interface IPackagePayload {
 	code: string;
+	advancePayment: number,
+	contractTerm: number,
+	penalty: number
 }
 
 export interface IBundleProduct {
