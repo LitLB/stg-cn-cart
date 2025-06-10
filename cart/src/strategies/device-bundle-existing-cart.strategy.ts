@@ -444,7 +444,11 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
 
 
       this.validateDeviceBundleExisting(payload, cart, variant);
-      const validPrice = await this.getValidPrice(variant, now);
+      let validPrice
+
+      if (productType === 'main_product') {
+        validPrice = await this.getValidPrice(variant, now);
+      }
       const mainPackage = await this.getPackageByCode(packageInfo.code);
       const promotionSetInfo = await this.getPromotionSetByCode(bundleProduct.promotionSetCode)
       const bundleProductInfo = await this.getBundleProductByKey(bundleProduct.key)

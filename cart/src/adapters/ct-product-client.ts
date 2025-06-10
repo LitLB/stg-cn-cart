@@ -286,9 +286,10 @@ export class CommercetoolsProductClient implements IAdapter {
 
 	async checkCartHasChanged(ctCart: Cart): Promise<Cart> {
 		let  { lineItems } = ctCart;
+		const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
 
 		//Only `main_product`
-		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType !== 'bundle' && lineItem.custom?.fields?.productType !== 'sim')
+		lineItems = lineItems.filter((lineItem) => lineItem.custom?.fields?.productType === 'main_product')
 		
 		if (lineItems.length === 0) return { ...ctCart, lineItems: [] }
 
@@ -345,6 +346,7 @@ export class CommercetoolsProductClient implements IAdapter {
 
 
 		const processedItems = await Promise.all(lineItems.map(async (cartItem: LineItem) => {
+			const productType = cartItem?.custom?.fields.productType
 
 			const parentQuantity = mainProductLineItems
 				.filter((item: LineItem) => item.productId === cartItem.productId)
@@ -368,14 +370,14 @@ export class CommercetoolsProductClient implements IAdapter {
 				matchingSkuItem.variants
 			);
 
-
 			const validPrice = await findValidPrice(matchedVariant).catch((error) => {
-				console.error('Error finding valid price:', error);
-				throw {
-					statusCode: HTTP_STATUSES.NOT_FOUND,
-					statusMessage: 'No valid price found for the specified criteria',
-				};
-			});
+					console.error('Error finding valid price:', error);
+					throw {
+						statusCode: HTTP_STATUSES.NOT_FOUND,
+						statusMessage: 'No valid price found for the specified criteria',
+					};
+				});
+
 
 			let stockAvailable: number = matchedInventory?.stock?.available ?? 0
 
@@ -383,12 +385,10 @@ export class CommercetoolsProductClient implements IAdapter {
 			let quantityOverStock = quantity > stockAvailable
 
 			// Check maximum stock allocation by journey
-			const cartJourney = ctCart?.custom?.fields.journey as CART_JOURNEYS
 			const isPreOrder = ctCart?.custom?.fields.preOrder as boolean || false
 			const productJourney = (cartItem?.variant.attributes?.find((attr: CustomLineItemVariantAttribute) => attr.name === 'journey')?.value[0]?.key || CART_JOURNEYS.SINGLE_PRODUCT) as CART_JOURNEYS
 			const lineItemJourney = cartJourney === CART_JOURNEYS.SINGLE_PRODUCT && cartJourney !== productJourney ? productJourney : cartJourney
 			const journeyConfig = journeyConfigMap[lineItemJourney]
-			const productType = cartItem?.custom?.fields.productType
 
 			let maximumStockAllocation: number | undefined
 			if (journeyConfig.inventory && productType.includes(['main_product', 'add_on', 'sim', 'free_gift'])) {
@@ -432,15 +432,15 @@ export class CommercetoolsProductClient implements IAdapter {
 
 			const hasChanged = {
 				quantity_over_stock: quantityOverStock,
-				price: validPrice.value.centAmount !== cartItem.price.value.centAmount,
+				price: validPrice?.value.centAmount !== cartItem.price.value.centAmount,
 			};
 
 			const updatedItem = {
 				...cartItem,
 				price: validPrice,
 				totalPrice: {
-					...validPrice.value,
-					centAmount: validPrice.value.centAmount * quantity,
+					...validPrice?.value,
+					centAmount: (validPrice?.value?.centAmount ?? 0) * quantity,
 				},
 				parentQuantity,
 				hasChanged,
