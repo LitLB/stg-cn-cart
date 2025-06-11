@@ -7,24 +7,24 @@ import ApigeeClientAdapter, { apigeeClientAdapter } from "../adapters/apigee-cli
 import { hlClientAdapter } from '../adapters/headless-client.adapter'
 import { readConfiguration } from "../utils/config.utils";
 import { getOTPReferenceCodeFromArray } from "../utils/array.utils";
-import { generateTransactionId } from "../utils/date.utils";
+import { formatDateFromString, generateTransactionId } from "../utils/date.utils";
 import { convertToThailandMobile } from "../utils/formatter.utils";
 import { validateOperator } from "../utils/operator.utils";
 import CommercetoolsCustomObjectClient from "../adapters/ct-custom-object-client"
 import { getValueByKey } from "../utils/object.utils";
-import { createLogModel, logger, LogModel, logService } from "../utils/logger.utils";
+import { createLogModel, generateUUID, logger, LogModel, logService } from "../utils/logger.utils";
 import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile, validateSharePlan } from "../validators/operator.validators";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
-import { CustomerVerificationData, CustomerVerifyQueryParams, ICustomerProfile } from "../interfaces/verify.interface";
+import { CustomerVerificationData, CustomerVerifyQueryParams, ICustomerProfile, BLACKLIST_COLORS } from "../interfaces/verify.interface";
 import { CART_JOURNEYS } from "../constants/cart.constant";
 import { STATUS_CODES } from "http";
 import { EXCEPTION_MESSAGES } from "../constants/messages.constant";
 import { CUSTOMER_VERIFY_STATES } from "../constants/ct.constant";
-import { VerifyDopaPOPStatusRequestBody } from "../interfaces/dopa.interface";
-import { VERIFY_DOPA_POP_STATUS_CHANNEL } from "../constants/verify.constant";
-import { omniService } from "./omni.service";
+// import { VerifyDopaPOPStatusRequestBody } from "../interfaces/dopa.interface";
+import { VERIFY_DOPA_POP_STATUS_CHANNEL, VERIFY_HL_CHANNEL, VERIFY_HL_CUSTOMER_TYPE, VERIFY_HL_VALIDATE_NAME, VERIFY_HL_VALIDATE_FUNCTION, VERIFY_HL_DEALERCODE, VERIFY_HL_COMPANY_CODE, VERIFY_HL_ACTIVITYFUNCTION, VERIFY_HL_ACTIVITYFUNCTIONTYPE, VERIFY_HL_USERLOGIN, VERIFY_HL_ACCOUNTYPE } from "../constants/verify.constant";
+// import { omniService } from "./omni.service";
 import { DopaValidator } from "../validators/dopa.validator";
 
 dayjs.extend(utc);
@@ -340,7 +340,7 @@ export class OtpService {
         }
     }
 
-    public async getCustomerProfile(id: string, journey: string, verifyStates: string[], mobileNumber: string) {
+    public async getCustomerProfile(id: string, journey: string, verifyStates: string[], mobileNumber: string, certificationId: string, dateOfBirth: string, certificationType?: string) {
 
         const steps = new Set(verifyStates);
         let operator: typeof OPERATOR[keyof typeof OPERATOR] = 'unknown';
@@ -361,7 +361,16 @@ export class OtpService {
         // Step 2: Check operator and Active company
 
         if (steps.has("operator")) {
-            operator = await this.checkOperator(id, mobileNumber);
+            const verifyKeyOption = journey
+                    ? await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey("verifyKeyOptions", journey)
+                    : undefined;
+                    console.log("verifyKeyOption :", verifyKeyOption)
+            if (verifyKeyOption?.value.cerId) {
+                operator = await this.checkProductIsTrue(certificationId, dateOfBirth, certificationType);
+            } else {
+                operator = await this.checkOperator(id, mobileNumber);
+            }
+            console.log("operator :", operator)
             await this.checkActive(journey, operator);
             response.verifyResult.verifyOperatorStatus = "success";
             response.customerProfile.operator = operator
@@ -722,19 +731,26 @@ export class OtpService {
         decryptedDateOfBirth: string,
         decryptedMobileNumber?: string
     ): Promise<CustomerVerificationData> {
-        const verifyDopaPOPStatusRequestBody: VerifyDopaPOPStatusRequestBody = {
-            verifyDopaPOPstatus: {
-                requestId: correlatorid,
-                channel: VERIFY_DOPA_POP_STATUS_CHANNEL.CRM,
-                idNumber: decryptedCertificationId,
-                dateOfBirth: decryptedDateOfBirth,
-                timeStamp: new Date(),
-            },
-        };
+        // const verifyDopaPOPStatusRequestBody: VerifyDopaPOPStatusRequestBody = {
+        //     verifyDopaPOPstatus: {
+        //         requestId: correlatorid,
+        //         channel: VERIFY_DOPA_POP_STATUS_CHANNEL.CRM,
+        //         idNumber: decryptedCertificationId,
+        //         dateOfBirth: decryptedDateOfBirth,
+        //         timeStamp: new Date(),
+        //     },
+        // };
 
-        if (decryptedMobileNumber) {
-            verifyDopaPOPStatusRequestBody.verifyDopaPOPstatus.MSSIDN = decryptedMobileNumber;
-        }
+        // if (decryptedMobileNumber) {
+        //     verifyDopaPOPStatusRequestBody.verifyDopaPOPstatus.MSSIDN = decryptedMobileNumber;
+        // }
+
+        const stringBody =
+            `id=${correlatorid}` +
+            `&channel=${VERIFY_DOPA_POP_STATUS_CHANNEL.ECP}` +
+            `&engagedParty.id=${decryptedCertificationId}` +
+            `&individual.birthDate=${decryptedDateOfBirth}` +
+            `&validFor.startDateTime=${new Date()}`;
 
         const response: CustomerVerificationData = {
             verifyResult: {
@@ -749,19 +765,24 @@ export class OtpService {
             }
         }
 
-        const verifyDopaPOPStatusResponse = await omniService.verifyDopaPOPStatus(verifyDopaPOPStatusRequestBody);
-        const { resultCode, resultInfo } = verifyDopaPOPStatusResponse?.resultResponse || {};
-        const { code, flagBypass } = resultInfo || {};
+        const verifyDopaPOPStatusRequestBodyEncrypt = await apigeeClientAdapter.apigeeEncrypt(stringBody);
+        const verifyDopaPOPStatusResponse = await apigeeClientAdapter.verifyDopaPOPStatus(verifyDopaPOPStatusRequestBodyEncrypt);
+        const { status: resultCode, data: resultInfo } = verifyDopaPOPStatusResponse || {};
+        const { status: code, isByPass: flagBypass } = resultInfo
 
-        if (resultCode !== '200') {
-            response.verifyResult.verifyDopaStatus = 'fail';
-        } else if (resultCode === '200' && code !== '00') {
+        if (resultCode !== 200) {
+            if (code === '500.599.2000')  {
+                response.verifyResult.verifyDopaStatus = 'skip';
+            } else {
+                response.verifyResult.verifyDopaStatus = 'fail';
+            }
+        } else if (resultCode === 200 && code !== '00') {
             if (flagBypass === 'Y') {
                 response.verifyResult.verifyDopaStatus = 'bypass';
             } else {
                 response.verifyResult.verifyDopaStatus = 'fail';
             }
-        } else if (resultCode === '200' && code === '00') {
+        } else if (resultCode === 200 && code === '00') {
             if (flagBypass === 'Y') {
                 response.verifyResult.verifyDopaStatus = 'bypass';
             } else {
@@ -777,7 +798,6 @@ export class OtpService {
 
     private performHLPreVerify(certificationId: string): CustomerVerificationData {
         const result = hlClientAdapter.preVerify(certificationId) as unknown as CustomerVerificationData
-
         if ((result as unknown as Record<string, unknown>)['statusCode']) {
             throw {
                 status: 400,
@@ -789,12 +809,172 @@ export class OtpService {
         return result
     }
 
+    private async performHLPreVerifyStatus(
+        journey: string,
+        certificationId: string,
+        dateOfBirth: string,
+        certificationType?: string,
+        verifyState?: string,
+        campaignCode?: string,
+        productCode?: string,
+        propoId?: string,
+        
+    ): Promise<CustomerVerificationData> {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_OPERATOR, logModel);
+        // 1.convert date to dd/mm/yyyy
+        let birthDate = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
+        if (birthDate) { 
+            birthDate = formatDateFromString(birthDate)
+            dateOfBirth = await apigeeClientAdapter.apigeeEncrypt(birthDate);
+        }
+        // 2.base payload
+        const basePayload = {
+            correlationId: generateUUID(),
+            channel: VERIFY_HL_CHANNEL.ECP,
+            customerInfo: {
+                identification: certificationId,
+                identificationType: certificationType || "",
+                birthDate: dateOfBirth,
+                customerType: VERIFY_HL_CUSTOMER_TYPE.I
+            }
+        };
+
+        let requestBody;
+
+        const response: CustomerVerificationData = {
+            verifyResult: {}
+        };
+
+        let hlResponse;
+
+        // 3.call hl
+        switch (verifyState) {
+            case "hlPreverFull":
+                requestBody = {
+                    correlationId: basePayload.correlationId,
+                    channel: basePayload.channel,
+                    dealerCode: VERIFY_HL_DEALERCODE.CODE_80001999,
+                    companyCode: VERIFY_HL_COMPANY_CODE.AL,
+                    propoId: propoId,
+                    activityFunction: VERIFY_HL_ACTIVITYFUNCTION.NEW,
+                    activityFunctionType: VERIFY_HL_ACTIVITYFUNCTIONTYPE.PRIVILEGE,
+                    userLogin: VERIFY_HL_USERLOGIN.CVECOM03,
+                    customerInfo: {
+                        ...basePayload.customerInfo,
+                        accountType: VERIFY_HL_ACCOUNTYPE.RPI,
+                        requestSubscriber: "1"
+                    },
+                    validate: [
+                        {
+                            name: VERIFY_HL_VALIDATE_NAME.PREVERFULLRESULT,
+                            function: [VERIFY_HL_VALIDATE_FUNCTION.THAIDID5NUMBER, VERIFY_HL_VALIDATE_FUNCTION.MAXALLOW]
+                        }
+                    ]
+                };
+
+                response.verifyResult.verifyLock3StepStatus = "fail",
+                response.verifyResult.verify45DayNonShopStatus = "fail",
+                response.verifyResult.verifyThaiId5NumberStatus  = "fail",
+                response.verifyResult.verifyMaxAllowStatus  = "fail",
+                response.verifyResult.verifyCheckCrossStatus  = "fail"
+                hlResponse = await hlClientAdapter.verifyHLStatus(requestBody);
+                logService(requestBody, hlResponse, logStepModel)
+                if (hlResponse?.code === "200") {
+                    response.verifyResult.verifyLock3StepStatus = "success",
+                    response.verifyResult.verify45DayNonShopStatus = "success",
+                    response.verifyResult.verifyThaiId5NumberStatus  = "success",
+                    response.verifyResult.verifyMaxAllowStatus  = "success",
+                    response.verifyResult.verifyCheckCrossStatus  = "success"
+                }
+                break;
+            
+            case "hl4DScore":
+                requestBody = {
+                    correlationId: basePayload.correlationId,
+                    channel: basePayload.channel,
+                    campaignInfo: {
+                        campaignCode: campaignCode,
+                        productCode: productCode
+                    },
+                    customerInfo: {
+                        ...basePayload.customerInfo,
+                    },
+                    validate: [
+                        {
+                            name: VERIFY_HL_VALIDATE_NAME.FOURDSCORE,
+                            function: []
+                        }
+                    ]
+                };
+
+                response.verifyResult.verify4DScoreStatus = "fail"
+                response.verifyResult.verify4DScoreValue = "fail"
+                response.verifyResult.totalProductTrue = "fail"
+                hlResponse = await hlClientAdapter.verifyHLStatus(requestBody);
+                logService(requestBody, hlResponse, logStepModel)
+                if (hlResponse?.code === "200") {
+                    response.verifyResult.verify4DScoreStatus = "success"
+                    response.verifyResult.verify4DScoreValue = "success"
+                    response.verifyResult.totalProductTrue = "success"
+                    response.blacklistColor = hlResponse.data.blacklistColor as BLACKLIST_COLORS;
+                    response.hasProduct = hlResponse.data.hasProduct as unknown as string
+                    response.totalProduct = hlResponse.data.totalProduct as unknown as string
+                }
+                break;
+
+            case "hlCheckProductIsTrue":
+                requestBody = {
+                    correlationId: basePayload.correlationId,
+                    channel: basePayload.channel,
+                    customerInfo: {
+                        ...basePayload.customerInfo
+                    },
+                    validate: [
+                        {
+                            name: VERIFY_HL_VALIDATE_NAME.CHECKPRODUCTISTRUE,
+                            function: [VERIFY_HL_VALIDATE_FUNCTION.ALL]
+                        }
+                    ]
+                };
+                
+
+                response.verifyResult.verifyProductIsTrue = "skip"
+                response.verifyResult.verifyProductIsTrueValue = null
+                const verifyKeyOption = journey
+                    ? await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey("verifyKeyOptions", journey)
+                    : undefined;
+
+                if (verifyKeyOption?.value.cerId) {
+                    hlResponse = await hlClientAdapter.verifyHLStatus(requestBody);
+                    logService(requestBody, hlResponse, logStepModel)
+                    if (hlResponse?.code === "200") {
+                        response.verifyResult.verifyProductIsTrue = "success"
+                        response.verifyResult.verifyProductIsTrueValue = hlResponse.data.isProductTrue
+                    }
+                }
+                break;
+
+            default:
+                throw new Error(`This verifyState = ${String(verifyState)} is unsupported`);
+        }
+        return response;
+    }
+
     private async _handleVerificationByState(
+        journey: string,
         verifyState: string | undefined,
         correlatorid: string,
+        certificationId: string,
+        dateOfBirth: string,
         decryptedCertificationId: string,
         decryptedDateOfBirth: string,
-        decryptedMobileNumber?: string
+        decryptedMobileNumber?: string,
+        certificationType?: string,
+        campaignCode?: string,
+        productCode?: string,
+        propoId?: string,
+
     ): Promise<CustomerVerificationData> {
         switch (verifyState) {
             case CUSTOMER_VERIFY_STATES.dopa:
@@ -806,9 +986,69 @@ export class OtpService {
                 );
             case CUSTOMER_VERIFY_STATES.hlPreverFull:
             case CUSTOMER_VERIFY_STATES.hl4DScore:
-                return this.performHLPreVerify(decryptedCertificationId)
+            case CUSTOMER_VERIFY_STATES.hlCheckProductIsTrue:
+                return this.performHLPreVerifyStatus(
+                    journey,
+                    certificationId,
+                    dateOfBirth,
+                    certificationType,
+                    verifyState,
+                    campaignCode,
+                    productCode,
+                    propoId
+                );
             default:
                 throw new Error(`This verifyState = ${String(verifyState)} is unsupported`);
+        }
+    }
+
+    private async checkProductIsTrue(certificationId: string, dateOfBirth: string, certificationType?: string) {
+        const logModel = LogModel.getInstance();
+        const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_OPERATOR, logModel);
+        let checkPayload
+
+        let birthDate = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
+        if (birthDate) { 
+            birthDate = formatDateFromString(birthDate)
+            dateOfBirth = await apigeeClientAdapter.apigeeEncrypt(birthDate);
+        }
+
+        const basePayload = {
+            correlationId: generateUUID(),
+            channel: VERIFY_HL_CHANNEL.ECP,
+            customerInfo: {
+                identification: certificationId,
+                identificationType: certificationType || "",
+                birthDate: dateOfBirth,
+                customerType: VERIFY_HL_CUSTOMER_TYPE.I
+            },
+            validate: [
+                {
+                    name: VERIFY_HL_VALIDATE_NAME.CHECKPRODUCTISTRUE,
+                    function: [VERIFY_HL_VALIDATE_FUNCTION.ALL]
+                }
+            ]
+        };
+
+        try {
+            const response = await hlClientAdapter.verifyHLStatus(basePayload);
+            logService(checkPayload, response, logStepModel)
+            if (response?.code === "200") {
+                    if (response.data?.isProductTrue) {
+                        return "true"
+                    } else {
+                        return "dtac"
+                    }
+            } else {
+                throw {
+                    statusCode: "400.4005",
+                    statusMessage: 'Operator not TRUE or DTAC',
+                    errorCode: 'OPERATOR_NOT_TRUE_OR_DTAC'
+                }
+            }
+        } catch (e: any) {
+            logService(checkPayload, e, logStepModel)
+            throw e
         }
     }
 
@@ -822,19 +1062,19 @@ export class OtpService {
                 certificationId,
                 dateOfBirth,
                 mobileNumber,
-                // certificationType, // string - for headless
-                // campaignCode,      // string - for headless
-                // productCode,       // string - for headless
-                // propoId            // string - for headless
+                certificationType, // string - for headless
+                campaignCode,      // string - for headless
+                productCode,       // string - for headless
+                propoId,           // string - for headless
                 verifyState,
             } = queryParams;
 
             const verifyStateArr: Array<string> = [verifyState].flat();
-
+            verifyStateArr.push("hlCheckProductIsTrue");
 
             if (journey === CART_JOURNEYS.DEVICE_ONLY || journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
                 const mobileNumberStr = queryParams.mobileNumber as string;
-                const customerProfile = await this.getCustomerProfile(correlatorid, journey, verifyStateArr, mobileNumberStr);
+                const customerProfile = await this.getCustomerProfile(correlatorid, journey, verifyStateArr, mobileNumberStr, certificationId, dateOfBirth, certificationType);
                 return customerProfile;
             } else {
                 // DOPA, hlPreverFull, hl4DScore (MOCK)
@@ -843,11 +1083,18 @@ export class OtpService {
                 const decryptedMobileNumber = mobileNumber ? await apigeeClientAdapter.apigeeDecrypt(mobileNumber) : undefined;
 
                 const verifyStatePromises = verifyStateArr.map((currentState) => this._handleVerificationByState(
+                    journey,
                     currentState,
                     correlatorid,
+                    certificationId,
+                    dateOfBirth,
                     decryptedCertificationId,
                     decryptedDateOfBirth,
-                    decryptedMobileNumber
+                    decryptedMobileNumber,
+                    certificationType,
+                    campaignCode,
+                    productCode,
+                    propoId
                 ))
                 const verifyStateResults = await Promise.all(verifyStatePromises);
 

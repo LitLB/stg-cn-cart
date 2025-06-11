@@ -18,38 +18,17 @@ export interface VerifyDopaPOPStatusRequestBody {
 }
 
 /**
- * Structure of the resultInfo object within the DOPA API response.
- */
-export interface DopaResultInfo {
-    code: string;
-    desc: string;
-    flagBypass?: 'Y' | 'N'; // Made optional as per observation of DOPA spec page 3 (AS-IS vs TO-BE)
-    timeStamp: string;
-}
-
-/**
- * Structure of the resultResponse object from the DOPA API.
- */
-export interface DopaResultResponse {
-    resultCode: string;
-    resultMessage: string;
-    resultInfo?: DopaResultInfo; // DOPA spec page 1 shows this is optional if resultCode is not 200
-}
-
-/**
  * Main response structure from the verifyDopaPOPstatus OMNI endpoint.
  */
 export interface VerifyDopaPOPApiResponse {
-    resultResponse: DopaResultResponse;
-}
-
-/**
- * Internal standardized result after processing the DOPA API call.
- */
-export interface VerifyDopaInternalResult {
-    status: VerificationStatus; // Use the new VerificationStatus type
-    dopaResponse?: DopaResultInfo; // Store the original DOPA info for logging/debugging
-    errorMessage?: string;
+    transactionId: string;
+    timestamp: string;
+    status: string;
+    statusReason: string;
+    isByPass?: string;
+    code?: string
+    message?: string;
+    description?: string;
 }
 
 /**

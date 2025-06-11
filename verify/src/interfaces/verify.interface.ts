@@ -13,14 +13,16 @@ export interface VerifyResult {
     verifyBlacklistStatus?: VerificationStatus;
     verifyContractStatus?: VerificationStatus;
     verifyDopaStatus?: VerificationStatus;
-    verifyLock3StepStatus?: VerificationStatus; // From headless non-commerce
-    verify45DayNonShopStatus?: VerificationStatus; // From headless non-commerce
-    verifyThaiId5NumberStatus?: VerificationStatus; // From headless non-commerce
-    verifyMaxAllowStatus?: VerificationStatus; // From headless non-commerce
-    verifyCheckCrossStatus?: VerificationStatus; // From headless non-commerce
-    verify4DScoreStatus?: VerificationStatus; // From headless non-commerce
-    verify4DScoreValue?: string | null; // From headless non-commerce (e.g., "Green", "Yellow", "Red")
-    totalProductTrue?: string | null; // From headless non-commerce, count of products
+    verifyLock3StepStatus?: VerificationStatus; // From headless non-commerce PreverFullResult
+    verify45DayNonShopStatus?: VerificationStatus; // From headless non-commerce PreverFullResult
+    verifyThaiId5NumberStatus?: VerificationStatus; // From headless non-commerce PreverFullResult
+    verifyMaxAllowStatus?: VerificationStatus; // From headless non-commerce PreverFullResult
+    verifyCheckCrossStatus?: VerificationStatus; // From headless non-commerce PreverFullResult
+    verify4DScoreStatus?: VerificationStatus; // From headless non-commerce 4DScore
+    verify4DScoreValue?: string | null; // From headless non-commerce (e.g., "Green", "Yellow", "Red") 4DScore
+    totalProductTrue?: string | null; // From headless non-commerce, count of products 4DScore
+    verifyProductIsTrue?: VerificationStatus; // From headless non-commerce, CheckProductIsTrue
+    verifyProductIsTrueValue?: boolean | null; // From headless non-commerce, CheckProductIsTrue (True, false)
 }
 
 export enum BLACKLIST_COLORS {

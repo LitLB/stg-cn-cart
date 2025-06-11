@@ -51,6 +51,9 @@ export const readConfiguration = () => {
     },
     hl: {
       baseUrl: process.env.HL_BASE_URL as string || process.env.HL_BASE_URL as string,
+      apiKey: process.env.HL_API_KEY as string || process.env.HL_API_KEY as string,
+      timeout: process.env.HL_TIMEOUT ? parseInt(process.env.HL_TIMEOUT) : 30000,
+      maxRetries: process.env.HL_MAX_RETRIES ? parseInt(process.env.HL_MAX_RETRIES) : 0,
     }
   };
 

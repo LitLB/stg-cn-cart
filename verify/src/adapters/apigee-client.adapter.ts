@@ -252,27 +252,15 @@ class ApigeeClientAdapter {
         return response;
     }
 
-    async verifyDopaPOPStatus(payload: VerifyDopaPOPStatusRequestBody): Promise<AxiosResponse<VerifyDopaPOPApiResponse>> {
-        // No need to call this.init() if using separate API key for this endpoint
-        // However, if it uses the same oauth token, then this.init() is needed.
-        // Based on spec, it seems to use 'x-api-key', not Bearer token for this proxy.
-        // If it ALSO needs Bearer, then uncomment:
-        // await this.init();
-
-        const headers: Record<string, string> = { // Define headers type
+    async verifyDopaPOPStatus(payload: string): Promise<AxiosResponse<VerifyDopaPOPApiResponse>> {
+        await this.init()
+        const headers = {
             'Content-Type': 'application/json',
-            'x-api-key': this.apigeeConfig.apiKey
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
         };
-        // If Bearer token is also needed:
-        // if (this.accessToken) {
-        //     headers['Authorization'] = `Bearer ${this.accessToken}`;
-        // } else {
-        //      await this.init(); // Ensure token is fetched if not present
-        //      headers['Authorization'] = `Bearer ${this.accessToken}`;
-        // }
-
-        const url = '/proxy/verifyDopaPOPstatus'; // Path from OMX-verifyDopaPOPstatus-100225-042038.pdf
-        const response: AxiosResponse<VerifyDopaPOPApiResponse> = await this.client.post(url, payload, { headers });
+        const url = `/customerManagement/MDID/v1/customerId?fields=${payload}`;
+        const response: AxiosResponse<VerifyDopaPOPApiResponse> = await this.client.get(`${url}`, { headers });
         return response;
     }
 }
