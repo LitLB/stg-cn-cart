@@ -60,6 +60,11 @@ export const readConfiguration = () => {
       shopCode: process.env.TSM_ORDER_SHOP_CODE as string,
       saleCode: process.env.TSM_ORDER_SALE_CODE as string,
       saleName: process.env.TSM_ORDER_SALE_NAME as string,
+    },
+    hl: {
+      baseUrl: process.env.HL_BASE_URL as string,
+      apiKey: process.env.HL_API_KEY as string,
+      privateKeyEncryption: process.env.HL_PRIVATE_KEY_ENCRYPTION as string,
     }
   };
 
