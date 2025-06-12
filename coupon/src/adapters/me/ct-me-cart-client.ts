@@ -15,24 +15,16 @@ import type {
 import type { ICart, IImage, IItem } from '../../interfaces/cart';
 import { CART_EXPIRATION_DAYS } from '../../constants/cart.constant';
 import dayjs from 'dayjs';
-import CommercetoolsInventoryClient from '../ct-inventory-client';
-import CommercetoolsCartClient from '../ct-cart-client';
 import CommercetoolsProductClient from '../ct-product-client';
-import { talonOneEffectConverter } from '../talon-one-effect-converter'
 import { readConfiguration } from '../../utils/config.utils';
 import { HTTP_STATUSES } from '../../constants/http.constant';
 
 export default class CommercetoolsMeCartClient {
 	private apiRoot: ApiRoot;
 	private projectKey: string;
-	private onlineChannel: string;
-	private readonly ctCartClient;
-	private readonly ctInventoryClient;
 	private readonly ctProductClient;
-	private readonly talonOneEffectConverter;
 	constructor(accessToken: string) {
 		this.projectKey = readConfiguration().ctpProjectKey as string;
-		this.onlineChannel = readConfiguration().onlineChannel as string;
 
 		const client = new ClientBuilder()
 			.withProjectKey(this.projectKey)
@@ -47,9 +39,6 @@ export default class CommercetoolsMeCartClient {
 			.build();
 
 		this.apiRoot = createApiBuilderFromCtpClient(client);
-		this.ctCartClient = CommercetoolsCartClient;
-		this.talonOneEffectConverter = talonOneEffectConverter;
-		this.ctInventoryClient = CommercetoolsInventoryClient;
 		this.ctProductClient = CommercetoolsProductClient;
 	}
 
@@ -628,142 +617,6 @@ export default class CommercetoolsMeCartClient {
 		return response.body;
 	}
 
-	async upsertPrivilegeToCtCart(updatedCart: any, lineItemWithCampaignBenefits: any) {
-		const { id: cartId, version, lineItems } = updatedCart;
-		const myCartUpdateActions: MyCartUpdateAction[] = [];
-		const newDirectDiscounts: any[] = [];
-
-		lineItems.forEach((lineItem: any) => {
-			const lineItemId = lineItem.id
-			const lineItemProductType = lineItem.custom.fields.productType
-			const lineItemProductGroup = lineItem.custom.fields.productGroup
-			const lineItemAddOnGroup = lineItem.custom.fields.addOnGroup
-			// const lineItemOtherPayments = lineItem?.custom?.otherPayments
-			const quantity = lineItem.quantity
-			const cartItem = lineItemWithCampaignBenefits.find((item: any) => {
-				return lineItem.variant.sku === item.variant.sku &&
-					lineItemProductType === item.custom.fields.productType &&
-					lineItemProductGroup === item.custom.fields.productGroup &&
-					(!lineItemAddOnGroup || lineItemAddOnGroup === item.custom.fields.addOnGroup)
-			})
-
-			const newPrivilege = cartItem?.privilege
-
-			myCartUpdateActions.push({
-				action: 'setLineItemCustomField',
-				lineItemId,
-				name: 'privilege',
-				value: newPrivilege ? JSON.stringify(newPrivilege) : null,
-			});
-
-			const newLineItemDiscounts: any[] = (cartItem.discounts ?? [])
-			const discounts = []
-			if (newLineItemDiscounts.length) {
-				// ! Main product
-				// ! Add-on
-
-				for (const newLineItemDiscount of newLineItemDiscounts) {
-					const { benefitType, discountBaht } = newLineItemDiscount
-					if (benefitType === 'main_product') {
-						const predicate = [
-							`product.id ="${lineItem.productId}"`,
-							`custom.productType = "${lineItemProductType}"`,
-							`custom.productGroup = ${lineItemProductGroup}`
-						].join(' AND ');
-
-						newDirectDiscounts.push({
-							target: {
-								type: 'lineItems',
-								predicate,
-							},
-							value: {
-								type: 'absolute',
-								money: [
-									{
-										currencyCode: 'THB',
-										centAmount: quantity * discountBaht,
-									},
-								],
-							},
-						})
-					}
-
-					const { specialPrice } = newLineItemDiscount
-					if (benefitType === 'add_on') {
-						const predicate = [
-							`product.id ="${lineItem.productId}"`,
-							`custom.productType = "${lineItemProductType}"`,
-							`custom.productGroup = ${lineItemProductGroup}`,
-							`custom.addOnGroup = "${lineItemAddOnGroup}"`,
-						].join(' AND ');
-
-						newDirectDiscounts.push({
-							target: {
-								type: 'lineItems',
-								predicate,
-							},
-							value: {
-								type: 'fixed',
-								money: [
-									{
-										currencyCode: 'THB',
-										centAmount: specialPrice,
-									},
-								],
-							},
-						})
-					}
-
-					discounts.push(JSON.stringify(newLineItemDiscount))
-				}
-			}
-
-			myCartUpdateActions.push({
-				action: 'setLineItemCustomField',
-				lineItemId,
-				name: 'discounts',
-				value: discounts,
-			});
-		});
-
-		let newCart = updatedCart
-		let currentVersion = version
-		if (myCartUpdateActions.length) {
-			newCart = await this.updateCart(cartId, currentVersion, myCartUpdateActions)
-			currentVersion = newCart.version
-		}
-
-		newCart = await this.ctCartClient.updateCart(cartId, currentVersion, [{
-			action: 'setDirectDiscounts',
-			discounts: newDirectDiscounts
-		}])
-
-		return newCart
-	}
-
-	attachBenefitToICart(iCart: any, lineItemWithCampaignBenefits: any[]) {
-		const { items } = iCart
-		const newItems = items.map((item: any) => {
-			const sku = item.sku
-			const lineItem = lineItemWithCampaignBenefits.find((lineItem: any) => lineItem.variant.sku === sku)
-			const availableBenefits = lineItem?.availableBenefits || []
-			const privilege = lineItem?.privilege
-			const discounts = lineItem?.discounts
-			return {
-				...item,
-				availableBenefits,
-				privilege,
-				discounts
-			}
-		})
-		const newICart = {
-			...iCart,
-			items: newItems
-		}
-
-		return newICart
-	}
-
 	async validateInsurance(ctCart: any, insurance: any) {
 		const {
 			productGroup,
@@ -891,31 +744,6 @@ export default class CommercetoolsMeCartClient {
 		};
 	}
 
-	async updateCartWithBenefit(ctCart: any) {
-		await this.talonOneEffectConverter.updateCustomerSession(ctCart)
-		const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart)
-		const updatedCart = await this.upsertPrivilegeToCtCart(ctCart, lineItemWithCampaignBenefits)
-
-		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
-		const inventoryKey = skus.map((sku: any) => sku).join(',');
-		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
-		const inventoryMap = new Map<string, any>();
-		inventories.forEach((inventory: any) => {
-			const key = inventory.key;
-			const sku = key.replace(`${this.onlineChannel}-`, '');
-			inventoryMap.set(sku, inventory);
-		});
-		// TODO :: Add has Change function to here
-		let iCart: ICart = this.mapCartToICart(updatedCart);
-		iCart = await this.attachInsuranceToICart(iCart);
-
-		this.mapInventoryToItems(iCart.items, inventoryMap);
-
-		const iCartWithBenefit = this.attachBenefitToICart(iCart, lineItemWithCampaignBenefits)
-
-		return iCartWithBenefit;
-	}
-
 	filterSelectedLineItems(lineItems: LineItem[], selectedOnly: boolean): LineItem[] {
 		if (!selectedOnly) {
 			return lineItems;
@@ -925,30 +753,5 @@ export default class CommercetoolsMeCartClient {
 		return lineItems.filter((lineItem: LineItem) => {
 			return lineItem.custom?.fields?.selected === true;
 		});
-	}
-
-	async getCartWithBenefit(ctCart: any) {
-		const skus = ctCart.lineItems.map((lineItem: any) => lineItem.variant.sku);
-		const inventoryKey = skus.map((sku: any) => sku).join(',');
-		const inventories = await this.ctInventoryClient.getInventory(inventoryKey);
-		const inventoryMap = new Map<string, any>();
-		inventories.forEach((inventory: any) => {
-			const key = inventory.key;
-			const sku = key.replace(`${this.onlineChannel}-`, '');
-			inventoryMap.set(sku, inventory);
-		});
-
-		let iCart: ICart = this.mapCartToICart(ctCart);
-		iCart = await this.attachInsuranceToICart(iCart);
-
-		this.mapInventoryToItems(iCart.items, inventoryMap);
-
-		let iCartWithBenefit = iCart;
-		if (ctCart?.lineItems?.length) {
-			const lineItemWithCampaignBenefits = await this.talonOneEffectConverter.getCtLineItemWithCampaignBenefits(ctCart);
-			iCartWithBenefit = this.attachBenefitToICart(iCart, lineItemWithCampaignBenefits);
-		}
-
-		return iCartWithBenefit;
 	}
 }
