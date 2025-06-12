@@ -65,21 +65,38 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
         }
     }
 
-    const pricePlan = data.productOfferingQualificationItem.find((element: any) => {
-        return element.productItem.find((item: any) => item.type === "10" && (item.validFor.endDateTime === null || item.validFor.endDateTime > date) && item.itemPrice.value > 0)
+    const customerType = data.characteristic.find((a: any) => a.name === "CS_CUST__OCCP_CODE").value
+    const filteredAging = data.characteristic.find((a: any) => a.name === "TOTL_DAYS").value
+
+
+    const packageInfo = data.productOfferingQualificationItem.find((element: any) => {
+        return element.productItem.find((item: any) => {
+            return item.type === "10" && (item.validFor.endDateTime === null || item.validFor.endDateTime > date) && parseFloat(item.itemPrice.price.value) > 0
+        })
     });
+
+    let pricePlan
+    if (packageInfo) {
+        pricePlan = packageInfo.productItem.find((item: any) => {
+            return item.type === "10" && (item.validFor.endDateTime === null || item.validFor.endDateTime > date) && parseFloat(item.itemPrice.price.value) > 0
+        })
+    }
+
 
     return {
         thaiId: data.engagedParty.id,
         customerNo: data.relatedParty.href,
-        aging,
-        pricePlan: pricePlan ?? {}
+        customerType: customerType,
+        companyCode: "DTN", // ? FIX
+        birthOfDate: "1996-06-30", // ! [TBC]
+        aging: filteredAging,
+        pricePlan: (pricePlan?.itemPrice.price.value ?? undefined),
+        packageCode: (pricePlan?.id ?? undefined)
     }
 
 }
 
 export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileResponse => {
-
 
     if (!["I", "X", "P"].includes(data.relatedParty.customer.type)) {
         throw {
@@ -134,6 +151,7 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
     });
 
 
+
     if (Number(data.aging) < 90) {
         throw {
             statusCode: "400.4034",
@@ -143,15 +161,24 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
 
     if (data.subscriberInfo.status.code === "A" && data.subscriberInfo.status.description !== "Soft Suspend") {
 
-        const pricePlan = data.productOfferingQualificationItem.find((element: any) => {
-            return element.productItem.find((item: any) => item.type === "P" && item.status === "A")
+        const companyCode = data.characteristic.find((element: any) => element.name === 'companyCode')
+        const packageInfo = data.productOfferingQualificationItem.find((element: any) => {
+            return element.productItem.find((item: any) => {
+                return item.type === "P" && item.status === "A"
+            })
         });
+
+        const foundPackage = packageInfo.productItem.find((element: any) => element.type === 'P' && element.status === 'A')
 
         return {
             thaiId: data.engagedParty.id,
-            agreementId: data.subscriberInfo.id,
+            customerNo: data.relatedParty.account.id,
+            customerType: data.relatedParty.customer.type,
+            companyCode: companyCode.value,
+            birthOfDate: "1996-06-30", // ! [TBC]
             aging: data.aging,
-            pricePlan: pricePlan ?? null
+            pricePlan: (foundPackage.amount.value ?? undefined),
+            packageCode: (foundPackage.name ?? undefined)
         }
 
     } else {

@@ -17,7 +17,7 @@ import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile, validateSharePlan } from "../validators/operator.validators";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
-import { CustomerVerificationData, CustomerVerifyQueryParams } from "../interfaces/verify.interface";
+import { CustomerVerificationData, CustomerVerifyQueryParams, ICustomerProfile } from "../interfaces/verify.interface";
 import { CART_JOURNEYS } from "../constants/cart.constant";
 import { STATUS_CODES } from "http";
 import { EXCEPTION_MESSAGES } from "../constants/messages.constant";
@@ -344,8 +344,13 @@ export class OtpService {
 
         const steps = new Set(verifyStates);
         let operator: typeof OPERATOR[keyof typeof OPERATOR] = 'unknown';
-        let response: CustomerVerificationData = {
-            verifyResult: {}
+        const response: CustomerVerificationData = {
+            verifyResult: {},
+            customerProfile: {
+                operator: "unknown",
+                companyCode: "unknown",
+                birthOfDate: "unknown"
+            }
         }
 
         let customerProfile
@@ -357,7 +362,9 @@ export class OtpService {
             operator = await this.checkOperator(id, mobileNumber);
             await this.checkActive(journey, operator);
             response.verifyResult.verifyOperatorStatus = "success";
+            response.customerProfile.operator = operator
         }
+
 
 
         // Step 3: Check Profile and Share plan.
@@ -385,6 +392,20 @@ export class OtpService {
                 }
                 response.verifyResult.verifyCustomerAndPackageStatus = "success";
 
+                if (customerProfile) {
+
+                    response.customerProfile = {
+                        companyCode: customerProfile.companyCode,
+                        customerNumber: customerProfile.customerNo ?? undefined,
+                        customerType: customerProfile.customerType ?? undefined,
+                        isProductTrue: journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING ? OPERATOR.TRUE : '?', // TODO :: for bundle new  
+                        packageCode: customerProfile.packageCode ?? undefined,
+                        pricePlan: customerProfile.pricePlan ?? undefined,
+                        birthOfDate: customerProfile.birthOfDate,
+                        ageOfUse: customerProfile.aging ?? undefined,
+
+                    }
+                }
             }
         }
 
@@ -408,6 +429,8 @@ export class OtpService {
             }
 
         }
+
+
 
         return response;
     }
@@ -710,6 +733,11 @@ export class OtpService {
         const response: CustomerVerificationData = {
             verifyResult: {
                 verifyDopaStatus: 'skip',
+            },
+            customerProfile: {
+                companyCode: "",
+                birthOfDate: "",
+                operator: ""
             }
         }
 
@@ -816,7 +844,12 @@ export class OtpService {
                 const verifyStateResults = await Promise.all(verifyStatePromises);
 
                 const initialAccumulator: CustomerVerificationData = {
-                    verifyResult: {}
+                    verifyResult: {},
+                    customerProfile: {
+                        companyCode: "",
+                        birthOfDate: "",
+                        operator: ""
+                    }
                 }
                 const mergedCustomerVerificationData: CustomerVerificationData = verifyStateResults.reduce((accumulator: CustomerVerificationData, currentValue: CustomerVerificationData) => {
                     return {

@@ -35,6 +35,7 @@ export interface CustomerVerificationData {
     hasProduct?: string;
     blacklistColor?: BLACKLIST_COLORS; // Represents 4D score color (e.g., "Green", "Yellow", "Red")
     verifyResult: VerifyResult;
+    customerProfile: ICustomerProfile
 }
 
 // New Interface for Query Parameters 
@@ -52,4 +53,16 @@ export interface CustomerVerifyQueryParams {
     campaignCode?: string;
     productCode?: string;
     propoId?: string;
+}
+
+export interface ICustomerProfile {
+    operator?: string;
+    companyCode: string;
+    birthOfDate: string;
+    customerNumber?: string;
+    customerType?: string;
+    isProductTrue?: string;
+    pricePlan?: string;
+    packageCode?: string;
+    ageOfUse?: string;
 }
