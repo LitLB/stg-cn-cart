@@ -20,7 +20,6 @@ import {
 } from '../schemas/cart-item.schema';
 import { readConfiguration } from '../utils/config.utils';
 import { updateCartFlag, validateInventory } from '../utils/cart.utils';
-import { TalonOneEffectConverter } from '../adapters/talon-one-effect-converter';
 import { CouponService } from '../services/coupon.service';
 import { TalonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { AdapterConstructor } from '../interfaces/adapter.interface';
@@ -31,7 +30,6 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
   'commercetoolsCartClient': CommercetoolsCartClient,
   'commercetoolsInventoryClient': CommercetoolsInventoryClient,
   'commercetoolsStandalonePricesClient': CommercetoolsStandalonePricesClient,
-  'talonOneEffectConverter': TalonOneEffectConverter,
   'talonOneIntegrationAdapter': TalonOneIntegrationAdapter
 }> {
   private couponService: CouponService;
@@ -42,7 +40,6 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
       CommercetoolsCartClient as AdapterConstructor<'commercetoolsCartClient', CommercetoolsCartClient>,
       CommercetoolsInventoryClient as AdapterConstructor<'commercetoolsInventoryClient', CommercetoolsInventoryClient>,
       CommercetoolsStandalonePricesClient as AdapterConstructor<'commercetoolsStandalonePricesClient', CommercetoolsStandalonePricesClient>,
-      TalonOneEffectConverter as AdapterConstructor<'talonOneEffectConverter', TalonOneEffectConverter>,
       TalonOneIntegrationAdapter as AdapterConstructor<'talonOneIntegrationAdapter', TalonOneIntegrationAdapter>,
     );
 
@@ -219,24 +216,12 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         }
       }
 
-      const changes = [
-        {
-          sku,
-          quantity,
-          productType,
-          productGroup: newProductGroup,
-          addOnGroup,
-          freeGiftGroup,
-          campaignVerifyValues,
-        },
-      ];
-      const action = 'add_product';
-      const validateResult =
-        await this.adapters.talonOneEffectConverter.validate(
-          cart,
-          changes,
-          action
-        );
+      const validateResult = {
+        isValid: true,
+        errorMessage: undefined,
+        campaignVerifyKeys: [],
+        isRequireCampaignVerify: false,
+      }
 
       if (
         !validateResult?.isValid &&
@@ -459,19 +444,11 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         deltaQuantity
       );
 
-      const changes = [
-        {
-          sku,
-          quantity,
-          productType,
-          productGroup,
-          addOnGroup,
-        },
-      ];
-
-      const validateResult =
-        await this.adapters.talonOneEffectConverter.validate(cart, changes);
-
+      const validateResult = {
+        isValid: true,
+        errorMessage: undefined,
+      }
+        
       if (!validateResult?.isValid) {
         return {
           status: 'error',

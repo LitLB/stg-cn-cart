@@ -47,8 +47,6 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
       CommercetoolsInventoryClient as AdapterConstructor<'commercetoolsInventoryClient', CommercetoolsInventoryClient>,
       CommercetoolsCustomObjectClient as AdapterConstructor<'commercetoolsCustomObjectClient', CommercetoolsCustomObjectClient>,
       CommercetoolsStandalonePricesClient as AdapterConstructor<'commercetoolsStandalonePricesClient', CommercetoolsStandalonePricesClient>,
-      // TalonOneEffectConverter,
-      // TalonOneIntegrationAdapter
     );
   }
 
