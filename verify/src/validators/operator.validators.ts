@@ -175,6 +175,7 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
             customerNo: data.relatedParty.account.id,
             customerType: data.relatedParty.customer.type,
             companyCode: companyCode.value,
+            agreementId: data.subscriberInfo.id,
             birthOfDate: "1996-06-30", // ! [TBC]
             aging: data.aging,
             pricePlan: (foundPackage.amount.value ?? undefined),
