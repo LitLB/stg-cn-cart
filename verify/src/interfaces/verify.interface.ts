@@ -58,7 +58,7 @@ export interface CustomerVerifyQueryParams {
 export interface ICustomerProfile {
     operator?: string;
     companyCode: string;
-    birthOfDate: string;
+    birthdate: string;
     customerNumber?: string;
     customerType?: string;
     isProductTrue?: string;

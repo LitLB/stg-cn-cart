@@ -349,7 +349,7 @@ export class OtpService {
             customerProfile: {
                 operator: "unknown",
                 companyCode: "unknown",
-                birthOfDate: "unknown"
+                birthdate: "unknown"
             }
         }
 
@@ -401,7 +401,7 @@ export class OtpService {
                         isProductTrue: journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING ? OPERATOR.TRUE : '?', // TODO :: for bundle new  
                         packageCode: customerProfile.packageCode ?? undefined,
                         pricePlan: customerProfile.pricePlan ?? undefined,
-                        birthOfDate: customerProfile.birthOfDate,
+                        birthdate: customerProfile.birthOfDate,
                         ageOfUse: customerProfile.aging ?? undefined,
 
                     }
@@ -736,7 +736,7 @@ export class OtpService {
             },
             customerProfile: {
                 companyCode: "",
-                birthOfDate: "",
+                birthdate: "",
                 operator: ""
             }
         }
@@ -847,7 +847,7 @@ export class OtpService {
                     verifyResult: {},
                     customerProfile: {
                         companyCode: "",
-                        birthOfDate: "",
+                        birthdate: "",
                         operator: ""
                     }
                 }
