@@ -39,14 +39,18 @@ export class HeadlessClientAdapter extends ApiClientService {
     async verifyHLStatus(
         body: VerifyHLRequestBody
     ): Promise<VerifyHLResponse> {
-        const url = '/validate/v1/verify'; // As per the provided HeadLess spec
-        const config: AxiosRequestConfig = {
-            headers: {
-                'ApiKey': this.hlApiKey,
-            },
-        };
-        const response = await this.post<VerifyHLResponse>(url, body, config);
-        return response.data;
+        try {
+            const url = '/validate/v1/verify'; // As per the provided HeadLess spec
+            const config: AxiosRequestConfig = {
+                headers: {
+                    'ApiKey': this.hlApiKey,
+                },
+            };
+            const response = await this.post<VerifyHLResponse>(url, body, config);
+            return response.data;
+        } catch (error: any) {
+            return {} as VerifyHLResponse;
+        }
     }
 }
 

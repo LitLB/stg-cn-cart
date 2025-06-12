@@ -22,10 +22,9 @@ import { CART_JOURNEYS } from "../constants/cart.constant";
 import { STATUS_CODES } from "http";
 import { EXCEPTION_MESSAGES } from "../constants/messages.constant";
 import { CUSTOMER_VERIFY_STATES } from "../constants/ct.constant";
-// import { VerifyDopaPOPStatusRequestBody } from "../interfaces/dopa.interface";
 import { VERIFY_DOPA_POP_STATUS_CHANNEL, VERIFY_HL_CHANNEL, VERIFY_HL_CUSTOMER_TYPE, VERIFY_HL_VALIDATE_NAME, VERIFY_HL_VALIDATE_FUNCTION, VERIFY_HL_DEALERCODE, VERIFY_HL_COMPANY_CODE, VERIFY_HL_ACTIVITYFUNCTION, VERIFY_HL_ACTIVITYFUNCTIONTYPE, VERIFY_HL_USERLOGIN, VERIFY_HL_ACCOUNTYPE } from "../constants/verify.constant";
-// import { omniService } from "./omni.service";
 import { DopaValidator } from "../validators/dopa.validator";
+import { HLValidator } from '../validators/hl.validator'
 
 dayjs.extend(utc);
 dayjs.extend(timezone); // Extend dayjs with timezone plugin
@@ -364,13 +363,11 @@ export class OtpService {
             const verifyKeyOption = journey
                     ? await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey("verifyKeyOptions", journey)
                     : undefined;
-                    console.log("verifyKeyOption :", verifyKeyOption)
             if (verifyKeyOption?.value.cerId) {
                 operator = await this.checkProductIsTrue(certificationId, dateOfBirth, certificationType);
             } else {
                 operator = await this.checkOperator(id, mobileNumber);
             }
-            console.log("operator :", operator)
             await this.checkActive(journey, operator);
             response.verifyResult.verifyOperatorStatus = "success";
             response.customerProfile.operator = operator
@@ -731,20 +728,6 @@ export class OtpService {
         decryptedDateOfBirth: string,
         decryptedMobileNumber?: string
     ): Promise<CustomerVerificationData> {
-        // const verifyDopaPOPStatusRequestBody: VerifyDopaPOPStatusRequestBody = {
-        //     verifyDopaPOPstatus: {
-        //         requestId: correlatorid,
-        //         channel: VERIFY_DOPA_POP_STATUS_CHANNEL.CRM,
-        //         idNumber: decryptedCertificationId,
-        //         dateOfBirth: decryptedDateOfBirth,
-        //         timeStamp: new Date(),
-        //     },
-        // };
-
-        // if (decryptedMobileNumber) {
-        //     verifyDopaPOPStatusRequestBody.verifyDopaPOPstatus.MSSIDN = decryptedMobileNumber;
-        // }
-
         const stringBody =
             `id=${correlatorid}` +
             `&channel=${VERIFY_DOPA_POP_STATUS_CHANNEL.ECP}` +
@@ -796,19 +779,6 @@ export class OtpService {
         return response;
     }
 
-    private performHLPreVerify(certificationId: string): CustomerVerificationData {
-        const result = hlClientAdapter.preVerify(certificationId) as unknown as CustomerVerificationData
-        if ((result as unknown as Record<string, unknown>)['statusCode']) {
-            throw {
-                status: 400,
-                statusCode: (result as unknown as Record<string, unknown>)['statusCode'],
-                statusMessage: (result as unknown as Record<string, unknown>)['statusMessage']
-            }
-        }
-
-        return result
-    }
-
     private async performHLPreVerifyStatus(
         journey: string,
         certificationId: string,
@@ -822,12 +792,14 @@ export class OtpService {
     ): Promise<CustomerVerificationData> {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_OPERATOR, logModel);
+
         // 1.convert date to dd/mm/yyyy
         let birthDate = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
         if (birthDate) { 
             birthDate = formatDateFromString(birthDate)
             dateOfBirth = await apigeeClientAdapter.apigeeEncrypt(birthDate);
         }
+
         // 2.base payload
         const basePayload = {
             correlationId: generateUUID(),
@@ -840,17 +812,21 @@ export class OtpService {
             }
         };
 
-        let requestBody;
-
         const response: CustomerVerificationData = {
             verifyResult: {}
         };
-
+        let requestBody;
         let hlResponse;
 
         // 3.call hl
         switch (verifyState) {
             case "hlPreverFull":
+                response.verifyResult.verifyLock3StepStatus = "fail",
+                response.verifyResult.verify45DayNonShopStatus = "fail",
+                response.verifyResult.verifyThaiId5NumberStatus  = "fail",
+                response.verifyResult.verifyMaxAllowStatus  = "fail",
+                response.verifyResult.verifyCheckCrossStatus  = "fail"
+
                 requestBody = {
                     correlationId: basePayload.correlationId,
                     channel: basePayload.channel,
@@ -873,23 +849,24 @@ export class OtpService {
                     ]
                 };
 
-                response.verifyResult.verifyLock3StepStatus = "fail",
-                response.verifyResult.verify45DayNonShopStatus = "fail",
-                response.verifyResult.verifyThaiId5NumberStatus  = "fail",
-                response.verifyResult.verifyMaxAllowStatus  = "fail",
-                response.verifyResult.verifyCheckCrossStatus  = "fail"
                 hlResponse = await hlClientAdapter.verifyHLStatus(requestBody);
                 logService(requestBody, hlResponse, logStepModel)
-                if (hlResponse?.code === "200") {
-                    response.verifyResult.verifyLock3StepStatus = "success",
-                    response.verifyResult.verify45DayNonShopStatus = "success",
-                    response.verifyResult.verifyThaiId5NumberStatus  = "success",
-                    response.verifyResult.verifyMaxAllowStatus  = "success",
-                    response.verifyResult.verifyCheckCrossStatus  = "success"
-                }
+
+                const mapStatus = HLValidator.handleVerifyHLStatus(hlResponse?.code)
+                if (mapStatus) throw mapStatus;
+
+                response.verifyResult.verifyLock3StepStatus = "success",
+                response.verifyResult.verify45DayNonShopStatus = "success",
+                response.verifyResult.verifyThaiId5NumberStatus  = "success",
+                response.verifyResult.verifyMaxAllowStatus  = "success",
+                response.verifyResult.verifyCheckCrossStatus  = "success"
                 break;
             
             case "hl4DScore":
+                response.verifyResult.verify4DScoreStatus = "fail"
+                response.verifyResult.verify4DScoreValue = "fail"
+                response.verifyResult.totalProductTrue = "fail"
+
                 requestBody = {
                     correlationId: basePayload.correlationId,
                     channel: basePayload.channel,
@@ -908,11 +885,9 @@ export class OtpService {
                     ]
                 };
 
-                response.verifyResult.verify4DScoreStatus = "fail"
-                response.verifyResult.verify4DScoreValue = "fail"
-                response.verifyResult.totalProductTrue = "fail"
                 hlResponse = await hlClientAdapter.verifyHLStatus(requestBody);
                 logService(requestBody, hlResponse, logStepModel)
+
                 if (hlResponse?.code === "200") {
                     response.verifyResult.verify4DScoreStatus = "success"
                     response.verifyResult.verify4DScoreValue = "success"
@@ -924,6 +899,9 @@ export class OtpService {
                 break;
 
             case "hlCheckProductIsTrue":
+                response.verifyResult.verifyProductIsTrue = "fail"
+                response.verifyResult.verifyProductIsTrueValue = null
+                
                 requestBody = {
                     correlationId: basePayload.correlationId,
                     channel: basePayload.channel,
@@ -938,9 +916,6 @@ export class OtpService {
                     ]
                 };
                 
-
-                response.verifyResult.verifyProductIsTrue = "skip"
-                response.verifyResult.verifyProductIsTrueValue = null
                 const verifyKeyOption = journey
                     ? await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey("verifyKeyOptions", journey)
                     : undefined;
