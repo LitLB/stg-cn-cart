@@ -551,7 +551,6 @@ export class TalonOneCouponAdapter {
 
             // Step 2: Build the customer session payload
             const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
-                ctCartData: ctCart,
                 couponCodes
             });
 
