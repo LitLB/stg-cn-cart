@@ -136,6 +136,52 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
     }
   }
 
+  protected async getPromotionSetByCode(code: string): Promise<Product> {
+    const promotionSet =
+      await this.adapters.commercetoolsProductClient.queryProducts({
+        where: `masterData(current(masterVariant(sku="${code}")))`,
+      });
+
+    if (!promotionSet.results.length) {
+      throw {
+        statusCode: HTTP_STATUSES.NOT_FOUND,
+        statusMessage: 'Promotion set not found',
+      };
+    }
+
+    if (!promotionSet.results[0].masterData.published) {
+      throw {
+        statusCode: HTTP_STATUSES.NOT_FOUND,
+        statusMessage: 'Promotion set is no longer available.',
+      };
+    }
+
+    return promotionSet.results[0];
+  }
+
+  protected async getBundleProductByKey(key: string): Promise<Product> {
+    const bundleProduct =
+      await this.adapters.commercetoolsProductClient.queryProducts({
+        where: `masterData(current(masterVariant(sku="${key}")))`,
+      });
+
+    if (!bundleProduct.results.length) {
+      throw {
+        statusCode: HTTP_STATUSES.NOT_FOUND,
+        statusMessage: 'Bundle product not found',
+      };
+    }
+
+    if (!bundleProduct.results[0].masterData.published) {
+      throw {
+        statusCode: HTTP_STATUSES.NOT_FOUND,
+        statusMessage: 'Bundle product is no longer available.',
+      };
+    }
+
+    return bundleProduct.results[0];
+  }
+
   protected getVariantBySku(product: Product, sku: string): ProductVariant {
     const variant = this.adapters.commercetoolsProductClient.findVariantBySku(
       product,
@@ -453,6 +499,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
         quantity,
         productType,
         productGroup,
+        bundleProduct
       } = payload;
       const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
 
@@ -466,31 +513,38 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
 
       const product = await this.getProductById(productId);
       const variant = this.getVariantBySku(product, sku);
+
       this.validateDeviceBundleNew(payload, cart, variant);
+      
       const validPrice = await this.getValidPrice(variant, now);
+      
       const mainPackage = await this.getPackageByCode(packageInfo.code);
       const sim = await this.getSimBySku(simInfo.sku);
       const packageAdditionalInfo = await this.getPackageAdditionalInfo(
         cart,
         mainPackage.masterData.current.masterVariant
       );
+
+      const promotionSetInfo = await this.getPromotionSetByCode(bundleProduct.promotionSetCode)
+      const bundleProductInfo = await this.getBundleProductByKey(bundleProduct.key)
+
       const billingAddressInfo = await this.getBillingAddressInfo(cart, billingAddress)
       this.validateReleaseDate(variant.attributes!, now);
       this.validateStatus(variant);
       this.validateQuantity(productType, cart, sku, product, variant, quantity);
 
-      const inventories = await this.getInventories(sku);
-      const inventory = inventories[0];
+      // const inventories = await this.getInventories(sku);
+      // const inventory = inventories[0];
 
-      const { isDummyStock } = this.validateInventory(inventory);
+      // const { isDummyStock } = this.validateInventory(inventory);
 
-      const newProductGroup = this.calculateProductGroup({
-        cart,
-        productId,
-        sku,
-        productType,
-        productGroup,
-      });
+      // const newProductGroup = this.calculateProductGroup({
+      //   cart,
+      //   productId,
+      //   sku,
+      //   productType,
+      //   productGroup,
+      // });
 
       const updatedCart =
         await this.adapters.commercetoolsCartClient.updateCart(
@@ -538,7 +592,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
                   key: 'lineItemCustomType',
                 },
                 fields: {
-                  productType: 'bundle',
+                  productType: 'package',
                   selected: false,
                 },
               },
@@ -566,6 +620,48 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
                   productType: 'sim',
                   selected: false,
                   simInfo: [JSON.stringify(simInfo)]
+                },
+              },
+            },
+            {
+              action: 'addLineItem',
+              productId: bundleProductInfo.id,
+              variantId: bundleProductInfo.masterData.current.masterVariant.id,
+              quantity: 1,
+              inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+              externalPrice: {
+                currencyCode: 'THB',
+                centAmount: 0,
+              },
+              custom: {
+                type: {
+                  typeId: 'type',
+                  key: 'lineItemCustomType',
+                },
+                fields: {
+                  productType: 'bundle',
+                  selected: true,
+                },
+              },
+            },
+            {
+              action: 'addLineItem',
+              productId: promotionSetInfo.id,
+              variantId: promotionSetInfo.masterData.current.masterVariant.id,
+              quantity: 1,
+              inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+              externalPrice: {
+                currencyCode: 'THB',
+                centAmount: 0,
+              },
+              custom: {
+                type: {
+                  typeId: 'type',
+                  key: 'lineItemCustomType',
+                },
+                fields: {
+                  productType: 'promotion_set',
+                  selected: true,
                 },
               },
             },

@@ -968,8 +968,14 @@ export class CartService {
                 const productType = lineItem.custom?.fields?.productType;
                 const sku = lineItem.variant.sku as string;
                 const productId = lineItem.productId;
+                const simInfo = lineItem.custom?.fields?.simInfo?.[0];
+                const simType = simInfo ? JSON.parse(simInfo).simType : null;
 
-                if (productType !== 'main_product' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) continue
+                if (productType !== 'main_product' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) { 
+                    continue
+                } else if (productType !== 'main_product' && simType !== 'physical' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_NEW) {
+                    continue
+                }
 
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
@@ -986,7 +992,6 @@ export class CartService {
                         statusMessage: 'SKU not found in the specified product',
                     };
                 }
-
                 const inventories = await CommercetoolsInventoryClient.getInventory(sku);
                 if (inventories.length === 0) {
                     throw {
