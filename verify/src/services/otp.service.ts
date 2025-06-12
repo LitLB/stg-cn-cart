@@ -813,7 +813,12 @@ export class OtpService {
         };
 
         const response: CustomerVerificationData = {
-            verifyResult: {}
+            verifyResult: {},
+            customerProfile: {
+                companyCode: "",
+                birthdate: "",
+                operator: ""
+            }
         };
         let requestBody;
         let hlResponse;
