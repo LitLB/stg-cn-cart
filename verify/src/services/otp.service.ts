@@ -869,8 +869,8 @@ export class OtpService {
             
             case "hl4DScore":
                 response.verifyResult.verify4DScoreStatus = "fail"
-                response.verifyResult.verify4DScoreValue = "fail"
-                response.verifyResult.totalProductTrue = "fail"
+                response.verifyResult.verify4DScoreValue = null
+                response.verifyResult.totalProductTrue = null
 
                 requestBody = {
                     correlationId: basePayload.correlationId,
@@ -895,11 +895,11 @@ export class OtpService {
 
                 if (hlResponse?.code === "200") {
                     response.verifyResult.verify4DScoreStatus = "success"
-                    response.verifyResult.verify4DScoreValue = "success"
-                    response.verifyResult.totalProductTrue = "success"
+                    response.verifyResult.verify4DScoreValue = hlResponse.data.blacklistColor as BLACKLIST_COLORS;
+                    response.verifyResult.totalProductTrue = hlResponse.data.totalProduct as unknown as string;
                     response.blacklistColor = hlResponse.data.blacklistColor as BLACKLIST_COLORS;
-                    response.hasProduct = hlResponse.data.hasProduct as unknown as string
-                    response.totalProduct = hlResponse.data.totalProduct as unknown as string
+                    response.hasProduct = hlResponse.data.hasProduct as unknown as string;
+                    response.totalProduct = hlResponse.data.totalProduct as unknown as string;
                 }
                 break;
 
@@ -1050,14 +1050,12 @@ export class OtpService {
             } = queryParams;
 
             const verifyStateArr: Array<string> = [verifyState].flat();
-            verifyStateArr.push("hlCheckProductIsTrue");
 
             if (journey === CART_JOURNEYS.DEVICE_ONLY || journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
                 const mobileNumberStr = queryParams.mobileNumber as string;
                 const customerProfile = await this.getCustomerProfile(correlatorid, journey, verifyStateArr, mobileNumberStr, certificationId, dateOfBirth, certificationType);
                 return customerProfile;
             } else {
-                // DOPA, hlPreverFull, hl4DScore (MOCK)
                 const decryptedCertificationId = await apigeeClientAdapter.apigeeDecrypt(certificationId);
                 const decryptedDateOfBirth = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
                 const decryptedMobileNumber = mobileNumber ? await apigeeClientAdapter.apigeeDecrypt(mobileNumber) : undefined;
