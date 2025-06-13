@@ -12,7 +12,7 @@ export const getApiGeeInstance = (): AxiosInstance => {
 
 export const getToken = async (): Promise<string> => {
     try {
-        const endpoint = 'oauth/v1/token'
+        const endpoint = 'oauth/v3/token'
         const headers = { 'Content-Type': 'application/x-www-form-urlencoded' }
 
         const apiInstant = getApiGeeInstance()

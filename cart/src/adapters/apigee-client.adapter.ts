@@ -18,7 +18,7 @@ class ApigeeClientAdapter {
 
     async getToken(): Promise<any> {
         try {
-            const url = 'oauth/v1/token';
+            const url = 'oauth/v3/token';
             const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
 
             const response: AxiosResponse = await this.client.post(`${url}`, {
