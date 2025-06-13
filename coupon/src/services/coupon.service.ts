@@ -89,7 +89,6 @@ export class CouponService {
             // 4) Update Talon.One session to reflect final coupon codes
             const payload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
                 profileId: ctCart.id,
-                ctCartData: ctCart,
                 couponCodes,
             });
             let updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(
@@ -128,7 +127,6 @@ export class CouponService {
                 // Optionally re-update the session to get a “clean” effect list
                 const cleanedPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
                     profileId: ctCart.id,
-                    ctCartData: ctCart,
                     couponCodes,
                 });
                 updatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(
@@ -394,7 +392,6 @@ export class CouponService {
 
                 const clearCouponsPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
                     profileId: ctCart.id,
-                    ctCartData: ctCart,
                     couponCodes: couponCodes,
                 });
                 const clearCouponsUpdatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(

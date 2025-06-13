@@ -53,8 +53,6 @@ export class CouponService {
 
             // 2) Re-check with Talon.One to see if any have become invalid
             const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
-                profileId: ctCart.id,
-                ctCartData: ctCart,
                 couponCodes: currentCouponCodes,
             });
             const updatedSession = await talonOneIntegrationAdapter.updateCustomerSession(
@@ -89,8 +87,6 @@ export class CouponService {
 
             // 5) Re-update the session with the final set of coupons
             const reUpdatedPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
-                profileId: ctCart.id,
-                ctCartData: ctCart,
                 couponCodes: removeResult.applyCoupons,
             });
             const reUpdatedSession = await talonOneIntegrationAdapter.updateCustomerSession(
@@ -176,8 +172,6 @@ export class CouponService {
 
             // 2) Re-check with Talon.One to see if any have become invalid
             const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
-                profileId: ctCart.id,
-                ctCartData: ctCart,
                 couponCodes: isRemoveAllCoupon ? [] : currentCouponCodes,
             });
             const updatedSession = await talonOneIntegrationAdapter.updateCustomerSession(
@@ -213,8 +207,6 @@ export class CouponService {
 
             // 5) Re-update the session with the final set of coupons
             const reUpdatedPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
-                profileId: ctCart.id,
-                ctCartData: ctCart,
                 couponCodes: removeResult.applyCoupons,
             });
             const reUpdatedSession = await talonOneIntegrationAdapter.updateCustomerSession(
@@ -376,8 +368,6 @@ export class CouponService {
             }
 
             const clearAllCouponsPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload({
-                profileId: ctCart.id,
-                ctCartData: ctCart,
                 couponCodes: [],
             });
             const clearAllCouponsUpdatedCustomerSession = await talonOneIntegrationAdapter.updateCustomerSession(
