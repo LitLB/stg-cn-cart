@@ -32,6 +32,7 @@ import { attachPackageToCart } from '../helpers/cart.helper';
 import { AdapterConstructor } from '../interfaces/adapter.interface';
 import { CommercetoolsStandalonePricesClient } from '../adapters/ct-standalone-prices-client';
 import { ICartItemPayload } from '../interfaces/cart';
+import dayjs from 'dayjs';
 
 export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
   'commercetoolsMeCartClient': CommercetoolsMeCartClient,
@@ -288,7 +289,8 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
   protected async getPackageAdditionalInfo(
     cart: Cart,
     mainPackage: ProductVariant,
-    bundle: ProductVariant
+    bundle: ProductVariant,
+    advancePayment: number
   ): Promise<CustomObject> {
     const packageCode = mainPackage.attributes?.find(
       (attr) => attr.name === 'package_code'
@@ -314,7 +316,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
             t1: {
               priceplanRcc: priceplanRc?.value,
               penalty: penalty?.value,
-              advancedPayment: 5000,
+              advancedPayment: advancePayment,
               contractTerm: contractTerm?.value || 12,
             },
             connector: {
@@ -373,6 +375,23 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         statusMessage: `Cannot add a non-"device_bundle_existing" item to a "device_bundle_existing" cart.`,
       };
     }
+  }
+
+  private findValidAdvancePayment = (advancePaymentList: string[]): number => {
+    const now = dayjs()
+    const advancePaymentParsed = advancePaymentList.map(r => JSON.parse(r))
+    const validAdvancePayment = advancePaymentParsed.find((adv: { fee: number, startDate: string; endDate: string }) => {
+
+      const startDate = dayjs(adv.startDate.split("/").reverse().join(""))
+      const endDate = dayjs(adv.endDate.split("/").reverse().join(""))
+
+      const validStartDate: boolean = (now.isSame(startDate) || now.isAfter(startDate))
+      const validEndDate: boolean = (now.isSame(endDate) || now.isBefore(endDate))
+
+      return validStartDate && validEndDate
+    }).fee.concat("00") // ? convert bath to cent
+
+    return Number(validAdvancePayment ?? 0)
   }
 
   private calculateProductGroup = ({
@@ -455,12 +474,23 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       const promotionSetInfo = await this.getPromotionSetByCode(bundleProduct.promotionSetCode)
       const bundleProductInfo = await this.getBundleProductByKey(bundleProduct.key)
 
+      if (!bundleProductInfo) {
+        throw {
+          statusCode: HTTP_STATUSES.NOT_FOUND,
+          statusMessage: 'Bundle product notfound.',
+        };
+      }
+
+      const advancePaymentList: string[] = bundleProductInfo.masterData.current.masterVariant.attributes?.find(r => r.name === 'payAdvanceServiceFee')?.value ?? "0"
+
+      const advancePayment = this.findValidAdvancePayment(advancePaymentList)
+
       const packageAdditionalInfo = await this.getPackageAdditionalInfo(
         cart,
         mainPackage.masterData.current.masterVariant,
         bundleProductInfo.masterData.current.masterVariant,
+        advancePayment
       );
-
 
       this.validateReleaseDate(variant.attributes!, now);
       this.validateStatus(variant);
@@ -581,7 +611,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
               quantity: 1,
               money: {
                 currencyCode: 'THB',
-                centAmount: 50000,
+                centAmount: advancePayment,
               },
               slug: 'advance-payment',
               taxCategory: {
