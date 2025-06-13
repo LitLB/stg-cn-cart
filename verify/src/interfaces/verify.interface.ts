@@ -56,6 +56,8 @@ export interface CustomerVerifyQueryParams {
 }
 
 export interface ICustomerProfile {
+    certificationId: string;
+    certificationType: string;
     operator?: string;
     companyCode: string;
     birthdate: string;
@@ -65,4 +67,5 @@ export interface ICustomerProfile {
     pricePlan?: string;
     packageCode?: string;
     ageOfUse?: string;
+    
 }

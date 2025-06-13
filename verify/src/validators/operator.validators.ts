@@ -84,7 +84,8 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
 
 
     return {
-        thaiId: data.engagedParty.id,
+        certificationId: data.engagedParty.id,
+        certificationType: 'I', // ! [TBC]
         customerNo: data.relatedParty.href,
         customerType: customerType,
         companyCode: "DTN", // ? FIX
@@ -171,7 +172,8 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
         const foundPackage = packageInfo.productItem.find((element: any) => element.type === 'P' && element.status === 'A')
 
         return {
-            thaiId: data.engagedParty.id,
+            certificationId: data.engagedParty.id,
+            certificationType: 'I', // ! [TBC]
             customerNo: data.relatedParty.account.id,
             customerType: data.relatedParty.customer.type,
             companyCode: companyCode.value,

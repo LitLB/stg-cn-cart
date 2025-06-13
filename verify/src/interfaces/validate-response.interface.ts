@@ -1,5 +1,6 @@
 export interface ICheckCustomerProfileResponse {
-    thaiId: string;
+    certificationId: string;
+    certificationType: string;
     customerNo: string;
     customerType: string;
     companyCode: string;

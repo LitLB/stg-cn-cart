@@ -83,7 +83,7 @@ export class OtpController {
 
             const { correlatorid } = req.headers
 
-            const responseBody = await this.otpService.getCustomerTier(correlatorid as string, mobileNumber, journey)
+            const responseBody = await this.otpService.getCustomerTier(correlatorid as string, mobileNumber)
 
 
             res.status(200).json({

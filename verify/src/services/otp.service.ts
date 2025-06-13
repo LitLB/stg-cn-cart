@@ -349,7 +349,9 @@ export class OtpService {
             customerProfile: {
                 operator: "unknown",
                 companyCode: "unknown",
-                birthdate: "unknown"
+                birthdate: "unknown",
+                certificationType: '',
+                certificationId: ''
             }
         }
 
@@ -394,6 +396,8 @@ export class OtpService {
 
                 if (customerProfile) {
 
+                    const decryptedThaiId = await apigeeClientAdapter.apigeeDecrypt(customerProfile.certificationId)
+
                     response.customerProfile = {
                         companyCode: customerProfile.companyCode,
                         customerNumber: customerProfile.customerNo ?? undefined,
@@ -403,6 +407,8 @@ export class OtpService {
                         pricePlan: customerProfile.pricePlan ?? undefined,
                         birthdate: customerProfile.birthOfDate,
                         ageOfUse: customerProfile.aging ?? undefined,
+                        certificationId: decryptedThaiId,
+                        certificationType: 'I'
 
                     }
                 }
@@ -411,10 +417,10 @@ export class OtpService {
 
         // Step 4: Check Blacklist and Contract/Quota
         if ((steps.has("blacklist") || steps.has("contractAndQuota")) && customerProfile) {
-            const { thaiId, customerNo, agreementId } = customerProfile;
+            const { certificationId, customerNo, agreementId } = customerProfile;
 
             if (steps.has("blacklist")) {
-                await this.checkBacklist(id, operator, thaiId, customerNo);
+                await this.checkBacklist(id, operator, certificationId, customerNo);
                 response.verifyResult.verifyBlacklistStatus = "success";
             }
 
@@ -422,7 +428,7 @@ export class OtpService {
                 await this.checkContractAndQuota(
                     id,
                     operator,
-                    thaiId,
+                    certificationId,
                     agreementId
                 );
                 response.verifyResult.verifyContractStatus = "success";
@@ -463,7 +469,7 @@ export class OtpService {
                 statusMessage: 'Get profile info fail',
                 errorCode: 'GET_PROFILE_INFO_FAIL'
             };
-        };
+        }
 
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_GET_PROFILE_AND_PACKAGE, logModel);
@@ -513,7 +519,7 @@ export class OtpService {
                 statusMessage: 'Get profile info fail',
                 errorCode: 'GET_PROFILE_INFO_FAIL'
             };
-        };
+        }
 
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
@@ -641,7 +647,7 @@ export class OtpService {
         }
     }
 
-    public async getCustomerTier(id: string, mobileNumber: string, journey: string) {
+    public async getCustomerTier(id: string, mobileNumber: string) {
 
 
         const logModel = LogModel.getInstance();
@@ -735,9 +741,11 @@ export class OtpService {
                 verifyDopaStatus: 'skip',
             },
             customerProfile: {
-                companyCode: "",
-                birthdate: "",
-                operator: ""
+                companyCode: "unknown",
+                birthdate: "unknown",
+                operator: "unknown",
+                certificationId: decryptedCertificationId,
+                certificationType: 'I'
             }
         }
 
@@ -848,7 +856,9 @@ export class OtpService {
                     customerProfile: {
                         companyCode: "",
                         birthdate: "",
-                        operator: ""
+                        operator: "",
+                        certificationType: "",
+                        certificationId: "I"
                     }
                 }
                 const mergedCustomerVerificationData: CustomerVerificationData = verifyStateResults.reduce((accumulator: CustomerVerificationData, currentValue: CustomerVerificationData) => {
