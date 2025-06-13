@@ -523,8 +523,8 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
         mainPackage.masterData.current.masterVariant
       );
 
-      const promotionSetInfo = await this.getPromotionSetByCode(bundleProduct.promotionSetCode)
-      const bundleProductInfo = await this.getBundleProductByKey(bundleProduct.key)
+      // const promotionSetInfo = await this.getPromotionSetByCode(bundleProduct.promotionSetCode)
+      // const bundleProductInfo = await this.getBundleProductByKey(bundleProduct.key)
 
       const billingAddressInfo = await this.getBillingAddressInfo(cart, billingAddress)
       this.validateReleaseDate(variant.attributes!, now);
@@ -621,48 +621,48 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
                 },
               },
             },
-            {
-              action: 'addLineItem',
-              productId: bundleProductInfo.id,
-              variantId: bundleProductInfo.masterData.current.masterVariant.id,
-              quantity: 1,
-              inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
-              externalPrice: {
-                currencyCode: 'THB',
-                centAmount: 0,
-              },
-              custom: {
-                type: {
-                  typeId: 'type',
-                  key: 'lineItemCustomType',
-                },
-                fields: {
-                  productType: 'bundle',
-                  selected: true,
-                },
-              },
-            },
-            {
-              action: 'addLineItem',
-              productId: promotionSetInfo.id,
-              variantId: promotionSetInfo.masterData.current.masterVariant.id,
-              quantity: 1,
-              inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
-              externalPrice: {
-                currencyCode: 'THB',
-                centAmount: 0,
-              },
-              custom: {
-                type: {
-                  typeId: 'type',
-                  key: 'lineItemCustomType',
-                },
-                fields: {
-                  productType: 'promotion_set',
-                  selected: true,
-                },
-              },
-            },
+            // {
+            //   action: 'addLineItem',
+            //   productId: bundleProductInfo.id,
+            //   variantId: bundleProductInfo.masterData.current.masterVariant.id,
+            //   quantity: 1,
+            //   inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+            //   externalPrice: {
+            //     currencyCode: 'THB',
+            //     centAmount: 0,
+            //   },
+            //   custom: {
+            //     type: {
+            //       typeId: 'type',
+            //       key: 'lineItemCustomType',
+            //     },
+            //     fields: {
+            //       productType: 'bundle',
+            //       selected: true,
+            //     },
+            //   },
+            // },
+            // {
+            //   action: 'addLineItem',
+            //   productId: promotionSetInfo.id,
+            //   variantId: promotionSetInfo.masterData.current.masterVariant.id,
+            //   quantity: 1,
+            //   inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+            //   externalPrice: {
+            //     currencyCode: 'THB',
+            //     centAmount: 0,
+            //   },
+            //   custom: {
+            //     type: {
+            //       typeId: 'type',
+            //       key: 'lineItemCustomType',
+            //     },
+            //     fields: {
+            //       productType: 'promotion_set',
+            //       selected: true,
+            //     },
+            //   },
+            // },
             {
               action: 'addCustomLineItem',
               name: {
