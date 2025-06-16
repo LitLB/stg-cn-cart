@@ -95,7 +95,7 @@ export default class CommercetoolsMeCartClient {
 		}
 	}
 
-	findLineItem({
+	findLineItem({ 
 		cart,
 		variantId,
 		productGroup,

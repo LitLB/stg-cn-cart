@@ -106,11 +106,13 @@ export class CartService {
         createAnonymousCartInput: CreateAnonymousCartInput,
     ): Promise<ICart> => {
         try {
-            const { campaignGroup, journey, locale } = createAnonymousCartInput;
+            const { campaignGroup, journey, locale, customerInfo } = createAnonymousCartInput;
+
+            const custInfo = customerInfo ?? {} as Record<string, string>
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
-            const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey, locale);
+            const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey, locale, custInfo);
 
             await this.initialTalonOneSession(cart)
 
@@ -802,7 +804,7 @@ export class CartService {
 
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
-                    throw {
+                    throw { 
                         statusCode: HTTP_STATUSES.NOT_FOUND,
                         statusMessage: 'Product not found',
                     };
@@ -1016,7 +1018,7 @@ export class CartService {
 
             // step 3: Map flows with redisData
             const mapRedisData = activeFlows.reduce((result, key) => {
-                if (redisData[key]) { result[key] = redisData[key];}
+                if (redisData[key]) { result[key] = redisData[key]; }
                 return result;
             }, {} as Record<string, any>);
 
@@ -1099,7 +1101,7 @@ export class CartService {
             } else {
                 return ctCart;
             }
-        } catch(error: any) {
+        } catch (error: any) {
             console.error(error)
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
