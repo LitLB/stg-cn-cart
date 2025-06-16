@@ -42,6 +42,7 @@ import { ApiResponse } from '../interfaces/response.interface';
 import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
 import { CartTransformer } from '../transforms/cart.transforms';
 import { CompareRedisData } from '../types/share.types';
+import HeadlessClientAdapter from '../adapters/hl-client.adapter';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -167,7 +168,8 @@ export class CartService {
 
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
         try {
-            const { cartId, client } = payload;
+            const { cartId, client, headers } = payload;
+            console.log({ headers })
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
             const defaultValidateList = [
                 'BLACKLIST',
@@ -183,62 +185,98 @@ export class CartService {
 
             const isPreOrder = ctCart.custom?.fields.preOrder
 
-            CartValidator.validateCartHasSelectedItems(ctCart);
+            const hlClient = new HeadlessClientAdapter()
 
-            // * STEP #2 - Validate Blacklist
-            if (validateList.includes('BLACKLIST')) {
-                await this.validateBlacklist(ctCart, client)
-            }
-
-            // * STEP #3 - Validate Campaign & Promotion Set
-            if (validateList.includes('CAMPAIGN')) {
-                await this.validateCampaign()
-            }
-
-            // * STEP #4 - Validate Available Quantity (Commercetools)
-            await this.validateAvailableQuantity(ctCart)
-
-            ctCart = await this.handleAutoRemoveCoupons(ctCart);
-
-            ctCart = await this.removeUnselectedItems(ctCart);
-
-            await InventoryValidator.validateCart(ctCart);
-
-            const operator = ctCart.custom?.fields.operator
-            const orderNumber = await this.generateOrderNumber(operator)
-
-            let tsmSaveOrder = {
-
-            }
-
-            if (!isPreOrder) {
-
-                // * STEP #5 - Create Order On TSM Sale
-                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
-
-                // //! IF available > x
-                // //! THEN continue
-                // //! ELSE 
-                // //! THEN throw error
-
-                if (!success) {
-                    await InventoryValidator.validateSafetyStock(ctCart)
+            const body = {
+                "operator": "true",
+                "companyCode": "RM",
+                "profile": [
+                    {
+                        "certificationId": "U2FsdGVkX18nYxakgU2b6ZiGa2QQxED",
+                        "certificationType": "I"
+                    },
+                    {
+                        "certificationId": "8sxiQ1ztS7TSgJbIQCvj3vMJnT37Mg=",
+                        "certificationType": "M"
+                    }
+                ],
+                "productBundle": {
+                    "bundleKey": "AX554_AX554_0177706_AAI0712_RMV000000109904",
+                    "sku": "AP186_AAJ0596_0187471",
+                    "customerAge": "50",
+                    "campaignGroup": "Truecard",
+                    "customerJourney": "device_bundle_existing",
+                    "campaignByJourney": "BDBC",
+                    "poolNumberGroup": "regular",
+                    "customerLoyalty": "G",
+                    "pricePlan": "899",
+                    "ageOfUse": "6",
+                    "packageContract": "12"
                 }
-
-                tsmSaveOrder = {
-                    tsmOrderIsSaved: success,
-                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
-                }
-
             }
 
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
-            const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            await hlClient.checkEligible(body, headers)
 
-            await this.inventoryService.commitCartStock(ctCart);
-            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
-            await this.createOrderAdditional(order, client);
-            return { ...order, hasChanged: compared };
+
+
+            // CartValidator.validateCartHasSelectedItems(ctCart);
+
+            // // * STEP #2 - Validate Blacklist
+            // if (validateList.includes('BLACKLIST')) {
+            //     await this.validateBlacklist(ctCart, client)
+            // }
+
+            // // * STEP #3 - Validate Campaign & Promotion Set
+            // if (validateList.includes('CAMPAIGN')) {
+            //     await this.validateCampaign()
+            // }
+
+            // // * STEP #4 - Validate Available Quantity (Commercetools)
+            // await this.validateAvailableQuantity(ctCart)
+
+            // ctCart = await this.handleAutoRemoveCoupons(ctCart);
+
+            // ctCart = await this.removeUnselectedItems(ctCart);
+
+            // await InventoryValidator.validateCart(ctCart);
+
+            // const operator = ctCart.custom?.fields.operator
+            // const orderNumber = await this.generateOrderNumber(operator)
+
+            // let tsmSaveOrder = {
+
+            // }
+
+            // if (!isPreOrder) {
+
+            //     // * STEP #5 - Create Order On TSM Sale
+            //     const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+
+            //     // //! IF available > x
+            //     // //! THEN continue
+            //     // //! ELSE 
+            //     // //! THEN throw error
+
+            //     if (!success) {
+            //         await InventoryValidator.validateSafetyStock(ctCart)
+            //     }
+
+            //     tsmSaveOrder = {
+            //         tsmOrderIsSaved: success,
+            //         tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+            //     }
+
+            // }
+
+            // const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+            // const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+
+            // await this.inventoryService.commitCartStock(ctCart);
+            // const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            // await this.createOrderAdditional(order, client);
+            // return { ...order, hasChanged: compared };
+
+            return { message: true }
         } catch (error: any) {
             logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -796,7 +834,7 @@ export class CartService {
                 const simInfo = lineItem.custom?.fields?.simInfo?.[0];
                 const simType = simInfo ? JSON.parse(simInfo).simType : null;
 
-                if (productType !== 'main_product' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) { 
+                if (productType !== 'main_product' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
                     continue
                 } else if (productType !== 'main_product' && simType !== 'physical' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_NEW) {
                     continue
@@ -804,7 +842,7 @@ export class CartService {
 
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
-                    throw { 
+                    throw {
                         statusCode: HTTP_STATUSES.NOT_FOUND,
                         statusMessage: 'Product not found',
                     };
