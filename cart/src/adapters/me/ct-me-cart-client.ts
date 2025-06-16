@@ -74,7 +74,10 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 	 * @param campaignGroup - The campaign group for the cart.
 	 * @param journey - The journey for the cart.
 	 */
-	public async createCart(campaignGroup: string, journey: string, locale = LOCALES.TH_TH): Promise<Cart> {
+	public async createCart(campaignGroup: string, journey: string, locale = LOCALES.TH_TH, customerInfo: Record<string, string>): Promise<Cart> {
+
+		console.log({customerInfo});
+
 		const cartDraft: MyCartDraft = {
 			country: COUNTRIES.TH,
 			currency: CURRENCY_CODES.THB,
@@ -84,12 +87,13 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 			custom: {
 				type: {
 					typeId: 'type',
-					key: 'cartOrderCustomType',
+					key: 'cartCustomType',
 				},
 				fields: {
 					campaignGroup,
 					journey,
-					preOrder: false
+					preOrder: false,
+					customerInfo: JSON.stringify(customerInfo)
 				},
 			},
 		};

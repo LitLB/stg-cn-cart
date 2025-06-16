@@ -112,11 +112,14 @@ export class CartService {
         createAnonymousCartInput: CreateAnonymousCartInput,
     ): Promise<ICart> => {
         try {
-            const { campaignGroup, journey, locale } = createAnonymousCartInput;
+            const { campaignGroup, journey, locale, customerInfo } = createAnonymousCartInput;
+
+            const custInfo = customerInfo ?? {} as Record<string, string>
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
-            const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey, locale);
+
+            const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey, locale, custInfo);
 
             const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cart);
 
@@ -969,7 +972,11 @@ export class CartService {
                 const sku = lineItem.variant.sku as string;
                 const productId = lineItem.productId;
 
-                if (productType !== 'main_product' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) continue
+                if (productType !== 'main_product' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
+                    continue
+                } else if (productType !== 'main_product' && simType !== 'physical' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_NEW) {
+                    continue
+                }
 
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
@@ -1188,7 +1195,7 @@ export class CartService {
 
             // step 3: Map flows with redisData
             const mapRedisData = activeFlows.reduce((result, key) => {
-                if (redisData[key]) { result[key] = redisData[key];}
+                if (redisData[key]) { result[key] = redisData[key]; }
                 return result;
             }, {} as Record<string, any>);
 
@@ -1271,7 +1278,7 @@ export class CartService {
             } else {
                 return ctCart;
             }
-        } catch(error: any) {
+        } catch (error: any) {
             console.error(error)
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
