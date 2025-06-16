@@ -76,8 +76,6 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 	 */
 	public async createCart(campaignGroup: string, journey: string, locale = LOCALES.TH_TH, customerInfo: Record<string, string>): Promise<Cart> {
 
-		console.log({customerInfo});
-
 		const cartDraft: MyCartDraft = {
 			country: COUNTRIES.TH,
 			currency: CURRENCY_CODES.THB,
@@ -237,12 +235,12 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 				.carts()
 				.withId({ ID: cartId })
 				.post({ body: cartUpdate })
-				.execute();
+				.execute(); 
 
 			return response.body;
 		} catch (error: any) {
 			console.error('updateCart.error', error);
-			throw error;
+			throw error; 
 		}
 	}
 

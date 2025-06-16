@@ -7,5 +7,5 @@ export interface CreateAnonymousCartInput {
     campaignGroup: string;
     journey: CART_JOURNEYS;
     locale?: LOCALES;
-    customerInfo?: any
+    customerInfo?: Record<string, any>
 }

@@ -118,7 +118,6 @@ export class CartService {
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
-
             const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey, locale, custInfo);
 
             const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cart);
@@ -974,13 +973,13 @@ export class CartService {
 
                 if (productType !== 'main_product' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
                     continue
-                } else if (productType !== 'main_product' && simType !== 'physical' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_NEW) {
+                } else if (productType !== 'main_product' && lineItem.custom?.fields?.simType !== 'physical' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_NEW) {
                     continue
                 }
 
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
-                    throw {
+                    throw { 
                         statusCode: HTTP_STATUSES.NOT_FOUND,
                         statusMessage: 'Product not found',
                     };

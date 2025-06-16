@@ -58,9 +58,9 @@ export class CartController {
                 statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: createdCart,
-            };
+            }; 
 
-            res.status(200).json(response);
+            res.status(200).json(response); 
         } catch (error: any) {
             logger.error(`CartController.createAnonymousCart.error`, error);
 
