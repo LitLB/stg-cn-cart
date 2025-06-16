@@ -76,9 +76,9 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 			custom: {
 				type: {
 					typeId: 'type',
-					key: 'cartCustomType',
+					key: 'cartOrderCustomType',
 				},
-				fields: {
+				fields: { 
 					campaignGroup,
 					journey,
 					preOrder: false,
