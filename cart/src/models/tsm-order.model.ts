@@ -1,4 +1,6 @@
+import _ from 'lodash'
 import { apigeeEncrypt } from '../utils/apigeeEncrypt.utils'
+
 export default class TsmOrderModel {
     private readonly ctCart: any
     private readonly config: any
@@ -47,14 +49,16 @@ export default class TsmOrderModel {
 
         // TODO filter lineItems by selected 
         let sequenceCounter = 1
-        const sequenceItems = lineItems.flatMap((lineItem: any) => {
+        const filteredItem = _.cloneDeep(lineItems).filter((item: any) => this.getProductType(item.custom?.fields?.productType) !== 'O')
+
+        const sequenceItems = filteredItem.flatMap((lineItem: any) => {
             const productCode = lineItem.variant.sku
             const productGroup = lineItem.custom?.fields?.productGroup
             const productType = lineItem.custom?.fields?.productType
             let privilege = lineItem?.custom?.fields?.privilege
             privilege = privilege && JSON.parse(privilege);
 
-            const campaignVerifyValues = this.getCampaignVerifyValuesFromCurrentLineItem(lineItem, lineItems)
+            const campaignVerifyValues = this.getCampaignVerifyValuesFromCurrentLineItem(lineItem, filteredItem)
             const privilegeRequiredValue = campaignVerifyValues.reduce((acc: any, v: any) => {
                 return `${acc ? `${acc},` : ''}${v.name}=${v.value}`
             }, '')
@@ -232,16 +236,17 @@ export default class TsmOrderModel {
     }
 
     getProductType = (lineItemType: any) => {
-
         switch (lineItemType) {
-            case 'main_product':
-                return 'P'
             case 'service':
-                return 'S'
-            case 'add_on':
-                return 'P'
             case 'insurance':
                 return 'S'
+            case 'package' : 
+            case 'promotion_set':
+            case 'bundle' :
+            case 'sim' :
+                return 'O'
+            case 'main_product':
+            case 'add_on':
             default:
                 return 'P'
         }
