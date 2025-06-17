@@ -189,33 +189,39 @@ export class CartService {
 
             const body = {
                 "operator": "true",
-                "companyCode": "RM",
+                "companyCode": "RF",
                 "profile": [
                     {
-                        "certificationId": "U2FsdGVkX18nYxakgU2b6ZiGa2QQxED",
+                        "certificationId": "6174684109958",
                         "certificationType": "I"
                     },
                     {
-                        "certificationId": "8sxiQ1ztS7TSgJbIQCvj3vMJnT37Mg=",
+                        "certificationId": "0642320076",
                         "certificationType": "M"
                     }
                 ],
                 "productBundle": {
-                    "bundleKey": "AX554_AX554_0177706_AAI0712_RMV000000109904",
-                    "sku": "AP186_AAJ0596_0187471",
-                    "customerAge": "50",
-                    "campaignGroup": "Truecard",
+                    "bundleKey": "BN085_0177703_AAI0478_RMV000000108019",
+                    "sku": "3000111240",
+                    "customerAge": 28,
+                    "campaignGroup": "mass",
                     "customerJourney": "device_bundle_existing",
-                    "campaignByJourney": "BDBC",
-                    "poolNumberGroup": "regular",
-                    "customerLoyalty": "G",
+                    "customerLoyalty": "BLUE",
                     "pricePlan": "899",
-                    "ageOfUse": "6",
-                    "packageContract": "12"
+                    "ageOfUse": "0",
+                    "packageContract": "6",
+                    "campaignByJourney": "bdbc"
                 }
             }
 
-            await hlClient.checkEligible(body, headers)
+            try {
+                await hlClient.checkEligible(body, headers)
+            } catch (e:any) {
+                throw {
+                    statusCode: e.statusCode,
+                    statusMessage: e.statusMessage
+                }
+            } 
 
 
 
