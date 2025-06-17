@@ -11,5 +11,6 @@ export enum CUSTOMER_VERIFY_STATES {
     sharePlan = "sharePlan",
     blacklist = "blacklist",
     contractAndQuota = "contractAndQuota",
-    hlCheckProductIsTrue = "hlCheckProductIsTrue"
+    hlCheckProductIsTrue = "hlCheckProductIsTrue",
+    hlCheck3Oper = "hlCheck3Oper"
 }
