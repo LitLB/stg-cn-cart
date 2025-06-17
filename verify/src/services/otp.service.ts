@@ -793,6 +793,17 @@ export class OtpService {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_OPERATOR, logModel);
 
+        const response: CustomerVerificationData = {
+            verifyResult: {},
+            customerProfile: {
+                operator: "true",
+                companyCode: "RF",
+                birthdate: dateOfBirth,
+                certificationId: "",
+                certificationType: ""
+            }
+        };
+
         // 1.convert date to dd/mm/yyyy
         let birthDate = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
         if (birthDate) { 
@@ -812,16 +823,6 @@ export class OtpService {
             }
         };
 
-        const response: CustomerVerificationData = {
-            verifyResult: {},
-            customerProfile:  {
-                operator: "unknown",
-                companyCode: "unknown",
-                birthdate: "unknown",
-                certificationType: '',
-                certificationId: ''
-            }
-        };
         let requestBody;
         let hlResponse;
 
@@ -931,9 +932,41 @@ export class OtpService {
                     hlResponse = await hlClientAdapter.verifyHLStatus(requestBody);
                     logService(requestBody, hlResponse, logStepModel)
                     if (hlResponse?.code === "200") {
-                        response.verifyResult.verifyProductIsTrue = "success"
-                        response.verifyResult.verifyProductIsTrueValue = hlResponse.data.isProductTrue
+                        response.customerProfile.isProductTrue = hlResponse?.data?.isProductTrue == true ? "true" : "false";
+                        response.verifyResult.verifyProductIsTrue = "success";
+                        response.verifyResult.verifyProductIsTrueValue = hlResponse.data.isProductTrue;
                     }
+                }
+                break;
+
+            case "hlCheck3Oper":
+                response.verifyResult.verifyCheck3Oper = "fail"
+                response.verifyResult.verifyCheck3OperValue = null
+
+                requestBody = {
+                    correlationId: basePayload.correlationId,
+                    channel: basePayload.channel,
+                    campaignInfo: {
+                        campaignCode: campaignCode,
+                        productCode: productCode
+                    },
+                    customerInfo: {
+                        ...basePayload.customerInfo,
+                    },
+                    validate: [
+                        {
+                            name: VERIFY_HL_VALIDATE_NAME.CHECK3OPER,
+                            function: []
+                        }
+                    ]
+                };
+
+                hlResponse = await hlClientAdapter.verifyHLStatus(requestBody);
+                logService(requestBody, hlResponse, logStepModel)
+
+                if (hlResponse?.code === "200") {
+                    response.verifyResult.verifyCheck3Oper = "success"
+                    response.verifyResult.verifyCheck3OperValue = hlResponse?.data || null
                 }
                 break;
 
@@ -969,6 +1002,7 @@ export class OtpService {
             case CUSTOMER_VERIFY_STATES.hlPreverFull:
             case CUSTOMER_VERIFY_STATES.hl4DScore:
             case CUSTOMER_VERIFY_STATES.hlCheckProductIsTrue:
+            case CUSTOMER_VERIFY_STATES.hlCheck3Oper:
                 return this.performHLPreVerifyStatus(
                     journey,
                     certificationId,
@@ -1093,6 +1127,7 @@ export class OtpService {
                         ...accumulator,
                         ...currentValue,
                         verifyResult: { ...accumulator.verifyResult, ...currentValue.verifyResult },
+                        customerProfile: {...accumulator.customerProfile,...currentValue.customerProfile}
                     };
                 }, initialAccumulator);
 

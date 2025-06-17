@@ -39,6 +39,7 @@ export enum VERIFY_HL_VALIDATE_NAME {
     PREVERFULLRESULT = "PreverFullResult",
     FOURDSCORE = "4DScore",
     CHECKPRODUCTISTRUE = "CheckProductIsTrue",
+    CHECK3OPER = "Check3Oper",
 };
 
 export enum VERIFY_HL_VALIDATE_FUNCTION {

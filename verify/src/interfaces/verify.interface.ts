@@ -23,6 +23,8 @@ export interface VerifyResult {
     totalProductTrue?: string | null; // From headless non-commerce, count of products 4DScore
     verifyProductIsTrue?: VerificationStatus; // From headless non-commerce, CheckProductIsTrue
     verifyProductIsTrueValue?: boolean | null; // From headless non-commerce, CheckProductIsTrue (True, false)
+    verifyCheck3Oper?: VerificationStatus; // From headless non-commerce, CheckProductIsTrue (True, false)
+    verifyCheck3OperValue?: Check3OperValue | null; // From headless non-commerce, Check3Oper
 }
 
 export enum BLACKLIST_COLORS {
@@ -70,4 +72,16 @@ export interface ICustomerProfile {
     packageCode?: string;
     ageOfUse?: string;
     
+}
+
+export interface Check3OperValue {
+    blacklistColor: string,
+    extraAdvancePayment?: ExtraAdvancePayment,
+}
+export interface ExtraAdvancePayment {
+    advanceAmount: string,
+    extraPropositionCode: string,
+    beforeVATAdvanceAmount: string,
+    serviceCode: string,
+    serviceCodeDesc: string
 }
