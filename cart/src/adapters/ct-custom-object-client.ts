@@ -1,6 +1,6 @@
 // src/server/adapters/ct-custom-object-client.ts
 
-import type { ApiRoot, CustomObject, CustomObjectDraft } from '@commercetools/platform-sdk';
+import type { ApiRoot, ClientResponse, CustomObject, CustomObjectDraft, CustomObjectPagedQueryResponse } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from '../adapters/ct-base-client';
 import { PAYMENT_OMISE_CONTAINER, PAYMENT_OMISE_KEY_PREFIX, ORDER_ADDITIONAL_INFO, COUPON_INFO_CONTAINER, CONFIGURATION_CONTAINER, COUPON_LIMIT_KEY } from '../constants/ct.constant';
 import { readConfiguration } from '../utils/config.utils';
@@ -308,6 +308,20 @@ export class CommercetoolsCustomObjectClient implements IAdapter {
 		});
 		return changes;
 	}
-}
+
+	queryCustomObject(query: string, limit?: number, offset?: number): Promise<ClientResponse<CustomObjectPagedQueryResponse>> {
+		return this.apiRoot
+			.withProjectKey({ projectKey: this.projectKey })
+			.customObjects()
+			.get({ 
+				queryArgs: { 
+					where: query, 
+					limit, 
+					offset,
+				} 
+			})
+			.execute();
+		}
+	}
 
 export default CommercetoolsCustomObjectClient.getInstance();

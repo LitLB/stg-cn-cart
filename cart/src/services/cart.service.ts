@@ -653,7 +653,7 @@ export class CartService {
             // Get coupon information
             const couponDiscounts = await this.getCouponInformation(orderNumber, COUPON_INFO_CONTAINER, cart.id)
             const tsmOrder = new TsmOrderModel({ ctCart: cart, config, orderNumber, couponDiscounts })
-            const tsmOrderPayload = tsmOrder.toPayload()
+            const tsmOrderPayload = await tsmOrder.toPayload()
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
             // return {
