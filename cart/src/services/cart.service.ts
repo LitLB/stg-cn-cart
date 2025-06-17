@@ -43,6 +43,7 @@ import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
 import { CartTransformer } from '../transforms/cart.transforms';
 import { CompareRedisData } from '../types/share.types';
 import HeadlessClientAdapter from '../adapters/hl-client.adapter';
+import { calculateAge } from '../utils/calculate.utils';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -169,7 +170,6 @@ export class CartService {
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
         try {
             const { cartId, client, headers } = payload;
-            console.log({ headers })
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
             const defaultValidateList = [
                 'BLACKLIST',
@@ -185,106 +185,114 @@ export class CartService {
 
             const isPreOrder = ctCart.custom?.fields.preOrder
 
-            const hlClient = new HeadlessClientAdapter()
+            const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
 
-            const body = {
-                "operator": "true",
-                "companyCode": "RF",
-                "profile": [
-                    {
-                        "certificationId": "6174684109958",
-                        "certificationType": "I"
-                    },
-                    {
-                        "certificationId": "0642320076",
-                        "certificationType": "M"
+            if (cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
+
+
+                const customerInfo = JSON.parse(ctCart.custom?.fields.customerInfo)
+
+                const { customerProfile } = customerInfo
+
+                const mainProductSku = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product')?.variant.sku
+                const bundleProductAttributes = ctCart.lineItems.find(item => item.custom?.fields.productType === 'bundle')?.variant.attributes
+                const packageCode = ctCart.lineItems.find(item => item.custom?.fields.productType === 'package')?.variant.sku
+
+                const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value
+                const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value
+                const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value
+                const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
+
+                const bundleKey = `${campaignCode}_${propositionCode}_${promotionSetCode}_${agreementCode}`
+
+
+                const hlClient = new HeadlessClientAdapter()
+
+                const headlessPayload = {
+
+                    operator: customerProfile.operator,
+                    companyCode: "RF",
+                    profile: [
+                        {
+                            certificationId: customerInfo.verifyCertificationIdValue,
+                            certificationType: customerInfo.verifyCertificationTypeValue
+                        }
+                    ],
+                    productBundle: {
+                        bundleKey: bundleKey,
+                        sku: mainProductSku,
+                        customerAge: calculateAge(customerProfile.age ?? 0),
+                        packageCode: packageCode,
                     }
-                ],
-                "productBundle": {
-                    "bundleKey": "BN085_0177703_AAI0478_RMV000000108019",
-                    "sku": "3000111240",
-                    "customerAge": 28,
-                    "campaignGroup": "mass",
-                    "customerJourney": "device_bundle_existing",
-                    "customerLoyalty": "BLUE",
-                    "pricePlan": "899",
-                    "ageOfUse": "0",
-                    "packageContract": "6",
-                    "campaignByJourney": "bdbc"
                 }
+
+                try {
+                    await hlClient.checkEligible(headlessPayload, headers)
+                } catch (e) {
+                    throw {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: 'Campaign is not eligible',
+                    }
+                }
+
             }
 
-            try {
-                await hlClient.checkEligible(body, headers)
-            } catch (e:any) {
-                throw {
-                    statusCode: e.statusCode,
-                    statusMessage: e.statusMessage
+
+            CartValidator.validateCartHasSelectedItems(ctCart);
+
+            // * STEP #2 - Validate Blacklist
+            if (validateList.includes('BLACKLIST')) {
+                await this.validateBlacklist(ctCart, client)
+            }
+
+            // * STEP #3 - Validate Campaign & Promotion Set
+            if (validateList.includes('CAMPAIGN')) {
+                await this.validateCampaign()
+            }
+
+            // * STEP #4 - Validate Available Quantity (Commercetools)
+            await this.validateAvailableQuantity(ctCart)
+
+            ctCart = await this.handleAutoRemoveCoupons(ctCart);
+
+            ctCart = await this.removeUnselectedItems(ctCart);
+
+            await InventoryValidator.validateCart(ctCart);
+
+            const operator = ctCart.custom?.fields.operator
+            const orderNumber = await this.generateOrderNumber(operator)
+
+            let tsmSaveOrder = {
+
+            }
+
+            if (!isPreOrder) {
+
+                // * STEP #5 - Create Order On TSM Sale
+                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+
+                if (!success) {
+                    await InventoryValidator.validateSafetyStock(ctCart)
                 }
-            } 
 
+                tsmSaveOrder = {
+                    tsmOrderIsSaved: success,
+                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+                }
 
+            }
 
-            // CartValidator.validateCartHasSelectedItems(ctCart);
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+            const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
-            // // * STEP #2 - Validate Blacklist
-            // if (validateList.includes('BLACKLIST')) {
-            //     await this.validateBlacklist(ctCart, client)
-            // }
-
-            // // * STEP #3 - Validate Campaign & Promotion Set
-            // if (validateList.includes('CAMPAIGN')) {
-            //     await this.validateCampaign()
-            // }
-
-            // // * STEP #4 - Validate Available Quantity (Commercetools)
-            // await this.validateAvailableQuantity(ctCart)
-
-            // ctCart = await this.handleAutoRemoveCoupons(ctCart);
-
-            // ctCart = await this.removeUnselectedItems(ctCart);
-
-            // await InventoryValidator.validateCart(ctCart);
-
-            // const operator = ctCart.custom?.fields.operator
-            // const orderNumber = await this.generateOrderNumber(operator)
-
-            // let tsmSaveOrder = {
-
-            // }
-
-            // if (!isPreOrder) {
-
-            //     // * STEP #5 - Create Order On TSM Sale
-            //     const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
-
-            //     // //! IF available > x
-            //     // //! THEN continue
-            //     // //! ELSE 
-            //     // //! THEN throw error
-
-            //     if (!success) {
-            //         await InventoryValidator.validateSafetyStock(ctCart)
-            //     }
-
-            //     tsmSaveOrder = {
-            //         tsmOrderIsSaved: success,
-            //         tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
-            //     }
-
-            // }
-
-            // const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
-            // const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
-
-            // await this.inventoryService.commitCartStock(ctCart);
-            // const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
-            // await this.createOrderAdditional(order, client);
-            // return { ...order, hasChanged: compared };
+            await this.inventoryService.commitCartStock(ctCart);
+            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            await this.createOrderAdditional(order, client);
+            return { ...order, hasChanged: compared };
 
             return { message: true }
         } catch (error: any) {
-            logger.error(`CartService.createOrder.error`, error);
+            // logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
                 throw error;
             }
@@ -1012,7 +1020,7 @@ export class CartService {
             }
 
             if (item.otherPaymentCode.toUpperCase() !== "NULL") {
-                otherPayments.push({
+                otherPayments.push({ 
                     id: orderNumber,
                     no: otherPaymentNo.toString(),
                     code: item.otherPaymentCode,
