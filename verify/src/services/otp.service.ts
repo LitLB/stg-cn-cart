@@ -798,7 +798,7 @@ export class OtpService {
             customerProfile: {
                 operator: "true",
                 companyCode: "RF",
-                birthdate: dateOfBirth,
+                birthdate: "",
                 certificationId: "",
                 certificationType: ""
             }
@@ -806,6 +806,8 @@ export class OtpService {
 
         // 1.convert date to dd/mm/yyyy
         let birthDate = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
+        response.customerProfile.birthdate = birthDate;
+        
         if (birthDate) { 
             birthDate = formatDateFromString(birthDate)
             dateOfBirth = await apigeeClientAdapter.apigeeEncrypt(birthDate);
