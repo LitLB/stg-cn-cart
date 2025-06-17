@@ -259,7 +259,7 @@ export default class TsmOrderModel {
 		};
 	}
 
-	getPromotionType = (lineItemType: any) => {
+	getPromotionType = (lineItemType: string) => {
 		switch (lineItemType) {
 			case 'main_product':
 				return '0'
@@ -276,7 +276,7 @@ export default class TsmOrderModel {
 		}
 	}
 
-	getProductType = (lineItemType: any) => {
+	getProductType = (lineItemType: string) => {
 		switch (lineItemType) {
 			case 'service':
 			case 'insurance':
@@ -392,20 +392,23 @@ export default class TsmOrderModel {
 
 	getCustomerAddress = () => {
 		const { shippingAddress } = this.ctCart
+		if (!shippingAddress) return ''
+
 		const {
 			postalCode = '',
 			city: district = '',
 			state: country = '',
-			custom
-		} = shippingAddress ?? {}
+			custom = {}
+		} = shippingAddress
 
 		const {
 			houseNo = '',
 			subDistrict = ''
-		} = custom ?? {}
+		} = custom
 
-
-		return `${houseNo} ${subDistrict} ${district} ${country} ${postalCode}`
+		return [houseNo, subDistrict, district, country, postalCode]
+			.filter(Boolean)
+			.join(' ')
 	}
 
 	stangToBaht(stang: number) {
