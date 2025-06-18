@@ -786,11 +786,17 @@ export class CartService {
     }
 
     private async validateAvailableQuantity(ctCart: Cart) {
+        const skipValidateProductType = ['promotion_set', 'bundle']
         const cartJourney = ctCart.custom?.fields.journey
         try {
             const { lineItems } = ctCart
             for (const lineItem of lineItems) {
                 const productType = lineItem.custom?.fields?.productType;
+
+                if (skipValidateProductType.includes(productType)) {
+                    continue
+                }
+
                 const sku = lineItem.variant.sku as string;
                 const productId = lineItem.productId;
                 const simInfo = lineItem.custom?.fields?.simInfo?.[0];
