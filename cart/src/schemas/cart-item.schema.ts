@@ -138,9 +138,6 @@ export type AddItemCartBodyRequest = {
 		key: string;
 		promotionSetCode: string;
 	},
-    promotionSet?: {
-		code: string;
-	}
 };
 
 export function validateAddItemCartBody(body: any) {
@@ -301,12 +298,6 @@ export function validateAddItemCartBody(body: any) {
 				'any.required': 'Promotion Set Code is required',
 			})
 		}).optional(),
-        promotionSet: Joi.object({
-			code: Joi.string().required().messages({
-				'string.empty': 'Promotion Set Code cannot be empty',
-				'any.required': 'Promotion Set Code is required',
-			})
-		}).optional()
 	}).validate(body, { abortEarly: false });
 }
 

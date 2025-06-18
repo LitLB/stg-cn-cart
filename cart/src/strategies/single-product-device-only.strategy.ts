@@ -65,7 +65,6 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         addOnGroup,
         freeGiftGroup,
         campaignVerifyValues = [],
-        promotionSet,
       } = payload as AddItemCartBodyRequest;
 
       const product =
@@ -105,7 +104,9 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         sku
       );
 
-      const promotionSetInfo = promotionSet?.code ? await this.getPromotionSetByCode(promotionSet?.code) : null;
+      // TBC solution for promotion set
+      // Get promotion set that is related to the product for discount
+      const promotionSetInfo = await this.getPromotionSetByProductSKU(sku)
 
       if (!variant) {
         throw {
@@ -815,23 +816,49 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
     return journey;
   }
 
-    protected async getPromotionSetByCode(code: string): Promise<Product> {
-        const promotionSet = await this.adapters.commercetoolsProductClient.queryProducts({where: `masterData(current(masterVariant(sku="${code}")))`});
+    protected async getPromotionSetByProductSKU(productSKU: string): Promise<Product | null> {
+        try {
+            const productType = await this.adapters.commercetoolsProductClient.getProductType('promotion_set');
+            if (!productType) {
+                return null
+            }
 
-        if (!promotionSet.results.length) {
-            throw {
-                statusCode: HTTP_STATUSES.NOT_FOUND,
-                statusMessage: 'Promotion set not found',
-            };
+            const promotionSet = await this.adapters.commercetoolsProductClient.queryProducts({
+                where: `
+                productType(id="${productType.body.id}") and
+                masterData(
+                    current(
+                        masterVariant(
+                            attributes(name="variants" and value="${productSKU}")
+                            and
+                            attributes(name="forCampaign" and value=false)
+                        )
+                    )
+                )`
+            });
+
+            if (!promotionSet.results.length) {
+                return null
+            }
+    
+            if (promotionSet.results.length > 1) {
+                throw {
+                    statusCode: HTTP_STATUSES.NOT_FOUND,
+                    statusMessage: 'Promotion set is not unique.',
+                };
+            }
+    
+            if (!promotionSet.results[0].masterData.published) {
+                return null
+            }
+    
+            return promotionSet.results[0];
+        } catch (error: any) {
+            if (error.status && error.message) {
+                throw error;
+            }
+
+            return null
         }
-
-        if (!promotionSet.results[0].masterData.published) {
-            throw {
-                statusCode: HTTP_STATUSES.NOT_FOUND,
-                statusMessage: 'Promotion set is no longer available.',
-            };
-        }
-
-        return promotionSet.results[0];
     }
 }
