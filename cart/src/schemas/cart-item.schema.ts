@@ -138,6 +138,7 @@ export type AddItemCartBodyRequest = {
 		key: string;
 		promotionSetCode: string;
 	},
+	extraAdvancedPayment?: number;
 };
 
 export function validateAddItemCartBody(body: any) {
@@ -298,6 +299,7 @@ export function validateAddItemCartBody(body: any) {
 				'any.required': 'Promotion Set Code is required',
 			})
 		}).optional(),
+		extraAdvancedPayment: Joi.number().integer().min(0).optional()
 	}).validate(body, { abortEarly: false });
 }
 
