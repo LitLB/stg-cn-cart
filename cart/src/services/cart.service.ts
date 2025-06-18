@@ -205,30 +205,35 @@ export class CartService {
 
                 const bundleKey = `${campaignCode}_${propositionCode}_${promotionSetCode}_${agreementCode}`
 
-
                 const hlClient = new HeadlessClientAdapter()
 
                 const headlessPayload = {
 
                     operator: customerProfile.operator,
-                    companyCode: "RF",
+                    companyCode: customerProfile.companyCode,
                     profile: [
                         {
                             certificationId: customerInfo.verifyCertificationIdValue,
                             certificationType: customerInfo.verifyCertificationTypeValue
+                        },
+                        {
+                            certificationId: customerInfo.verifyMobileNumberValue,
+                            certificationType: "M"
                         }
                     ],
                     productBundle: {
                         bundleKey: bundleKey,
                         sku: mainProductSku,
                         customerAge: calculateAge(customerProfile.age ?? 0),
-                        packageCode: packageCode,
+                        // packageCode: packageCode, 
                     }
                 }
 
                 try {
-                    await hlClient.checkEligible(headlessPayload, headers)
-                } catch (e) {
+                    const response = await hlClient.checkEligible(headlessPayload, headers)
+                    console.log({ response })
+                } catch (e: any) {
+                    console.log({ error: e?.response?.data }) 
                     throw {
                         statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: 'Campaign is not eligible',
@@ -238,57 +243,57 @@ export class CartService {
             }
 
 
-            CartValidator.validateCartHasSelectedItems(ctCart);
+            // CartValidator.validateCartHasSelectedItems(ctCart);
 
-            // * STEP #2 - Validate Blacklist
-            if (validateList.includes('BLACKLIST')) {
-                await this.validateBlacklist(ctCart, client)
-            }
+            // // * STEP #2 - Validate Blacklist
+            // if (validateList.includes('BLACKLIST')) {
+            //     await this.validateBlacklist(ctCart, client)
+            // }
 
-            // * STEP #3 - Validate Campaign & Promotion Set
-            if (validateList.includes('CAMPAIGN')) {
-                await this.validateCampaign()
-            }
+            // // * STEP #3 - Validate Campaign & Promotion Set
+            // if (validateList.includes('CAMPAIGN')) {
+            //     await this.validateCampaign()
+            // }
 
-            // * STEP #4 - Validate Available Quantity (Commercetools)
-            await this.validateAvailableQuantity(ctCart)
+            // // * STEP #4 - Validate Available Quantity (Commercetools)
+            // await this.validateAvailableQuantity(ctCart)
 
-            ctCart = await this.handleAutoRemoveCoupons(ctCart);
+            // ctCart = await this.handleAutoRemoveCoupons(ctCart);
 
-            ctCart = await this.removeUnselectedItems(ctCart);
+            // ctCart = await this.removeUnselectedItems(ctCart);
 
-            await InventoryValidator.validateCart(ctCart);
+            // await InventoryValidator.validateCart(ctCart);
 
-            const operator = ctCart.custom?.fields.operator
-            const orderNumber = await this.generateOrderNumber(operator)
+            // const operator = ctCart.custom?.fields.operator
+            // const orderNumber = await this.generateOrderNumber(operator)
 
-            let tsmSaveOrder = {
+            // let tsmSaveOrder = {
 
-            }
+            // }
 
-            if (!isPreOrder) {
+            // if (!isPreOrder) {
 
-                // * STEP #5 - Create Order On TSM Sale
-                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+            //     // * STEP #5 - Create Order On TSM Sale
+            //     const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
 
-                if (!success) {
-                    await InventoryValidator.validateSafetyStock(ctCart)
-                }
+            //     if (!success) {
+            //         await InventoryValidator.validateSafetyStock(ctCart)
+            //     }
 
-                tsmSaveOrder = {
-                    tsmOrderIsSaved: success,
-                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
-                }
+            //     tsmSaveOrder = {
+            //         tsmOrderIsSaved: success,
+            //         tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+            //     }
 
-            }
+            // }
 
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
-            const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            // const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+            // const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
-            await this.inventoryService.commitCartStock(ctCart);
-            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
-            await this.createOrderAdditional(order, client);
-            return { ...order, hasChanged: compared };
+            // await this.inventoryService.commitCartStock(ctCart);
+            // const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            // await this.createOrderAdditional(order, client);
+            // return { ...order, hasChanged: compared };
 
             return { message: true }
         } catch (error: any) {
@@ -1020,7 +1025,7 @@ export class CartService {
             }
 
             if (item.otherPaymentCode.toUpperCase() !== "NULL") {
-                otherPayments.push({ 
+                otherPayments.push({
                     id: orderNumber,
                     no: otherPaymentNo.toString(),
                     code: item.otherPaymentCode,
