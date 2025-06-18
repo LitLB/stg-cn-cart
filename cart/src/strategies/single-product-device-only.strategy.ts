@@ -10,6 +10,7 @@ import { CART_JOURNEYS } from '../constants/cart.constant';
 import { InventoryValidator } from '../validators/inventory.validator';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import {
+    AddItemCartBodyRequest,
   validateBulkDeleteCartItemBody,
   validateDeleteCartItemBody,
   validateProductQuantity,
@@ -23,6 +24,7 @@ import { updateCartFlag, validateInventory } from '../utils/cart.utils';
 import { CouponService } from '../services/coupon.service';
 import { TalonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { AdapterConstructor } from '../interfaces/adapter.interface';
+import { calculateProductGroupParams } from '../interfaces/single-product-device-only.interface';
 
 export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
   'commercetoolsMeCartClient': CommercetoolsMeCartClient,
@@ -63,7 +65,8 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         addOnGroup,
         freeGiftGroup,
         campaignVerifyValues = [],
-      } = payload;
+        promotionSet,
+      } = payload as AddItemCartBodyRequest;
 
       const product =
         await this.adapters.commercetoolsProductClient.getProductById(
@@ -101,6 +104,8 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         product,
         sku
       );
+
+      const promotionSetInfo = promotionSet?.code ? await this.getPromotionSetByCode(promotionSet?.code) : null;
 
       if (!variant) {
         throw {
@@ -275,20 +280,20 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         }
       );
 
-      const updatedCart =
-        await this.adapters.commercetoolsCartClient.addItemToCart({
-          cart,
-          productId,
-          variantId: variant.id,
-          quantity,
-          productType,
-          productGroup: newProductGroup,
-          addOnGroup,
-          freeGiftGroup,
-          externalPrice: validPrice.value,
-          dummyFlag: isDummyStock,
-          campaignVerifyValues: filteredCampaignVerifyValues,
-          journey,
+        const updatedCart = await this.adapters.commercetoolsCartClient.addItemToCart({
+            cart,
+            productId,
+            variantId: variant.id,
+            quantity,
+            productType,
+            productGroup: newProductGroup,
+            addOnGroup,
+            freeGiftGroup,
+            externalPrice: validPrice.value,
+            dummyFlag: isDummyStock,
+            campaignVerifyValues: filteredCampaignVerifyValues,
+            journey,
+            promotionSetInfo,
         });
 
       const ctCartWithChanged: Cart =
@@ -754,47 +759,41 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
     }
   }
 
-  private calculateProductGroup = ({
-    cart,
-    productId,
-    sku,
-    productType,
-    productGroup,
-  }: {
-    cart: any;
-    productId: any;
-    sku: any;
-    productType: any;
-    productGroup: number;
-  }) => {
-    // TODO: Free Gift changes
-    if (['add_on', 'insurance', 'free_gift'].includes(productType)) {
-      return productGroup;
-    }
+    private calculateProductGroup = ({
+        cart,
+        productId,
+        sku,
+        productType,
+        productGroup,
+    }: calculateProductGroupParams) => {
+        // TODO: Free Gift changes
+        if (['add_on', 'insurance', 'free_gift'].includes(productType)) {
+            return productGroup;
+        }
 
-    const { lineItems } = cart;
+        const { lineItems } = cart;
 
-    const existing = lineItems.find((lineItem: any) => {
-      return (
-        productId === lineItem.productId &&
-        sku === lineItem.variant.sku &&
-        productType === lineItem.custom?.fields?.productType
-      );
-    });
+        const existing = lineItems.find((lineItem: any) => {
+            return (
+                productId === lineItem.productId &&
+                sku === lineItem.variant.sku &&
+                productType === lineItem.custom?.fields?.productType
+            );
+        });
 
-    if (existing) {
-      return existing.custom?.fields?.productGroup;
-    }
+        if (existing) {
+            return existing.custom?.fields?.productGroup;
+        }
 
-    // new
-    const mainProducts = lineItems.filter(
-      (lineItem: any) => lineItem.custom?.fields?.productType === 'main_product'
-    );
+        // new
+        const mainProducts = lineItems.filter(
+            (lineItem: any) => lineItem.custom?.fields?.productType === 'main_product'
+        );
 
-    const newProductGroup = mainProducts.length + 1;
+        const newProductGroup = mainProducts.length + 1;
 
-    return newProductGroup;
-  };
+        return newProductGroup;
+    };
 
   private determineJourney(
     product: Product,
@@ -815,4 +814,24 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
 
     return journey;
   }
+
+    protected async getPromotionSetByCode(code: string): Promise<Product> {
+        const promotionSet = await this.adapters.commercetoolsProductClient.queryProducts({where: `masterData(current(masterVariant(sku="${code}")))`});
+
+        if (!promotionSet.results.length) {
+            throw {
+                statusCode: HTTP_STATUSES.NOT_FOUND,
+                statusMessage: 'Promotion set not found',
+            };
+        }
+
+        if (!promotionSet.results[0].masterData.published) {
+            throw {
+                statusCode: HTTP_STATUSES.NOT_FOUND,
+                statusMessage: 'Promotion set is no longer available.',
+            };
+        }
+
+        return promotionSet.results[0];
+    }
 }

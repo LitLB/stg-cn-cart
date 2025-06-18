@@ -17,6 +17,7 @@ import { CART_HAS_CHANGED_NOTICE_MESSAGE, CART_JOURNEYS } from '../constants/car
 import { IAdapter } from '../interfaces/adapter.interface';
 import _ from 'lodash';
 import { CommercetoolsStandalonePricesClient } from './ct-standalone-prices-client';
+import { AddItemToCartParams } from '../interfaces/ct-cart-client.interface';
 
 
 
@@ -69,6 +70,7 @@ export class CommercetoolsCartClient implements IAdapter {
 		}
 	}
 
+
 	/**
    * Adds an item to the current user's cart.
    * @param cart - The current cart object.
@@ -88,29 +90,9 @@ export class CommercetoolsCartClient implements IAdapter {
 		externalPrice,
 		dummyFlag,
 		campaignVerifyValues,
-		journey
-	}: {
-		cart: Cart;
-		productId: string;
-		variantId: number;
-		quantity: number;
-		productType: string;
-		productGroup: number;
-		addOnGroup: string;
-		freeGiftGroup: string;
-		externalPrice: {
-			currencyCode: string;
-			centAmount: number;
-		};
-		dummyFlag: boolean,
-		campaignVerifyValues: [
-			{
-				name: string;
-				value: string;
-			}
-		];
-		journey: string
-	}): Promise<Cart> {
+		journey,
+        promotionSetInfo,
+	}: AddItemToCartParams): Promise<Cart> {
 
 		const { lineItems, custom } = cart;
 
@@ -211,6 +193,8 @@ export class CommercetoolsCartClient implements IAdapter {
 
 		const cartWithDummyFlag = await this.updateCart(cart.id, cart.version, updateCartCustomFields)
 		const transformedCampaignVerifyValues = campaignVerifyValues.map((item: any) => JSON.stringify(item))
+
+        const lineItemDrafts: LineItemDraft[] = []
 		const lineItemDraft: LineItemDraft = {
 			productId,
 			variantId,
@@ -241,11 +225,36 @@ export class CommercetoolsCartClient implements IAdapter {
 			},
 			externalPrice,
 		};
+        
+        lineItemDrafts.push(lineItemDraft)
+
+        if (promotionSetInfo) {
+            const promotionSetLineItemDraft: LineItemDraft = {
+                productId: promotionSetInfo.id,
+                variantId: promotionSetInfo.masterData.current.masterVariant.id,
+                inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+                externalPrice: {
+                    currencyCode: 'THB',
+                    centAmount: 0,
+                },
+                custom: {
+                    type: {
+                        typeId: 'type',
+                        key: 'lineItemCustomType',
+                    },
+                    fields: {
+                        productType: 'promotion_set',
+                        selected: true,
+                    },
+                },
+            };
+            lineItemDrafts.push(promotionSetLineItemDraft)
+        }
 
 		const updatedCart = await this.addLineItemToCart(
 			cartWithDummyFlag.id,
 			cartWithDummyFlag.version,
-			lineItemDraft,
+			lineItemDrafts,
 		);
 
 		return updatedCart;
@@ -260,14 +269,12 @@ export class CommercetoolsCartClient implements IAdapter {
 	public async addLineItemToCart(
 		cartId: string,
 		version: number,
-		lineItemDraft: LineItemDraft,
+		lineItemDrafts: LineItemDraft[],
 	): Promise<Cart> {
-		const updateActions: MyCartUpdateAction[] = [
-			{
-				action: 'addLineItem',
-				...lineItemDraft,
-			},
-		];
+		const updateActions: MyCartUpdateAction[] = lineItemDrafts.map((lineItemDraft) => ({
+			action: 'addLineItem',
+			...lineItemDraft,
+		}));
 
 		const cartUpdate: MyCartUpdate = {
 			version,
