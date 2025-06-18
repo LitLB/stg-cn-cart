@@ -10,16 +10,26 @@ class HeadlessClientAdapter {
     }
 
     async checkEligible(body: any, headers: any) {
-        console.log({ body, headers })
         const url = '/api/v1/campaign/eligible';
-
         const response: AxiosResponse = await this.client.post(
             `${url}`,
             body,
-            { headers }
+            {
+                headers: {
+                    'content-type': 'application/json',
+                    authorization: headers.authorization,
+                    language: headers.language,
+                    correlatorid: headers.correlatorid,
+                    sessionid: headers.sessionid,
+                    sourcesystemid: headers.sourcesystemid,
+                    version: headers.version,
+                    devicetype: headers.devicetype,
+                    platform: headers.platform
+                }
+            }
         );
 
-         return response.data;
+        return response.data;
     }
 }
 
