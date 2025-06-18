@@ -292,6 +292,9 @@ deployAs:
         - key: OMNI_BASE_URL
           description: Omni Base Url
           required: true
+        - key: HL_BASE_URL
+          description: Hl Base Url
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: Commercetools project key identifying your specific project
@@ -325,6 +328,9 @@ deployAs:
           required: true
         - key: OMNI_API_KEY
           description: Omni Api Key
+          required: true
+        - key: HL_API_KEY
+          description: Hl Api Key
           required: true
   - name: save-order-tsm
     applicationType: job
