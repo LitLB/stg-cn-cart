@@ -137,9 +137,9 @@ export type AddItemCartBodyRequest = {
 	bundleProduct? : {
 		key: string;
 		promotionSetCode: string;
-	}
+	},
 };
-  
+
 export function validateAddItemCartBody(body: any) {
 	return Joi.object<AddItemCartBodyRequest>({
 		productId: Joi.string().required().messages({
@@ -297,7 +297,7 @@ export function validateAddItemCartBody(body: any) {
 				'string.empty': 'Promotion Set Code cannot be empty',
 				'any.required': 'Promotion Set Code is required',
 			})
-		}).optional()
+		}).optional(),
 	}).validate(body, { abortEarly: false });
 }
 
