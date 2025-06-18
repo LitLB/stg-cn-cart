@@ -31,7 +31,7 @@ import _ from 'lodash';
 import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
 import { AdapterConstructor } from '../interfaces/adapter.interface';
 import { CommercetoolsStandalonePricesClient } from '../adapters/ct-standalone-prices-client';
-
+import dayjs from 'dayjs';
 export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
   'commercetoolsMeCartClient': CommercetoolsMeCartClient,
   'commercetoolsProductClient': CommercetoolsProductClient,
@@ -322,7 +322,10 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
 
   protected async getPackageAdditionalInfo(
     cart: Cart,
-    mainPackage: ProductVariant
+    mainPackage: ProductVariant,
+    bundle: ProductVariant,
+    advancePayment: number,
+    extraAdvancedPayment: number
   ): Promise<any> {
     const packageCode = mainPackage.attributes?.find(
       (attr) => attr.name === 'package_code'
@@ -334,6 +337,9 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
       (attr) => attr.name === 'priceplan_rc'
     );
 
+    const contractTerm = bundle.attributes?.find((attr) => attr.name === 'contractTerm')
+    const penalty = bundle.attributes?.find((attr) => attr.name === 'contractFee')
+
     const packageCustomObj =
       await this.adapters.commercetoolsCustomObjectClient.createOrUpdateCustomObject(
         {
@@ -344,18 +350,13 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
             name: packageName?.value,
             t1: {
               priceplanRcc: priceplanRc?.value,
-              penalty: 1_000_000,
-              advancedPayment: 42000,
-              extraAdvancedPayment: 11000,
-              contractTerm: 12,
+              penalty: penalty?.value,
+              advancedPayment: advancePayment,
+              extraAdvancedPayment: extraAdvancedPayment || 0,
+              contractTerm: contractTerm?.value || 12,
             },
             connector: {
-              description: {
-                'en-US':
-                  'Monthly fee 1,299 12-month \n contract Package fee will be charged on the invoice \n Early cancellation penalty 10,000 THB',
-                'th-TH':
-                  'ค่าบริการราย 1,299 สัญญา 12 เดือน \n ค่าแพ็คเกจ รายเดือนจะเรียกเก็บในใบแจ้งค่าบริการ \n ค่าปรับกรณียกเลิกสัญญาก่อนกำหนด 10,000 บาท',
-              },
+              description: {},
             },
           },
         }
@@ -443,6 +444,23 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
       : LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER
   }
 
+  private findValidAdvancePayment = (advancePaymentList: string[]): number => {
+    const now = dayjs()
+    const advancePaymentParsed = advancePaymentList.map(r => JSON.parse(r))
+    const validAdvancePayment = advancePaymentParsed.find((adv: { fee: number, startDate: string; endDate: string }) => {
+
+      const startDate = dayjs(adv.startDate.split("/").reverse().join(""))
+      const endDate = dayjs(adv.endDate.split("/").reverse().join(""))
+
+      const validStartDate: boolean = (now.isSame(startDate) || now.isAfter(startDate))
+      const validEndDate: boolean = (now.isSame(endDate) || now.isBefore(endDate))
+
+      return validStartDate && validEndDate
+    }).fee.concat("00") // ? convert bath to cent
+
+    return Number(validAdvancePayment ?? 0)
+  }
+
   private calculateProductGroup = ({
     cart,
     productId,
@@ -497,7 +515,9 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
         quantity,
         productType,
         productGroup,
-        bundleProduct
+        campaignVerifyValues,
+        bundleProduct,
+        extraAdvancedPayment
       } = payload;
       const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
 
@@ -506,7 +526,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
         sku,
         quantity,
         journey,
-        payload.campaignVerifyValues && payload.campaignVerifyValues.length > 0
+        campaignVerifyValues && campaignVerifyValues.length > 0
       );
 
       const product = await this.getProductById(productId);
@@ -518,13 +538,28 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
       
       const mainPackage = await this.getPackageByCode(packageInfo.code);
       const sim = await this.getSimBySku(simInfo.sku);
+      const promotionSetInfo = await this.getPromotionSetByCode(bundleProduct.promotionSetCode)
+      const bundleProductInfo = await this.getBundleProductByKey(bundleProduct.key)
+
+      if (!bundleProductInfo) {
+        throw {
+          statusCode: HTTP_STATUSES.NOT_FOUND,
+          statusMessage: 'Bundle product notfound.',
+        };
+      }
+
+      const advancePaymentList: string[] = bundleProductInfo.masterData.current.masterVariant.attributes?.find(r => r.name === 'payAdvanceServiceFee')?.value ?? "0"
+
+      const advancePayment = this.findValidAdvancePayment(advancePaymentList)
+      const extraAdvancedPaymentNew = extraAdvancedPayment && extraAdvancedPayment > 0 ? Number(`${extraAdvancedPayment}00`) : 0;
+
       const packageAdditionalInfo = await this.getPackageAdditionalInfo(
         cart,
-        mainPackage.masterData.current.masterVariant
+        mainPackage.masterData.current.masterVariant,
+        bundleProductInfo.masterData.current.masterVariant,
+        advancePayment,
+        extraAdvancedPaymentNew
       );
-
-      // const promotionSetInfo = await this.getPromotionSetByCode(bundleProduct.promotionSetCode)
-      // const bundleProductInfo = await this.getBundleProductByKey(bundleProduct.key)
 
       const billingAddressInfo = await this.getBillingAddressInfo(cart, billingAddress)
       this.validateReleaseDate(variant.attributes!, now);
@@ -621,48 +656,48 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
                 },
               },
             },
-            // {
-            //   action: 'addLineItem',
-            //   productId: bundleProductInfo.id,
-            //   variantId: bundleProductInfo.masterData.current.masterVariant.id,
-            //   quantity: 1,
-            //   inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
-            //   externalPrice: {
-            //     currencyCode: 'THB',
-            //     centAmount: 0,
-            //   },
-            //   custom: {
-            //     type: {
-            //       typeId: 'type',
-            //       key: 'lineItemCustomType',
-            //     },
-            //     fields: {
-            //       productType: 'bundle',
-            //       selected: true,
-            //     },
-            //   },
-            // },
-            // {
-            //   action: 'addLineItem',
-            //   productId: promotionSetInfo.id,
-            //   variantId: promotionSetInfo.masterData.current.masterVariant.id,
-            //   quantity: 1,
-            //   inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
-            //   externalPrice: {
-            //     currencyCode: 'THB',
-            //     centAmount: 0,
-            //   },
-            //   custom: {
-            //     type: {
-            //       typeId: 'type',
-            //       key: 'lineItemCustomType',
-            //     },
-            //     fields: {
-            //       productType: 'promotion_set',
-            //       selected: true,
-            //     },
-            //   },
-            // },
+            {
+              action: 'addLineItem',
+              productId: bundleProductInfo.id,
+              variantId: bundleProductInfo.masterData.current.masterVariant.id,
+              quantity: 1,
+              inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+              externalPrice: {
+                currencyCode: 'THB',
+                centAmount: 0,
+              },
+              custom: {
+                type: {
+                  typeId: 'type',
+                  key: 'lineItemCustomType',
+                },
+                fields: {
+                  productType: 'bundle',
+                  selected: true,
+                },
+              },
+            },
+            {
+              action: 'addLineItem',
+              productId: promotionSetInfo.id,
+              variantId: promotionSetInfo.masterData.current.masterVariant.id,
+              quantity: 1,
+              inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+              externalPrice: {
+                currencyCode: 'THB',
+                centAmount: 0,
+              },
+              custom: {
+                type: {
+                  typeId: 'type',
+                  key: 'lineItemCustomType',
+                },
+                fields: {
+                  productType: 'promotion_set',
+                  selected: true,
+                },
+              },
+            },
             {
               action: 'addCustomLineItem',
               name: {
@@ -672,7 +707,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
               quantity: 1,
               money: {
                 currencyCode: 'THB',
-                centAmount: 420000,
+                centAmount: advancePayment,
               },
               slug: 'advance-payment',
               taxCategory: {
@@ -689,7 +724,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
               quantity: 1,
               money: {
                 currencyCode: 'THB',
-                centAmount: 110000,
+                centAmount: extraAdvancedPaymentNew,
               },
               slug: 'extra-advance-payment',
               taxCategory: {
