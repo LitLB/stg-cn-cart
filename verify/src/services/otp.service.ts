@@ -782,7 +782,9 @@ export class OtpService {
     private async performHLPreVerifyStatus(
         journey: string,
         certificationId: string,
+        decryptedCertificationId: string,
         dateOfBirth: string,
+        decryptedDateOfBirth: string,
         certificationType?: string,
         verifyState?: string,
         campaignCode?: string,
@@ -799,13 +801,13 @@ export class OtpService {
                 operator: "true",
                 companyCode: "RF",
                 birthdate: "",
-                certificationId: "",
-                certificationType: ""
+                certificationId: decryptedCertificationId,
+                certificationType: certificationType || ""
             }
         };
 
         // 1.convert date to dd/mm/yyyy
-        let birthDate = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
+        let birthDate = decryptedDateOfBirth;
         response.customerProfile.birthdate = birthDate;
         
         if (birthDate) { 
@@ -1008,7 +1010,9 @@ export class OtpService {
                 return this.performHLPreVerifyStatus(
                     journey,
                     certificationId,
+                    decryptedCertificationId,
                     dateOfBirth,
+                    decryptedDateOfBirth,
                     certificationType,
                     verifyState,
                     campaignCode,
