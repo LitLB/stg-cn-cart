@@ -140,7 +140,7 @@ export type AddItemCartBodyRequest = {
 	},
 	extraAdvancedPayment?: number;
 };
-  
+
 export function validateAddItemCartBody(body: any) {
 	return Joi.object<AddItemCartBodyRequest>({
 		productId: Joi.string().required().messages({

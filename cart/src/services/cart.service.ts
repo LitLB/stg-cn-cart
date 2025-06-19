@@ -653,7 +653,7 @@ export class CartService {
             // Get coupon information
             const couponDiscounts = await this.getCouponInformation(orderNumber, COUPON_INFO_CONTAINER, cart.id)
             const tsmOrder = new TsmOrderModel({ ctCart: cart, config, orderNumber, couponDiscounts })
-            const tsmOrderPayload = tsmOrder.toPayload()
+            const tsmOrderPayload = await tsmOrder.toPayload()
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
             // return {
@@ -786,11 +786,17 @@ export class CartService {
     }
 
     private async validateAvailableQuantity(ctCart: Cart) {
+        const skipValidateProductType = ['promotion_set', 'bundle']
         const cartJourney = ctCart.custom?.fields.journey
         try {
             const { lineItems } = ctCart
             for (const lineItem of lineItems) {
                 const productType = lineItem.custom?.fields?.productType;
+
+                if (skipValidateProductType.includes(productType)) {
+                    continue
+                }
+
                 const sku = lineItem.variant.sku as string;
                 const productId = lineItem.productId;
                 const simInfo = lineItem.custom?.fields?.simInfo?.[0];

@@ -478,6 +478,15 @@ export class CommercetoolsProductClient implements IAdapter {
 
 		return parentCategoryName ? parentCategoryName : categoryName
 	}
+
+    getProductType(productTypeKey: string) {
+        return this.apiRoot
+            .withProjectKey({ projectKey: this.projectKey })
+            .productTypes()
+            .withKey({ key: productTypeKey })
+            .get()
+            .execute();
+    }
 }
 
 export default CommercetoolsProductClient.getInstance();
