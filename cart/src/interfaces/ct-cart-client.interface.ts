@@ -19,5 +19,5 @@ export interface AddItemToCartParams {
         value: string;
     }[];
     journey: string;
-    promotionSetInfo: Product | null
+    promotionSetInfo?: Product | null
 }

@@ -104,9 +104,9 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         sku
       );
 
-      // TBC solution for promotion set
-      // Get promotion set that is related to the product for discount
-      const promotionSetInfo = await this.getPromotionSetByProductSKU(sku)
+    // TBC solution for promotion set
+    // Get promotion set that is related to the product for discount
+    // const promotionSetInfo = await this.getPromotionSetByProductSKU(sku)
 
       if (!variant) {
         throw {
@@ -294,7 +294,6 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
             dummyFlag: isDummyStock,
             campaignVerifyValues: filteredCampaignVerifyValues,
             journey,
-            promotionSetInfo,
         });
 
       const ctCartWithChanged: Cart =
