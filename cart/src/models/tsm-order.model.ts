@@ -57,7 +57,6 @@ export default class TsmOrderModel {
 		const filteredItem: any[] = []
 		let productBundle: Partial<LineItem> = {}
 		let promotionSet: Partial<LineItem> = {}
-		let promotionSetCustomObject: any = {}
 		for (const lineItem of lineItems) {
 			if (this.getProductType(lineItem.custom?.fields?.productType) !== 'O') {
 				filteredItem.push(lineItem)
@@ -67,7 +66,6 @@ export default class TsmOrderModel {
 				productBundle = lineItem
 			} else if (lineItem.custom?.fields?.productType === 'promotion_set') {
 				promotionSet = lineItem
-				promotionSetCustomObject = await this.getPromotionSetCustomObject(promotionSet)
 			}
 		}
 
@@ -164,7 +162,6 @@ export default class TsmOrderModel {
 					orderId,
 					lineItem,
 					sequence,
-					promotionSetCustomObject,
 				})
 
 				//! items.otherPaymentAmount = ค่า amount ใน otherPayments ทั้งหมดรวมกัน
@@ -172,7 +169,6 @@ export default class TsmOrderModel {
 					orderId,
 					lineItem,
 					sequence,
-					promotionSetCustomObject,
 				})
 
 				//! items.netAmount = ค่า (price * quantity) - discountAmount
@@ -297,54 +293,30 @@ export default class TsmOrderModel {
 		orderId,
 		lineItem,
 		sequence,
-		promotionSetCustomObject,
 	}: {
 		orderId: string
 		lineItem: any
 		sequence: any,
-		promotionSetCustomObject: any
 	}) => {
 		let discountAmount = 0
 		let no = 1
-		const discounts: any[] = []
+		const discounts: { id: string, sequence: string, no: string, code: string, amount: string, serial: string }[] = []
 
-		let privilege = lineItem?.custom?.fields?.privilege
-		privilege = privilege && JSON.parse(privilege);
-		const { promotionSetCode } = privilege || {};
-
-		let lineItemDiscounts = lineItem?.custom?.fields?.discounts
-		lineItemDiscounts = (lineItemDiscounts ?? []).map((item: any) => JSON.parse(item))
+		const lineItemDiscounts: { code: string, amount: number }[] = (lineItem?.custom?.fields?.discounts ?? []).map((item: string) => JSON.parse(item))
 
 		for (const lineItemDiscount of lineItemDiscounts) {
-			const { source, discountCode, benefitType, specialPrice, discountBaht } = lineItemDiscount
-			if (benefitType === 'add_on') {
-				const price = lineItem.price.value.centAmount
-				const discount = price - specialPrice
-				discounts.push({
-					id: orderId,
-					sequence,
-					no: `${no}`,
-					code: promotionSetCode ?? '',
-					amount: `${this.stangToBaht(discount)}`,
-					serial: '',
-				})
-			}
-
-			if (benefitType === 'main_product') {
-				const discount = discountBaht
-				const code = source === 'campaignDiscount' ? discountCode : (promotionSetCode ?? '')
-				discounts.push({
-					id: orderId,
-					sequence,
-					no: `${no}`,
-					code,
-					amount: `${this.stangToBaht(discount)}`,
-					serial: '',
-				})
-			}
+            discounts.push({
+                id: orderId,
+                sequence,
+                no: `${no}`,
+                code: lineItemDiscount.code,
+                amount: `${this.stangToBaht(lineItemDiscount.amount)}`,
+                serial: '',
+            })
 
 			no++
 		}
+
 		discountAmount = discounts.reduce((total: number, discount: any) => {
 			return total += +discount.amount
 		}, 0)
@@ -359,23 +331,20 @@ export default class TsmOrderModel {
 		orderId,
 		lineItem,
 		sequence,
-		promotionSetCustomObject,
 	}: {
 		orderId: string
 		lineItem: any
 		sequence: any
-		promotionSetCustomObject: any
 	}) => {
 		let otherPaymentAmount = 0
-		let lineItemOtherPayments = lineItem?.custom?.fields?.otherPayments
-		lineItemOtherPayments = (lineItemOtherPayments ?? []).map((v: any) => JSON.parse(v))
+		const lineItemOtherPayments: { code: string, amount: number }[] = (lineItem?.custom?.fields?.otherPayments ?? []).map((item: string) => JSON.parse(item))
 
-		const otherPayments: any[] = lineItemOtherPayments.map((v: any, index: any) => ({
+		const otherPayments: { id: string, sequence: string, no: string, code: string, amount: string, serial: string }[] = lineItemOtherPayments.map((item: { code: string, amount: number }, index: number) => ({
 			id: orderId,
 			sequence,
 			no: `${index + 1}`.toString(),
-			code: v.otherPaymentCode,
-			amount: this.stangToBaht(v.otherPaymentAmt).toString(),
+			code: item.code,
+			amount: this.stangToBaht(item.amount).toString(),
 			serial: ""
 		}))
 
