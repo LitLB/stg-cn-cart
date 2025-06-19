@@ -223,6 +223,18 @@ export class CartService {
 
                 try {
                     await hlClient.checkEligible(headlessPayload, headers)
+
+
+                    const customerSession = await talonOneIntegrationAdapter.getCustomerSession(ctCart.id);
+
+                    if (customerSession && customerSession.effects.length > 0) {
+                        const customerSessionId = customerSession.customerSession.id
+                        await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, {
+                            customerSession: {
+                                state: 'closed'
+                            }
+                        })
+                    }
                 } catch (e: any) {
                     throw {
                         statusCode: HTTP_STATUSES.BAD_REQUEST,
