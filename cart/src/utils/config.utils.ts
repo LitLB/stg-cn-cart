@@ -32,7 +32,7 @@ export const readConfiguration = () => {
     bffCtpClientId: process.env.BFF_CTP_CLIENT_ID as string,
     bffCtpClientSecret: process.env.BFF_CTP_CLIENT_SECRET as string,
 
-    
+
     ctpDefaultCouponLimit: process.env.CTP_DEFAULT_COUPON_LIMIT as string,
 
     onlineChannel: process.env.ONLINE_CHANNEL as string,
@@ -60,6 +60,11 @@ export const readConfiguration = () => {
       shopCode: process.env.TSM_ORDER_SHOP_CODE as string,
       saleCode: process.env.TSM_ORDER_SALE_CODE as string,
       saleName: process.env.TSM_ORDER_SALE_NAME as string,
+    },
+    headless: {
+      baseUrl: process.env.HEADLESS_BASE_URL as string,
+      apiKey: process.env.HEADLESS_API_KEY as string,
+      hashKey: process.env.HEADLESS_PRIVATE_KEY_ENCRYPTION as string,
     }
   };
 

@@ -42,6 +42,8 @@ import { ApiResponse } from '../interfaces/response.interface';
 import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
 import { CartTransformer } from '../transforms/cart.transforms';
 import { CompareRedisData } from '../types/share.types';
+import HeadlessClientAdapter from '../adapters/hl-client.adapter';
+import { calculateAge } from '../utils/calculate.utils';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -167,7 +169,10 @@ export class CartService {
 
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
         try {
-            const { cartId, client } = payload;
+
+            const hlClient = new HeadlessClientAdapter()
+
+            const { cartId, client, headers } = payload;
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
             const defaultValidateList = [
                 'BLACKLIST',
@@ -180,8 +185,65 @@ export class CartService {
             }
 
             let ctCart = await this.getCtCartById(accessToken, cartId)
-
             const isPreOrder = ctCart.custom?.fields.preOrder
+            const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
+
+
+            if (cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
+                const customerInfo = JSON.parse(ctCart.custom?.fields.customerInfo)
+                const { customerProfile } = customerInfo
+                const mainProductSku = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product')?.variant.sku
+                const bundleProductAttributes = ctCart.lineItems.find(item => item.custom?.fields.productType === 'bundle')?.variant.attributes
+                const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value
+                const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value
+                const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value
+                const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
+                const bundleKey = `${campaignCode}_${propositionCode}_${promotionSetCode}_${agreementCode}`
+
+                const headlessPayload = {
+
+                    operator: customerProfile.operator,
+                    companyCode: customerProfile.companyCode,
+                    profile: [
+                        {
+                            certificationId: customerInfo.verifyCertificationIdValue,
+                            certificationType: customerInfo.verifyCertificationTypeValue
+                        },
+                        {
+                            certificationId: customerInfo.verifyMobileNumberValue,
+                            certificationType: "M"
+                        }
+                    ],
+                    productBundle: {
+                        bundleKey: bundleKey,
+                        sku: mainProductSku,
+                        customerAge: calculateAge(customerProfile.age ?? 0),
+                    }
+                }
+
+                try {
+                    await hlClient.checkEligible(headlessPayload, headers)
+
+
+                    const customerSession = await talonOneIntegrationAdapter.getCustomerSession(ctCart.id);
+
+                    if (customerSession && customerSession.effects.length > 0) {
+                        const customerSessionId = customerSession.customerSession.id
+                        await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, {
+                            customerSession: {
+                                state: 'closed'
+                            }
+                        })
+                    }
+                } catch (e: any) {
+                    throw {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: 'Campaign is not eligible',
+                    }
+                }
+
+            }
+
 
             CartValidator.validateCartHasSelectedItems(ctCart);
 
@@ -212,14 +274,8 @@ export class CartService {
             }
 
             if (!isPreOrder) {
-
                 // * STEP #5 - Create Order On TSM Sale
                 const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
-
-                // //! IF available > x
-                // //! THEN continue
-                // //! ELSE 
-                // //! THEN throw error
 
                 if (!success) {
                     await InventoryValidator.validateSafetyStock(ctCart)
@@ -239,8 +295,9 @@ export class CartService {
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
             return { ...order, hasChanged: compared };
+
         } catch (error: any) {
-            logger.error(`CartService.createOrder.error`, error);
+            // logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
                 throw error;
             }
@@ -660,7 +717,11 @@ export class CartService {
             //     success: false,
             //     response: { message: 'this is mock response' }
             // }
-            const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
+            // const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
+
+            const response = {
+                code: '0'
+            }
 
             if (!response) {
                 return {
@@ -802,7 +863,7 @@ export class CartService {
                 const simInfo = lineItem.custom?.fields?.simInfo?.[0];
                 const simType = simInfo ? JSON.parse(simInfo).simType : null;
 
-                if (productType !== 'main_product' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) { 
+                if (productType !== 'main_product' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
                     continue
                 } else if (productType !== 'main_product' && simType !== 'physical' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_NEW) {
                     continue
@@ -810,7 +871,7 @@ export class CartService {
 
                 const product = await CommercetoolsProductClient.getProductById(productId);
                 if (!product) {
-                    throw { 
+                    throw {
                         statusCode: HTTP_STATUSES.NOT_FOUND,
                         statusMessage: 'Product not found',
                     };
