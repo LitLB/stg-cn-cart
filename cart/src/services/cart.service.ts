@@ -169,6 +169,9 @@ export class CartService {
 
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
         try {
+
+            const hlClient = new HeadlessClientAdapter()
+
             const { cartId, client, headers } = payload;
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
             const defaultValidateList = [
@@ -182,30 +185,20 @@ export class CartService {
             }
 
             let ctCart = await this.getCtCartById(accessToken, cartId)
-
             const isPreOrder = ctCart.custom?.fields.preOrder
-
             const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
 
+
             if (cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
-
-
                 const customerInfo = JSON.parse(ctCart.custom?.fields.customerInfo)
-
                 const { customerProfile } = customerInfo
-
                 const mainProductSku = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product')?.variant.sku
                 const bundleProductAttributes = ctCart.lineItems.find(item => item.custom?.fields.productType === 'bundle')?.variant.attributes
-                const packageCode = ctCart.lineItems.find(item => item.custom?.fields.productType === 'package')?.variant.sku
-
                 const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value
                 const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value
                 const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value
                 const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
-
                 const bundleKey = `${campaignCode}_${propositionCode}_${promotionSetCode}_${agreementCode}`
-
-                const hlClient = new HeadlessClientAdapter()
 
                 const headlessPayload = {
 
@@ -225,15 +218,12 @@ export class CartService {
                         bundleKey: bundleKey,
                         sku: mainProductSku,
                         customerAge: calculateAge(customerProfile.age ?? 0),
-                        // packageCode: packageCode, 
                     }
                 }
 
                 try {
-                    const response = await hlClient.checkEligible(headlessPayload, headers)
-                    console.log({ response })
+                    await hlClient.checkEligible(headlessPayload, headers)
                 } catch (e: any) {
-                    console.log({ error: e?.response?.data }) 
                     throw {
                         statusCode: HTTP_STATUSES.BAD_REQUEST,
                         statusMessage: 'Campaign is not eligible',
@@ -243,59 +233,57 @@ export class CartService {
             }
 
 
-            // CartValidator.validateCartHasSelectedItems(ctCart);
+            CartValidator.validateCartHasSelectedItems(ctCart);
 
-            // // * STEP #2 - Validate Blacklist
-            // if (validateList.includes('BLACKLIST')) {
-            //     await this.validateBlacklist(ctCart, client)
-            // }
+            // * STEP #2 - Validate Blacklist
+            if (validateList.includes('BLACKLIST')) {
+                await this.validateBlacklist(ctCart, client)
+            }
 
-            // // * STEP #3 - Validate Campaign & Promotion Set
-            // if (validateList.includes('CAMPAIGN')) {
-            //     await this.validateCampaign()
-            // }
+            // * STEP #3 - Validate Campaign & Promotion Set
+            if (validateList.includes('CAMPAIGN')) {
+                await this.validateCampaign()
+            }
 
-            // // * STEP #4 - Validate Available Quantity (Commercetools)
-            // await this.validateAvailableQuantity(ctCart)
+            // * STEP #4 - Validate Available Quantity (Commercetools)
+            await this.validateAvailableQuantity(ctCart)
 
-            // ctCart = await this.handleAutoRemoveCoupons(ctCart);
+            ctCart = await this.handleAutoRemoveCoupons(ctCart);
 
-            // ctCart = await this.removeUnselectedItems(ctCart);
+            ctCart = await this.removeUnselectedItems(ctCart);
 
-            // await InventoryValidator.validateCart(ctCart);
+            await InventoryValidator.validateCart(ctCart);
 
-            // const operator = ctCart.custom?.fields.operator
-            // const orderNumber = await this.generateOrderNumber(operator)
+            const operator = ctCart.custom?.fields.operator
+            const orderNumber = await this.generateOrderNumber(operator)
 
-            // let tsmSaveOrder = {
+            let tsmSaveOrder = {
 
-            // }
+            }
 
-            // if (!isPreOrder) {
+            if (!isPreOrder) {
+                // * STEP #5 - Create Order On TSM Sale
+                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
 
-            //     // * STEP #5 - Create Order On TSM Sale
-            //     const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+                if (!success) {
+                    await InventoryValidator.validateSafetyStock(ctCart)
+                }
 
-            //     if (!success) {
-            //         await InventoryValidator.validateSafetyStock(ctCart)
-            //     }
+                tsmSaveOrder = {
+                    tsmOrderIsSaved: success,
+                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
+                }
 
-            //     tsmSaveOrder = {
-            //         tsmOrderIsSaved: success,
-            //         tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
-            //     }
+            }
 
-            // }
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
+            const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
-            // const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
-            // const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            await this.inventoryService.commitCartStock(ctCart);
+            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            await this.createOrderAdditional(order, client);
+            return { ...order, hasChanged: compared };
 
-            // await this.inventoryService.commitCartStock(ctCart);
-            // const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
-            // await this.createOrderAdditional(order, client);
-            // return { ...order, hasChanged: compared };
-
-            return { message: true }
         } catch (error: any) {
             // logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -717,7 +705,11 @@ export class CartService {
             //     success: false,
             //     response: { message: 'this is mock response' }
             // }
-            const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
+            // const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
+
+            const response = {
+                code: '0'
+            }
 
             if (!response) {
                 return {
