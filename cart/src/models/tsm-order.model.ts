@@ -93,7 +93,7 @@ export default class TsmOrderModel {
 			}
 
 			let promotionSetCode = ''
-			let promotionSetProposition = ''
+			let promotionSetProposition = 999
 			if (promotionSet.variant?.attributes) {
 				for (const attribute of promotionSet.variant.attributes) {
 					if (attribute.name === 'code') {
