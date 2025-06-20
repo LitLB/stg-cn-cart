@@ -50,7 +50,7 @@ export async function attachPackageToOrder(iOrder: IOrder, order: Order): Promis
             // Enrich the package with mock data if not already set.
             if (!pkg.cms) {
                 pkg.cms = {
-                    image: pkg.masterVariant.images?.[0].url ?? null
+                    image: pkg.masterVariant.images?.[0]?.url ?? null
                 };
             }
             if (!pkg.masterVariant.t1) {

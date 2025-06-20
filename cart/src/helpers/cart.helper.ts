@@ -64,7 +64,7 @@ export async function attachPackageToCart(iCart: ICart, ctCart: Cart): Promise<I
             // Enrich the package with mock data if not already set.
             if (!pkg.cms) {
                 pkg.cms = {
-                    image: pkg.masterVariant.images?.[0].url ?? null
+                    image: pkg.masterVariant.images?.[0]?.url ?? null
                 };
             }
             if (!pkg.masterVariant.t1) {
