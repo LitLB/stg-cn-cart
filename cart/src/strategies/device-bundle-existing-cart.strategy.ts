@@ -159,12 +159,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         statusMessage: 'SKU not found in the specified product',
       };
     }
-    if (!variant.prices || variant.prices.length === 0) {
-      throw {
-        statusCode: HTTP_STATUSES.NOT_FOUND,
-        statusMessage: 'No prices found for this variant',
-      };
-    }
+    
 
     if (!variant.attributes || variant.attributes.length === 0) {
       throw {

@@ -742,12 +742,7 @@ const getVariantBySku = (product: Product, sku: string): ProductVariant => {
         };
     }
 
-    if (!variant.prices || variant.prices.length === 0) {
-        throw {
-            statusCode: HTTP_STATUSES.NOT_FOUND,
-            statusMessage: 'No prices found for this variant',
-        };
-    }
+   
 
     if (!variant.attributes || variant.attributes.length === 0) {
         throw {
