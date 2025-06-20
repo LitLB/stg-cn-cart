@@ -405,17 +405,17 @@ export class OtpService {
                     const decryptedThaiId = await apigeeClientAdapter.apigeeDecrypt(customerProfile.certificationId)
 
                     response.customerProfile = {
+                        ...customerProfile,
                         companyCode: customerProfile.companyCode,
                         customerNumber: customerProfile.customerNo ?? undefined,
                         customerType: customerProfile.customerType ?? undefined,
-                        isProductTrue: journey === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING ? OPERATOR.TRUE : '?', // TODO :: for bundle new  
+                        isProductTrue: 'true',
                         packageCode: customerProfile.packageCode ?? undefined,
                         pricePlan: customerProfile.pricePlan ?? undefined,
                         birthdate: customerProfile.birthOfDate,
                         ageOfUse: customerProfile.aging ?? undefined,
                         certificationId: decryptedThaiId,
-                        certificationType: 'I'
-
+                        certificationType: 'I',
                     }
                 }
             }
