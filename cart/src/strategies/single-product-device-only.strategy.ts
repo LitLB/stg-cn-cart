@@ -65,6 +65,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         addOnGroup,
         freeGiftGroup,
         campaignVerifyValues = [],
+        bundleProduct,
       } = payload as AddItemCartBodyRequest;
 
       const product =
@@ -107,6 +108,12 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
     // TBC solution for promotion set
     // Get promotion set that is related to the product for discount
     // const promotionSetInfo = await this.getPromotionSetByProductSKU(sku)
+      const bundleProductInfo = await this.adapters.commercetoolsProductClient.getProductByKey(bundleProduct?.key || '');
+      if (!bundleProductInfo) throw { statusCode: HTTP_STATUSES.NOT_FOUND, statusMessage: 'Product bundle not found', };
+      
+      const promotionSetInfo = await this.adapters.commercetoolsProductClient.getProductByKey(bundleProduct?.promotionSetCode || '');
+      if (!promotionSetInfo) throw { statusCode: HTTP_STATUSES.NOT_FOUND, statusMessage: 'Product promotionSetCode not found', };
+
 
       if (!variant) {
         throw {
@@ -289,6 +296,8 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
             dummyFlag: isDummyStock,
             campaignVerifyValues: filteredCampaignVerifyValues,
             journey,
+            promotionSetInfo,
+            bundleProductInfo
         });
 
       const ctCartWithChanged: Cart =

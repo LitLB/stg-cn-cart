@@ -92,6 +92,7 @@ export class CommercetoolsCartClient implements IAdapter {
 		campaignVerifyValues,
 		journey,
         promotionSetInfo,
+		bundleProductInfo,
 	}: AddItemToCartParams): Promise<Cart> {
 
 		const { lineItems, custom } = cart;
@@ -249,6 +250,29 @@ export class CommercetoolsCartClient implements IAdapter {
                 },
             };
             lineItemDrafts.push(promotionSetLineItemDraft)
+        }
+
+		if (bundleProductInfo) {
+            const bundleLineItemDraft: LineItemDraft = {
+                productId: bundleProductInfo.id,
+                variantId: bundleProductInfo.masterData.current.masterVariant.id,
+                inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+                externalPrice: {
+                    currencyCode: 'THB',
+                    centAmount: 0,
+                },
+                custom: {
+                    type: {
+                        typeId: 'type',
+                        key: 'lineItemCustomType',
+                    },
+                    fields: {
+                        productType: 'promotion_set',
+                        selected: true,
+                    },
+                },
+            };
+            lineItemDrafts.push(bundleLineItemDraft)
         }
 
 		const updatedCart = await this.addLineItemToCart(
