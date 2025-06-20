@@ -25,6 +25,7 @@ import { CouponService } from '../services/coupon.service';
 import { TalonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { AdapterConstructor } from '../interfaces/adapter.interface';
 import { calculateProductGroupParams } from '../interfaces/single-product-device-only.interface';
+import HeadlessClientAdapter from '../adapters/hl-client.adapter';
 
 export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
   'commercetoolsMeCartClient': CommercetoolsMeCartClient,
@@ -32,9 +33,10 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
   'commercetoolsCartClient': CommercetoolsCartClient,
   'commercetoolsInventoryClient': CommercetoolsInventoryClient,
   'commercetoolsStandalonePricesClient': CommercetoolsStandalonePricesClient,
-  'talonOneIntegrationAdapter': TalonOneIntegrationAdapter
+  'talonOneIntegrationAdapter': TalonOneIntegrationAdapter,
 }> {
   private couponService: CouponService;
+  private hlClientAdapter: HeadlessClientAdapter;
 
   constructor() {
     super(
@@ -46,6 +48,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
     );
 
     this.couponService = new CouponService();
+    this.hlClientAdapter = new HeadlessClientAdapter();
   }
 
   set accessToken(value: string) {
@@ -104,22 +107,18 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         sku
       );
 
-    // TBC solution for promotion set
-    // Get promotion set that is related to the product for discount
-    // const promotionSetInfo = await this.getPromotionSetByProductSKU(sku)
-
       if (!variant) {
         throw {
           statusCode: HTTP_STATUSES.NOT_FOUND,
           statusMessage: 'SKU not found in the specified product',
         };
       }
-      if (!variant.prices || variant.prices.length === 0) {
-        throw {
-          statusCode: HTTP_STATUSES.NOT_FOUND,
-          statusMessage: 'No prices found for this variant',
-        };
-      }
+    //   if (!variant.prices || variant.prices.length === 0) {
+    //     throw {
+    //       statusCode: HTTP_STATUSES.NOT_FOUND,
+    //       statusMessage: 'No prices found for this variant',
+    //     };
+    //   }
 
       const isValidReleaseDate = validateProductReleaseDate(
         variant.attributes,
@@ -281,6 +280,9 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         }
       );
 
+        // Get promotion set that is related to the product for discount
+        const promotionBundleResponse = journey === CART_JOURNEYS.SINGLE_PRODUCT ? await this.hlClientAdapter.getPromotionBundleNoCampaign(sku) : null
+
         const updatedCart = await this.adapters.commercetoolsCartClient.addItemToCart({
             cart,
             productId,
@@ -294,6 +296,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
             dummyFlag: isDummyStock,
             campaignVerifyValues: filteredCampaignVerifyValues,
             journey,
+            promotionBundle: promotionBundleResponse?.data || null,
         });
 
       const ctCartWithChanged: Cart =

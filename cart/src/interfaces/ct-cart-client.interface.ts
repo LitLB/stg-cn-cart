@@ -1,4 +1,5 @@
-import { Cart, Product } from "@commercetools/platform-sdk";
+import { Cart, LineItem } from "@commercetools/platform-sdk";
+import { PromotionBundleResponse } from "./promotion-bundle.interface";
 
 export interface AddItemToCartParams {
     cart: Cart;
@@ -19,5 +20,11 @@ export interface AddItemToCartParams {
         value: string;
     }[];
     journey: string;
-    promotionSetInfo?: Product | null
+    promotionBundle?: PromotionBundleResponse['data'] | null
+}
+
+export interface UpdateDiscountNoCampaignToCartParams {
+    cart: Cart;
+    lineItem: LineItem;
+    promotionBundle: PromotionBundleResponse['data'][0]
 }
