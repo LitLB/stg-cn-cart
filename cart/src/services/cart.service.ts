@@ -1,7 +1,7 @@
 // cart/src/services/cart.service.ts
 
 import _ from 'lodash'
-import { Cart, CartUpdateAction, LineItem, MyCartUpdateAction, Order } from '@commercetools/platform-sdk';
+import { Cart, CartUpdateAction, LineItem, MyCartUpdateAction, Order, Product } from '@commercetools/platform-sdk';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -170,7 +170,6 @@ export class CartService {
     public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
         try {
 
-            const hlClient = new HeadlessClientAdapter()
 
             const { cartId, client, headers } = payload;
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
@@ -190,58 +189,19 @@ export class CartService {
 
 
             if (cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
-                const customerInfo = JSON.parse(ctCart.custom?.fields.customerInfo)
-                const { customerProfile } = customerInfo
-                const mainProductSku = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product')?.variant.sku
-                const bundleProductAttributes = ctCart.lineItems.find(item => item.custom?.fields.productType === 'bundle')?.variant.attributes
-                const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value
-                const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value
-                const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value
-                const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
-                const bundleKey = `${campaignCode}_${propositionCode}_${promotionSetCode}_${agreementCode}`
 
-                const headlessPayload = {
+                await this.checkEligible(ctCart, headers)
 
-                    operator: customerProfile.operator,
-                    companyCode: customerProfile.companyCode,
-                    profile: [
-                        {
-                            certificationId: customerInfo.verifyCertificationIdValue,
-                            certificationType: customerInfo.verifyCertificationTypeValue
-                        },
-                        {
-                            certificationId: customerInfo.verifyMobileNumberValue,
-                            certificationType: "M"
+                const customerSession = await talonOneIntegrationAdapter.getCustomerSession(ctCart.id);
+
+                if (customerSession && customerSession.effects.length > 0) {
+                    const customerSessionId = customerSession.customerSession.id
+                    await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, {
+                        customerSession: {
+                            state: 'closed'
                         }
-                    ],
-                    productBundle: {
-                        bundleKey: bundleKey,
-                        sku: mainProductSku,
-                        customerAge: calculateAge(customerProfile.age ?? 0),
-                    }
+                    })
                 }
-
-                try {
-                    await hlClient.checkEligible(headlessPayload, headers)
-
-
-                    const customerSession = await talonOneIntegrationAdapter.getCustomerSession(ctCart.id);
-
-                    if (customerSession && customerSession.effects.length > 0) {
-                        const customerSessionId = customerSession.customerSession.id
-                        await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, {
-                            customerSession: {
-                                state: 'closed'
-                            }
-                        })
-                    }
-                } catch (e: any) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: 'Campaign is not eligible',
-                    }
-                }
-
             }
 
 
@@ -291,10 +251,11 @@ export class CartService {
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
 
-            await this.inventoryService.commitCartStock(ctCart);
-            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
-            await this.createOrderAdditional(order, client);
-            return { ...order, hasChanged: compared };
+            // await this.inventoryService.commitCartStock(ctCart);
+            // const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            // await this.createOrderAdditional(order, client);
+            // return { ...order, hasChanged: compared };
+            return { message: 'แสร้างว่าสร้าง order สำเร็จ' }
 
         } catch (error: any) {
             // logger.error(`CartService.createOrder.error`, error);
@@ -1185,5 +1146,47 @@ export class CartService {
         const customerSession = await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, customerSessionPayload)
 
         return customerSession
+    }
+
+    public async checkEligible(ctCart: Cart, headers: any) {
+        const hlClient = new HeadlessClientAdapter()
+        const customerInfo = JSON.parse(ctCart.custom?.fields.customerInfo)
+        const { customerProfile } = customerInfo
+        const mainProductSku = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product')?.variant.sku
+        const bundleProductAttributes = ctCart.lineItems.find(item => item.custom?.fields.productType === 'bundle')?.variant.attributes
+        const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value
+        const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value
+        const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value
+        const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
+        const bundleKey = `${campaignCode}_${propositionCode}_${promotionSetCode}_${agreementCode}`
+
+        const headlessPayload = {
+            operator: customerProfile.operator,
+            companyCode: customerProfile.companyCode,
+            profile: [
+                {
+                    certificationId: customerInfo.verifyCertificationIdValue,
+                    certificationType: customerInfo.verifyCertificationTypeValue
+                },
+                {
+                    certificationId: customerInfo.verifyMobileNumberValue,
+                    certificationType: "M"
+                }
+            ],
+            productBundle: {
+                bundleKey: bundleKey,
+                sku: mainProductSku,
+                customerAge: calculateAge(customerProfile.age ?? 0),
+            }
+        }
+
+        try {
+            await hlClient.checkEligible(headlessPayload, headers)
+        } catch (e: any) {
+            throw {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                statusMessage: 'Campaign is not eligible',
+            }
+        }
     }
 }

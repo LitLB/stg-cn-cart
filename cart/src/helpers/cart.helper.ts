@@ -64,7 +64,7 @@ export async function attachPackageToCart(iCart: ICart, ctCart: Cart): Promise<I
             // Enrich the package with mock data if not already set.
             if (!pkg.cms) {
                 pkg.cms = {
-                    image: "https://images.cdn.australia-southeast1.gcp.commercetools.com/11c6ea39-ac1a-4868-87d8-5bd23bc70f03/tree-736885_640-LX3K9HiH.jpg"
+                    image: pkg.masterVariant.images?.[0].url ?? null
                 };
             }
             if (!pkg.masterVariant.t1) {

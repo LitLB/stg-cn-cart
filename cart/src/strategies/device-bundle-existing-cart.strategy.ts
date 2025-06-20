@@ -303,7 +303,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
     );
 
     const contractTerm = bundle.attributes?.find((attr) => attr.name === 'contractTerm')
-    const penalty = bundle.attributes?.find((attr) => attr.name === 'contractFee')
+    const penalty = bundle.attributes?.find((attr) => attr.name === 'contractFee')?.value * 100 // ? Convert baht to stang
 
     const packageCustomObj =
       await this.adapters.commercetoolsCustomObjectClient.createOrUpdateCustomObject(
@@ -315,7 +315,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
             name: packageName?.value,
             t1: {
               priceplanRcc: priceplanRc?.value,
-              penalty: penalty?.value,
+              penalty: penalty,
               advancedPayment: advancePayment,
               contractTerm: contractTerm?.value || 12,
             },
@@ -353,12 +353,12 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       };
     }
 
-    // if (totalCartQuantity > 1) {
-    //     throw {
-    //         statusCode: HTTP_STATUSES.BAD_REQUEST,
-    //         statusMessage: `Cannot have more than 1 unit of SKU ${sku} in the cart.`,
-    //     };
-    // }
+    if (totalCartQuantity > 1) {
+      throw {
+        statusCode: HTTP_STATUSES.BAD_REQUEST,
+        statusMessage: `Cannot have more than 1 unit of SKU ${sku} in the cart.`,
+      };
+    }
 
     if (
       !variant.attributes?.some(
