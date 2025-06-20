@@ -73,6 +73,9 @@ deployAs:
         - key: CTP_ADD_CUSTOM_OTHER_PAYMENT_LINE_ITEM_PREFIX
           description: Commercetools Other Payment Line Item Prefix
           required: true
+        - key: HEADLESS_BASE_URL
+          description: Headless Base Url
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: Commercetools project key identifying your specific project
@@ -109,6 +112,12 @@ deployAs:
           required: true
         - key: APIGW_PRIVATE_KEY_ENCRYPTION
           description: Apigee private key encryption
+          required: true
+        - key: HEADLESS_API_KEY
+          description: Headless Api Key
+          required: true
+        - key: HEADLESS_PRIVATE_KEY_ENCRYPTION
+          description: Headless private key encryption
           required: true
   - name: coupon
     applicationType: service
