@@ -679,10 +679,6 @@ export class CartService {
             // }
             const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
 
-            // const response = {
-            //     code: '0'
-            // }
-
             if (!response) {
                 return {
                     success: false,
