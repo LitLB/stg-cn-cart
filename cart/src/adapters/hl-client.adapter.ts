@@ -10,7 +10,7 @@ class HeadlessClientAdapter {
     }
 
     async checkEligible(body: any, headers: any) {
-        const url = '/hl-product/api/v1/campaign/eligible';
+        const url = '/api/v1/campaign/eligible';
         const response: AxiosResponse = await this.client.post(
             `${url}`,
             body,

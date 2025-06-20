@@ -77,7 +77,7 @@ export class InventoryValidator {
         const lineItem = InventoryUtils.findLineItem(cart, sku, supplyChannelId);
         if (lineItem) existingQty = lineItem.quantity;
 
-        
+
         try {
             const finalDesiredQty = existingQty + requestedQty;
             await InventoryValidator.validateLineItemStock(cart, sku, finalDesiredQty, journey, existingQty);
@@ -90,7 +90,7 @@ export class InventoryValidator {
             }
 
             throw error;
-        } 
+        }
     }
 
     /**
@@ -115,8 +115,8 @@ export class InventoryValidator {
         for (const lineItem of cart.lineItems) {
             if (!lineItem.variant?.sku) continue;
             const itemJourney = (lineItem.custom?.fields?.journey as CART_JOURNEYS) || journey;
-            const productType = lineItem.custom?.fields?.productType  
-            if(productType === 'main_product'){
+            const productType = lineItem.custom?.fields?.productType
+            if (productType === 'main_product') {
                 await InventoryValidator.validateLineItemStock(
                     cart,
                     lineItem.variant.sku,
@@ -133,6 +133,7 @@ export class InventoryValidator {
 
         for (const lineItem of cart.lineItems) {
             if (!lineItem.variant?.sku) continue;
+            if (lineItem.custom?.fields?.productType !== 'main_product') continue;
 
             const sku = lineItem.variant.sku
             const existingLineItem = InventoryUtils.findLineItem(cart, sku, supplyChannelId);

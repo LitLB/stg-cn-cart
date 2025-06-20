@@ -295,6 +295,7 @@ export class OtpService {
             logService(checkOperatorPayload, response, logStepModel)
             const result = validateOperator(response.data.operator)
 
+
             return result
         } catch (e: any) {
             logService(checkOperatorPayload, e, logStepModel)
@@ -361,16 +362,18 @@ export class OtpService {
 
         if (steps.has("operator")) {
             const verifyKeyOption = journey
-                    ? await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey("verifyKeyOptions", journey)
-                    : undefined;
+                ? await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey("verifyKeyOptions", journey)
+                : undefined;
             if (verifyKeyOption?.value.cerId) {
                 operator = await this.checkProductIsTrue(certificationId, dateOfBirth, certificationType);
             } else {
                 operator = await this.checkOperator(id, mobileNumber);
             }
+
             await this.checkActive(journey, operator);
             response.verifyResult.verifyOperatorStatus = "success";
             response.customerProfile.operator = operator
+
         }
 
 
@@ -398,14 +401,15 @@ export class OtpService {
                 if (operator === OPERATOR.DTAC) {
                     customerProfile = validateCustomerDtacProfile(profileRes.data);
                 }
+
+
                 response.verifyResult.verifyCustomerAndPackageStatus = "success";
 
                 if (customerProfile) {
 
                     const decryptedThaiId = await apigeeClientAdapter.apigeeDecrypt(customerProfile.certificationId)
-
                     response.customerProfile = {
-                        ...customerProfile,
+                        ...response.customerProfile,
                         companyCode: customerProfile.companyCode,
                         customerNumber: customerProfile.customerNo ?? undefined,
                         customerType: customerProfile.customerType ?? undefined,
@@ -754,7 +758,7 @@ export class OtpService {
         const { status: code, isByPass: flagBypass } = resultInfo
 
         if (resultCode !== 200) {
-            if (code === '500.599.2000')  {
+            if (code === '500.599.2000') {
                 response.verifyResult.verifyDopaStatus = 'skip';
             } else {
                 response.verifyResult.verifyDopaStatus = 'fail';
@@ -790,7 +794,7 @@ export class OtpService {
         campaignCode?: string,
         productCode?: string,
         propoId?: string,
-        
+
     ): Promise<CustomerVerificationData> {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_OPERATOR, logModel);
@@ -809,8 +813,8 @@ export class OtpService {
         // 1.convert date to dd/mm/yyyy
         let birthDate = decryptedDateOfBirth;
         response.customerProfile.birthdate = birthDate;
-        
-        if (birthDate) { 
+
+        if (birthDate) {
             birthDate = formatDateFromString(birthDate)
             dateOfBirth = await apigeeClientAdapter.apigeeEncrypt(birthDate);
         }
@@ -834,10 +838,10 @@ export class OtpService {
         switch (verifyState) {
             case "hlPreverFull":
                 response.verifyResult.verifyLock3StepStatus = "fail",
-                response.verifyResult.verify45DayNonShopStatus = "fail",
-                response.verifyResult.verifyThaiId5NumberStatus  = "fail",
-                response.verifyResult.verifyMaxAllowStatus  = "fail",
-                response.verifyResult.verifyCheckCrossStatus  = "fail"
+                    response.verifyResult.verify45DayNonShopStatus = "fail",
+                    response.verifyResult.verifyThaiId5NumberStatus = "fail",
+                    response.verifyResult.verifyMaxAllowStatus = "fail",
+                    response.verifyResult.verifyCheckCrossStatus = "fail"
 
                 requestBody = {
                     correlationId: basePayload.correlationId,
@@ -868,12 +872,12 @@ export class OtpService {
                 if (mapStatus) throw mapStatus;
 
                 response.verifyResult.verifyLock3StepStatus = "success",
-                response.verifyResult.verify45DayNonShopStatus = "success",
-                response.verifyResult.verifyThaiId5NumberStatus  = "success",
-                response.verifyResult.verifyMaxAllowStatus  = "success",
-                response.verifyResult.verifyCheckCrossStatus  = "success"
+                    response.verifyResult.verify45DayNonShopStatus = "success",
+                    response.verifyResult.verifyThaiId5NumberStatus = "success",
+                    response.verifyResult.verifyMaxAllowStatus = "success",
+                    response.verifyResult.verifyCheckCrossStatus = "success"
                 break;
-            
+
             case "hl4DScore":
                 response.verifyResult.verify4DScoreStatus = "fail"
                 response.verifyResult.verify4DScoreValue = null
@@ -913,7 +917,7 @@ export class OtpService {
             case "hlCheckProductIsTrue":
                 response.verifyResult.verifyProductIsTrue = "fail"
                 response.verifyResult.verifyProductIsTrueValue = null
-                
+
                 requestBody = {
                     correlationId: basePayload.correlationId,
                     channel: basePayload.channel,
@@ -927,7 +931,7 @@ export class OtpService {
                         }
                     ]
                 };
-                
+
                 const verifyKeyOption = journey
                     ? await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey("verifyKeyOptions", journey)
                     : undefined;
@@ -1030,7 +1034,7 @@ export class OtpService {
         let checkPayload
 
         let birthDate = await apigeeClientAdapter.apigeeDecrypt(dateOfBirth);
-        if (birthDate) { 
+        if (birthDate) {
             birthDate = formatDateFromString(birthDate)
             dateOfBirth = await apigeeClientAdapter.apigeeEncrypt(birthDate);
         }
@@ -1056,11 +1060,11 @@ export class OtpService {
             const response = await hlClientAdapter.verifyHLStatus(basePayload);
             logService(checkPayload, response, logStepModel)
             if (response?.code === "200") {
-                    if (response.data?.isProductTrue) {
-                        return "true"
-                    } else {
-                        return "dtac"
-                    }
+                if (response.data?.isProductTrue) {
+                    return "true"
+                } else {
+                    return "dtac"
+                }
             } else {
                 throw {
                     statusCode: "400.4005",
@@ -1133,7 +1137,7 @@ export class OtpService {
                         ...accumulator,
                         ...currentValue,
                         verifyResult: { ...accumulator.verifyResult, ...currentValue.verifyResult },
-                        customerProfile: {...accumulator.customerProfile,...currentValue.customerProfile}
+                        customerProfile: { ...accumulator.customerProfile, ...currentValue.customerProfile }
                     };
                 }, initialAccumulator);
 

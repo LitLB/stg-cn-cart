@@ -255,7 +255,7 @@ export class CartService {
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
             return { ...order, hasChanged: compared };
-
+            
         } catch (error: any) {
             // logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -1160,8 +1160,8 @@ export class CartService {
             companyCode: customerProfile.companyCode,
             profile: [
                 {
-                    certificationId: customerInfo.verifyCertificationIdValue,
-                    certificationType: customerInfo.verifyCertificationTypeValue
+                    certificationId: customerProfile.certificationId,
+                    certificationType: customerProfile.certificationType
                 },
                 {
                     certificationId: customerInfo.verifyMobileNumberValue,
