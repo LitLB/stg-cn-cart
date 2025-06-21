@@ -38,7 +38,7 @@ import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit, validateCouponDiscount } from '../validators/coupon.validator';
 import { FUNC_CHECKOUT } from '../constants/func.constant';
 import { CART_HAS_CHANGED_NOTICE_MESSAGE, CART_JOURNEYS } from '../constants/cart.constant';
-import { ApiResponse } from '../interfaces/response.interface';
+import { ApiResponse, IHeadlessCheckEligibleResponse } from '../interfaces/response.interface';
 import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
 import { CartTransformer } from '../transforms/cart.transforms';
 import { CompareRedisData } from '../types/share.types';
@@ -188,20 +188,20 @@ export class CartService {
             const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
 
 
-            if (cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
+            if ([CART_JOURNEYS.DEVICE_BUNDLE_EXISTING, CART_JOURNEYS.DEVICE_BUNDLE_NEW, CART_JOURNEYS.DEVICE_BUNDLE_P2P].includes(cartJourney)) {
 
-                await this.checkEligible(ctCart, headers)
+                const mainProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product') as LineItem
+                const bundleProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'bundle') as LineItem
 
-                const customerSession = await talonOneIntegrationAdapter.getCustomerSession(ctCart.id);
-
-                if (customerSession && customerSession.effects.length > 0) {
-                    const customerSessionId = customerSession.customerSession.id
-                    await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, {
-                        customerSession: {
-                            state: 'closed'
-                        }
-                    })
+                if (!mainProduct || !bundleProduct) {
+                    throw {
+                        statusCode: HTTP_STATUSES.BAD_REQUEST,
+                        statusMessage: 'Main product or bundle product not found',
+                    }
                 }
+
+                await this.checkEligible(ctCart, mainProduct, bundleProduct, headers)
+                await this.closeSessionIfExist(ctCart.id)
             }
 
 
@@ -255,7 +255,7 @@ export class CartService {
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
             return { ...order, hasChanged: compared };
-            
+
         } catch (error: any) {
             // logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
@@ -1143,12 +1143,12 @@ export class CartService {
         return customerSession
     }
 
-    public async checkEligible(ctCart: Cart, headers: any) {
+    public async checkEligible(ctCart: Cart, mainProduct: LineItem, bundleProduct: LineItem, headers: any): Promise<IHeadlessCheckEligibleResponse> {
         const hlClient = new HeadlessClientAdapter()
         const customerInfo = JSON.parse(ctCart.custom?.fields.customerInfo)
         const { customerProfile } = customerInfo
-        const mainProductSku = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product')?.variant.sku
-        const bundleProductAttributes = ctCart.lineItems.find(item => item.custom?.fields.productType === 'bundle')?.variant.attributes
+        const mainProductSku = mainProduct.variant.sku
+        const bundleProductAttributes = bundleProduct.variant.attributes
         const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value
         const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value
         const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value
@@ -1176,12 +1176,26 @@ export class CartService {
         }
 
         try {
-            await hlClient.checkEligible(headlessPayload, headers)
+            return await hlClient.checkEligible(headlessPayload, headers)
         } catch (e: any) {
+            console.log('[CHECK_ELIGIBLE] Error', e)
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: 'Campaign is not eligible',
             }
+        }
+    }
+
+    private async closeSessionIfExist(ctCartId: string) {
+        const customerSession = await talonOneIntegrationAdapter.getCustomerSession(ctCartId);
+
+        if (customerSession && customerSession.effects.length > 0) {
+            const customerSessionId = customerSession.customerSession.id
+            await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, {
+                customerSession: {
+                    state: 'closed'
+                }
+            })
         }
     }
 }
