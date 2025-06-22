@@ -1229,9 +1229,9 @@ export class CartService {
         const cartDiscounts = ctCart.lineItems.find((lineItem: LineItem) => lineItem.productId === mainProduct.productId)?.custom?.fields?.discounts ?? []
         const cartOtherPayments = ctCart.lineItems.find((lineItem: LineItem) => lineItem.productId === mainProduct.productId)?.custom?.fields?.otherPayments ?? []
 
-        const cartDiscountsArray = [{ code: 'AAI0712_Device', amount: 5400 }, { code: 'AAI0713_Device', amount: 5400 }]
+        // const cartDiscountsArray = [{ code: 'AAI0712_Device', amount: 5400 }, { code: 'AAI0713_Device', amount: 5400 }]
 
-        // const cartDiscountsArray = cartDiscounts && Array.isArray(cartDiscounts) ? cartDiscounts.map((item) => JSON.parse(item)) : []
+        const cartDiscountsArray = cartDiscounts && Array.isArray(cartDiscounts) ? cartDiscounts.map((item) => JSON.parse(item)) : []
         const cartOtherPaymentsArray = cartOtherPayments && Array.isArray(cartOtherPayments) ? cartOtherPayments.map((item) => JSON.parse(item)) : []
 
         // check if eligible discounts all value are in cart 
