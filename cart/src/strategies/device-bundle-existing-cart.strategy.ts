@@ -500,10 +500,6 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
 
       }
 
-      console.log({ eligibleResponse: eligibleResponse })
-      console.log({ otherPayments: otherPayments })
-      console.log({ discounts: discounts })
-
       const advancePaymentList: string[] = bundleProductInfo.masterData.current.masterVariant.attributes?.find(r => r.name === 'payAdvanceServiceFee')?.value ?? "0"
 
       const advancePayment = this.findValidAdvancePayment(advancePaymentList)
@@ -656,14 +652,16 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
                 {
                   value: {
                     type: "absolute",
-                    money: [
-                      {
-                        centAmount: 2000,
-                        currencyCode: "THB",
-                        type: 'centPrecision',
-                        fractionDigits: 2
-                      }
-                    ]
+                    money: (discounts && Array.isArray(discounts))
+                      ? discounts.map(r => {
+                        return {
+                          centAmount: r.amount,
+                          currencyCode: "THB",
+                          type: 'centPrecision',
+                          fractionDigits: 2,
+                        };
+                      })
+                      : []
                   },
                   target: {
                     type: "lineItems",
@@ -675,22 +673,30 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
           ]
         );
 
-      console.log({ updatedCart: updatedCart.lineItems })
-
-      const lineItemId = updatedCart.lineItems.find((lineItem: any) => lineItem.productId === productId)?.id
+      const lineItemId = updatedCart.lineItems.find((lineItem: LineItem) => lineItem.productId === productId)?.id
 
       const cartWithDiscount = await this.adapters.commercetoolsCartClient.updateCart(updatedCart.id, updatedCart.version, [
         {
           action: "setLineItemCustomField",
           lineItemId: lineItemId,
           name: "discounts",
-          value: discounts.map((discount: any) => (`{ code: ${discount.code}, amount: ${discount.amount} }`))
+          value: (discounts && Array.isArray(discounts))
+            ? discounts.map((discount: any) => ({
+              code: discount.code,
+              amount: discount.amount,
+            }))
+            : [],
         },
         {
           action: "setLineItemCustomField",
           lineItemId: lineItemId,
           name: "otherPayments",
-          value: otherPayments.map((otherPayment: any) => (`{ code: ${otherPayment.code}, amount: ${otherPayment.amount} }`))
+          value: (otherPayments && Array.isArray(otherPayments))
+            ? otherPayments.map((otherPayment: any) => ({
+              code: otherPayment.code,
+              amount: otherPayment.amount,
+            }))
+            : [],
         }
       ])
 
