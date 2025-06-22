@@ -681,10 +681,10 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
           lineItemId: lineItemId,
           name: "discounts",
           value: (discounts && Array.isArray(discounts))
-            ? discounts.map((discount: any) => ({
+            ? discounts.map((discount: any) => (JSON.stringify({
               code: discount.code,
               amount: discount.amount,
-            }))
+            })))
             : [],
         },
         {
@@ -692,10 +692,10 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
           lineItemId: lineItemId,
           name: "otherPayments",
           value: (otherPayments && Array.isArray(otherPayments))
-            ? otherPayments.map((otherPayment: any) => ({
+            ? otherPayments.map((otherPayment: any) => (JSON.stringify({
               code: otherPayment.code,
               amount: otherPayment.amount,
-            }))
+            })))
             : [],
         }
       ])

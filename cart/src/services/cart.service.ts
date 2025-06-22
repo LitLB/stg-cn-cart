@@ -44,6 +44,7 @@ import { CartTransformer } from '../transforms/cart.transforms';
 import { CompareRedisData } from '../types/share.types';
 import HeadlessClientAdapter from '../adapters/hl-client.adapter';
 import { calculateAge } from '../utils/calculate.utils';
+import { areArraysEqual } from '../utils/array.utils';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -193,32 +194,43 @@ export class CartService {
             const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
 
             if ([CART_JOURNEYS.DEVICE_BUNDLE_EXISTING, CART_JOURNEYS.DEVICE_BUNDLE_NEW, CART_JOURNEYS.DEVICE_BUNDLE_P2P].includes(cartJourney)) {
+                try {
 
-                const mainProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product') as LineItem
-                const bundleProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'bundle') as LineItem
 
-                if (!mainProduct || !bundleProduct) {
-                    throw {
-                        statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: 'Main product or bundle product not found',
+                    const mainProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product') as LineItem
+                    const bundleProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'bundle') as LineItem
+
+                    if (!mainProduct || !bundleProduct) {
+                        throw {
+                            statusCode: HTTP_STATUSES.BAD_REQUEST,
+                            statusMessage: 'Main product or bundle product not found',
+                        }
                     }
-                }
-                const mainProductSku = mainProduct.variant.sku as string
-                const bundleProductAttributes = bundleProduct.variant.attributes
-                const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value
-                const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value
-                const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value
-                const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
+                    const mainProductSku = mainProduct.variant.sku as string
+                    const bundleProductAttributes = bundleProduct.variant.attributes
+                    const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value
+                    const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value
+                    const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value
+                    const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
 
-                const bundleProductInfo = {
-                    campaignCode,
-                    propositionCode,
-                    promotionSetCode,
-                    agreementCode
-                }
+                    const bundleProductInfo = {
+                        campaignCode,
+                        propositionCode,
+                        promotionSetCode,
+                        agreementCode
+                    }
 
-                await this.checkEligible(ctCart, mainProductSku, bundleProductInfo, headers)
-                await this.closeSessionIfExist(ctCart.id)
+                    const eligibleResponse = await this.checkEligible(ctCart, mainProductSku, bundleProductInfo, headers)
+
+                    this.validateDiscounts(ctCart, eligibleResponse, mainProduct)
+
+                    await this.closeSessionIfExist(ctCart.id)
+                } catch (error: any) {
+                    if (error.status && error.message) {
+                        throw error;
+                    }
+                    throw createStandardizedError(error, 'createOrder')
+                }
             }
 
             CartValidator.validateCartHasSelectedItems(ctCart);
@@ -262,7 +274,6 @@ export class CartService {
             return { ...order, hasChanged: compared };
 
         } catch (error: any) {
-            // logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
                 throw error;
             }
@@ -1198,5 +1209,41 @@ export class CartService {
                 }
             })
         }
+    }
+
+    private validateDiscounts(ctCart: Cart, eligibleResponse: IHeadlessCheckEligibleResponse, mainProduct: LineItem) {
+        const eligibleDiscounts = eligibleResponse.prices.discounts.map((item) => item.type === 'discount' ? item : null).filter(Boolean).map((r) => {
+            return {
+                code: r?.code ?? '',
+                amount: r?.amount ?? 0
+            }
+        })
+
+        const eligibleOtherPayments = eligibleResponse.prices.discounts.map((item) => item.type === 'otherPayment' ? item : null).filter(Boolean).map((r) => {
+            return {
+                code: r?.code ?? '',
+                amount: r?.amount ?? 0
+            }
+        })
+
+        const cartDiscounts = ctCart.lineItems.find((lineItem: LineItem) => lineItem.productId === mainProduct.productId)?.custom?.fields?.discounts ?? []
+        const cartOtherPayments = ctCart.lineItems.find((lineItem: LineItem) => lineItem.productId === mainProduct.productId)?.custom?.fields?.otherPayments ?? []
+
+        const cartDiscountsArray = [{ code: 'AAI0712_Device', amount: 5400 }, { code: 'AAI0713_Device', amount: 5400 }]
+
+        // const cartDiscountsArray = cartDiscounts && Array.isArray(cartDiscounts) ? cartDiscounts.map((item) => JSON.parse(item)) : []
+        const cartOtherPaymentsArray = cartOtherPayments && Array.isArray(cartOtherPayments) ? cartOtherPayments.map((item) => JSON.parse(item)) : []
+
+        // check if eligible discounts all value are in cart 
+        const isEligibleDiscountsInCartDiscounts = areArraysEqual(eligibleDiscounts, cartDiscountsArray)
+        const isEligibleOtherPaymentsInCartOtherPayments = areArraysEqual(eligibleOtherPayments, cartOtherPaymentsArray)
+
+        if (!isEligibleDiscountsInCartDiscounts || !isEligibleOtherPaymentsInCartOtherPayments) {
+            throw createStandardizedError({
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                statusMessage: 'Discounts or other payments are not eligible',
+            })
+        }
+
     }
 }
