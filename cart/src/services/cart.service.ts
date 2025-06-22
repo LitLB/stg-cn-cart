@@ -184,9 +184,13 @@ export class CartService {
             }
 
             let ctCart = await this.getCtCartById(accessToken, cartId)
+            let tsmSaveOrder = {}
+
+            const operator = ctCart.custom?.fields.operator
+            const orderNumber = await this.generateOrderNumber(operator)
+
             const isPreOrder = ctCart.custom?.fields.preOrder
             const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
-
 
             if ([CART_JOURNEYS.DEVICE_BUNDLE_EXISTING, CART_JOURNEYS.DEVICE_BUNDLE_NEW, CART_JOURNEYS.DEVICE_BUNDLE_P2P].includes(cartJourney)) {
 
@@ -204,7 +208,6 @@ export class CartService {
                 await this.closeSessionIfExist(ctCart.id)
             }
 
-
             CartValidator.validateCartHasSelectedItems(ctCart);
 
             // * STEP #2 - Validate Blacklist
@@ -219,19 +222,9 @@ export class CartService {
 
             // * STEP #4 - Validate Available Quantity (Commercetools)
             await this.validateAvailableQuantity(ctCart)
-
             ctCart = await this.handleAutoRemoveCoupons(ctCart);
-
             ctCart = await this.removeUnselectedItems(ctCart);
-
             await InventoryValidator.validateCart(ctCart);
-
-            const operator = ctCart.custom?.fields.operator
-            const orderNumber = await this.generateOrderNumber(operator)
-
-            let tsmSaveOrder = {
-
-            }
 
             if (!isPreOrder) {
                 // * STEP #5 - Create Order On TSM Sale
@@ -250,7 +243,6 @@ export class CartService {
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
-
             await this.inventoryService.commitCartStock(ctCart);
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
