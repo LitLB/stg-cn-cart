@@ -203,8 +203,21 @@ export class CartService {
                         statusMessage: 'Main product or bundle product not found',
                     }
                 }
+                const mainProductSku = mainProduct.variant.sku as string
+                const bundleProductAttributes = bundleProduct.variant.attributes
+                const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value
+                const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value
+                const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value
+                const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
 
-                await this.checkEligible(ctCart, mainProduct, bundleProduct, headers)
+                const bundleProductInfo = {
+                    campaignCode,
+                    propositionCode,
+                    promotionSetCode,
+                    agreementCode
+                }
+
+                await this.checkEligible(ctCart, mainProductSku, bundleProductInfo, headers)
                 await this.closeSessionIfExist(ctCart.id)
             }
 
@@ -1135,17 +1148,11 @@ export class CartService {
         return customerSession
     }
 
-    public async checkEligible(ctCart: Cart, mainProduct: LineItem, bundleProduct: LineItem, headers: any): Promise<IHeadlessCheckEligibleResponse> {
+    public async checkEligible(ctCart: Cart, mainProductSku: string, bundleProductInfo: { campaignCode: string, propositionCode: string, promotionSetCode: string, agreementCode: string }, headers: any): Promise<IHeadlessCheckEligibleResponse> {
         const hlClient = new HeadlessClientAdapter()
         const customerInfo = JSON.parse(ctCart.custom?.fields.customerInfo)
         const { customerProfile } = customerInfo
-        const mainProductSku = mainProduct.variant.sku
-        const bundleProductAttributes = bundleProduct.variant.attributes
-        const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value
-        const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value
-        const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value
-        const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
-        const bundleKey = `${campaignCode}_${propositionCode}_${promotionSetCode}_${agreementCode}`
+        const bundleKey = `${bundleProductInfo.campaignCode}_${bundleProductInfo.propositionCode}_${bundleProductInfo.promotionSetCode}_${bundleProductInfo.agreementCode}`
 
         const headlessPayload = {
             operator: customerProfile.operator,
@@ -1168,7 +1175,9 @@ export class CartService {
         }
 
         try {
-            return await hlClient.checkEligible(headlessPayload, headers)
+            const response = await hlClient.checkEligible(headlessPayload, headers)
+
+            return response.data
         } catch (e: any) {
             console.log('[CHECK_ELIGIBLE] Error', e)
             throw {

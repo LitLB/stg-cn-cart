@@ -67,7 +67,7 @@ export class CartItemController {
                 };
             }
 
-            const data = await this.cartItemService?.addItem(accessToken, cart!, value);
+            const data = await this.cartItemService?.addItem(accessToken, cart!, value, req.headers);
             let response: ApiResponse
 
             if (data?.campaignVerifyKeys) {
