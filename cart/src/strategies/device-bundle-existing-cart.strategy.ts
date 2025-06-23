@@ -439,6 +439,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       let eligibleResponse: any[] = []
       let otherPayments: { code: string, amount: number }[] = []
       let discounts: { code: string, amount: number }[] = []
+      let directDiscounts: number = 0
 
       const cartService = new CartService()
       const now = new Date();
@@ -497,7 +498,9 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         eligibleResponse = checkEligible?.prices?.discounts ?? []
         otherPayments = eligibleResponse.filter((r: any) => r.type === 'otherPayment')
         discounts = eligibleResponse.filter((r: any) => r.type === 'discount')
-
+        directDiscounts = eligibleResponse.reduce((acc: number, r: any) => {
+          return acc + r.amount * 100
+        }, 0)
       }
 
       const advancePaymentList: string[] = bundleProductInfo.masterData.current.masterVariant.attributes?.find(r => r.name === 'payAdvanceServiceFee')?.value ?? "0"
@@ -515,18 +518,10 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       this.validateStatus(variant);
       this.validateQuantity(productType, cart, sku, product, variant, quantity);
 
-      // const inventories = await this.getInventories(sku);
-      // const inventory = inventories[0];
+      const inventories = await this.getInventories(sku);
+      const inventory = inventories[0];
 
-      // const { isDummyStock } = this.validateInventory(inventory);
-
-      // const newProductGroup = this.calculateProductGroup({
-      //   cart,
-      //   productId,
-      //   sku,
-      //   productType,
-      //   productGroup,
-      // });
+      const { isDummyStock } = this.validateInventory(inventory);
 
       const updatedCart =
         await this.adapters.commercetoolsCartClient.updateCart(
@@ -542,7 +537,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
                 typeId: 'channel',
                 id: readConfiguration().ctpSupplyChannel,
               },
-              inventoryMode: LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
+              inventoryMode: isDummyStock ? LINE_ITEM_INVENTORY_MODES.TRACK_ONLY : LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
               externalPrice: validPrice.value,
               custom: {
                 type: {
@@ -652,16 +647,12 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
                 {
                   value: {
                     type: "absolute",
-                    money: (discounts && Array.isArray(discounts))
-                      ? discounts.map(r => {
-                        return {
-                          centAmount: r.amount,
-                          currencyCode: "THB",
-                          type: 'centPrecision',
-                          fractionDigits: 2,
-                        };
-                      })
-                      : []
+                    money: [{
+                      centAmount: directDiscounts,
+                      currencyCode: "THB",
+                      type: 'centPrecision',
+                      fractionDigits: 2,
+                    }]
                   },
                   target: {
                     type: "lineItems",
@@ -683,7 +674,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
           value: (discounts && Array.isArray(discounts))
             ? discounts.map((discount: any) => (JSON.stringify({
               code: discount.code,
-              amount: discount.amount,
+              amount: discount.amount * 100, // convert to cent
             })))
             : [],
         },
@@ -694,7 +685,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
           value: (otherPayments && Array.isArray(otherPayments))
             ? otherPayments.map((otherPayment: any) => (JSON.stringify({
               code: otherPayment.code,
-              amount: otherPayment.amount,
+              amount: otherPayment.amount * 100, // convert to cent
             })))
             : [],
         }
