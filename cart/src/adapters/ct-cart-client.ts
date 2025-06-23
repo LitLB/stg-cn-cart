@@ -287,39 +287,8 @@ export class CommercetoolsCartClient implements IAdapter {
             })
         }
 
-<<<<<<< HEAD
-		if (bundleProductInfo) {
-            const bundleLineItemDraft: LineItemDraft = {
-                productId: bundleProductInfo.id,
-                variantId: bundleProductInfo.masterData.current.masterVariant.id,
-                inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
-                externalPrice: {
-                    currencyCode: 'THB',
-                    centAmount: 0,
-                },
-                custom: {
-                    type: {
-                        typeId: 'type',
-                        key: 'lineItemCustomType',
-                    },
-                    fields: {
-                        productType: 'product-bundle',
-                        selected: true,
-                    },
-                },
-            };
-            lineItemDrafts.push(bundleLineItemDraft);
-        }
-
-		const updatedCart = await this.addLineItemToCart(
-			cartWithDummyFlag.id,
-			cartWithDummyFlag.version,
-			lineItemDrafts,
-		);
-=======
         return updatedCart;
     }
->>>>>>> develop
 
     /**
      * Adds a line item to the current user's cart.
