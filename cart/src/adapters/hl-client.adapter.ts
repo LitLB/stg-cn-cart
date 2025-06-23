@@ -1,5 +1,6 @@
 import axios, { AxiosResponse } from 'axios'
 import { readConfiguration } from "../utils/config.utils";
+import { PromotionBundleResponse } from '../interfaces/promotion-bundle.interface';
 
 class HeadlessClientAdapter {
     private readonly client: any
@@ -30,6 +31,26 @@ class HeadlessClientAdapter {
         );
 
         return response.data;
+    }
+
+    async getPromotionBundleNoCampaign(sku: string): Promise<PromotionBundleResponse | null> {
+        try {
+            const url = `/hl-product/api/v1/promotionSet?sku=${sku}`;
+            const response: AxiosResponse = await this.client.get(
+                `${url}`,
+                {
+                    headers: {
+                        'content-type': 'application/json',
+                    }
+                }
+            );
+
+            return response.data;
+        } catch (error: any) {
+            console.error(`getPromotionBundleNoCampaign.error`, error);
+            
+            return null
+        }
     }
 }
 
