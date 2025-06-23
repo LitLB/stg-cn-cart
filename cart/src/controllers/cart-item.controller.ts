@@ -57,14 +57,14 @@ export class CartItemController {
                 req.body.operator = CART_OPERATOS.TRUE;
             }
             
-            const { error: errorHeaders } = validateAddItemCartHeaders(req.headers);
-            if (errorHeaders) {
-                throw {
-                    statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'Validation failed',
-                    data: errorHeaders.details.map((err:any) => err.message),
-                };
-            }
+            // const { error: errorHeaders } = validateAddItemCartHeaders(req.headers);
+            // if (errorHeaders) {
+            //     throw {
+            //         statusCode: HTTP_STATUSES.BAD_REQUEST,
+            //         statusMessage: 'Validation failed',
+            //         data: errorHeaders.details.map((err:any) => err.message),
+            //     };
+            // }
 
             // Validation request body first.
             const { error, value } = validateAddItemCartBody(req.body);
