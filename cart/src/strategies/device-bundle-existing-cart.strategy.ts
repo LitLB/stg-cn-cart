@@ -439,7 +439,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       let eligibleResponse: any[] = []
       let otherPayments: { code: string, amount: number }[] = []
       let discounts: { code: string, amount: number }[] = []
-      let directDiscounts: number = 0
+      let directDiscounts
 
       const cartService = new CartService()
       const now = new Date();
@@ -498,9 +498,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         eligibleResponse = checkEligible?.prices?.discounts ?? []
         otherPayments = eligibleResponse.filter((r: any) => r.type === 'otherPayment')
         discounts = eligibleResponse.filter((r: any) => r.type === 'discount')
-        directDiscounts = eligibleResponse.reduce((acc: number, r: any) => {
-          return acc + r.amount * 100
-        }, 0)
+        directDiscounts = eligibleResponse
       }
 
       const advancePaymentList: string[] = bundleProductInfo.masterData.current.masterVariant.attributes?.find(r => r.name === 'payAdvanceServiceFee')?.value ?? "0"
@@ -643,12 +641,12 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
             },
             {
               action: "setDirectDiscounts",
-              discounts: [
-                {
+              discounts: directDiscounts && directDiscounts.length > 0 ? directDiscounts?.map(r => {
+                return {
                   value: {
                     type: "absolute",
                     money: [{
-                      centAmount: directDiscounts,
+                      centAmount: r.amount * 100,
                       currencyCode: "THB",
                       type: 'centPrecision',
                       fractionDigits: 2,
@@ -659,7 +657,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
                     predicate: `sku="${sku}"`
                   }
                 }
-              ]
+              }) : []
             }
           ]
         );
