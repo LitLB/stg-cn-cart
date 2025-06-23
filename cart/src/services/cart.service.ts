@@ -1211,18 +1211,18 @@ export class CartService {
         }
     }
 
-    private validateDiscounts(ctCart: Cart, eligibleResponse: IHeadlessCheckEligibleResponse, mainProduct: LineItem) {
+    private validateDiscounts(ctCart: Cart, eligibleResponse: IHeadlessCheckEligibleResponse, mainProduct: LineItem): void {
         const eligibleDiscounts = eligibleResponse.prices.discounts.map((item) => item.type === 'discount' ? item : null).filter(Boolean).map((r) => {
             return {
                 code: r?.code ?? '',
-                amount: r?.amount ?? 0
+                amount: r?.amount ? Number(r.amount * 100) : 0
             }
         })
 
         const eligibleOtherPayments = eligibleResponse.prices.discounts.map((item) => item.type === 'otherPayment' ? item : null).filter(Boolean).map((r) => {
             return {
                 code: r?.code ?? '',
-                amount: r?.amount ?? 0
+                amount: r?.amount ? Number(r.amount * 100) : 0
             }
         })
 
