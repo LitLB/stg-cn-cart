@@ -39,7 +39,21 @@ class HeadlessClientAdapter {
             const response: AxiosResponse = await this.client.get(
                 `${url}`,
                 {
-                    headers: headers
+                    headers: {
+                        'content-type': 'application/json',
+                        authorization: headers.authorization,
+                        language: headers.language,
+                        correlatorid: headers.correlatorid,
+                        sessionid: headers.sessionid,
+                        sourcesystemid: headers.sourcesystemid,
+                        version: headers.version,
+                        devicetype: headers.devicetype,
+                        platform: headers.platform,
+                        browsername: headers.browsername,
+                        browserversion: headers.browserversion,
+                        osname: headers.osname,
+                        useragent: headers.useragent,
+                    }
                 }
             );
 
