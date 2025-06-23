@@ -267,12 +267,12 @@ export class CommercetoolsCartClient implements IAdapter {
                         key: 'lineItemCustomType',
                     },
                     fields: {
-                        productType: 'promotion_set',
+                        productType: 'product-bundle',
                         selected: true,
                     },
                 },
             };
-            lineItemDrafts.push(bundleLineItemDraft)
+            lineItemDrafts.push(bundleLineItemDraft);
         }
 
 		const updatedCart = await this.addLineItemToCart(

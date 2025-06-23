@@ -25,6 +25,7 @@ import { CouponService } from '../services/coupon.service';
 import { TalonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { AdapterConstructor } from '../interfaces/adapter.interface';
 import { calculateProductGroupParams } from '../interfaces/single-product-device-only.interface';
+import HeadlessClientAdapter from '../adapters/hl-client.adapter';
 
 export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
   'commercetoolsMeCartClient': CommercetoolsMeCartClient,
@@ -152,6 +153,35 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
           statusMessage:
             'No standalone price found for the specified SKU',
         };
+      }
+
+      try {
+        const hlClient = new HeadlessClientAdapter();
+        const headlessPayload = {
+            operator: customerProfile.operator,
+            companyCode: customerProfile.companyCode,
+            profile: [
+                {
+                    certificationId: customerProfile.certificationId,
+                    certificationType: customerProfile.certificationType
+                },
+                {
+                    certificationId: customerInfo.verifyMobileNumberValue,
+                    certificationType: "M"
+                }
+            ],
+            productBundle: {
+                bundleKey: bundleKey,
+                sku: mainProductSku,
+                customerAge: calculateAge(customerProfile.age ?? 0),
+            }
+        };
+        await hlClient.checkEligible(headlessPayload, headers)
+      } catch (e: any) {
+          throw {
+              statusCode: HTTP_STATUSES.BAD_REQUEST,
+              statusMessage: 'Campaign is not eligible',
+          }
       }
 
       const validPrice =
