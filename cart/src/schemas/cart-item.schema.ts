@@ -8,628 +8,662 @@ import { CART_OPERATOS } from '../constants/cart.constant';
 import * as _ from 'lodash'
 
 export function validateSelectCartItemBody(body: any) {
-	return Joi.object({
-		items: Joi.array()
-			.items(
-				Joi.object({
-					productId: Joi.string().required().messages({
-						'string.empty': 'Product ID cannot be empty',
-						'any.required': 'Product ID is required',
-					}),
-					sku: Joi.string().required().messages({
-						'string.empty': 'SKU cannot be empty',
-						'any.required': 'SKU is required',
-					}),
-					productType: Joi.string()
-						.valid('main_product', 'add_on', 'insurance', 'free_gift')
-						.required()
-						.messages({
-							'string.base': 'Product Type must be a string',
-							'any.only': 'Product Type must be "main_product", "add_on", or "insurance"',
-							'any.required': 'Product Type is required',
-						}),
-					productGroup: Joi.number()
-						.integer()
-						.required()
-						.messages({
-							'number.base': 'Product Group must be a number',
-							'number.integer': 'Product Group must be an integer',
-							'any.required': 'Product Group is required',
-						}),
-					addOnGroup: Joi.string()
-						.allow(null, '')
-						.when('productType', {
-							is: 'add_on',
-							then: Joi.required().messages({
-								'any.required': 'Add On Group is required when Product Type is "add_on"'
-							})
-						})
-						.messages({
-							'string.base': 'Add On Group must be a string',
-						}),
-					freeGiftGroup: Joi.string()
-						.allow(null, '')
-						.when('productType', {
-							is: 'free_gift',
-							then: Joi.required().messages({
-								'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
-							})
-						})
-						.messages({
-							'string.base': 'Free Gift Group must be a string',
-						}),
-					selected: Joi.boolean().required().messages({
-						'any.required': 'Selected field is required.',
-						'boolean.base': 'Selected field must be a boolean.',
-						}),
-					package: Joi.object({
-						code: Joi.string().required().messages({
-							'string.empty': 'Package Code cannot be empty',
-							'any.required': 'Package Code is required',
-						})
-					}).optional(),
-					sim: Joi.object({
-						sku: Joi.string().required().messages({
-							'string.empty': 'SIM SKU cannot be empty',
-							'any.required': 'SIM SKU is required',
-						}),
-					}).optional(),
-					bundleProduct: Joi.object({
-						key: Joi.string().required().messages({
-							'string.empty': 'Bundle Product Key cannot be empty',
-							'any.required': 'Bundle Product Key is required',
-						}),
-						promotionSetCode: Joi.string().required().messages({
-							'string.empty': 'Promotion Set Code cannot be empty',
-							'any.required': 'Promotion Set Code is required',
-						})
-					}).optional()
-				}),
-			)
-			.min(1)
-			.required()
-			.messages({
-				'array.min': 'At least one item must be provided',
-				'any.required': 'Items array is required',
-			}),
-	}).validate(body, { abortEarly: false });
+    return Joi.object({
+        items: Joi.array()
+            .items(
+                Joi.object({
+                    productId: Joi.string().required().messages({
+                        'string.empty': 'Product ID cannot be empty',
+                        'any.required': 'Product ID is required',
+                    }),
+                    sku: Joi.string().required().messages({
+                        'string.empty': 'SKU cannot be empty',
+                        'any.required': 'SKU is required',
+                    }),
+                    productType: Joi.string()
+                        .valid('main_product', 'add_on', 'insurance', 'free_gift')
+                        .required()
+                        .messages({
+                            'string.base': 'Product Type must be a string',
+                            'any.only': 'Product Type must be "main_product", "add_on", or "insurance"',
+                            'any.required': 'Product Type is required',
+                        }),
+                    productGroup: Joi.number()
+                        .integer()
+                        .required()
+                        .messages({
+                            'number.base': 'Product Group must be a number',
+                            'number.integer': 'Product Group must be an integer',
+                            'any.required': 'Product Group is required',
+                        }),
+                    addOnGroup: Joi.string()
+                        .allow(null, '')
+                        .when('productType', {
+                            is: 'add_on',
+                            then: Joi.required().messages({
+                                'any.required': 'Add On Group is required when Product Type is "add_on"'
+                            })
+                        })
+                        .messages({
+                            'string.base': 'Add On Group must be a string',
+                        }),
+                    freeGiftGroup: Joi.string()
+                        .allow(null, '')
+                        .when('productType', {
+                            is: 'free_gift',
+                            then: Joi.required().messages({
+                                'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
+                            })
+                        })
+                        .messages({
+                            'string.base': 'Free Gift Group must be a string',
+                        }),
+                    selected: Joi.boolean().required().messages({
+                        'any.required': 'Selected field is required.',
+                        'boolean.base': 'Selected field must be a boolean.',
+                    }),
+                    package: Joi.object({
+                        code: Joi.string().required().messages({
+                            'string.empty': 'Package Code cannot be empty',
+                            'any.required': 'Package Code is required',
+                        })
+                    }).optional(),
+                    sim: Joi.object({
+                        sku: Joi.string().required().messages({
+                            'string.empty': 'SIM SKU cannot be empty',
+                            'any.required': 'SIM SKU is required',
+                        }),
+                    }).optional(),
+                    bundleProduct: Joi.object({
+                        key: Joi.string().required().messages({
+                            'string.empty': 'Bundle Product Key cannot be empty',
+                            'any.required': 'Bundle Product Key is required',
+                        }),
+                        promotionSetCode: Joi.string().required().messages({
+                            'string.empty': 'Promotion Set Code cannot be empty',
+                            'any.required': 'Promotion Set Code is required',
+                        })
+                    }).optional()
+                }),
+            )
+            .min(1)
+            .required()
+            .messages({
+                'array.min': 'At least one item must be provided',
+                'any.required': 'Items array is required',
+            }),
+    }).validate(body, { abortEarly: false });
 }
 
 export type AddItemCartBodyRequest = {
-	productId: string;
-	sku: string;
-	quantity: number;
-	campaignGroup?: string | null;
-	journey?: string | null;
-	loyaltyTier?: string | null;
-	campaignByJourney?: string | null;
-	propositionGroup?: string | null;
-	productType: 'main_product' | 'add_on' | 'insurance' | 'free_gift';
-	productGroup?: number;
-	addOnGroup?: string | null;
-	freeGiftGroup?: string | null;
-	campaignVerifyValues?: {
-		name: string;
-		value: any;
-	}[];
-	operator: 'TRUE' | 'DTAC';
-	package?: {
-		code: string;
-	};
-	sim?: {
-		sku: string;
-	};
-	billingAddress?: {
-		firstName: string;
-		lastName: string;
-		custom_houseNo: string;
-		custom_moo: string;
-		custom_village: string;
-		building: string;
-		custom_floor: string;
-		custom_roomNo: string;
-		custom_soi: string;
-		streetName: string;
-		custom_smartSearch: string;
-		phone: string;
-		email: string
-	},
-	bundleProduct? : {
-		key: string;
-		promotionSetCode: string;
-	},
-	extraAdvancedPayment?: number;
+    productId: string;
+    sku: string;
+    quantity: number;
+    campaignGroup?: string | null;
+    journey?: string | null;
+    loyaltyTier?: string | null;
+    campaignByJourney?: string | null;
+    propositionGroup?: string | null;
+    productType: 'main_product' | 'add_on' | 'insurance' | 'free_gift';
+    productGroup?: number;
+    addOnGroup?: string | null;
+    freeGiftGroup?: string | null;
+    campaignVerifyValues?: {
+        name: string;
+        value: any;
+    }[];
+    operator: 'TRUE' | 'DTAC';
+    package?: {
+        code: string;
+    };
+    sim?: {
+        sku: string;
+    };
+    billingAddress?: {
+        firstName: string;
+        lastName: string;
+        custom_houseNo: string;
+        custom_moo: string;
+        custom_village: string;
+        building: string;
+        custom_floor: string;
+        custom_roomNo: string;
+        custom_soi: string;
+        streetName: string;
+        custom_smartSearch: string;
+        phone: string;
+        email: string
+    },
+    bundleProduct?: {
+        key: string;
+        promotionSetCode: string;
+    },
+    extraAdvancedPayment?: number;
 };
 
 export function validateAddItemCartBody(body: any) {
-	return Joi.object<AddItemCartBodyRequest>({
-		productId: Joi.string().required().messages({
-			'string.empty': 'Product ID cannot be empty',
-			'any.required': 'Product ID is required',
-		}),
-		sku: Joi.string().required().messages({
-			'string.empty': 'SKU cannot be empty',
-			'any.required': 'SKU is required',
-		}),
-		quantity: Joi.number().integer().positive().required().messages({
-			'number.base': 'Quantity must be a number',
-			'number.integer': 'Quantity must be an integer',
-			'number.positive': 'Quantity must be positive',
-			'any.required': 'Quantity is required',
-		}),
-		campaignGroup: Joi.string().optional().allow(null, ''),
-		journey: Joi.string().optional().allow(null, ''),
-		loyaltyTier: Joi.string().optional().allow(null, ''),
-		campaignByJourney: Joi.string().optional().allow(null, ''),
-		propositionGroup: Joi.string().optional().allow(null, ''),
-		productType: Joi.string()
-			.valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
-			.required()
-			.messages({
-				'string.base': 'Product Type must be a string',
-				'any.only': 'Product Type must be "main_product", "add_on", "insurance", or "free_gift"',
-				'any.required': 'Product Type is required',
-			}),
-		productGroup: Joi.number()
-			.integer()
-			.when('productType', {
-				is: Joi.valid('add_on', 'insurance'),
-				then: Joi.required().messages({
-					'any.required': 'Product Group is required when Product Type is "add_on" or "insurance"'
-				})
-			})
-			.messages({
-				'number.base': 'Product Group must be a number',
-				'number.integer': 'Product Group must be an integer',
-				'any.required': 'Product Group is required',
-			}),
-		addOnGroup: Joi.string()
-			.allow(null, '')
-			.when('productType', {
-				is: 'add_on',
-				then: Joi.required().messages({
-					'any.required': 'Add On Group is required when Product Type is "add_on"'
-				})
-			})
-			.messages({
-				'string.base': 'Add On Group must be a string',
-			}),
-		freeGiftGroup: Joi.string()
-			.allow(null, '')
-			.when('productType', {
-				is: 'free_gift',
-				then: Joi.required().messages({
-					'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
-				})
-			})
-			.messages({
-				'string.base': 'Free Gift Group must be a string',
-			}),
-		campaignVerifyValues: Joi.array()
-			.items(
-				Joi.object({
-					name: Joi.string().required(),
-					value: Joi.required()
-				})
-			)
-			.optional(),
-		operator : Joi.string()
-			.valid(CART_OPERATOS.TRUE, CART_OPERATOS.DTAC)
-			.required()
-			.messages({
-				'string.base': 'operator must be a string',
-				'any.only': 'operator must be "TRUE" or "DTAC"',
-				'any.required': 'operator is required',
-		}),
-		package: Joi.object({
-			code: Joi.string().required().messages({
-				'string.empty': 'Package Code cannot be empty',
-				'any.required': 'Package Code is required',
-			})
-		}).optional(),
-		sim: Joi.object({
-			sku: Joi.string().required().messages({
-				'string.empty': 'SIM SKU cannot be empty',
-				'any.required': 'SIM SKU is required',
-			}),
-			number: Joi.string().required().messages({
-				'string.empty': 'mobile number cannot be empty',
-				'any.required': 'mobile number is required',
-			}),
-			simType: Joi.string().required().messages({
-				'string.empty': 'simType cannot be empty',
-				'any.required': 'simType is required',
-			}).allow('eSim', 'Physical'),
-			groupNumber:Joi.object({
-				'en-US': Joi.string().required(),
-				'th-TH': Joi.string().required(),
-			}).required().messages({
-				'string.empty': 'Group number cannot be empty',
-				'any.required': 'Group number is required',
-			}),
-			correlatorId: Joi.string().required().messages({
-				'string.empty': 'correlatorId cannot be empty',
-				'any.required': 'correlatorId is required',
-			}),
-			selectNumberCreateAt: Joi.string().required().messages({
-				'string.empty': 'selectNumberCreateAt cannot be empty',
-				'any.required': 'selectNumberCreateAt is required',
-			}),
-		}).optional(),
-		billingAddress: Joi.object({
-			firstName: Joi.string().required().messages({
-				'string.empty': 'First name cannot be empty',
-				'any.required': 'First name is required',
-			}),
-			lastName: Joi.string().required().messages({
-				'string.empty': 'Last name cannot be empty',
-				'any.required': 'Last name is required',
-			}),
-			custom_houseNo: Joi.string().required().messages({
-				'string.empty': 'House no cannot be empty',
-				'any.required': 'House no is required',
-			}),
-			custom_moo: Joi.string().allow(''),
-			custom_village: Joi.string().allow(''),
-			building: Joi.string().allow(''),
-			custom_floor: Joi.string().allow(''),
-			custom_roomNo: Joi.string().allow(''),
-			custom_soi: Joi.string().allow(''),
-			streetName: Joi.string().allow(''),
-			custom_smartSearch: Joi.string().required().messages({
-				'string.empty': 'Custom smart search cannot be empty',
-				'any.required': 'Custom smart search is required',
-			}),
-			phone: Joi.string().required().messages({
-				'string.empty': 'Phone cannot be empty',
-				'any.required': 'Phone is required',
-			}),
-			email: Joi.string().email().required().messages({
-				'string.empty': 'Email cannot be empty',
-				'any.required': 'Email is required',
-			})
-		}).optional(),
-		bundleProduct: Joi.object({
-			key: Joi.string().required().messages({
-				'string.empty': 'Bundle Product Key cannot be empty',
-				'any.required': 'Bundle Product Key is required',
-			}),
-			promotionSetCode: Joi.string().required().messages({
-				'string.empty': 'Promotion Set Code cannot be empty',
-				'any.required': 'Promotion Set Code is required',
-			})
-		}).optional(),
-		extraAdvancedPayment: Joi.number().integer().min(0).optional()
-	}).validate(body, { abortEarly: false });
+    return Joi.object<AddItemCartBodyRequest>({
+        productId: Joi.string().required().messages({
+            'string.empty': 'Product ID cannot be empty',
+            'any.required': 'Product ID is required',
+        }),
+        sku: Joi.string().required().messages({
+            'string.empty': 'SKU cannot be empty',
+            'any.required': 'SKU is required',
+        }),
+        quantity: Joi.number().integer().positive().required().messages({
+            'number.base': 'Quantity must be a number',
+            'number.integer': 'Quantity must be an integer',
+            'number.positive': 'Quantity must be positive',
+            'any.required': 'Quantity is required',
+        }),
+        campaignGroup: Joi.string().optional().allow(null, ''),
+        journey: Joi.string().optional().allow(null, ''),
+        loyaltyTier: Joi.string().optional().allow(null, ''),
+        campaignByJourney: Joi.string().optional().allow(null, ''),
+        propositionGroup: Joi.string().optional().allow(null, ''),
+        productType: Joi.string()
+            .valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
+            .required()
+            .messages({
+                'string.base': 'Product Type must be a string',
+                'any.only': 'Product Type must be "main_product", "add_on", "insurance", or "free_gift"',
+                'any.required': 'Product Type is required',
+            }),
+        productGroup: Joi.number()
+            .integer()
+            .when('productType', {
+                is: Joi.valid('add_on', 'insurance'),
+                then: Joi.required().messages({
+                    'any.required': 'Product Group is required when Product Type is "add_on" or "insurance"'
+                })
+            })
+            .messages({
+                'number.base': 'Product Group must be a number',
+                'number.integer': 'Product Group must be an integer',
+                'any.required': 'Product Group is required',
+            }),
+        addOnGroup: Joi.string()
+            .allow(null, '')
+            .when('productType', {
+                is: 'add_on',
+                then: Joi.required().messages({
+                    'any.required': 'Add On Group is required when Product Type is "add_on"'
+                })
+            })
+            .messages({
+                'string.base': 'Add On Group must be a string',
+            }),
+        freeGiftGroup: Joi.string()
+            .allow(null, '')
+            .when('productType', {
+                is: 'free_gift',
+                then: Joi.required().messages({
+                    'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
+                })
+            })
+            .messages({
+                'string.base': 'Free Gift Group must be a string',
+            }),
+        campaignVerifyValues: Joi.array()
+            .items(
+                Joi.object({
+                    name: Joi.string().required(),
+                    value: Joi.required()
+                })
+            )
+            .optional(),
+        operator: Joi.string()
+            .valid(CART_OPERATOS.TRUE, CART_OPERATOS.DTAC)
+            .required()
+            .messages({
+                'string.base': 'operator must be a string',
+                'any.only': 'operator must be "TRUE" or "DTAC"',
+                'any.required': 'operator is required',
+            }),
+        package: Joi.object({
+            code: Joi.string().required().messages({
+                'string.empty': 'Package Code cannot be empty',
+                'any.required': 'Package Code is required',
+            })
+        }).optional(),
+        sim: Joi.object({
+            sku: Joi.string().required().messages({
+                'string.empty': 'SIM SKU cannot be empty',
+                'any.required': 'SIM SKU is required',
+            }),
+            number: Joi.string().required().messages({
+                'string.empty': 'mobile number cannot be empty',
+                'any.required': 'mobile number is required',
+            }),
+            simType: Joi.string().required().messages({
+                'string.empty': 'simType cannot be empty',
+                'any.required': 'simType is required',
+            }).allow('eSim', 'Physical'),
+            groupNumber: Joi.object({
+                'en-US': Joi.string().required(),
+                'th-TH': Joi.string().required(),
+            }).required().messages({
+                'string.empty': 'Group number cannot be empty',
+                'any.required': 'Group number is required',
+            }),
+            correlatorId: Joi.string().required().messages({
+                'string.empty': 'correlatorId cannot be empty',
+                'any.required': 'correlatorId is required',
+            }),
+            selectNumberCreateAt: Joi.string().required().messages({
+                'string.empty': 'selectNumberCreateAt cannot be empty',
+                'any.required': 'selectNumberCreateAt is required',
+            }),
+        }).optional(),
+        billingAddress: Joi.object({
+            firstName: Joi.string().required().messages({
+                'string.empty': 'First name cannot be empty',
+                'any.required': 'First name is required',
+            }),
+            lastName: Joi.string().required().messages({
+                'string.empty': 'Last name cannot be empty',
+                'any.required': 'Last name is required',
+            }),
+            custom_houseNo: Joi.string().required().messages({
+                'string.empty': 'House no cannot be empty',
+                'any.required': 'House no is required',
+            }),
+            custom_moo: Joi.string().allow(''),
+            custom_village: Joi.string().allow(''),
+            building: Joi.string().allow(''),
+            custom_floor: Joi.string().allow(''),
+            custom_roomNo: Joi.string().allow(''),
+            custom_soi: Joi.string().allow(''),
+            streetName: Joi.string().allow(''),
+            custom_smartSearch: Joi.string().required().messages({
+                'string.empty': 'Custom smart search cannot be empty',
+                'any.required': 'Custom smart search is required',
+            }),
+            phone: Joi.string().required().messages({
+                'string.empty': 'Phone cannot be empty',
+                'any.required': 'Phone is required',
+            }),
+            email: Joi.string().email().required().messages({
+                'string.empty': 'Email cannot be empty',
+                'any.required': 'Email is required',
+            })
+        }).optional(),
+        bundleProduct: Joi.object({
+            key: Joi.string().required().messages({
+                'string.empty': 'Bundle Product Key cannot be empty',
+                'any.required': 'Bundle Product Key is required',
+            }),
+            promotionSetCode: Joi.string().required().messages({
+                'string.empty': 'Promotion Set Code cannot be empty',
+                'any.required': 'Promotion Set Code is required',
+            })
+        }).optional(),
+        extraAdvancedPayment: Joi.number().integer().min(0).optional()
+    }).validate(body, { abortEarly: false });
+}
+
+export type AddItemCartHeadersRequest = {
+    'content-type': string;
+    authorization: string;
+    correlatorid: string;
+    sourcesystemid: string;
+    language    : string;
+    sessionid: string;
+    version: string;
+    devicetype: string;
+    platform: string;
+    browsername?: string;
+    browserversion?: string;
+    osname?: string;
+    useragent?: string;
+}
+
+export function validateAddItemCartHeaders(headers: any) {
+    return Joi.object<AddItemCartHeadersRequest>({
+        'content-type': Joi.string().required(),
+        authorization: Joi.string().required(),
+        correlatorid: Joi.string().required(),
+        sourcesystemid: Joi.string().required(),
+        language: Joi.string().required(),
+        sessionid: Joi.string().required(),
+        version: Joi.string().required(),
+        devicetype: Joi.string().required(),
+        platform: Joi.string().required(),
+        browsername: Joi.string().optional(),
+        browserversion: Joi.string().optional(),
+        osname: Joi.string().optional(),
+        useragent: Joi.string().optional(),
+    }).validate(headers, { abortEarly: false, allowUnknown: true });
 }
 
 export function validateUpdateCartItemBody(body: any) {
-	return Joi.object({
-		productId: Joi.string().required().messages({
-			'string.empty': 'Product ID cannot be empty',
-			'any.required': 'Product ID is required',
-		}),
-		sku: Joi.string().required().messages({
-			'string.empty': 'SKU cannot be empty',
-			'any.required': 'SKU is required',
-		}),
-		quantity: Joi.number().integer().min(0).required().messages({
-			'number.base': 'Quantity must be a number',
-			'number.integer': 'Quantity must be an integer',
-			'number.min': 'Quantity cannot be negative',
-			'any.required': 'Quantity is required',
-		}),
-		productType: Joi.string()
-			.valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
-			.required()
-			.messages({
-				'string.base': 'Product Type must be a string',
-				'any.only': 'Product Type must be "main_product", "add_on", or "insurance"',
-				'any.required': 'Product Type is required',
-			}),
-		productGroup: Joi.number()
-			.integer()
-			.required()
-			.messages({
-				'number.base': 'Product Group must be a number',
-				'number.integer': 'Product Group must be an integer',
-				'any.required': 'Product Group is required',
-			}),
-		addOnGroup: Joi.string()
-			.allow(null, '')
-			.when('productType', {
-				is: 'add_on',
-				then: Joi.required().messages({
-					'any.required': 'Add On Group is required when Product Type is "add_on"'
-				})
-			})
-			.messages({
-				'string.base': 'Add On Group must be a string',
-			}),
-		freeGiftGroup: Joi.string()
-			.allow(null, '')
-			.when('productType', {
-				is: 'free_gift',
-				then: Joi.required().messages({
-					'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
-				})
-			})
-			.messages({
-				'string.base': 'Free Gift Group must be a string',
-			}),
-		package: Joi.object({
-			code: Joi.string().required().messages({
-				'string.empty': 'Package Code cannot be empty',
-				'any.required': 'Package Code is required',
-			}),
-		}).optional(),
-		sim: Joi.object({
-			sku: Joi.string().required().messages({
-				'string.empty': 'SIM SKU cannot be empty',
-				'any.required': 'SIM SKU is required',
-			}),
-		}).optional()
-	}).validate(body, { abortEarly: false });
+    return Joi.object({
+        productId: Joi.string().required().messages({
+            'string.empty': 'Product ID cannot be empty',
+            'any.required': 'Product ID is required',
+        }),
+        sku: Joi.string().required().messages({
+            'string.empty': 'SKU cannot be empty',
+            'any.required': 'SKU is required',
+        }),
+        quantity: Joi.number().integer().min(0).required().messages({
+            'number.base': 'Quantity must be a number',
+            'number.integer': 'Quantity must be an integer',
+            'number.min': 'Quantity cannot be negative',
+            'any.required': 'Quantity is required',
+        }),
+        productType: Joi.string()
+            .valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
+            .required()
+            .messages({
+                'string.base': 'Product Type must be a string',
+                'any.only': 'Product Type must be "main_product", "add_on", or "insurance"',
+                'any.required': 'Product Type is required',
+            }),
+        productGroup: Joi.number()
+            .integer()
+            .required()
+            .messages({
+                'number.base': 'Product Group must be a number',
+                'number.integer': 'Product Group must be an integer',
+                'any.required': 'Product Group is required',
+            }),
+        addOnGroup: Joi.string()
+            .allow(null, '')
+            .when('productType', {
+                is: 'add_on',
+                then: Joi.required().messages({
+                    'any.required': 'Add On Group is required when Product Type is "add_on"'
+                })
+            })
+            .messages({
+                'string.base': 'Add On Group must be a string',
+            }),
+        freeGiftGroup: Joi.string()
+            .allow(null, '')
+            .when('productType', {
+                is: 'free_gift',
+                then: Joi.required().messages({
+                    'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
+                })
+            })
+            .messages({
+                'string.base': 'Free Gift Group must be a string',
+            }),
+        package: Joi.object({
+            code: Joi.string().required().messages({
+                'string.empty': 'Package Code cannot be empty',
+                'any.required': 'Package Code is required',
+            }),
+        }).optional(),
+        sim: Joi.object({
+            sku: Joi.string().required().messages({
+                'string.empty': 'SIM SKU cannot be empty',
+                'any.required': 'SIM SKU is required',
+            }),
+        }).optional()
+    }).validate(body, { abortEarly: false });
 }
 
 export function validateDeleteCartItemBody(body: any) {
-	return Joi.object({
-		productId: Joi.string().required().messages({
-			'string.empty': 'Product ID cannot be empty',
-			'any.required': 'Product ID is required',
-		}),
-		sku: Joi.string().required().messages({
-			'string.empty': 'SKU cannot be empty',
-			'any.required': 'SKU is required',
-		}),
-		productType: Joi.string()
-			.valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
-			.required()
-			.messages({
-				'string.base': 'Product Type must be a string',
-				'any.only': 'Product Type must be "main_product", "add_on", or "insurance"',
-				'any.required': 'Product Type is required',
-			}),
-		productGroup: Joi.number()
-			.integer()
-			.required()
-			.messages({
-				'number.base': 'Product Group must be a number',
-				'number.integer': 'Product Group must be an integer',
-				'any.required': 'Product Group is required',
-			}),
-		addOnGroup: Joi.string()
-			.allow(null, '')
-			.when('productType', {
-				is: 'add_on',
-				then: Joi.required().messages({
-					'any.required': 'Add On Group is required when Product Type is "add_on"'
-				})
-			})
-			.messages({
-				'string.base': 'Add On Group must be a string',
-			}),
-		freeGiftGroup: Joi.string()
-			.allow(null, '')
-			.when('productType', {
-				is: 'free_gift',
-				then: Joi.required().messages({
-					'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
-				})
-			})
-			.messages({
-				'string.base': 'Free Gift Group must be a string',
-			}),
-	}).validate(body, { abortEarly: false });
+    return Joi.object({
+        productId: Joi.string().required().messages({
+            'string.empty': 'Product ID cannot be empty',
+            'any.required': 'Product ID is required',
+        }),
+        sku: Joi.string().required().messages({
+            'string.empty': 'SKU cannot be empty',
+            'any.required': 'SKU is required',
+        }),
+        productType: Joi.string()
+            .valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
+            .required()
+            .messages({
+                'string.base': 'Product Type must be a string',
+                'any.only': 'Product Type must be "main_product", "add_on", or "insurance"',
+                'any.required': 'Product Type is required',
+            }),
+        productGroup: Joi.number()
+            .integer()
+            .required()
+            .messages({
+                'number.base': 'Product Group must be a number',
+                'number.integer': 'Product Group must be an integer',
+                'any.required': 'Product Group is required',
+            }),
+        addOnGroup: Joi.string()
+            .allow(null, '')
+            .when('productType', {
+                is: 'add_on',
+                then: Joi.required().messages({
+                    'any.required': 'Add On Group is required when Product Type is "add_on"'
+                })
+            })
+            .messages({
+                'string.base': 'Add On Group must be a string',
+            }),
+        freeGiftGroup: Joi.string()
+            .allow(null, '')
+            .when('productType', {
+                is: 'free_gift',
+                then: Joi.required().messages({
+                    'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
+                })
+            })
+            .messages({
+                'string.base': 'Free Gift Group must be a string',
+            }),
+    }).validate(body, { abortEarly: false });
 }
 
 export function validateBulkDeleteCartItemBody(body: any) {
-	return Joi.object({
-		items: Joi.array()
-			.items(
-				Joi.object({
-					productId: Joi.string().required().messages({
-						'string.empty': 'Product ID cannot be empty',
-						'any.required': 'Product ID is required',
-					}),
-					sku: Joi.string().required().messages({
-						'string.empty': 'SKU cannot be empty',
-						'any.required': 'SKU is required',
-					}),
-					productType: Joi.string()
-						.valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
-						.required()
-						.messages({
-							'string.base': 'Product Type must be a string',
-							'any.only': 'Product Type must be "main_product", "add_on", or "insurance"',
-							'any.required': 'Product Type is required',
-						}),
-					productGroup: Joi.number()
-						.integer()
-						.required()
-						.messages({
-							'number.base': 'Product Group must be a number',
-							'number.integer': 'Product Group must be an integer',
-							'any.required': 'Product Group is required',
-						}),
-					addOnGroup: Joi.string()
-						.allow(null, '')
-						.when('productType', {
-							is: 'add_on',
-							then: Joi.required().messages({
-								'any.required': 'Add On Group is required when Product Type is "add_on"'
-							})
-						})
-						.messages({
-							'string.base': 'Add On Group must be a string',
-						}),
-					freeGiftGroup: Joi.string()
-						.allow(null, '')
-						.when('productType', {
-							is: 'free_gift',
-							then: Joi.required().messages({
-								'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
-							})
-						})
-						.messages({
-							'string.base': 'Free Gift Group must be a string',
-						}),
-				}),
-			)
-			.min(1)
-			.required()
-			.messages({
-				'array.base': 'Items must be an array',
-				'array.min': 'At least one item must be specified for removal',
-				'any.required': 'Items are required for bulk deletion',
-			}),
-	}).validate(body, { abortEarly: false });
+    return Joi.object({
+        items: Joi.array()
+            .items(
+                Joi.object({
+                    productId: Joi.string().required().messages({
+                        'string.empty': 'Product ID cannot be empty',
+                        'any.required': 'Product ID is required',
+                    }),
+                    sku: Joi.string().required().messages({
+                        'string.empty': 'SKU cannot be empty',
+                        'any.required': 'SKU is required',
+                    }),
+                    productType: Joi.string()
+                        .valid('main_product', 'add_on', 'insurance', 'free_gift') // TODO: Free Gift changes
+                        .required()
+                        .messages({
+                            'string.base': 'Product Type must be a string',
+                            'any.only': 'Product Type must be "main_product", "add_on", or "insurance"',
+                            'any.required': 'Product Type is required',
+                        }),
+                    productGroup: Joi.number()
+                        .integer()
+                        .required()
+                        .messages({
+                            'number.base': 'Product Group must be a number',
+                            'number.integer': 'Product Group must be an integer',
+                            'any.required': 'Product Group is required',
+                        }),
+                    addOnGroup: Joi.string()
+                        .allow(null, '')
+                        .when('productType', {
+                            is: 'add_on',
+                            then: Joi.required().messages({
+                                'any.required': 'Add On Group is required when Product Type is "add_on"'
+                            })
+                        })
+                        .messages({
+                            'string.base': 'Add On Group must be a string',
+                        }),
+                    freeGiftGroup: Joi.string()
+                        .allow(null, '')
+                        .when('productType', {
+                            is: 'free_gift',
+                            then: Joi.required().messages({
+                                'any.required': 'Free Gift Group is required when Product Type is "free_gift"'
+                            })
+                        })
+                        .messages({
+                            'string.base': 'Free Gift Group must be a string',
+                        }),
+                }),
+            )
+            .min(1)
+            .required()
+            .messages({
+                'array.base': 'Items must be an array',
+                'array.min': 'At least one item must be specified for removal',
+                'any.required': 'Items are required for bulk deletion',
+            }),
+    }).validate(body, { abortEarly: false });
 }
 
 export function validateProductQuantity(
-	productType: string,
-	cart: Cart,
-	sku: string,
-	productId: string,
-	variant: ProductVariant,
-	deltaQuantity = 0,
+    productType: string,
+    cart: Cart,
+    sku: string,
+    productId: string,
+    variant: ProductVariant,
+    deltaQuantity = 0,
 ): void {
-	if (productType !== 'main_product') {
-		return;
-	}
+    if (productType !== 'main_product') {
+        return;
+    }
 
-	// Filter line items with productType 'main_product'
-	const mainProductLineItems = cart.lineItems.filter(
-		(item: LineItem) => item.custom?.fields?.productType === 'main_product',
-	);
+    // Filter line items with productType 'main_product'
+    const mainProductLineItems = cart.lineItems.filter(
+        (item: LineItem) => item.custom?.fields?.productType === 'main_product',
+    );
 
-	// Existing quantities
-	const existingSkuQuantity = mainProductLineItems
-		.filter((item: LineItem) => item.variant.sku === sku)
-		.reduce((sum, item) => sum + item.quantity, 0);
+    // Existing quantities
+    const existingSkuQuantity = mainProductLineItems
+        .filter((item: LineItem) => item.variant.sku === sku)
+        .reduce((sum, item) => sum + item.quantity, 0);
 
-	const existingProductQuantity = mainProductLineItems
-		.filter((item: LineItem) => item.productId === productId)
-		.reduce((sum, item) => sum + item.quantity, 0);
+    const existingProductQuantity = mainProductLineItems
+        .filter((item: LineItem) => item.productId === productId)
+        .reduce((sum, item) => sum + item.quantity, 0);
 
-	const totalCartQuantity = mainProductLineItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalCartQuantity = mainProductLineItems.reduce((sum, item) => sum + item.quantity, 0);
 
-	// Calculate new quantities
-	const newSkuQuantity = existingSkuQuantity + deltaQuantity;
-	const newProductQuantity = existingProductQuantity + deltaQuantity;
-	const newTotalCartQuantity = totalCartQuantity + deltaQuantity;
+    // Calculate new quantities
+    const newSkuQuantity = existingSkuQuantity + deltaQuantity;
+    const newProductQuantity = existingProductQuantity + deltaQuantity;
+    const newTotalCartQuantity = totalCartQuantity + deltaQuantity;
 
-	// SKU Level Limits from Variant Attributes
-	const attributes = variant.attributes || [];
-	const skuQuantityMin = getAttributeValue(attributes, 'sku_quantity_min') ?? 1;
-	const skuQuantityMax = getAttributeValue(attributes, 'sku_quantity_max');
+    // SKU Level Limits from Variant Attributes
+    const attributes = variant.attributes || [];
+    const skuQuantityMin = getAttributeValue(attributes, 'sku_quantity_min') ?? 1;
+    const skuQuantityMax = getAttributeValue(attributes, 'sku_quantity_max');
 
-	// Product Level Limits from Variant Attributes
-	const quantityMin = getAttributeValue(attributes, 'quantity_min') ?? 1;
-	const quantityMax = getAttributeValue(attributes, 'quantity_max');
+    // Product Level Limits from Variant Attributes
+    const quantityMin = getAttributeValue(attributes, 'quantity_min') ?? 1;
+    const quantityMax = getAttributeValue(attributes, 'quantity_max');
 
-	// Negative Quantity Checks
-	if (newSkuQuantity < 0) {
-		throw {
-			statusCode: HTTP_STATUSES.BAD_REQUEST,
-			statusMessage: `Cannot have less than 0 units of SKU ${sku} in the cart.`,
-		};
-	}
+    // Negative Quantity Checks
+    if (newSkuQuantity < 0) {
+        throw {
+            statusCode: HTTP_STATUSES.BAD_REQUEST,
+            statusMessage: `Cannot have less than 0 units of SKU ${sku} in the cart.`,
+        };
+    }
 
-	if (newProductQuantity < 0) {
-		throw {
-			statusCode: HTTP_STATUSES.BAD_REQUEST,
-			statusMessage: `Cannot have less than 0 units of product ${productId} in the cart.`,
-		};
-	}
+    if (newProductQuantity < 0) {
+        throw {
+            statusCode: HTTP_STATUSES.BAD_REQUEST,
+            statusMessage: `Cannot have less than 0 units of product ${productId} in the cart.`,
+        };
+    }
 
-	if (newTotalCartQuantity < 0) {
-		throw {
-			statusCode: HTTP_STATUSES.BAD_REQUEST,
-			statusMessage: `Cannot have less than 0 units in the cart.`,
-		};
-	}
+    if (newTotalCartQuantity < 0) {
+        throw {
+            statusCode: HTTP_STATUSES.BAD_REQUEST,
+            statusMessage: `Cannot have less than 0 units in the cart.`,
+        };
+    }
 
-	// SKU Level Validations
-	if (newSkuQuantity < skuQuantityMin) {
-		throw {
-			statusCode: HTTP_STATUSES.BAD_REQUEST,
-			statusMessage: `Cannot have less than ${skuQuantityMin} units of SKU ${sku} in the cart.`,
-		};
-	}
+    // SKU Level Validations
+    if (newSkuQuantity < skuQuantityMin) {
+        throw {
+            statusCode: HTTP_STATUSES.BAD_REQUEST,
+            statusMessage: `Cannot have less than ${skuQuantityMin} units of SKU ${sku} in the cart.`,
+        };
+    }
 
-	if (skuQuantityMax !== null && skuQuantityMax !== undefined && newSkuQuantity > skuQuantityMax) {
-		throw {
-			statusCode: HTTP_STATUSES.BAD_REQUEST,
-			statusMessage: `Cannot have more than ${skuQuantityMax} units of SKU ${sku} in the cart.`,
-		};
-	}
+    if (skuQuantityMax !== null && skuQuantityMax !== undefined && newSkuQuantity > skuQuantityMax) {
+        throw {
+            statusCode: HTTP_STATUSES.BAD_REQUEST,
+            statusMessage: `Cannot have more than ${skuQuantityMax} units of SKU ${sku} in the cart.`,
+        };
+    }
 
-	// Product Level Validations
-	if (newProductQuantity < quantityMin) {
-		throw {
-			statusCode: HTTP_STATUSES.BAD_REQUEST,
-			statusMessage: `Cannot have less than ${quantityMin} units of product ${productId} in the cart.`,
-		};
-	}
+    // Product Level Validations
+    if (newProductQuantity < quantityMin) {
+        throw {
+            statusCode: HTTP_STATUSES.BAD_REQUEST,
+            statusMessage: `Cannot have less than ${quantityMin} units of product ${productId} in the cart.`,
+        };
+    }
 
-	if (quantityMax !== null && quantityMax !== undefined && newProductQuantity > quantityMax) {
-		throw {
-			statusCode: HTTP_STATUSES.BAD_REQUEST,
-			statusMessage: `Cannot have more than ${quantityMax} units of product ${productId} in the cart.`,
-		};
-	}
+    if (quantityMax !== null && quantityMax !== undefined && newProductQuantity > quantityMax) {
+        throw {
+            statusCode: HTTP_STATUSES.BAD_REQUEST,
+            statusMessage: `Cannot have more than ${quantityMax} units of product ${productId} in the cart.`,
+        };
+    }
 
 }
 
 export const validateJourneyCompatibility = (
-	cartJourney: string | undefined,
-	variantJourney: string | undefined
+    cartJourney: string | undefined,
+    variantJourney: string | undefined
 ): void => {
-	if (cartJourney === 'device_only') {
-		if (variantJourney !== 'device_only') {
-			throw {
-				statusCode: HTTP_STATUSES.BAD_REQUEST,
-				statusMessage: 'Cannot add a non-"device_only" item to a "device_only" cart.'
-			}
-		}
-	}
+    if (cartJourney === 'device_only') {
+        if (variantJourney !== 'device_only') {
+            throw {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                statusMessage: 'Cannot add a non-"device_only" item to a "device_only" cart.'
+            }
+        }
+    }
 };
 
 export const validateProductReleaseDate = (variant: any, today: Date): boolean => {
 
 
-	const releaseDate = getAttributeValue(variant, 'release_start_date')
-	const endDate = getAttributeValue(variant, 'release_end_date')
+    const releaseDate = getAttributeValue(variant, 'release_start_date')
+    const endDate = getAttributeValue(variant, 'release_end_date')
 
-	if (!releaseDate && !endDate) {
-		return true;
-	}
+    if (!releaseDate && !endDate) {
+        return true;
+    }
 
-	const validForm = new Date(releaseDate) <= today
-	const validTo = new Date(endDate) >= today
+    const validForm = new Date(releaseDate) <= today
+    const validTo = new Date(endDate) >= today
 
-	let isValidPeriod = true
+    let isValidPeriod = true
 
 
-	if (releaseDate && endDate) {
-		isValidPeriod = validForm && validTo
-	} else if (releaseDate && !endDate) {
-		isValidPeriod = validForm
-	} else if (!releaseDate && endDate) {
-		isValidPeriod = validTo
-	}
+    if (releaseDate && endDate) {
+        isValidPeriod = validForm && validTo
+    } else if (releaseDate && !endDate) {
+        isValidPeriod = validForm
+    } else if (!releaseDate && endDate) {
+        isValidPeriod = validTo
+    }
 
-	return isValidPeriod
+    return isValidPeriod
 }
 
 export const validateSkuStatus = (attributes: Attribute[]) => {
 
-	const skuStatus = getAttributeValue(attributes, 'status')
-	if (skuStatus.key !== 'enabled') {
-		throw {
-			statusCode: HTTP_STATUSES.NOT_FOUND,
-			statusMessage: 'Product is unavailable.',
-		};
-	}
+    const skuStatus = getAttributeValue(attributes, 'status')
+    if (skuStatus.key !== 'enabled') {
+        throw {
+            statusCode: HTTP_STATUSES.NOT_FOUND,
+            statusMessage: 'Product is unavailable.',
+        };
+    }
 }
