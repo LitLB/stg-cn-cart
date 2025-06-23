@@ -56,7 +56,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
     this.adapters[adapter.name] = adapter;
   }
 
-  public async addItem(cart: Cart, payload: any): Promise<any> {
+  public async addItem(cart: Cart, payload: any, headers: Record<string, string>): Promise<any> {
     try {
       const now = new Date();
       const {
@@ -281,7 +281,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
       );
 
         // Get promotion set that is related to the product for discount
-        const promotionBundleResponse = journey === CART_JOURNEYS.SINGLE_PRODUCT ? await this.hlClientAdapter.getPromotionBundleNoCampaign(sku) : null
+        const promotionBundleResponse = journey === CART_JOURNEYS.SINGLE_PRODUCT ? await this.hlClientAdapter.getPromotionBundleNoCampaign(sku, headers) : null
 
         const updatedCart = await this.adapters.commercetoolsCartClient.addItemToCart({
             cart,
