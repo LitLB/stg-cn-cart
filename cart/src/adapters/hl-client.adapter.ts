@@ -33,14 +33,26 @@ class HeadlessClientAdapter {
         return response.data;
     }
 
-    async getPromotionBundleNoCampaign(sku: string): Promise<PromotionBundleResponse | null> {
+    async getPromotionBundleNoCampaign(sku: string, headers: Record<string, string>): Promise<PromotionBundleResponse | null> {
         try {
-            const url = `/hl-product/api/v1/promotionSet?sku=${sku}`;
+            const url = `/api/v1/promotionSet?sku=${sku}`;
             const response: AxiosResponse = await this.client.get(
                 `${url}`,
                 {
                     headers: {
                         'content-type': 'application/json',
+                        authorization: headers.authorization,
+                        language: headers.language,
+                        correlatorid: headers.correlatorid,
+                        sessionid: headers.sessionid,
+                        sourcesystemid: headers.sourcesystemid,
+                        version: headers.version,
+                        devicetype: headers.devicetype,
+                        platform: headers.platform,
+                        browsername: headers.browsername,
+                        browserversion: headers.browserversion,
+                        osname: headers.osname,
+                        useragent: headers.useragent,
                     }
                 }
             );

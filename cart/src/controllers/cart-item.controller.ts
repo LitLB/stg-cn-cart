@@ -6,7 +6,7 @@ import { ApiResponse } from '../interfaces/response.interface';
 import { CartItemService } from '../services/cart-item.service';
 import { logger } from '../utils/logger.utils';
 import { HTTP_STATUSES } from '../constants/http.constant';
-import { AddItemCartBodyRequest, validateAddItemCartBody } from '../schemas/cart-item.schema';
+import { AddItemCartBodyRequest, validateAddItemCartBody, validateAddItemCartHeaders } from '../schemas/cart-item.schema';
 import { CART_JOURNEYS, CART_OPERATOS } from '../constants/cart.constant';
 import { ICartStrategy } from '../interfaces/cart';
 import { DeviceBundleExistingCartStrategy } from '../strategies/device-bundle-existing-cart.strategy';
@@ -57,6 +57,15 @@ export class CartItemController {
                 req.body.operator = CART_OPERATOS.TRUE;
             }
             
+            const { error: errorHeaders } = validateAddItemCartHeaders(req.headers);
+            if (errorHeaders) {
+                throw {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Validation failed',
+                    data: errorHeaders.details.map((err:any) => err.message),
+                };
+            }
+
             // Validation request body first.
             const { error, value } = validateAddItemCartBody(req.body);
             if (error) {
