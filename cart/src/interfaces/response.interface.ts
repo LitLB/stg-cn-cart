@@ -9,3 +9,21 @@ export interface ApiResponse<T = any> {
     message?: string;
     data?: T;
 }
+
+export interface IHeadlessCheckEligibleResponse {
+    productBundleKey: string;
+    contractTerm: number;
+    contractFee: number;
+    campaignByJourney: string;
+    prices: {
+        rrp: number;
+        totalDiscount: number;
+        discounted: number;
+        discounts: {
+            group: string;
+            type: string;
+            code: string;
+            amount: number;
+        }[];
+    };
+}

@@ -17,7 +17,7 @@ export class BaseCartStrategy<T extends Record<string, IAdapter>> implements ICa
     throw Error('Method not implemented');
   }
 
-  public addItem(cart: Cart, payload: any): Promise<any> {
+  public addItem(cart: Cart, payload: any, header?: any): Promise<any> {
     throw new Error('Method not implemented');
   }
 

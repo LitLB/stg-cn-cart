@@ -197,7 +197,7 @@ export interface IAvailableBenefitProductVariant {
 
 export interface ICartStrategy {
 	accessToken: string;
-	addItem(cart: Cart, payload: any): Promise<any>;
+	addItem(cart: Cart, payload: any, headers?: any): Promise<any>;
 	updateItem(cart: Cart, body: any): Promise<any>;
 	removeItem(cart: Cart, body: any): Promise<any>;
 	bulkRemoveItems(cart: Cart, body: any): Promise<any>;

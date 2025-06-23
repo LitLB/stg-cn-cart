@@ -12,9 +12,9 @@ export class CartItemService<T extends ICartStrategy> {
         this.cartStrategy.accessToken = value
     }
 
-    public async addItem(accessToken: string, cart: Cart, payload: any): Promise<any> {
+    public async addItem(accessToken: string, cart: Cart, payload: any, headers?: any): Promise<any> {
         this.accessToken = accessToken
-        return this.cartStrategy.addItem(cart, payload)
+        return this.cartStrategy.addItem(cart, payload, headers)
     }
 
     public async updateItemQuantityById(accessToken: string, cart: Cart, body: any): Promise<any> {

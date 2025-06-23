@@ -2,6 +2,7 @@ import {
   Cart,
   CustomObject,
   LineItem,
+  Money,
   MyCartUpdateAction,
   Product,
   ProductVariant,
@@ -33,6 +34,7 @@ import { AdapterConstructor } from '../interfaces/adapter.interface';
 import { CommercetoolsStandalonePricesClient } from '../adapters/ct-standalone-prices-client';
 import { ICartItemPayload } from '../interfaces/cart';
 import dayjs from 'dayjs';
+import { CartService } from '../services/cart.service';
 
 export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
   'commercetoolsMeCartClient': CommercetoolsMeCartClient,
@@ -159,7 +161,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         statusMessage: 'SKU not found in the specified product',
       };
     }
-    
+
 
     if (!variant.attributes || variant.attributes.length === 0) {
       throw {
@@ -431,9 +433,14 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
     return newProductGroup;
   };
 
-  public async addItem(cart: Cart, payload: ICartItemPayload): Promise<any> {
+  public async addItem(cart: Cart, payload: ICartItemPayload, headers: any): Promise<any> {
     try {
 
+      let eligibleResponse: any[] = []
+      let otherPayments: { code: string, amount: number }[] = []
+      let discounts: { code: string, amount: number }[] = []
+
+      const cartService = new CartService()
       const now = new Date();
       const {
         package: packageInfo,
@@ -474,6 +481,23 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
           statusCode: HTTP_STATUSES.NOT_FOUND,
           statusMessage: 'Bundle product notfound.',
         };
+      }
+
+      const mainProductSku = product.masterData.current.masterVariant.sku as string
+      const bundleProductAttributes = bundleProductInfo.masterData.current.masterVariant.attributes
+      const bundleProductData = {
+        campaignCode: bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value,
+        propositionCode: bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value,
+        promotionSetCode: bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value,
+        agreementCode: bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
+      }
+
+      if (bundleProductInfo) {
+        const checkEligible = await cartService.checkEligible(cart, mainProductSku, bundleProductData, headers)
+        eligibleResponse = checkEligible?.prices?.discounts ?? []
+        otherPayments = eligibleResponse.filter((r: any) => r.type === 'otherPayment')
+        discounts = eligibleResponse.filter((r: any) => r.type === 'discount')
+
       }
 
       const advancePaymentList: string[] = bundleProductInfo.masterData.current.masterVariant.attributes?.find(r => r.name === 'payAdvanceServiceFee')?.value ?? "0"
@@ -622,12 +646,64 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
                 id: packageAdditionalInfo.id,
               },
             },
+            {
+              action: "setDirectDiscounts",
+              discounts: [
+                {
+                  value: {
+                    type: "absolute",
+                    money: (discounts && Array.isArray(discounts))
+                      ? discounts.map(r => {
+                        return {
+                          centAmount: r.amount,
+                          currencyCode: "THB",
+                          type: 'centPrecision',
+                          fractionDigits: 2,
+                        };
+                      })
+                      : []
+                  },
+                  target: {
+                    type: "lineItems",
+                    predicate: `sku="${sku}"`
+                  }
+                }
+              ]
+            }
           ]
         );
+
+      const lineItemId = updatedCart.lineItems.find((lineItem: LineItem) => lineItem.productId === productId)?.id
+
+      const cartWithDiscount = await this.adapters.commercetoolsCartClient.updateCart(updatedCart.id, updatedCart.version, [
+        {
+          action: "setLineItemCustomField",
+          lineItemId: lineItemId,
+          name: "discounts",
+          value: (discounts && Array.isArray(discounts))
+            ? discounts.map((discount: any) => (JSON.stringify({
+              code: discount.code,
+              amount: discount.amount,
+            })))
+            : [],
+        },
+        {
+          action: "setLineItemCustomField",
+          lineItemId: lineItemId,
+          name: "otherPayments",
+          value: (otherPayments && Array.isArray(otherPayments))
+            ? otherPayments.map((otherPayment: any) => (JSON.stringify({
+              code: otherPayment.code,
+              amount: otherPayment.amount,
+            })))
+            : [],
+        }
+      ])
+
       // let iCart: ICart = this.adapters.commercetoolsMeCartClient.mapCartToICart(updatedCart);
       const ctCartWithChanged: Cart =
         await this.adapters.commercetoolsProductClient.checkCartHasChanged(
-          updatedCart
+          cartWithDiscount
         );
       const { ctCart: cartWithUpdatedPrice, compared } =
         await this.adapters.commercetoolsCartClient.updateCartWithNewValue(

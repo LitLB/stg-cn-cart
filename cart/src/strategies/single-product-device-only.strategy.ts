@@ -33,9 +33,10 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
   'commercetoolsCartClient': CommercetoolsCartClient,
   'commercetoolsInventoryClient': CommercetoolsInventoryClient,
   'commercetoolsStandalonePricesClient': CommercetoolsStandalonePricesClient,
-  'talonOneIntegrationAdapter': TalonOneIntegrationAdapter
+  'talonOneIntegrationAdapter': TalonOneIntegrationAdapter,
 }> {
   private couponService: CouponService;
+  private hlClientAdapter: HeadlessClientAdapter;
 
   constructor() {
     super(
@@ -47,6 +48,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
     );
 
     this.couponService = new CouponService();
+    this.hlClientAdapter = new HeadlessClientAdapter();
   }
 
   set accessToken(value: string) {
@@ -106,9 +108,6 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         sku
       );
 
-    // TBC solution for promotion set
-    // Get promotion set that is related to the product for discount
-    // const promotionSetInfo = await this.getPromotionSetByProductSKU(sku)
       const bundleProductInfo = await this.adapters.commercetoolsProductClient.getProductByKey(bundleProduct?.key || '');
       if (!bundleProductInfo) throw { statusCode: HTTP_STATUSES.NOT_FOUND, statusMessage: 'Product bundle not found', };
       
@@ -122,7 +121,12 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
           statusMessage: 'SKU not found in the specified product',
         };
       }
-     
+    //   if (!variant.prices || variant.prices.length === 0) {
+    //     throw {
+    //       statusCode: HTTP_STATUSES.NOT_FOUND,
+    //       statusMessage: 'No prices found for this variant',
+    //     };
+    //   }
 
       const isValidReleaseDate = validateProductReleaseDate(
         variant.attributes,
@@ -313,6 +317,9 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         }
       );
 
+        // Get promotion set that is related to the product for discount
+        const promotionBundleResponse = journey === CART_JOURNEYS.SINGLE_PRODUCT ? await this.hlClientAdapter.getPromotionBundleNoCampaign(sku) : null
+
         const updatedCart = await this.adapters.commercetoolsCartClient.addItemToCart({
             cart,
             productId,
@@ -327,7 +334,8 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
             campaignVerifyValues: filteredCampaignVerifyValues,
             journey,
             promotionSetInfo,
-            bundleProductInfo
+            bundleProductInfo,
+            promotionBundle: promotionBundleResponse?.data || null,
         });
 
       const ctCartWithChanged: Cart =

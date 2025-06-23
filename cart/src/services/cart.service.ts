@@ -38,12 +38,13 @@ import { talonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { validateCouponLimit, validateCouponDiscount } from '../validators/coupon.validator';
 import { FUNC_CHECKOUT } from '../constants/func.constant';
 import { CART_HAS_CHANGED_NOTICE_MESSAGE, CART_JOURNEYS } from '../constants/cart.constant';
-import { ApiResponse } from '../interfaces/response.interface';
+import { ApiResponse, IHeadlessCheckEligibleResponse } from '../interfaces/response.interface';
 import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
 import { CartTransformer } from '../transforms/cart.transforms';
 import { CompareRedisData } from '../types/share.types';
 import HeadlessClientAdapter from '../adapters/hl-client.adapter';
 import { calculateAge } from '../utils/calculate.utils';
+import { areArraysEqual } from '../utils/array.utils';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -184,26 +185,53 @@ export class CartService {
             }
 
             let ctCart = await this.getCtCartById(accessToken, cartId)
+            let tsmSaveOrder = {}
+
+            const operator = ctCart.custom?.fields.operator
+            const orderNumber = await this.generateOrderNumber(operator)
+
             const isPreOrder = ctCart.custom?.fields.preOrder
             const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
 
+            if ([CART_JOURNEYS.DEVICE_BUNDLE_EXISTING, CART_JOURNEYS.DEVICE_BUNDLE_NEW, CART_JOURNEYS.DEVICE_BUNDLE_P2P].includes(cartJourney)) {
+                try {
 
-            if (cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
 
-                await this.checkEligible(ctCart, headers)
+                    const mainProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product') as LineItem
+                    const bundleProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'bundle') as LineItem
 
-                const customerSession = await talonOneIntegrationAdapter.getCustomerSession(ctCart.id);
-
-                if (customerSession && customerSession.effects.length > 0) {
-                    const customerSessionId = customerSession.customerSession.id
-                    await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, {
-                        customerSession: {
-                            state: 'closed'
+                    if (!mainProduct || !bundleProduct) {
+                        throw {
+                            statusCode: HTTP_STATUSES.BAD_REQUEST,
+                            statusMessage: 'Main product or bundle product not found',
                         }
-                    })
+                    }
+                    const mainProductSku = mainProduct.variant.sku as string
+                    const bundleProductAttributes = bundleProduct.variant.attributes
+                    const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value
+                    const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value
+                    const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value
+                    const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
+
+                    const bundleProductInfo = {
+                        campaignCode,
+                        propositionCode,
+                        promotionSetCode,
+                        agreementCode
+                    }
+
+                    const eligibleResponse = await this.checkEligible(ctCart, mainProductSku, bundleProductInfo, headers)
+
+                    this.validateDiscounts(ctCart, eligibleResponse, mainProduct)
+
+                    await this.closeSessionIfExist(ctCart.id)
+                } catch (error: any) {
+                    if (error.status && error.message) {
+                        throw error;
+                    }
+                    throw createStandardizedError(error, 'createOrder')
                 }
             }
-
 
             CartValidator.validateCartHasSelectedItems(ctCart);
 
@@ -219,19 +247,9 @@ export class CartService {
 
             // * STEP #4 - Validate Available Quantity (Commercetools)
             await this.validateAvailableQuantity(ctCart)
-
             ctCart = await this.handleAutoRemoveCoupons(ctCart);
-
             ctCart = await this.removeUnselectedItems(ctCart);
-
             await InventoryValidator.validateCart(ctCart);
-
-            const operator = ctCart.custom?.fields.operator
-            const orderNumber = await this.generateOrderNumber(operator)
-
-            let tsmSaveOrder = {
-
-            }
 
             if (!isPreOrder) {
                 // * STEP #5 - Create Order On TSM Sale
@@ -250,14 +268,12 @@ export class CartService {
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
-
             await this.inventoryService.commitCartStock(ctCart);
             const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
             await this.createOrderAdditional(order, client);
             return { ...order, hasChanged: compared };
-            
+
         } catch (error: any) {
-            // logger.error(`CartService.createOrder.error`, error);
             if (error.status && error.message) {
                 throw error;
             }
@@ -1143,17 +1159,11 @@ export class CartService {
         return customerSession
     }
 
-    public async checkEligible(ctCart: Cart, headers: any) {
+    public async checkEligible(ctCart: Cart, mainProductSku: string, bundleProductInfo: { campaignCode: string, propositionCode: string, promotionSetCode: string, agreementCode: string }, headers: any): Promise<IHeadlessCheckEligibleResponse> {
         const hlClient = new HeadlessClientAdapter()
         const customerInfo = JSON.parse(ctCart.custom?.fields.customerInfo)
         const { customerProfile } = customerInfo
-        const mainProductSku = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product')?.variant.sku
-        const bundleProductAttributes = ctCart.lineItems.find(item => item.custom?.fields.productType === 'bundle')?.variant.attributes
-        const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value
-        const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value
-        const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value
-        const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
-        const bundleKey = `${campaignCode}_${propositionCode}_${promotionSetCode}_${agreementCode}`
+        const bundleKey = `${bundleProductInfo.campaignCode}_${bundleProductInfo.propositionCode}_${bundleProductInfo.promotionSetCode}_${bundleProductInfo.agreementCode}`
 
         const headlessPayload = {
             operator: customerProfile.operator,
@@ -1176,12 +1186,64 @@ export class CartService {
         }
 
         try {
-            await hlClient.checkEligible(headlessPayload, headers)
+            const response = await hlClient.checkEligible(headlessPayload, headers)
+
+            return response.data
         } catch (e: any) {
+            console.log('[CHECK_ELIGIBLE] Error', e)
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: 'Campaign is not eligible',
             }
         }
+    }
+
+    private async closeSessionIfExist(ctCartId: string) {
+        const customerSession = await talonOneIntegrationAdapter.getCustomerSession(ctCartId);
+
+        if (customerSession && customerSession.effects.length > 0) {
+            const customerSessionId = customerSession.customerSession.id
+            await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, {
+                customerSession: {
+                    state: 'closed'
+                }
+            })
+        }
+    }
+
+    private validateDiscounts(ctCart: Cart, eligibleResponse: IHeadlessCheckEligibleResponse, mainProduct: LineItem) {
+        const eligibleDiscounts = eligibleResponse.prices.discounts.map((item) => item.type === 'discount' ? item : null).filter(Boolean).map((r) => {
+            return {
+                code: r?.code ?? '',
+                amount: r?.amount ?? 0
+            }
+        })
+
+        const eligibleOtherPayments = eligibleResponse.prices.discounts.map((item) => item.type === 'otherPayment' ? item : null).filter(Boolean).map((r) => {
+            return {
+                code: r?.code ?? '',
+                amount: r?.amount ?? 0
+            }
+        })
+
+        const cartDiscounts = ctCart.lineItems.find((lineItem: LineItem) => lineItem.productId === mainProduct.productId)?.custom?.fields?.discounts ?? []
+        const cartOtherPayments = ctCart.lineItems.find((lineItem: LineItem) => lineItem.productId === mainProduct.productId)?.custom?.fields?.otherPayments ?? []
+
+        // const cartDiscountsArray = [{ code: 'AAI0712_Device', amount: 5400 }, { code: 'AAI0713_Device', amount: 5400 }]
+
+        const cartDiscountsArray = cartDiscounts && Array.isArray(cartDiscounts) ? cartDiscounts.map((item) => JSON.parse(item)) : []
+        const cartOtherPaymentsArray = cartOtherPayments && Array.isArray(cartOtherPayments) ? cartOtherPayments.map((item) => JSON.parse(item)) : []
+
+        // check if eligible discounts all value are in cart 
+        const isEligibleDiscountsInCartDiscounts = areArraysEqual(eligibleDiscounts, cartDiscountsArray)
+        const isEligibleOtherPaymentsInCartOtherPayments = areArraysEqual(eligibleOtherPayments, cartOtherPaymentsArray)
+
+        if (!isEligibleDiscountsInCartDiscounts || !isEligibleOtherPaymentsInCartOtherPayments) {
+            throw createStandardizedError({
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                statusMessage: 'Discounts or other payments are not eligible',
+            })
+        }
+
     }
 }
