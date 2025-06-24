@@ -307,11 +307,7 @@ export class CommercetoolsCartClient implements IAdapter {
                         key: 'lineItemCustomType',
                     },
                     fields: {
-                        // productType: {
-                        //     typeId: 'product-type',
-                        //     id: readConfiguration().ctpProductBundleTypeId,
-                        // },
-                        productType: 'bundle',
+                        productType: 'product-bundle',
                         selected: true,
                     },
                 },
