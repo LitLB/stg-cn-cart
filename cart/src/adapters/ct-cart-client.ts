@@ -17,10 +17,7 @@ import { CART_HAS_CHANGED_NOTICE_MESSAGE, CART_JOURNEYS } from '../constants/car
 import { IAdapter } from '../interfaces/adapter.interface';
 import _ from 'lodash';
 import { CommercetoolsStandalonePricesClient } from './ct-standalone-prices-client';
-import { AddItemToCartParams, UpdateDiscountNoCampaignToCartParams } from '../interfaces/ct-cart-client.interface';
-import { PromotionBundleResponse } from '../interfaces/promotion-bundle.interface';
-
-
+import { AddItemToCartParams, UpdateDiscountNoCampaignToCartParams, UpdateDiscountCampaignToCartParams } from '../interfaces/ct-cart-client.interface';
 
 export class CommercetoolsCartClient implements IAdapter {
     public readonly name = 'commercetoolsCartClient' as const
@@ -93,6 +90,9 @@ export class CommercetoolsCartClient implements IAdapter {
         campaignVerifyValues,
         journey,
         promotionBundle,
+        promotionSetInfo,
+        bundleProductInfo,
+        eligibleProductBundle,
     }: AddItemToCartParams): Promise<Cart> {
 
         const { lineItems, custom } = cart;
@@ -284,6 +284,73 @@ export class CommercetoolsCartClient implements IAdapter {
                 cart: updatedCart,
                 lineItem,
                 promotionBundle: promotionBundleData,
+            })
+        }
+
+        if (eligibleProductBundle && bundleProductInfo && promotionSetInfo) {
+            const totalDiscount = Number(eligibleProductBundle?.prices?.totalDiscount)
+            if (totalDiscount === 0) {
+                return updatedCart
+            }
+
+            const bundleLineItemDraft: LineItemDraft = {
+                productId: bundleProductInfo.id,
+                variantId: bundleProductInfo.masterData.current.masterVariant.id,
+                inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+                externalPrice: {
+                    currencyCode: 'THB',
+                    centAmount: 0,
+                },
+                custom: {
+                    type: {
+                        typeId: 'type',
+                        key: 'lineItemCustomType',
+                    },
+                    fields: {
+                        productType:'bundle',
+                        selected: true,
+                    },
+                },
+            };
+
+            const promotionSetLineItemDraft: LineItemDraft = {
+                productId: promotionSetInfo.id,
+                variantId: promotionSetInfo.masterData.current.masterVariant.id,
+                inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+                externalPrice: {
+                    currencyCode: 'THB',
+                    centAmount: 0,
+                },
+                custom: {
+                    type: {
+                        typeId: 'type',
+                        key: 'lineItemCustomType',
+                    },
+                    fields: {
+                        productType: 'promotion_set',
+                        selected: true,
+                    },
+                },
+            };
+
+            const lineItem = updatedCart.lineItems.find((item) => {
+                return item.productId === productId && item.variant.id === variantId
+            })
+
+            if (!lineItem) {
+                return updatedCart
+            }
+
+            updatedCart = await this.addLineItemToCart(
+                updatedCart.id,
+                updatedCart.version,
+                [bundleLineItemDraft, promotionSetLineItemDraft],
+            );
+
+            updatedCart = await this.updateDiscountNoCampaignToCart({
+                cart: updatedCart,
+                lineItem,
+                promotionBundle: eligibleProductBundle,
             })
         }
 
@@ -744,7 +811,7 @@ export class CommercetoolsCartClient implements IAdapter {
         return updatedCart.body
     }
 
-    async updateDiscountNoCampaignToCart({ cart, lineItem, promotionBundle }: UpdateDiscountNoCampaignToCartParams): Promise<Cart> {
+    async updateDiscountNoCampaignToCart({ cart, lineItem, promotionBundle }: UpdateDiscountNoCampaignToCartParams | UpdateDiscountCampaignToCartParams): Promise<Cart> {
         try {
             const updateActions: CartUpdateAction[] = []
             const { prices } = promotionBundle

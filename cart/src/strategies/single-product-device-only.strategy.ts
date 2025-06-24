@@ -26,6 +26,7 @@ import { TalonOneIntegrationAdapter } from '../adapters/talon-one.adapter';
 import { AdapterConstructor } from '../interfaces/adapter.interface';
 import { calculateProductGroupParams } from '../interfaces/single-product-device-only.interface';
 import HeadlessClientAdapter from '../adapters/hl-client.adapter';
+import { ApiResponse, IHeadlessCheckEligibleResponse } from '../interfaces/response.interface';
 
 export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
   'commercetoolsMeCartClient': CommercetoolsMeCartClient,
@@ -108,13 +109,6 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         sku
       );
 
-      const bundleProductInfo = await this.adapters.commercetoolsProductClient.getProductByKey(bundleProduct?.key || '');
-      if (!bundleProductInfo) throw { statusCode: HTTP_STATUSES.NOT_FOUND, statusMessage: 'Product bundle not found', };
-      
-      const promotionSetInfo = await this.adapters.commercetoolsProductClient.getProductByKey(bundleProduct?.promotionSetCode || '');
-      if (!promotionSetInfo) throw { statusCode: HTTP_STATUSES.NOT_FOUND, statusMessage: 'Product promotionSetCode not found', };
-
-
       if (!variant) {
         throw {
           statusCode: HTTP_STATUSES.NOT_FOUND,
@@ -157,35 +151,6 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
           statusMessage:
             'No standalone price found for the specified SKU',
         };
-      }
-
-      try {
-        const hlClient = new HeadlessClientAdapter();
-        const headlessPayload = {
-            operator: customerProfile.operator,
-            companyCode: customerProfile.companyCode,
-            profile: [
-                {
-                    certificationId: customerProfile.certificationId,
-                    certificationType: customerProfile.certificationType
-                },
-                {
-                    certificationId: customerInfo.verifyMobileNumberValue,
-                    certificationType: "M"
-                }
-            ],
-            productBundle: {
-                bundleKey: bundleKey,
-                sku: mainProductSku,
-                customerAge: calculateAge(customerProfile.age ?? 0),
-            }
-        };
-        await hlClient.checkEligible(headlessPayload, headers)
-      } catch (e: any) {
-          throw {
-              statusCode: HTTP_STATUSES.BAD_REQUEST,
-              statusMessage: 'Campaign is not eligible',
-          }
       }
 
       const validPrice =
@@ -318,7 +283,32 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
       );
 
         // Get promotion set that is related to the product for discount
-        const promotionBundleResponse = journey === CART_JOURNEYS.SINGLE_PRODUCT ? await this.hlClientAdapter.getPromotionBundleNoCampaign(sku, headers) : null
+        const promotionBundleResponse = journey === CART_JOURNEYS.SINGLE_PRODUCT ? await this.hlClientAdapter.getPromotionBundleNoCampaign(sku, headers) : null;
+        let bundleProductInfo!: Product;
+        let promotionSetInfo!: Product;
+        let responseEligible!: ApiResponse<IHeadlessCheckEligibleResponse>;
+        if (cart.custom?.fields?.journey === CART_JOURNEYS.DEVICE_ONLY && bundleProduct) {
+          const bundleKey = bundleProduct?.key || '';
+          const keys = bundleKey.split('_');
+          const bundleProductKey = keys
+            .filter(key => key !== '')
+            .map(key => key)
+            .join('_');
+
+          bundleProductInfo = await this.adapters.commercetoolsProductClient.getProductByKey(bundleProductKey);
+          if (!bundleProductInfo) throw { statusCode: HTTP_STATUSES.NOT_FOUND, statusMessage: 'Product bundle not found', };
+          promotionSetInfo = await this.adapters.commercetoolsProductClient.getProductByKey(bundleProduct?.promotionSetCode || '');
+          if (!promotionSetInfo) throw { statusCode: HTTP_STATUSES.NOT_FOUND, statusMessage: 'Product promotionSetCode not found', };
+
+          try {
+            responseEligible = await this.hlClientAdapter.checkEligible(this.buildPayloadEligible(cart, payload), headers);
+          } catch (e: any) {
+              throw {
+                  statusCode: HTTP_STATUSES.BAD_REQUEST,
+                  statusMessage: 'Add Item Fail Campaign is not eligible',
+              }
+          }
+        }
 
         const updatedCart = await this.adapters.commercetoolsCartClient.addItemToCart({
             cart,
@@ -333,9 +323,10 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
             dummyFlag: isDummyStock,
             campaignVerifyValues: filteredCampaignVerifyValues,
             journey,
+            promotionBundle: promotionBundleResponse?.data || null,
             promotionSetInfo,
             bundleProductInfo,
-            promotionBundle: promotionBundleResponse?.data || null,
+            eligibleProductBundle: responseEligible?.data || null,
         });
 
       const ctCartWithChanged: Cart =
@@ -855,6 +846,28 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
     }
 
     return journey;
+  }
+
+  private buildPayloadEligible(cart: Cart, payload: AddItemCartBodyRequest) {
+    const bundleKey = payload?.bundleProduct?.key || '';
+    const headlessPayload = {
+        operator: cart.custom?.fields?.customerInfo?.customerProfile?.operator || 'true',
+        profile: [
+          {
+              certificationId: cart.custom?.fields?.customerInfo?.verifyCertificationIdValue || '6174684109958',
+              certificationType: cart.custom?.fields?.customerInfo?.verifyCertificationTypeValue|| 'I'
+          }
+        ],
+        productBundle: {
+            bundleKey: bundleKey,
+            sku: payload.sku,
+            campaignGroup: cart.custom?.fields?.campaignGroup || '',
+            customerJourney: cart.custom?.fields?.journey || '',
+            // customerLoyalty: "P"
+        }
+    }
+
+    return headlessPayload;
   }
 
     protected async getPromotionSetByProductSKU(productSKU: string): Promise<Product | null> {
