@@ -89,7 +89,7 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
         customerNo: data.relatedParty.href,
         customerType: customerType,
         companyCode: "DTN", // ? FIX
-        birthOfDate: "1996-06-30", // ! [TBC]
+        birthOfDate: "30061996", // ! [TBC]
         aging: filteredAging,
         pricePlan: (pricePlan?.itemPrice.price.value ?? undefined),
         packageCode: (pricePlan?.id ?? undefined)
@@ -178,7 +178,7 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
             customerType: data.relatedParty.customer.type,
             companyCode: companyCode.value,
             agreementId: data.subscriberInfo.id,
-            birthOfDate: "1996-06-30", // ! [TBC]
+            birthOfDate: "30061996", // ! [TBC]
             aging: data.aging,
             pricePlan: (foundPackage.amount.value ?? undefined),
             packageCode: (foundPackage.name ?? undefined)
