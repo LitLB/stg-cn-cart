@@ -863,7 +863,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
             sku: payload.sku,
             campaignGroup: cart.custom?.fields?.campaignGroup || '',
             customerJourney: cart.custom?.fields?.journey || '',
-            // customerLoyalty: "P"
+            customerLoyalty: cart.custom?.fields?.customerInfo?.customerLoyalty || ''
         }
     }
 
