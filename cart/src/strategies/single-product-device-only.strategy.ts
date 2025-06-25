@@ -287,21 +287,15 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         let bundleProductInfo!: Product;
         let promotionSetInfo!: Product;
         let responseEligible!: ApiResponse<IHeadlessCheckEligibleResponse>;
-        if (cart.custom?.fields?.journey === CART_JOURNEYS.DEVICE_ONLY && bundleProduct) {
+        if (journey === CART_JOURNEYS.DEVICE_ONLY && bundleProduct) {
           const bundleKey = bundleProduct?.key || '';
-          const keys = bundleKey.split('_');
-          const bundleProductKey = keys
-            .filter(key => key !== '')
-            .map(key => key)
-            .join('_');
-
-          bundleProductInfo = await this.adapters.commercetoolsProductClient.getProductByKey(bundleProductKey);
+          bundleProductInfo = await this.adapters.commercetoolsProductClient.getProductByKey(bundleKey);
           if (!bundleProductInfo) throw { statusCode: HTTP_STATUSES.NOT_FOUND, statusMessage: 'Product bundle not found', };
           promotionSetInfo = await this.adapters.commercetoolsProductClient.getProductByKey(bundleProduct?.promotionSetCode || '');
           if (!promotionSetInfo) throw { statusCode: HTTP_STATUSES.NOT_FOUND, statusMessage: 'Product promotionSetCode not found', };
 
           try {
-            responseEligible = await this.hlClientAdapter.checkEligible(this.buildPayloadEligible(cart, payload), headers);
+            responseEligible = await this.hlClientAdapter.checkEligible(this.buildPayloadEligible(cart, payload, bundleProductInfo), headers);
           } catch (e: any) {
               throw {
                   statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -848,8 +842,15 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
     return journey;
   }
 
-  private buildPayloadEligible(cart: Cart, payload: AddItemCartBodyRequest) {
-    const bundleKey = payload?.bundleProduct?.key || '';
+  private buildPayloadEligible(cart: Cart, payload: AddItemCartBodyRequest, bundleProductInfo: Product) {
+    const bundleProductAttributes = bundleProductInfo.masterData.current.masterVariant.attributes || [];
+    const bundleProductData = {
+      campaignCode: bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value || '',
+      propositionCode: bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value || '',
+      promotionSetCode: bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value || '',
+      agreementCode: bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value || '', 
+    }
+    const bundleKey = `${bundleProductData.campaignCode}_${bundleProductData.propositionCode}_${bundleProductData.promotionSetCode}_${bundleProductData.agreementCode}`
     const headlessPayload = {
         operator: cart.custom?.fields?.customerInfo?.customerProfile?.operator || 'true',
         profile: [
