@@ -1,6 +1,6 @@
 // server/adapters/ct-cart-client.ts
 
-import type { ApiRoot, Cart, CartUpdate, CartUpdateAction, MyCartUpdate, MyCartUpdateAction, LineItemDraft, LineItem, CartSetCustomFieldAction, CartChangeLineItemQuantityAction, InventoryEntry, DirectDiscountDraft } from '@commercetools/platform-sdk';
+import type { ApiRoot, Cart, CartUpdate, CartUpdateAction, MyCartUpdate, MyCartUpdateAction, LineItemDraft, LineItem, CartSetCustomFieldAction, CartChangeLineItemQuantityAction, InventoryEntry, DirectDiscountDraft, CartDiscountValueAbsolute } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from './ct-base-client';
 import { readConfiguration } from '../utils/config.utils';
 import { compareLineItemsArrays } from '../utils/compare.util';
@@ -906,10 +906,41 @@ export class CommercetoolsCartClient implements IAdapter {
         totalDiscount,
     }: AddDirectDiscountParams): CartUpdateAction {
         const directDiscounts = cart.directDiscounts || []
-        const existDirectDiscount: DirectDiscountDraft[] = directDiscounts.map(directDiscount => ({
-            value: directDiscount.value,
-            target: directDiscount.target,
-        }))
+
+        let isExistDirectDiscount = false
+        const existDirectDiscount: DirectDiscountDraft[] = directDiscounts.map(directDiscount => {
+            if (directDiscount.target?.type === "lineItems" && directDiscount.target?.predicate?.includes(sku)) {
+                isExistDirectDiscount = true
+                const { money } = directDiscount.value as CartDiscountValueAbsolute
+                const newDiscount = money.reduce((total, current) => total + current.centAmount, 0) + totalDiscount
+                return {
+                    value: {
+                        type: "absolute",
+                        money: [
+                            {
+                                centAmount: newDiscount,
+                                currencyCode: "THB",
+                                type: "centPrecision",
+                                fractionDigits: 2,
+                            }
+                        ],
+                    },
+                    target: directDiscount.target,
+                }
+            }
+
+            return {
+                value: directDiscount.value,
+                target: directDiscount.target,
+            }
+        })
+
+        if (isExistDirectDiscount) {
+            return {
+                action: "setDirectDiscounts",
+                discounts: existDirectDiscount,
+            }
+        }
 
         return {
             action: "setDirectDiscounts",
