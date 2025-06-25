@@ -1162,29 +1162,7 @@ export class CartService {
 
     public async checkEligible(ctCart: Cart, mainProductSku: string, bundleProductInfo: { campaignCode: string, propositionCode: string, promotionSetCode: string, agreementCode: string }, headers: any): Promise<IHeadlessCheckEligibleResponse> {
         const hlClient = new HeadlessClientAdapter()
-        const customerInfo = JSON.parse(ctCart.custom?.fields.customerInfo)
-        const { customerProfile } = customerInfo
-        const bundleKey = `${bundleProductInfo.campaignCode}_${bundleProductInfo.propositionCode}_${bundleProductInfo.promotionSetCode}_${bundleProductInfo.agreementCode}`
-
-        const headlessPayload = {
-            operator: customerProfile.operator,
-            companyCode: customerProfile.companyCode,
-            profile: [
-                {
-                    certificationId: customerProfile.certificationId,
-                    certificationType: customerProfile.certificationType
-                },
-                {
-                    certificationId: customerInfo.verifyMobileNumberValue,
-                    certificationType: "M"
-                }
-            ],
-            productBundle: {
-                bundleKey: bundleKey,
-                sku: mainProductSku,
-                customerAge: calculateAge(customerProfile.age ?? 0),
-            }
-        }
+        const headlessPayload = this.buildPayloadEligible(ctCart, mainProductSku, bundleProductInfo);
 
         try {
             const response = await hlClient.checkEligible(headlessPayload, headers)
@@ -1246,5 +1224,54 @@ export class CartService {
             })
         }
 
+    }
+
+    public buildPayloadEligible(
+        ctCart: Cart, 
+        mainProductSku: string, 
+        bundleProductInfo: { campaignCode: string, propositionCode: string, promotionSetCode: string, agreementCode: string }
+    ) {
+        const bundleKey = `${bundleProductInfo.campaignCode}_${bundleProductInfo.propositionCode}_${bundleProductInfo.promotionSetCode}_${bundleProductInfo.agreementCode}`;
+        const profile = [];
+        const customerInfo = JSON.parse(ctCart.custom?.fields.customerInfo);
+        const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS;
+        const campaignGroup = ctCart.custom?.fields.campaignGroup as string;
+        const { customerProfile } = customerInfo;
+
+        if (customerInfo.verifyCertificationIdValue) {
+            profile.push({
+                certificationId: customerInfo.verifyCertificationIdValue,
+                certificationType: customerInfo.verifyCertificationTypeValue,
+            });
+        }
+
+        if (customerProfile.certificationId) {
+            profile.push({
+                certificationId: customerProfile?.certificationId,
+                certificationType: customerProfile?.certificationType
+            });
+        }
+
+        if (customerInfo.verifyMobileNumberValue) {
+            profile.push({
+                certificationId: customerInfo.verifyMobileNumberValue,
+                certificationType: 'M',
+            });
+        }
+
+        const headlessPayload = {
+            operator: customerProfile.operator,
+            ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile.companyCode && { companyCode: customerProfile.companyCode }),
+            profile,
+            productBundle: {
+                bundleKey: bundleKey,
+                sku: mainProductSku,
+                campaignGroup: campaignGroup,
+                customerJourney: cartJourney,
+                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.age && { customerAge: calculateAge(customerProfile?.age ?? 0) }),
+            }
+        }
+
+        return headlessPayload;
     }
 }

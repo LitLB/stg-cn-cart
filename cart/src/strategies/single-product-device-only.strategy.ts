@@ -27,6 +27,7 @@ import { AdapterConstructor } from '../interfaces/adapter.interface';
 import { calculateProductGroupParams } from '../interfaces/single-product-device-only.interface';
 import HeadlessClientAdapter from '../adapters/hl-client.adapter';
 import { ApiResponse, IHeadlessCheckEligibleResponse } from '../interfaces/response.interface';
+import { CartService } from '../services/cart.service';
 
 export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
   'commercetoolsMeCartClient': CommercetoolsMeCartClient,
@@ -295,7 +296,15 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
           if (!promotionSetInfo) throw { statusCode: HTTP_STATUSES.NOT_FOUND, statusMessage: 'Product promotionSetCode not found', };
 
           try {
-            responseEligible = await this.hlClientAdapter.checkEligible(this.buildPayloadEligible(cart, payload, bundleProductInfo), headers);
+            const cartService = new CartService();
+            const bundleProductAttributes = bundleProductInfo.masterData.current.masterVariant.attributes || [];
+            const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value || '';
+            const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value || '';
+            const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value || '';
+            const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value || '';
+            const bundleProductData = { campaignCode, propositionCode, promotionSetCode, agreementCode };
+            const payloadEligible = cartService.buildPayloadEligible(cart, sku, bundleProductData);
+            responseEligible = await this.hlClientAdapter.checkEligible(payloadEligible, headers);
           } catch (e: any) {
               throw {
                   statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -840,39 +849,6 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
     }
 
     return journey;
-  }
-
-  private buildPayloadEligible(cart: Cart, payload: AddItemCartBodyRequest, bundleProductInfo: Product) {
-    const bundleProductAttributes = bundleProductInfo.masterData.current.masterVariant.attributes || [];
-    const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value || '';
-    const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value || '';
-    const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value || '';
-    const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value || '';
-    const bundleProductData = {
-        campaignCode,
-        propositionCode,
-        promotionSetCode,
-        agreementCode
-    }
-    const bundleKey = `${bundleProductData.campaignCode}_${bundleProductData.propositionCode}_${bundleProductData.promotionSetCode}_${bundleProductData.agreementCode}`;
-    const headlessPayload = {
-        operator: cart.custom?.fields?.customerInfo?.customerProfile?.operator || 'true',
-        profile: [
-          {
-              certificationId: cart.custom?.fields?.customerInfo?.verifyCertificationIdValue || '',
-              certificationType: cart.custom?.fields?.customerInfo?.verifyCertificationTypeValue|| ''
-          }
-        ],
-        productBundle: {
-            bundleKey: bundleKey,
-            sku: payload.sku,
-            campaignGroup: cart.custom?.fields?.campaignGroup || '',
-            customerJourney: cart.custom?.fields?.journey || '',
-            customerLoyalty: cart.custom?.fields?.customerInfo?.customerLoyalty || ''
-        }
-    }
-
-    return headlessPayload;
   }
 
     protected async getPromotionSetByProductSKU(productSKU: string): Promise<Product | null> {
