@@ -28,3 +28,9 @@ export interface UpdateDiscountNoCampaignToCartParams {
     lineItem: LineItem;
     promotionBundle: PromotionBundleResponse['data'][0]
 }
+
+export interface AddDirectDiscountParams {
+    sku: string
+    cart: Cart
+    totalDiscount: number
+}
