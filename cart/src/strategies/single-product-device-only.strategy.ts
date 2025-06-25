@@ -844,13 +844,17 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
 
   private buildPayloadEligible(cart: Cart, payload: AddItemCartBodyRequest, bundleProductInfo: Product) {
     const bundleProductAttributes = bundleProductInfo.masterData.current.masterVariant.attributes || [];
+    const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value || '';
+    const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value || '';
+    const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value || '';
+    const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value || '';
     const bundleProductData = {
-      campaignCode: bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value || '',
-      propositionCode: bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value || '',
-      promotionSetCode: bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value || '',
-      agreementCode: bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value || '', 
+        campaignCode,
+        propositionCode,
+        promotionSetCode,
+        agreementCode
     }
-    const bundleKey = `${bundleProductData.campaignCode}_${bundleProductData.propositionCode}_${bundleProductData.promotionSetCode}_${bundleProductData.agreementCode}`
+    const bundleKey = `${bundleProductData.campaignCode}_${bundleProductData.propositionCode}_${bundleProductData.promotionSetCode}_${bundleProductData.agreementCode}`;
     const headlessPayload = {
         operator: cart.custom?.fields?.customerInfo?.customerProfile?.operator || 'true',
         profile: [
