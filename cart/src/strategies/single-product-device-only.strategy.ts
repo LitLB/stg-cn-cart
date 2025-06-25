@@ -1,4 +1,4 @@
-import { Cart, MyCartUpdateAction, Product } from '@commercetools/platform-sdk';
+import { Cart, MyCartUpdateAction, Product, ProductVariant, LineItem } from '@commercetools/platform-sdk';
 import { CommercetoolsCartClient } from '../adapters/ct-cart-client';
 import { CommercetoolsInventoryClient } from '../adapters/ct-inventory-client';
 import { CommercetoolsProductClient } from '../adapters/ct-product-client';
@@ -28,6 +28,7 @@ import { calculateProductGroupParams } from '../interfaces/single-product-device
 import HeadlessClientAdapter from '../adapters/hl-client.adapter';
 import { ApiResponse, IHeadlessCheckEligibleResponse } from '../interfaces/response.interface';
 import { CartService } from '../services/cart.service';
+import _ from 'lodash';
 
 export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
   'commercetoolsMeCartClient': CommercetoolsMeCartClient,
@@ -115,6 +116,11 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
           statusCode: HTTP_STATUSES.NOT_FOUND,
           statusMessage: 'SKU not found in the specified product',
         };
+      }
+
+      if (journey === CART_JOURNEYS.DEVICE_ONLY) {
+        this.validateDeviceOnlyCampaign(payload, cart, variant);
+        this.validateQuantity(productType, cart, sku, product, variant, quantity);
       }
     //   if (!variant.prices || variant.prices.length === 0) {
     //     throw {
@@ -851,49 +857,124 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
     return journey;
   }
 
-    protected async getPromotionSetByProductSKU(productSKU: string): Promise<Product | null> {
-        try {
-            const productType = await this.adapters.commercetoolsProductClient.getProductType('promotion_set');
-            if (!productType) {
-                return null
-            }
+  protected async getPromotionSetByProductSKU(productSKU: string): Promise<Product | null> {
+      try {
+          const productType = await this.adapters.commercetoolsProductClient.getProductType('promotion_set');
+          if (!productType) {
+              return null
+          }
 
-            const promotionSet = await this.adapters.commercetoolsProductClient.queryProducts({
-                where: `
-                productType(id="${productType.body.id}") and
-                masterData(
-                    current(
-                        masterVariant(
-                            attributes(name="variants" and value="${productSKU}")
-                            and
-                            attributes(name="forCampaign" and value=false)
-                        )
-                    )
-                )`
-            });
+          const promotionSet = await this.adapters.commercetoolsProductClient.queryProducts({
+              where: `
+              productType(id="${productType.body.id}") and
+              masterData(
+                  current(
+                      masterVariant(
+                          attributes(name="variants" and value="${productSKU}")
+                          and
+                          attributes(name="forCampaign" and value=false)
+                      )
+                  )
+              )`
+          });
 
-            if (!promotionSet.results.length) {
-                return null
-            }
-    
-            if (promotionSet.results.length > 1) {
-                throw {
-                    statusCode: HTTP_STATUSES.NOT_FOUND,
-                    statusMessage: 'Promotion set is not unique.',
-                };
-            }
-    
-            if (!promotionSet.results[0].masterData.published) {
-                return null
-            }
-    
-            return promotionSet.results[0];
-        } catch (error: any) {
-            if (error.status && error.message) {
-                throw error;
-            }
+          if (!promotionSet.results.length) {
+              return null
+          }
+  
+          if (promotionSet.results.length > 1) {
+              throw {
+                  statusCode: HTTP_STATUSES.NOT_FOUND,
+                  statusMessage: 'Promotion set is not unique.',
+              };
+          }
+  
+          if (!promotionSet.results[0].masterData.published) {
+              return null
+          }
+  
+          return promotionSet.results[0];
+      } catch (error: any) {
+          if (error.status && error.message) {
+              throw error;
+          }
 
-            return null
-        }
+          return null
+      }
+  }
+
+  protected validateDeviceOnlyCampaign(payload: AddItemCartBodyRequest, cart: Cart, variant: ProductVariant) {
+    const { bundleProduct, sku } = payload;
+    const mainProductLineItems = cart.lineItems.filter(
+      (item: LineItem) => item.custom?.fields?.productType === 'main_product'
+    );
+
+    const totalCartQuantity = mainProductLineItems.reduce(
+      (sum, item) => sum + item.quantity,
+      0
+    );
+
+    if (_.isEmpty(bundleProduct)) {
+      throw {
+        statusCode: HTTP_STATUSES.BAD_REQUEST,
+        statusMessage:
+          '"bundleProduct" is required for journey "device_only"',
+      };
     }
+
+    if (totalCartQuantity >= 1) {
+      throw {
+        statusCode: HTTP_STATUSES.BAD_REQUEST,
+        statusMessage: `Cannot have more than 1 unit of SKU ${sku} in the cart.`,
+      };
+    }
+
+    if (
+      !variant.attributes?.some(
+        (value) =>
+          value.name === 'journey' &&
+          value.value.some(
+            (journey: any) =>
+              journey.key === CART_JOURNEYS.DEVICE_ONLY
+          )
+      )
+    ) {
+      throw {
+        statusCode: HTTP_STATUSES.BAD_REQUEST,
+        statusMessage: `Cannot add a non-"device_only" item to a "device_only" cart.`,
+      };
+    }
+  }
+
+  protected validateQuantity(
+    productType: string,
+    cart: Cart,
+    sku: string,
+    product: Product,
+    variant: ProductVariant,
+    deltaQuantity: number
+  ) {
+    const cartQuantity = this.getItemQuantityBySku(cart, sku);
+    if (cartQuantity === 1 && deltaQuantity > 0) {
+      throw {
+        statusCode: HTTP_STATUSES.BAD_REQUEST,
+        statusMessage: `Cannot have more than 1 unit of SKU ${sku} in the cart.`,
+      };
+    }
+
+    validateProductQuantity(
+      productType,
+      cart,
+      sku,
+      product.id,
+      variant,
+      deltaQuantity
+    );
+  }
+
+  protected getItemQuantityBySku(cart: Cart, sku: string) {
+    return cart.lineItems
+      .filter((item: LineItem) => item.variant.sku === sku)
+      .reduce((sum, item) => sum + item.quantity, 0);
+  }
 }
