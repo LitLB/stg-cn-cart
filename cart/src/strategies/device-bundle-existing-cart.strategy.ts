@@ -484,7 +484,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         };
       }
 
-      const mainProductSku = product.masterData.current.masterVariant.sku as string
+      
       const bundleProductAttributes = bundleProductInfo.masterData.current.masterVariant.attributes
       const bundleProductData = {
         campaignCode: bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value,
@@ -494,7 +494,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       }
 
       if (bundleProductInfo) {
-        const checkEligible = await cartService.checkEligible(cart, mainProductSku, bundleProductData, headers)
+        const checkEligible = await cartService.checkEligible(cart, sku, bundleProductData, headers)
         eligibleResponse = checkEligible?.prices?.discounts ?? []
         otherPayments = eligibleResponse.filter((r: any) => r.type === 'otherPayment')
         discounts = eligibleResponse.filter((r: any) => r.type === 'discount')
