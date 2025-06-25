@@ -38,3 +38,9 @@ export interface UpdateDiscountCampaignToCartParams {
     lineItem: LineItem;
     promotionBundle: IHeadlessCheckEligibleResponse;
 }
+
+export interface AddDirectDiscountParams {
+    sku: string
+    cart: Cart
+    totalDiscount: number
+}
