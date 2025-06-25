@@ -1,6 +1,6 @@
 // server/adapters/ct-cart-client.ts
 
-import type { ApiRoot, Cart, CartUpdate, CartUpdateAction, MyCartUpdate, MyCartUpdateAction, LineItemDraft, LineItem, CartSetCustomFieldAction, CartChangeLineItemQuantityAction, InventoryEntry } from '@commercetools/platform-sdk';
+import type { ApiRoot, Cart, CartUpdate, CartUpdateAction, MyCartUpdate, MyCartUpdateAction, LineItemDraft, LineItem, CartSetCustomFieldAction, CartChangeLineItemQuantityAction, InventoryEntry, DirectDiscountDraft, CartDiscountValueAbsolute } from '@commercetools/platform-sdk';
 import CommercetoolsBaseClient from './ct-base-client';
 import { readConfiguration } from '../utils/config.utils';
 import { compareLineItemsArrays } from '../utils/compare.util';
@@ -17,7 +17,7 @@ import { CART_HAS_CHANGED_NOTICE_MESSAGE, CART_JOURNEYS } from '../constants/car
 import { IAdapter } from '../interfaces/adapter.interface';
 import _ from 'lodash';
 import { CommercetoolsStandalonePricesClient } from './ct-standalone-prices-client';
-import { AddItemToCartParams, UpdateDiscountNoCampaignToCartParams, UpdateDiscountCampaignToCartParams } from '../interfaces/ct-cart-client.interface';
+import { AddItemToCartParams, UpdateDiscountNoCampaignToCartParams, UpdateDiscountCampaignToCartParams, AddDirectDiscountParams } from '../interfaces/ct-cart-client.interface';
 
 export class CommercetoolsCartClient implements IAdapter {
     public readonly name = 'commercetoolsCartClient' as const
@@ -167,12 +167,33 @@ export class CommercetoolsCartClient implements IAdapter {
 
         if (existingLineItem) {
             const externalPrice = existingLineItem.price.value;
-            const updatedCart = await this.updateCart(cart.id, cart.version, [{
+
+            const updateActions: CartUpdateAction[] = []
+
+            const totalLineItemQuantity = existingLineItem.quantity + quantity
+
+            updateActions.push({
                 action: 'changeLineItemQuantity',
                 lineItemId: existingLineItem.id,
-                quantity: existingLineItem.quantity + quantity,
+                quantity: totalLineItemQuantity,
                 externalPrice,
-            }]);
+            })
+
+            // add more direct discount if promotionBundle is not null
+            // discount from promotion set
+            if (promotionBundle && promotionBundle.length === 1 && existingLineItem.variant.sku) {
+                const totalDiscount = (Number(promotionBundle[0].prices.totalDiscount) * Math.pow(10, 2)) * quantity
+                
+                if (totalDiscount > 0) {
+                    updateActions.push(this.addDirectDiscount({
+                        sku: existingLineItem.variant.sku,
+                        cart,
+                        totalDiscount: totalDiscount,
+                    }))
+                }
+            }
+
+            const updatedCart = await this.updateCart(cart.id, cart.version, updateActions)
 
             return updatedCart;
         }
@@ -280,7 +301,7 @@ export class CommercetoolsCartClient implements IAdapter {
             );
 
 
-            updatedCart = await this.updateDiscountNoCampaignToCart({
+            updatedCart = await this.updateDirectDiscountToCart({
                 cart: updatedCart,
                 lineItem,
                 promotionBundle: promotionBundleData,
@@ -347,7 +368,7 @@ export class CommercetoolsCartClient implements IAdapter {
                 [bundleLineItemDraft, promotionSetLineItemDraft],
             );
 
-            updatedCart = await this.updateDiscountNoCampaignToCart({
+            updatedCart = await this.updateDirectDiscountToCart({
                 cart: updatedCart,
                 lineItem,
                 promotionBundle: eligibleProductBundle,
@@ -811,7 +832,7 @@ export class CommercetoolsCartClient implements IAdapter {
         return updatedCart.body
     }
 
-    async updateDiscountNoCampaignToCart({ cart, lineItem, promotionBundle }: UpdateDiscountNoCampaignToCartParams | UpdateDiscountCampaignToCartParams): Promise<Cart> {
+    async updateDirectDiscountToCart({ cart, lineItem, promotionBundle }: UpdateDiscountNoCampaignToCartParams | UpdateDiscountCampaignToCartParams): Promise<Cart> {
         try {
             const updateActions: CartUpdateAction[] = []
             const { prices } = promotionBundle
@@ -851,29 +872,13 @@ export class CommercetoolsCartClient implements IAdapter {
                 })
             }
 
-
-            updateActions.push({
-                action: "setDirectDiscounts",
-                discounts: [
-                    {
-                        value: {
-                            type: "absolute",
-                            money: [
-                                {
-                                    centAmount: Number(promotionBundle.prices.totalDiscount) * Math.pow(10, 2),
-                                    currencyCode: "THB",
-                                    type: "centPrecision",
-                                    fractionDigits: 2,
-                                }
-                            ],
-                        },
-                        target: {
-                            type: "lineItems",
-                            predicate: `sku="${lineItem.variant.sku}"`
-                        }
-                    }
-                ]
-            })
+            updateActions.push(
+                this.addDirectDiscount({
+                    sku: lineItem.variant.sku!,
+                    cart,
+                    totalDiscount: Number(promotionBundle.prices.totalDiscount) * Math.pow(10, 2) * lineItem.quantity,
+                })
+            )
 
             const cartUpdate: CartUpdate = {
                 version: cart.version,
@@ -895,6 +900,72 @@ export class CommercetoolsCartClient implements IAdapter {
         }
     }
 
+    private addDirectDiscount({
+        sku,
+        cart,
+        totalDiscount,
+    }: AddDirectDiscountParams): CartUpdateAction {
+        const directDiscounts = cart.directDiscounts || []
+
+        let isExistDirectDiscount = false
+        const existDirectDiscount: DirectDiscountDraft[] = directDiscounts.map(directDiscount => {
+            if (directDiscount.target?.type === "lineItems" && directDiscount.target?.predicate?.includes(sku)) {
+                isExistDirectDiscount = true
+                const { money } = directDiscount.value as CartDiscountValueAbsolute
+                const newDiscount = money.reduce((total, current) => total + current.centAmount, 0) + totalDiscount
+                return {
+                    value: {
+                        type: "absolute",
+                        money: [
+                            {
+                                centAmount: newDiscount,
+                                currencyCode: "THB",
+                                type: "centPrecision",
+                                fractionDigits: 2,
+                            }
+                        ],
+                    },
+                    target: directDiscount.target,
+                }
+            }
+
+            return {
+                value: directDiscount.value,
+                target: directDiscount.target,
+            }
+        })
+
+        if (isExistDirectDiscount) {
+            return {
+                action: "setDirectDiscounts",
+                discounts: existDirectDiscount,
+            }
+        }
+
+        return {
+            action: "setDirectDiscounts",
+            discounts: [
+                ...existDirectDiscount,
+                {
+                    value: {
+                        type: "absolute",
+                        money: [
+                            {
+                                centAmount: totalDiscount,
+                                currencyCode: "THB",
+                                type: "centPrecision",
+                                fractionDigits: 2,
+                            }
+                        ],
+                    },
+                    target: {
+                        type: "lineItems",
+                        predicate: `sku="${sku}"`
+                    }
+                }
+            ]
+        }
+    }
 }
 
 export default CommercetoolsCartClient.getInstance();
