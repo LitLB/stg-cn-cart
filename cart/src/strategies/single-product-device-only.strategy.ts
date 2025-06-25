@@ -859,8 +859,8 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         operator: cart.custom?.fields?.customerInfo?.customerProfile?.operator || 'true',
         profile: [
           {
-              certificationId: cart.custom?.fields?.customerInfo?.verifyCertificationIdValue || '6174684109958',
-              certificationType: cart.custom?.fields?.customerInfo?.verifyCertificationTypeValue|| 'I'
+              certificationId: cart.custom?.fields?.customerInfo?.verifyCertificationIdValue || '',
+              certificationType: cart.custom?.fields?.customerInfo?.verifyCertificationTypeValue|| ''
           }
         ],
         productBundle: {

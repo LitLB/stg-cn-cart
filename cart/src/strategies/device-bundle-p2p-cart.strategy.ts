@@ -495,7 +495,7 @@ export class DeviceBundlePreToPostCartStrategy extends BaseCartStrategy<{
                                     key: 'lineItemCustomType',
                                 },
                                 fields: {
-                                    productType: 'bundle',
+                                    productType: 'product-bundle',
                                     selected: false,
                                 },
                             },

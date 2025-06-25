@@ -193,12 +193,13 @@ export class CartService {
             const isPreOrder = ctCart.custom?.fields.preOrder
             const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
 
-            if ([CART_JOURNEYS.DEVICE_BUNDLE_EXISTING, CART_JOURNEYS.DEVICE_BUNDLE_NEW, CART_JOURNEYS.DEVICE_BUNDLE_P2P].includes(cartJourney)) {
+            if ([CART_JOURNEYS.DEVICE_BUNDLE_EXISTING, 
+                CART_JOURNEYS.DEVICE_BUNDLE_NEW, 
+                CART_JOURNEYS.DEVICE_BUNDLE_P2P,
+                CART_JOURNEYS.DEVICE_ONLY].includes(cartJourney)) {
                 try {
-
-
                     const mainProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product') as LineItem
-                    const bundleProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'bundle') as LineItem
+                    const bundleProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'product-bundle') as LineItem
 
                     if (!mainProduct || !bundleProduct) {
                         throw {
@@ -819,7 +820,7 @@ export class CartService {
     }
 
     private async validateAvailableQuantity(ctCart: Cart) {
-        const skipValidateProductType = ['promotion_set', 'bundle']
+        const skipValidateProductType = ['promotion_set', 'bundle', 'product-bundle']
         const cartJourney = ctCart.custom?.fields.journey
         try {
             const { lineItems } = ctCart

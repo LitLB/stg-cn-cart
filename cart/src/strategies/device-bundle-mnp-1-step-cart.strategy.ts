@@ -468,7 +468,7 @@ export class DeviceBundleMNPOneStepCartStrategy extends BaseCartStrategy<{
                   key: 'lineItemCustomType',
                 },
                 fields: {
-                  productType: 'bundle',
+                  productType: 'product-bundle',
                   selected: false,
                 },
               },

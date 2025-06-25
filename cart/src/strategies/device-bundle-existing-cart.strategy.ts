@@ -588,7 +588,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
                   key: 'lineItemCustomType',
                 },
                 fields: {
-                  productType: 'bundle',
+                  productType: 'product-bundle',
                   selected: true,
                 },
               },
