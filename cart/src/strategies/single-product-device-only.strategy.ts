@@ -541,7 +541,10 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
           cartWithUpdatedPrice
         );
 
-      return { ...iCartWithBenefit, hasChanged: compared };
+      const result = { ...iCartWithBenefit, hasChanged: compared };
+      
+      // Filter out promotion_set items for single_product journey
+      return this.filterPromotionSet(result);
     } catch (error: any) {
       if (error.status && error.message) {
         throw error;
@@ -717,7 +720,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         );
       iCartWithBenefit = updateCartFlag(iCartWithBenefit);
 
-      return iCartWithBenefit;
+      return this.filterPromotionSet(iCartWithBenefit);
     } catch (error: any) {
       if (error.status && error.message) {
         throw error;
@@ -976,5 +979,14 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
     return cart.lineItems
       .filter((item: LineItem) => item.variant.sku === sku)
       .reduce((sum, item) => sum + item.quantity, 0);
+  }
+
+  protected filterPromotionSet(cartData: any): any {
+    return {
+      ...cartData,
+      items: cartData.items?.filter((item: any) => 
+        item.productType !== 'promotion_set'
+      ) || []
+    };
   }
 }
