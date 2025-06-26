@@ -690,10 +690,7 @@ export class CartService {
             const tsmOrderPayload = await tsmOrder.toPayload()
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
-            // return {
-            //     success: false,
-            //     response: { message: 'this is mock response' }
-            // }
+
             const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
 
             if (!response) {
@@ -709,13 +706,6 @@ export class CartService {
                 response
             }
 
-            // if (code !== '0') {
-            //     throw {
-            //         statusCode: HTTP_STATUSES.BAD_REQUEST,
-            //         statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
-            //         errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
-            //     };
-            // }
 
         } catch (error: any) {
             logger.info(`createTSMSaleOrder-error: ${JSON.stringify(error)}`)
@@ -723,12 +713,7 @@ export class CartService {
             if (data) {
                 data = safelyParse(data)
             }
-            // throw {
-            //     statusCode: HTTP_STATUSES.BAD_REQUEST,
-            //     statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
-            //     errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
-            //     ...(data ? { data } : {})
-            // };
+
             return {
                 success: false,
                 response: data
@@ -1268,7 +1253,7 @@ export class CartService {
                 sku: mainProductSku,
                 campaignGroup: campaignGroup,
                 customerJourney: cartJourney,
-                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.age && { customerAge: calculateAge(customerProfile?.age ?? 0) }),
+                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.birthdate && { customerAge: calculateAge(customerProfile.birthdate ?? 0) }),
             }
         }
 
