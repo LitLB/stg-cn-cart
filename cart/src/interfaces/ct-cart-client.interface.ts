@@ -42,5 +42,6 @@ export interface UpdateDiscountCampaignToCartParams {
 export interface AddDirectDiscountParams {
     sku: string
     cart: Cart
-    totalDiscount: number
+    discountAmount?: number
+    quantity?: number
 }
