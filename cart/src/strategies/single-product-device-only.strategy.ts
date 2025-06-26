@@ -515,6 +515,14 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
           quantity,
         });
 
+        if (journey === CART_JOURNEYS.SINGLE_PRODUCT) {
+            updatedCart = await this.adapters.commercetoolsCartClient.updateDiscountToCart({
+              cart: updatedCart,
+              sku,
+              quantity,
+            });
+        }
+
       const customerSession =
         await this.adapters.talonOneIntegrationAdapter.getCustomerSession(
           updatedCart.id
