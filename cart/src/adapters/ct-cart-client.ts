@@ -183,12 +183,12 @@ export class CommercetoolsCartClient implements IAdapter {
             // discount from promotion set
             if (promotionBundle && promotionBundle.length === 1 && existingLineItem.variant.sku) {
                 const totalDiscount = (Number(promotionBundle[0].prices.totalDiscount) * Math.pow(10, 2)) * quantity
-                
+
                 if (totalDiscount > 0) {
-                    updateActions.push(this.addDirectDiscount({
+                    updateActions.push(this.updateDirectDiscount({
                         sku: existingLineItem.variant.sku,
                         cart,
-                        totalDiscount: totalDiscount,
+                        discountAmount: totalDiscount,
                     }))
                 }
             }
@@ -873,10 +873,10 @@ export class CommercetoolsCartClient implements IAdapter {
             }
 
             updateActions.push(
-                this.addDirectDiscount({
+                this.updateDirectDiscount({
                     sku: lineItem.variant.sku!,
                     cart,
-                    totalDiscount: Number(promotionBundle.prices.totalDiscount) * Math.pow(10, 2) * lineItem.quantity,
+                    discountAmount: Number(promotionBundle.prices.totalDiscount) * Math.pow(10, 2) * lineItem.quantity,
                 })
             )
 
@@ -900,10 +900,11 @@ export class CommercetoolsCartClient implements IAdapter {
         }
     }
 
-    private addDirectDiscount({
+    private updateDirectDiscount({
         sku,
         cart,
-        totalDiscount,
+        discountAmount,
+        quantity,
     }: AddDirectDiscountParams): CartUpdateAction {
         const directDiscounts = cart.directDiscounts || []
 
@@ -912,7 +913,27 @@ export class CommercetoolsCartClient implements IAdapter {
             if (directDiscount.target?.type === "lineItems" && directDiscount.target?.predicate?.includes(sku)) {
                 isExistDirectDiscount = true
                 const { money } = directDiscount.value as CartDiscountValueAbsolute
-                const newDiscount = money.reduce((total, current) => total + current.centAmount, 0) + totalDiscount
+
+                let newDiscount = 0
+                const oldDiscount = money.reduce((total, current) => total + current.centAmount, 0)
+                if (discountAmount) {
+                    newDiscount = oldDiscount + discountAmount
+                } else if (quantity) {
+                    const lineItem = cart.lineItems.find(item => {
+                        if (item.variant.sku) {
+                            return item.variant.sku === sku
+                        }
+                    })
+
+                    if (lineItem) {
+                        const customFields = lineItem.custom?.fields
+                        const discount = customFields?.discounts?.reduce((total: number, current: string) => total + JSON.parse(current).amount, 0) ?? 0
+                        const otherPayment = customFields?.otherPayments?.reduce((total: number, current: string) => total + JSON.parse(current).amount, 0) ?? 0
+
+                        newDiscount = (discount + otherPayment) * lineItem.quantity
+                    }
+                }
+
                 return {
                     value: {
                         type: "absolute",
@@ -951,7 +972,7 @@ export class CommercetoolsCartClient implements IAdapter {
                         type: "absolute",
                         money: [
                             {
-                                centAmount: totalDiscount,
+                                centAmount: discountAmount ?? 0,
                                 currencyCode: "THB",
                                 type: "centPrecision",
                                 fractionDigits: 2,
@@ -964,6 +985,28 @@ export class CommercetoolsCartClient implements IAdapter {
                     }
                 }
             ]
+        }
+    }
+
+    async updateDiscountToCart({ cart, sku, quantity }: { cart: Cart, sku: string, quantity: number }): Promise<Cart> {
+        try {
+            const cartUpdate: CartUpdate = {
+                version: cart.version,
+                actions: [this.updateDirectDiscount({ sku: sku, cart, quantity })],
+            };
+
+            const response = await this.apiRoot
+                .withProjectKey({ projectKey: this.projectKey })
+                .carts()
+                .withId({ ID: cart.id })
+                .post({ body: cartUpdate })
+                .execute();
+
+            return response.body;
+        } catch (error) {
+            console.error(error)
+
+            throw error
         }
     }
 }
