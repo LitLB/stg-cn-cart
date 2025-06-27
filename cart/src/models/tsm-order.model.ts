@@ -56,13 +56,7 @@ export default class TsmOrderModel {
 				firstName: shippingAddress?.firstName,
 				lastName: shippingAddress?.lastName,
 			}
-
-			if (lineItem.custom?.fields?.productType === 'product-bundle') {
-				productBundle = lineItem
-			} else if (lineItem.custom?.fields?.productType === 'promotion_set') {
-				promotionSet = lineItem
-			}
-		}
+			
 			// TODO filter lineItems by selected
 			let sequenceCounter = 1
 			const filteredItem: LineItem[] = []
