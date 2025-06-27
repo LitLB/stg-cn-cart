@@ -194,7 +194,6 @@ export class CartService {
             const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
 
             if ([CART_JOURNEYS.DEVICE_BUNDLE_EXISTING, 
-                CART_JOURNEYS.DEVICE_BUNDLE_NEW, 
                 CART_JOURNEYS.DEVICE_BUNDLE_P2P,
                 CART_JOURNEYS.DEVICE_ONLY].includes(cartJourney)) {
                 try {
@@ -266,6 +265,7 @@ export class CartService {
                 }
 
             }
+
 
             const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
             const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
@@ -680,16 +680,27 @@ export class CartService {
     };
 
     // TODO: final step
-    private createTSMSaleOrder = async (orderNumber: string, cart: any) => {
+    private createTSMSaleOrder = async (orderNumber: string, cart: Cart) => {
         try {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const config = readConfiguration()
             // Get coupon information
+            console.log(1)
             const couponDiscounts = await this.getCouponInformation(orderNumber, COUPON_INFO_CONTAINER, cart.id)
+            console.log(2) 
             const tsmOrder = new TsmOrderModel({ ctCart: cart, config, orderNumber, couponDiscounts })
+            console.log(3)
             const tsmOrderPayload = await tsmOrder.toPayload()
+            console.log(4)
+
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
+            console.log(5)
+
+            // return {
+            //     success: false,
+            //     response: { message: 'this is mock response' }
+            // }
 
             const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
 
@@ -1212,8 +1223,8 @@ export class CartService {
     }
 
     public buildPayloadEligible(
-        ctCart: Cart, 
-        mainProductSku: string, 
+        ctCart: Cart,
+        mainProductSku: string,
         bundleProductInfo: { campaignCode: string, propositionCode: string, promotionSetCode: string, agreementCode: string }
     ) {
         const bundleKey = `${bundleProductInfo.campaignCode}_${bundleProductInfo.propositionCode}_${bundleProductInfo.promotionSetCode}_${bundleProductInfo.agreementCode}`;
