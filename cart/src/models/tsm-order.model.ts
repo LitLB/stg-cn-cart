@@ -279,7 +279,7 @@ export default class TsmOrderModel {
 				return 'S'
 			case 'package':
 			case 'promotion_set':
-			case 'bundle':
+			case 'product-bundle':
 			case 'sim':
 				return 'O'
 			case 'main_product':
