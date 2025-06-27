@@ -3,6 +3,7 @@ import { apigeeEncrypt } from '../utils/apigeeEncrypt.utils'
 import { Cart, LineItem } from '@commercetools/platform-sdk'
 import ctCustomObjectClient from '../adapters/ct-custom-object-client'
 import * as ORDER_CONSTANTS from '../constants/order.constant'
+import { logger } from '../utils/logger.utils'
 
 export default class TsmOrderModel {
 	private readonly ctCart: any
@@ -44,16 +45,9 @@ export default class TsmOrderModel {
 
 			// ! Cart
 			const { shippingAddress, lineItems, customLineItems } = this.ctCart as Cart
-
-
 			const customerInfo = JSON.parse(this.ctCart.custom?.fields.customerInfo)
-
-			// const campaignVerifyValues = this.getCampaignVerifyValues(lineItems)
-			// const thaiId = customerInfo.customerProfile.find((v: any) => v === 'certificationId') || ''
 			const thaiId = customerInfo && customerInfo?.customerProfile?.certificationId || ''
 			const mobile = customerInfo && customerInfo?.verifyMobileNumberValue || ''
-
-
 			const encryptedThaiId = thaiId ? apigeeEncrypt(thaiId, apigeePrivateKeyEncryption) : ''
 			const encryptedMobileNumber = mobile ? apigeeEncrypt(mobile, apigeePrivateKeyEncryption) : ''
 
@@ -145,8 +139,6 @@ export default class TsmOrderModel {
 						campaignName = ''
 					}
 
-
-
 					if (productType === 'free_gift') {
 						return {
 							id: orderId,
@@ -180,8 +172,6 @@ export default class TsmOrderModel {
 						}
 					}
 
-
-
 					//! items.discountAmount = ค่า amount ใน discounts ทั้งหมดรวมกัน
 					const { discountAmount: discountAmountBaht, discounts } = this.getItemDiscount({
 						orderId,
@@ -199,9 +189,6 @@ export default class TsmOrderModel {
 					//! items.netAmount = ค่า (price * quantity) - discountAmount
 					let netAmount = price * quantity
 					netAmount -= this.bahtToStang(discountAmountBaht)
-
-
-
 
 					return {
 						id: orderId,
@@ -280,8 +267,6 @@ export default class TsmOrderModel {
 				})
 			}
 
-
-
 			//! ค่า netAmount ใน items ทั้งหมดรวมกัน
 			const totalAmount = sequenceItems.reduce((total: number, item: any) => total + Number(item.netAmount), 0)
 
@@ -328,7 +313,7 @@ export default class TsmOrderModel {
 				},
 			};
 		} catch (error) {
-			console.error('Error getting promotion set custom object:', error);
+			logger.error('Error in TsmOrderModel.toPayload:', error);
 		}
 	}
 

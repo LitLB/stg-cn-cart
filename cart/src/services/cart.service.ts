@@ -685,22 +685,11 @@ export class CartService {
             const apigeeClientAdapter = new ApigeeClientAdapter
             const config = readConfiguration()
             // Get coupon information
-            console.log(1)
             const couponDiscounts = await this.getCouponInformation(orderNumber, COUPON_INFO_CONTAINER, cart.id)
-            console.log(2) 
             const tsmOrder = new TsmOrderModel({ ctCart: cart, config, orderNumber, couponDiscounts })
-            console.log(3)
             const tsmOrderPayload = await tsmOrder.toPayload()
-            console.log(4)
-
 
             logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
-            console.log(5)
-
-            // return {
-            //     success: false,
-            //     response: { message: 'this is mock response' }
-            // }
 
             const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
 
