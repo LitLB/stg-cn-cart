@@ -62,7 +62,7 @@ export default class TsmOrderModel {
 				filteredItem.push(lineItem)
 			}
 
-			if (lineItem.custom?.fields?.productType === 'bundle') {
+			if (lineItem.custom?.fields?.productType === 'product-bundle') {
 				productBundle = lineItem
 			} else if (lineItem.custom?.fields?.productType === 'promotion_set') {
 				promotionSet = lineItem
