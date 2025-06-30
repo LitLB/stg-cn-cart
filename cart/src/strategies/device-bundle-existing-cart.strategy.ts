@@ -507,7 +507,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         directDiscounts = eligibleResponse
       }
 
-      const advancePaymentList: string[] = bundleProductInfo.masterData.current.masterVariant.attributes?.find(r => r.name === 'payAdvanceServiceFee')?.value ?? "0"
+      const advancePaymentList: string[] = bundleProductInfo.masterData.current.masterVariant.attributes?.find(r => r.name === 'payAdvanceServiceFee')?.value ?? []
 
       const advancePayment = this.findValidAdvancePayment(advancePaymentList)
 
