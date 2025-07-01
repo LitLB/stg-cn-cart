@@ -46,11 +46,11 @@ export default class TsmOrderModel {
 			// ! Cart
 			const { shippingAddress, lineItems, customLineItems } = this.ctCart as Cart
 			const customerInfo = JSON.parse(this.ctCart.custom?.fields.customerInfo)
-			const thaiId = customerInfo && customerInfo?.customerProfile?.certificationId || ''
+			const thaiId = customerInfo && customerInfo?.customerProfile?.certificationId || customerInfo?.verifyCertificationIdValue || ''
 			const mobile = customerInfo && customerInfo?.verifyMobileNumberValue || ''
 			const encryptedThaiId = thaiId ? apigeeEncrypt(thaiId, apigeePrivateKeyEncryption) : ''
 			const encryptedMobileNumber = mobile ? apigeeEncrypt(mobile, apigeePrivateKeyEncryption) : ''
-
+			
 			const customer = {
 				thaiId: encryptedThaiId,
 				firstName: shippingAddress?.firstName,
@@ -73,7 +73,7 @@ export default class TsmOrderModel {
 				} else if (lineItem.custom?.fields?.productType === 'promotion_set') {
 					promotionSet = lineItem
 				}
-			}
+			}			
 
 			const advancePayment = customLineItems && customLineItems.find(v => v.slug === 'advance-payment')
 
@@ -88,10 +88,10 @@ export default class TsmOrderModel {
 
 				const campaignVerifyValues = productBundle.variant?.attributes?.find(v => v.name === 'verifyKeys')?.value as string[]
 				const privilegeRequiredValue = campaignVerifyValues && campaignVerifyValues.length > 0 ? campaignVerifyValues.map(v => { return { name: v, value: v === 'MSISDN' ? mobile : thaiId } }) : []
-
+				
 				const newPrivilegeRequiredValue = privilegeRequiredValue.reduce((acc, v) => {
 					return `${acc ? `${acc},` : ''}${v.name}=${v.value}`
-				}, '')
+				}, '')				
 
 				let campaignCode = '';
 				let campaignName = '';
