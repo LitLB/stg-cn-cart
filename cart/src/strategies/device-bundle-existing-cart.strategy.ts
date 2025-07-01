@@ -3,7 +3,6 @@ import {
   CartUpdateAction,
   CustomObject,
   LineItem,
-  Money,
   MyCartUpdateAction,
   Product,
   ProductVariant,

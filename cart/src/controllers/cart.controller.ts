@@ -11,6 +11,7 @@ import { HTTP_STATUSES } from '../constants/http.constant';
 import { GetCartByIdInPut } from '../interfaces/get-cart-by-id.interface';
 import { HttpStatusCode } from 'axios';
 import { createStandardizedError } from '../utils/error.utils';
+import { validateCreateCartHeaders } from '../schemas/cart.schema';
 
 export class CartController {
     private cartService: CartService;
@@ -49,18 +50,38 @@ export class CartController {
      */
     public createAnonymousCart = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
+
+
             const accessToken = req.accessToken as string;
+
+
+            const headers = {
+                correlatorid: req.headers['correlatorid'],
+                authorization: req.headers['authorization'],
+                'content-type': req.headers['content-type'],
+            }
+
+
             const createAnonymousCartInput: CreateAnonymousCartInput = req.body;
 
-            const createdCart = await this.cartService.createAnonymousCart(accessToken, createAnonymousCartInput);
+            const { error: errorHeaders } = validateCreateCartHeaders(headers);
+            if (errorHeaders) {
+                throw {
+                    statusCode: HTTP_STATUSES.BAD_REQUEST,
+                    statusMessage: 'Validation failed',
+                    data: errorHeaders.details.map((err: any) => err.message),
+                };
+            }
+
+            const createdCart = await this.cartService.createAnonymousCart(accessToken, createAnonymousCartInput, req.headers);
 
             const response: ApiResponse<ICart> = {
                 statusCode: HTTP_STATUSES.OK,
                 statusMessage: RESPONSE_MESSAGES.CREATED,
                 data: createdCart,
-            }; 
+            };
 
-            res.status(200).json(response); 
+            res.status(200).json(response);
         } catch (error: any) {
             logger.error(`CartController.createAnonymousCart.error`, error);
 

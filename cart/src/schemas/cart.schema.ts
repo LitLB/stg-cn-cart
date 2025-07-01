@@ -2,6 +2,7 @@
 
 import Joi from 'joi';
 import { CART_JOURNEYS } from '../constants/cart.constant';
+import { AddItemCartHeadersRequest } from './cart-item.schema';
 
 /**
  * Validation schema for cart route parameters.
@@ -49,7 +50,7 @@ export const createAnonymousCartSchema = Joi.object({
 			'any.only': `Journey must be one of: ${Object.values(CART_JOURNEYS).join(', ')}`,
 		}),
 	locale: Joi.string().optional(),
-	customerInfo: Joi.any().optional(), 
+	customerInfo: Joi.any().optional(),
 });
 
 export function validateCartCheckoutBody(body: any) {
@@ -182,4 +183,18 @@ export function validateCartCheckoutBody(body: any) {
 			'any.required': 'Payment method is required',
 		}),
 	}).validate(body, { abortEarly: false });
+}
+
+export type CreateCartHeadersRequest = {
+    'content-type': string;
+    authorization: string;
+    correlatorid: string;
+}
+
+export function validateCreateCartHeaders(headers: any) {
+    return Joi.object<CreateCartHeadersRequest>({
+        'content-type': Joi.string().required(),
+        authorization: Joi.string().required(),
+        correlatorid: Joi.string().required(),
+    }).validate(headers, { abortEarly: false, allowUnknown: true });
 }

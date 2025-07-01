@@ -107,6 +107,7 @@ export class CartService {
     public createAnonymousCart = async (
         accessToken: string,
         createAnonymousCartInput: CreateAnonymousCartInput,
+        headers: any,
     ): Promise<ICart> => {
         try {
             const { campaignGroup, journey, locale, customerInfo } = createAnonymousCartInput;
@@ -115,7 +116,7 @@ export class CartService {
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
-            const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey, locale, custInfo);
+            const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey, locale, custInfo, headers.correlatorid);
 
             await this.initialTalonOneSession(cart)
 
@@ -193,9 +194,9 @@ export class CartService {
             const isPreOrder = ctCart.custom?.fields.preOrder
             const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
 
-            if ([CART_JOURNEYS.DEVICE_BUNDLE_EXISTING, 
-                CART_JOURNEYS.DEVICE_BUNDLE_P2P,
-                CART_JOURNEYS.DEVICE_ONLY].includes(cartJourney)) {
+            if ([CART_JOURNEYS.DEVICE_BUNDLE_EXISTING,
+            CART_JOURNEYS.DEVICE_BUNDLE_P2P,
+            CART_JOURNEYS.DEVICE_ONLY].includes(cartJourney)) {
                 try {
                     const mainProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product') as LineItem
                     const bundleProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'product-bundle') as LineItem
@@ -1148,13 +1149,13 @@ export class CartService {
     public async checkEligible(ctCart: Cart, mainProductSku: string, bundleProductInfo: { campaignCode: string, propositionCode: string, promotionSetCode: string, agreementCode: string }, headers: any): Promise<IHeadlessCheckEligibleResponse> {
         const hlClient = new HeadlessClientAdapter()
         const headlessPayload = this.buildPayloadEligible(ctCart, mainProductSku, bundleProductInfo);
-
+        logger.info(`[CHECK_ELIGIBLE] headlessPayload: ${JSON.stringify(headlessPayload)}`)
         try {
             const response = await hlClient.checkEligible(headlessPayload, headers)
 
             return response.data
         } catch (e: any) {
-            console.log('[CHECK_ELIGIBLE] Error', e)
+            logger.error('[CHECK_ELIGIBLE] Error', JSON.stringify(e))
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: 'Campaign is not eligible',

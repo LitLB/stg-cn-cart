@@ -65,7 +65,7 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 	 * @param campaignGroup - The campaign group for the cart.
 	 * @param journey - The journey for the cart.
 	 */
-	public async createCart(campaignGroup: string, journey: string, locale = LOCALES.TH_TH, customerInfo: Record<string, string>): Promise<Cart> {
+	public async createCart(campaignGroup: string, journey: string, locale = LOCALES.TH_TH, customerInfo: Record<string, string>, correlatorId: string): Promise<Cart> {
 
 		const cartDraft: MyCartDraft = {
 			country: COUNTRIES.TH,
@@ -78,7 +78,8 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 					typeId: 'type',
 					key: 'cartOrderCustomType',
 				},
-				fields: { 
+				fields: {
+					correlatorId,
 					campaignGroup,
 					journey,
 					preOrder: false,
@@ -226,12 +227,12 @@ export default class CommercetoolsMeCartClient implements IAdapter {
 				.carts()
 				.withId({ ID: cartId })
 				.post({ body: cartUpdate })
-				.execute(); 
+				.execute();
 
 			return response.body;
 		} catch (error: any) {
 			console.error('updateCart.error', error);
-			throw error; 
+			throw error;
 		}
 	}
 
