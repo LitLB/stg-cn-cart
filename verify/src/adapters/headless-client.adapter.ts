@@ -45,6 +45,7 @@ export class HeadlessClientAdapter extends ApiClientService {
                 headers: {
                     'ApiKey': this.hlApiKey,
                 },
+                timeout: 90000
             };
             const response = await this.post<VerifyHLResponse>(url, body, config);
             return response.data;
