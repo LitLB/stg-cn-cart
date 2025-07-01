@@ -1257,7 +1257,7 @@ export class CartService {
                 ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.birthdate && { customerAge: calculateAge(customerProfile.birthdate ?? 0) }),
                 ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.campaignByJourney && { campaignByJourney: customerProfile.campaignByJourney }),
                 ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.poolNumberGroup && { poolNumberGroup: customerProfile.poolNumberGroup }),
-                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.customerLoyalty && { customerLoyalty: customerProfile.customerLoyalty }),
+                ...(customerProfile?.customerLoyalty && { customerLoyalty: customerProfile.customerLoyalty }),
                 ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.pricePlan && { pricePlan: customerProfile.pricePlan }),
                 ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.ageOfUse && { ageOfUse: customerProfile.ageOfUse }),
                 ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.packageContract && { packageContract: customerProfile.packageContract }),
