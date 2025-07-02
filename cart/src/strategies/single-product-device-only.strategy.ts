@@ -93,9 +93,10 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
       }
 
       // Override journey level cart gonna be product journey to validation
+      const cartJourney = cart.custom?.fields?.journey as CART_JOURNEYS
       const journey = this.determineJourney(
         product,
-        cart.custom?.fields?.journey as CART_JOURNEYS,
+        cartJourney as CART_JOURNEYS,
         payload?.journey
       );
 
@@ -118,7 +119,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         };
       }
 
-      if (journey === CART_JOURNEYS.DEVICE_ONLY) {
+      if (cartJourney === CART_JOURNEYS.DEVICE_ONLY) {
         this.validateDeviceOnlyCampaign(payload, cart, variant);
         this.validateQuantity(productType, cart, sku, product, variant, quantity);
       }
@@ -915,7 +916,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
   }
 
   protected validateDeviceOnlyCampaign(payload: AddItemCartBodyRequest, cart: Cart, variant: ProductVariant) {
-    const { bundleProduct, sku } = payload;
+    const { bundleProduct, sku, journey } = payload;
     const mainProductLineItems = cart.lineItems.filter(
       (item: LineItem) => item.custom?.fields?.productType === 'main_product'
     );
@@ -925,7 +926,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
       0
     );
 
-    if (_.isEmpty(bundleProduct)) {
+    if (journey === CART_JOURNEYS.DEVICE_ONLY && _.isEmpty(bundleProduct)) {
       throw {
         statusCode: HTTP_STATUSES.BAD_REQUEST,
         statusMessage:
@@ -934,9 +935,13 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
     }
 
     if (totalCartQuantity >= 1) {
+      let statusMessage = `Cannot have more than 1 unit of SKU ${sku} in the cart.`;
+      
+      if (journey !== CART_JOURNEYS.DEVICE_ONLY) statusMessage = `Cannot mix this item with others in cart.`
+
       throw {
         statusCode: HTTP_STATUSES.BAD_REQUEST,
-        statusMessage: `Cannot have more than 1 unit of SKU ${sku} in the cart.`,
+        statusMessage: statusMessage,
       };
     }
 
