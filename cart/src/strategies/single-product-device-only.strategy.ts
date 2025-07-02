@@ -993,7 +993,7 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
     return {
       ...cartData,
       items: cartData.items?.filter((item: any) => 
-        item.productType !== 'promotion_set'
+        !['promotion_set', 'product-bundle'].includes(item.productType)
       ) || []
     };
   }
