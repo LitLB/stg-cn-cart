@@ -802,8 +802,9 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
         await this.adapters.commercetoolsMeCartClient.updateCartWithBenefit(
           cartWithUpdatedPrice
         );
-
-      return { ...iCartWithBenefit, hasChanged: compared };
+      const cartResult = { ...iCartWithBenefit, hasChanged: compared };
+      
+      return this.filterPromotionSet(cartResult);
     } catch (error: any) {
       if (error.status && error.message) {
         throw error;
