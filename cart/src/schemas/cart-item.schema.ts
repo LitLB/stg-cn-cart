@@ -280,12 +280,11 @@ export function validateAddItemCartBody(body: any) {
                 'string.empty': 'Custom smart search cannot be empty',
                 'any.required': 'Custom smart search is required',
             }),
-            phone: Joi.string().required().messages({
-                'string.empty': 'Phone cannot be empty',
+            phone: Joi.string().required().allow('').messages({
                 'any.required': 'Phone is required',
             }),
-            email: Joi.string().email().required().messages({
-                'string.empty': 'Email cannot be empty',
+            email: Joi.string().email().required().allow('').messages({
+                'string.email': 'Email must be a valid email',
                 'any.required': 'Email is required',
             })
         }).optional(),
