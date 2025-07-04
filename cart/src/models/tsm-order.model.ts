@@ -186,9 +186,9 @@ export default class TsmOrderModel {
 						sequence,
 					})
 
-					//! items.netAmount = ค่า (price * quantity) - discountAmount
+					//! items.netAmount = ค่า (price * quantity) - (discountAmount + otherPaymentAmount)
 					let netAmount = price * quantity
-					netAmount -= this.bahtToStang(discountAmountBaht)
+                    netAmount = netAmount - (this.bahtToStang(discountAmountBaht) + this.bahtToStang(otherPaymentAmountBaht))
 
 					return {
 						id: orderId,
