@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { Characteristic } from "../interfaces/otp.interface";
 import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
+import { convertToDDMMYYYY } from "../utils/formatter.utils";
 
 
 export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileResponse => {
@@ -85,11 +86,11 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
 
     return {
         certificationId: data.engagedParty.id,
-        certificationType: 'I', // ! [TBC]
+        certificationType: data.relatedParty.customer?.type || 'I', // ! TBC
         customerNo: data.relatedParty.href,
         customerType: customerType,
         companyCode: "DTN", // ? FIX
-        birthOfDate: "30061996", // ! [TBC]
+        birthOfDate: convertToDDMMYYYY(data.subscriberInfo.birthDate), 
         aging: filteredAging,
         pricePlan: (pricePlan?.itemPrice.price.value ?? undefined),
         packageCode: (pricePlan?.id ?? undefined)
@@ -171,14 +172,34 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
 
         const foundPackage = packageInfo.productItem.find((element: any) => element.type === 'P' && element.status === 'A')
 
+        /* 
+            True : ID Card Type
+            C=หนังสือรับรองบริษัท/ห้างฯ
+            G=บัตรประจำตัวข้าราชการ
+            M=ใบสุทธิ
+            P=หนังสือเดินทาง
+            T=ทะเบียนวัด
+            I=บัตรประชาชน                   
+            J=หนังสือรับรองการจัดตั้งสมาคม
+            B=บัญชีมูลนิธิ
+            O=ทะเบียนพาณิชย์
+            D=บัตรประจำตัวพนักงานรัฐวิสาหกิจ
+            A=บัตรประจำตัวคนต่างด้าว
+            H=อื่นๆ
+            F=บัตรนักเรียน-นักศึกษา
+            E=ใบขับขี่
+            S=TempPassportบัตรไม่ระบุสัญชาติ
+            V=รหัสหน่วยงานราชการ/รัฐวิสาหกิจ
+        */
+
         return {
             certificationId: data.engagedParty.id,
-            certificationType: 'I', // ! [TBC]
+            certificationType: data.relatedParty.customer.type, 
             customerNo: data.relatedParty.account.id,
             customerType: data.relatedParty.customer.type,
             companyCode: companyCode.value,
             agreementId: data.subscriberInfo.id,
-            birthOfDate: "30061996", // ! [TBC]
+            birthOfDate: convertToDDMMYYYY(data.subscriberInfo.birthDate), 
             aging: data.aging,
             pricePlan: (foundPackage.amount.value ?? undefined),
             packageCode: (foundPackage.name ?? undefined)

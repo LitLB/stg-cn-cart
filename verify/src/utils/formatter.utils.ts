@@ -1,7 +1,9 @@
+import dayjs from "dayjs";
+
 export function convertToThailandMobile(mobile: string): string {
 
   const sanitized = mobile.replace(/\D/g, '');
-  
+
   if (sanitized.startsWith('0') && (sanitized.length < 10 || sanitized.length > 10)) {
     throw {
       status: 400,
@@ -38,4 +40,9 @@ export function safeStringify(obj: any): string {
     }
     return value;
   });
+}
+
+export function convertToDDMMYYYY(input: string) {
+  const now = dayjs(input)
+  return now.format('DDMMYYYY')
 }
