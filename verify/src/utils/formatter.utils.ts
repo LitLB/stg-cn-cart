@@ -1,4 +1,6 @@
 import dayjs from "dayjs";
+import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
 
 export function convertToThailandMobile(mobile: string): string {
 
@@ -43,6 +45,8 @@ export function safeStringify(obj: any): string {
 }
 
 export function convertToDDMMYYYY(input: string) {
-  const now = dayjs(input)
-  return now.format('DDMMYYYY')
+  const normalizeDate = input.substring(0,10)
+  dayjs.extend(timezone)
+  dayjs.extend(utc)
+  return dayjs(normalizeDate).format('DDMMYYYY')
 }
