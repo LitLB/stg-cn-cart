@@ -410,10 +410,20 @@ export class SingleProductDeviceOnlyCartStrategy extends BaseCartStrategy<{
           statusMessage: 'Product is no longer available.',
         };
       }
+
+      const lineItem = cart.lineItems.find((item) => item.productId === productId);
+      if (!lineItem) {
+        throw {
+            statusCode: HTTP_STATUSES.NOT_FOUND,
+            statusMessage: 'Product not found',
+        };
+      }
+
       // Override journey level cart gonna be product journey to validation
       const journey = this.determineJourney(
         product,
-        cart.custom?.fields?.journey as CART_JOURNEYS
+        cart.custom?.fields?.journey as CART_JOURNEYS,
+        lineItem.custom?.fields?.journey as CART_JOURNEYS
       );
 
       // const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
