@@ -371,6 +371,7 @@ class CommercetoolsOrderClient {
                 .get({
                     queryArgs: {
                         where: `id in ("${stateIds.join('","')}")`,
+                        limit: 100
                     }
                 })
                 .execute();
