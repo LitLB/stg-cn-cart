@@ -435,12 +435,17 @@ export class OtpService {
             }
 
             if (steps.has("contractAndQuota")) {
-                await this.checkContractAndQuota(
+                const contract = await this.checkContractAndQuota(
                     id,
                     operator,
                     certificationId,
                     agreementId
                 );
+
+                response.customerProfile = {
+                    ...response.customerProfile,
+                    contractRemainDays: contract.contractRemainDays ?? "0"
+                }
                 response.verifyResult.verifyContractStatus = "success";
             }
 
@@ -595,7 +600,7 @@ export class OtpService {
         }
     }
 
-    private async checkContractAndQuota(id: string, operator: string, thaiId?: string, agreementId?: string) {
+    private async checkContractAndQuota(id: string, operator: string, thaiId?: string, agreementId?: string): Promise<any> {
         const logModel = LogModel.getInstance();
         const logStepModel = createLogModel(LOG_APPS.STORE_WEB, LOG_MSG.APIGEE_CHECK_CONTRACT_AND_QUOTA, logModel);
         const key = this.config.apigee.privateKeyEncryption;
@@ -617,7 +622,7 @@ export class OtpService {
                 logService({ id, agreementId }, response, logStepModel)
                 const { agreementItem } = response.data
 
-                validateContractAndQuotaTrue(agreementItem)
+                return validateContractAndQuotaTrue(agreementItem)
             }
 
             if (operator === OPERATOR.DTAC) {
@@ -636,8 +641,9 @@ export class OtpService {
                 logService({ id, operator, thaiId }, response.data, logStepModel)
                 const data = response.data
 
-                validateContractAndQuotaDtac(data)
+                return validateContractAndQuotaDtac(data)
             }
+
 
         } catch (e: any) {
             logService({ id, operator, thaiId }, e, logStepModel)
@@ -645,7 +651,7 @@ export class OtpService {
             if (operator === OPERATOR.TRUE && e.status === 400) {
 
                 if (e.response?.data?.code === "400.209.0020") {
-                    return
+                    return { contractRemainDays: '0' }
                 }
 
                 throw {

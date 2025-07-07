@@ -90,7 +90,7 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
         customerNo: data.relatedParty.href,
         customerType: customerType,
         companyCode: "DTN", // ? FIX
-        birthOfDate: convertToDDMMYYYY(data.subscriberInfo.birthDate), 
+        birthOfDate: convertToDDMMYYYY(data.subscriberInfo.birthDate),
         aging: filteredAging,
         pricePlan: (pricePlan?.itemPrice.price.value ?? undefined),
         packageCode: (pricePlan?.id ?? undefined)
@@ -194,12 +194,12 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
 
         return {
             certificationId: data.engagedParty.id,
-            certificationType: data.relatedParty.customer.type, 
+            certificationType: data.relatedParty.customer.type,
             customerNo: data.relatedParty.account.id,
             customerType: data.relatedParty.customer.type,
             companyCode: companyCode.value,
             agreementId: data.subscriberInfo.id,
-            birthOfDate: convertToDDMMYYYY(data.subscriberInfo.birthDate), 
+            birthOfDate: convertToDDMMYYYY(data.subscriberInfo.birthDate),
             aging: data.aging,
             pricePlan: (foundPackage.amount.value ?? undefined),
             packageCode: (foundPackage.name ?? undefined)
@@ -216,13 +216,9 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
 }
 
 export const validateContractAndQuotaTrue = (data: any) => {
-
     const product = data.product
-
     const now = dayjs()
-
     const filteredProduct = product.map((item: any) => {
-
         if (parseInt(item.fee) > 0 && parseInt(item.term) > 0) {
             return {
                 contractTerm: parseInt(item.term),
@@ -234,7 +230,8 @@ export const validateContractAndQuotaTrue = (data: any) => {
     })
 
     filteredProduct.forEach((item: { contractTerm: number, contractFee: number, contractRemain: number }) => {
-        if (item.contractTerm > 0 && item.contractFee >= 0 && item.contractRemain <= 90) return
+
+        if (item.contractTerm > 0 && item.contractFee >= 0 && item.contractRemain <= 90) return { contractRemainDays: String(item.contractRemain) }
         else if (item.contractTerm > 0 && item.contractFee > 0 && item.contractRemain > 90) {
             throw {
                 statusCode: '400.4013',
@@ -259,7 +256,9 @@ export const validateContractAndQuotaDtac = (data: any) => {
     const totalContractActiveFlag = data.characteristic.find((r: Characteristic) => r.name === "TotalActiveContract").value === "0"
 
     if (allowFlag || (!allowFlag && quotaStatusFlag && totalContractActiveFlag)) {
-        return
+        return {
+            contractRemainDays: '0' // ? DEFAULT "0" not exist in DTAC
+        } 
     } else {
         throw {
             statusCode: '400.4013',

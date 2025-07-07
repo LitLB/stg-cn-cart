@@ -71,6 +71,7 @@ export interface ICustomerProfile {
     pricePlan?: string;
     packageCode?: string;
     ageOfUse?: string;
+    contractRemainDays?: string;
     
 }
 
