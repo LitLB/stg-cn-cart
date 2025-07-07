@@ -56,7 +56,7 @@ export class CommercetoolsCartClient implements IAdapter {
                 .post({
                     body: cartUpdate,
                     queryArgs: {
-                        expand: ['custom.fields.couponsInformation', 'custom.fields.billingAddress'],
+                        expand: ['custom.fields.couponsInformation', 'custom.fields.billingAddress', 'custom.fields.ekyc'],
                     },
                 })
                 .execute();

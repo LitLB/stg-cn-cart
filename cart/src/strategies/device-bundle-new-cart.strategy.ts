@@ -255,6 +255,34 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
     return validPrice;
   }
 
+  protected async getValidPriceSim(variant: ProductVariant, today: Date) {
+
+    if (!variant.sku) {
+      throw {
+        statusCode: HTTP_STATUSES.NOT_FOUND,
+        statusMessage: 'SKU not found in the specified variant',
+      };
+    }
+
+    const standalonePrice = await this.adapters.commercetoolsStandalonePricesClient.getStandalonePricesBySku(variant.sku)
+
+    if (standalonePrice.length === 0) {
+        return;
+    }
+
+    const validPrice = this.adapters.commercetoolsProductClient.findValidPrice({
+      prices: standalonePrice,
+      customerGroupId: readConfiguration().ctPriceCustomerGroupIdRrp,
+      date: today,
+    });
+
+    if (!validPrice) {
+      return;
+    }
+
+    return validPrice.value;
+  }
+
   protected validateQuantity(
     productType: string,
     cart: Cart,
@@ -320,7 +348,8 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
     mainPackage: ProductVariant,
     bundle: ProductVariant,
     advancePayment: number,
-    extraAdvancedPayment: number
+    extraAdvancedPayment: number,
+    serviceCode: string
   ): Promise<any> {
     const packageCode = mainPackage.attributes?.find(
       (attr) => attr.name === 'package_code'
@@ -349,6 +378,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
               advancedPayment: advancePayment,
               extraAdvancedPayment: extraAdvancedPayment || 0,
               contractTerm: contractTerm?.value || 12,
+              serviceCode: serviceCode || ""
             },
             connector: {
               description: {},
@@ -370,6 +400,22 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
           container: 'billing-address-info',
           key: `billing-address-${cart.id}`,
           value: billingAddress
+        }
+      );
+
+    return packageCustomObj;
+  }
+
+  protected async getEkycInfo(
+    cart: Cart,
+    ekyc: any
+  ): Promise<any> {
+    const packageCustomObj =
+      await this.adapters.commercetoolsCustomObjectClient.createOrUpdateCustomObject(
+        {
+          container: 'ekyc-info',
+          key: `ekyc-${cart.id}`,
+          value: ekyc
         }
       );
 
@@ -512,7 +558,9 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
         productGroup,
         campaignVerifyValues,
         bundleProduct,
-        extraAdvancedPayment
+        extraAdvancedPayment,
+        serviceCode,
+        ekyc,
       } = payload;
       const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
 
@@ -533,8 +581,11 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
       
       const mainPackage = await this.getPackageByCode(packageInfo.code);
       const sim = await this.getSimBySku(simInfo.sku);
+      const validPriceSim = await this.getValidPriceSim(sim[1], now);
       const promotionSetInfo = await this.getPromotionSetByCode(bundleProduct.promotionSetCode)
       const bundleProductInfo = await this.getBundleProductByKey(bundleProduct.key)
+
+      simInfo.price = validPriceSim || 0;
 
       if (!bundleProductInfo) {
         throw {
@@ -553,10 +604,12 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
         mainPackage.masterData.current.masterVariant,
         bundleProductInfo.masterData.current.masterVariant,
         advancePayment,
-        extraAdvancedPaymentNew
+        extraAdvancedPaymentNew,
+        serviceCode,
       );
 
       const billingAddressInfo = await this.getBillingAddressInfo(cart, billingAddress)
+      const ekycInfo = await this.getEkycInfo(cart, ekyc)
       this.validateReleaseDate(variant.attributes!, now);
       this.validateStatus(variant);
       this.validateQuantity(productType, cart, sku, product, variant, quantity);
@@ -741,6 +794,14 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
               value: {
                 typeId: 'key-value-document',
                 id: billingAddressInfo.id,
+              },
+            },
+            {
+              action: 'setCustomField',
+              name: 'ekyc',
+              value: {
+                typeId: 'key-value-document',
+                id: ekycInfo.id,
               },
             },
           ]

@@ -139,6 +139,57 @@ export type AddItemCartBodyRequest = {
         promotionSetCode: string;
     },
     extraAdvancedPayment?: number;
+    ekyc: EKYCData;
+};
+
+export type EKYCData = {
+	sessionId: string;
+    uppassSlug: string;
+    uppassForm: string;
+    language: string;
+    journey: string;
+    dopaBypass: string;
+    dopaFlag: string;
+    dopaLaserFlag: string;
+    docType: string;
+    docNumber: string;
+    correlationId:string;
+    resultStatus: string;
+    createAt: string;
+    updateAt: string;
+    faceScoreValue: string;
+    faceCompareResult: string;
+    urlLiveness: string;
+    urlIdentity: string;
+    uppassDopaStatus: string;
+    uppassDocType: string;
+    uppassMode: string;
+    uppassDocNumber: string;
+    idCardOcrStatus: string;
+    faceCompareStatus:string;
+    address: Address;
+};
+
+export type Address = {
+    gender: string;
+    prefix: string;
+	firstName: string;
+	lastName: string;
+    firstNameEn: string;
+    lastNameEn: string;
+    dateOfBirth: string;
+	houseNo: string;
+	moo: string;
+	village: string;
+	building: string;
+	floor: string;
+	roomNo: string;
+	soi: string;
+	streetName: string;
+	city: string;
+	subDistrict: string;
+	state: string;
+	postalCode: string;
 };
 
 export function validateAddItemCartBody(body: any) {
@@ -255,6 +306,10 @@ export function validateAddItemCartBody(body: any) {
                 'string.empty': 'selectNumberCreateAt cannot be empty',
                 'any.required': 'selectNumberCreateAt is required',
             }),
+            propositionCode: Joi.string().required().messages({
+                'string.empty': 'propositionCode cannot be empty',
+                'any.required': 'propositionCode is required',
+            }),
         }).optional(),
         billingAddress: Joi.object({
             firstName: Joi.string().required().messages({
@@ -298,7 +353,54 @@ export function validateAddItemCartBody(body: any) {
                 'any.required': 'Promotion Set Code is required',
             })
         }).optional(),
-        extraAdvancedPayment: Joi.number().integer().min(0).optional()
+        extraAdvancedPayment: Joi.number().integer().min(0).optional(),
+        ekyc: Joi.object({
+            sessionId: Joi.string().required(),
+            uppassSlug: Joi.string().allow(''),
+            uppassForm: Joi.string().allow(''),
+            language: Joi.string().allow(''),
+            journey: Joi.string().allow(''),
+            dopaBypass: Joi.string().allow(''),
+            dopaFlag: Joi.string().allow(''),
+            dopaLaserFlag: Joi.string().allow(''),
+            docType: Joi.string().allow(''),
+            docNumber: Joi.string().allow(''),
+            correlationId: Joi.string().allow(''),
+            resultStatus: Joi.string().allow(''),
+            createAt: Joi.string().allow(''),
+            updateAt: Joi.string().allow(''),
+            faceScoreValue: Joi.string().allow(''),
+            faceCompareResult: Joi.string().allow(''),
+            urlLiveness: Joi.string().allow(''),
+            urlIdentity: Joi.string().allow(''),
+            uppassDopaStatus: Joi.string().allow(''),
+            uppassDocType: Joi.string().allow(''),
+            uppassMode: Joi.string().allow(''),
+            uppassDocNumber: Joi.string().allow(''),
+            idCardOcrStatus: Joi.string().allow(''),
+            faceCompareStatus: Joi.string().allow(''),
+            address: Joi.object({
+                gender: Joi.string().allow(''),
+                prefix: Joi.string().allow(''),
+                firstName: Joi.string().allow(''),
+                lastName: Joi.string().allow(''),
+                firstNameEn: Joi.string().allow(''),
+                lastNameEn: Joi.string().allow(''),
+                dateOfBirth: Joi.string().allow(''),
+                houseNo: Joi.string().allow(''),
+                moo: Joi.string().allow(''),
+                village: Joi.string().allow(''),
+                building: Joi.string().allow(''),
+                floor: Joi.string().allow(''),
+                roomNo: Joi.string().allow(''),
+                soi: Joi.string().allow(''),
+                streetName: Joi.string().allow(''),
+                city: Joi.string().allow(''),
+                subDistrict: Joi.string().allow(''),
+                state: Joi.string().allow(''),
+                postalCode: Joi.string().allow(''),
+            }).optional(),
+        }).optional()
     }).validate(body, { abortEarly: false });
 }
 
