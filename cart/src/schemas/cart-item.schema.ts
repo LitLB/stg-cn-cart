@@ -139,7 +139,8 @@ export type AddItemCartBodyRequest = {
         promotionSetCode: string;
     },
     extraAdvancedPayment?: number;
-    ekyc: EKYCData;
+    serviceCode?: string;
+    ekyc?: EKYCData;
 };
 
 export type EKYCData = {
@@ -354,6 +355,7 @@ export function validateAddItemCartBody(body: any) {
             })
         }).optional(),
         extraAdvancedPayment: Joi.number().integer().min(0).optional(),
+        serviceCode: Joi.string().allow(''),
         ekyc: Joi.object({
             sessionId: Joi.string().required(),
             uppassSlug: Joi.string().allow(''),
