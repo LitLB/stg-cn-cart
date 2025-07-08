@@ -57,11 +57,18 @@ class HeadlessClientAdapter {
                 }
             );
 
+            if (response.data && typeof response.data !== 'object') {
+                console.error(`getPromotionBundleNoCampaign:error:${JSON.stringify(response.data)}`);
+                return null
+            }
+
             return response.data;
         } catch (error: unknown) {
             if (axios.isAxiosError(error)) {
                 if (error.response) {
                     console.error(`getPromotionBundleNoCampaign:error:${JSON.stringify(error.response.data)}`);
+                } else {
+                    console.error(`getPromotionBundleNoCampaign:error:${JSON.stringify(error)}`);
                 }
             } else {
                 // format simple error before create log error
