@@ -70,6 +70,7 @@ export const reserveMsisdn = async (
                 {
                     statusCode: err.status || HttpStatusCode.InternalServerError,
                     statusMessage: err.response?.data?.description || err.code,
+                    errorCode: err.response?.data?.code,
                 },
                 'reserveMsisdn'
             );
@@ -105,6 +106,7 @@ export const cancelReserveMsisdn = async (
                 {
                     statusCode: err.status || HttpStatusCode.InternalServerError,
                     statusMessage: err.response?.data?.description || err.code,
+                    errorCode: err.response?.data?.code,
                 },
                 'cancelReserveMsisdn'
             );
