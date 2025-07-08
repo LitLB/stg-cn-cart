@@ -5,7 +5,7 @@ export type LoyaltyTier = 'red' | 'black';
 export type CampaignByJourney = 'bdbc' | 'super_deal';
 export type PropositionGroup = 399 | 499 | 599 | 699 | 799 | 899 | 1199;
 export type CompareRedisData = {
-    isEqual: Boolean,
+    isEqual: boolean,
     dataChange: any
 }
 export interface SimInfo {

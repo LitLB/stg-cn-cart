@@ -2,7 +2,8 @@
     "trailingComma": "es5",
     "singleQuote": true,
     "parser": "typescript",
-    "printWidth": 80,
+    "printWidth": 100,
+    "tabWidth": 4,
     "overrides": [
       {
         "files": "*.json",
