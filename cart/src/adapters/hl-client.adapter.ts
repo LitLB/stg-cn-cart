@@ -58,8 +58,15 @@ class HeadlessClientAdapter {
             );
 
             return response.data;
-        } catch (error: any) {
-            console.error(`getPromotionBundleNoCampaign.error`, error);
+        } catch (error: unknown) {
+            if (axios.isAxiosError(error)) {
+                if (error.response) {
+                    console.error(`getPromotionBundleNoCampaign:error:${JSON.stringify(error.response.data)}`);
+                }
+            } else {
+                // format simple error before create log error
+                console.error(`getPromotionBundleNoCampaign:error:`, error instanceof Error ? error.message : String(error));
+            }
             
             return null
         }
