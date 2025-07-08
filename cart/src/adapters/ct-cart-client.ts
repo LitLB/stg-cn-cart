@@ -309,11 +309,6 @@ export class CommercetoolsCartClient implements IAdapter {
         }
 
         if (eligibleProductBundle && bundleProductInfo && promotionSetInfo) {
-            const totalDiscount = Number(eligibleProductBundle?.prices?.totalDiscount)
-            if (totalDiscount === 0) {
-                return updatedCart
-            }
-
             const bundleLineItemDraft: LineItemDraft = {
                 productId: bundleProductInfo.id,
                 variantId: bundleProductInfo.masterData.current.masterVariant.id,
