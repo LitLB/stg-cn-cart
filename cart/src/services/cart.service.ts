@@ -1,7 +1,13 @@
 // cart/src/services/cart.service.ts
 
-import _ from 'lodash'
-import { Cart, CartUpdateAction, LineItem, MyCartUpdateAction, Order, Product } from '@commercetools/platform-sdk';
+import _ from 'lodash';
+import {
+    Cart,
+    CartUpdateAction,
+    LineItem,
+    MyCartUpdateAction,
+    Order,
+} from '@commercetools/platform-sdk';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -18,12 +24,16 @@ import ApigeeClientAdapter from '../adapters/apigee-client.adapter';
 import TsmOrderModel from '../models/tsm-order.model';
 import { readConfiguration } from '../utils/config.utils';
 import { EXCEPTION_MESSAGES } from '../constants/messages.constant';
-import { BlacklistService } from './blacklist.service'
+import { BlacklistService } from './blacklist.service';
 import { safelyParse } from '../utils/response.utils';
 import { logger } from '../utils/logger.utils';
 import { createStandardizedError } from '../utils/error.utils';
 import { CreateAnonymousCartInput } from '../interfaces/create-anonymous-cart.interface';
-import { IOrderAdditional, IPaymentInfo, IClientInfo } from '../interfaces/order-additional.interface';
+import {
+    IOrderAdditional,
+    IPaymentInfo,
+    IClientInfo,
+} from '../interfaces/order-additional.interface';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import { PAYMENT_STATES } from '../constants/payment.constant';
 import { commercetoolsOrderClient } from '../adapters/ct-order-client';
@@ -45,6 +55,10 @@ import { CompareRedisData } from '../types/share.types';
 import HeadlessClientAdapter from '../adapters/hl-client.adapter';
 import { calculateAge } from '../utils/calculate.utils';
 import { areArraysEqual } from '../utils/array.utils';
+import { apigeeEncrypt } from '../utils/apigeeEncrypt.utils';
+import { ReserveMsisdnRequest } from '../types/services/aprgee.type';
+import { cancelReserveMsisdn, reserveMsisdn } from './apigee.service';
+import { CustomerInfo, SimInfo } from '../types/services/cart.type';
 
 export class CartService {
     private talonOneCouponAdapter: TalonOneCouponAdapter;
@@ -55,20 +69,26 @@ export class CartService {
 
     constructor() {
         this.talonOneCouponAdapter = new TalonOneCouponAdapter();
-        this.blacklistService = new BlacklistService()
-        this.couponService = new CouponService()
-        this.inventoryService = new InventoryService()
+        this.blacklistService = new BlacklistService();
+        this.couponService = new CouponService();
+        this.inventoryService = new InventoryService();
         this.cartTransformer = new CartTransformer();
     }
 
-    async getCurrentAndUpdatedCouponEffects(accessToken: string, id: string, body: any): Promise<any> {
+    async getCurrentAndUpdatedCouponEffects(
+        accessToken: string,
+        id: string,
+        body: any
+    ): Promise<any> {
         try {
             const { cartId } = body;
 
             const customerSession = await talonOneIntegrationAdapter.getCustomerSession(cartId);
 
             // Get Current Effects
-            const currentProcessedCouponEffects = this.talonOneCouponAdapter.processCouponEffectsV2(customerSession.effects);
+            const currentProcessedCouponEffects = this.talonOneCouponAdapter.processCouponEffectsV2(
+                customerSession.effects
+            );
             console.log('currentProcessedCouponEffects', currentProcessedCouponEffects);
 
             // Get Updated Effects
@@ -79,7 +99,9 @@ export class CartService {
                 cartId,
                 customerSessionPayload
             );
-            const updatedProcessedCouponEffects = this.talonOneCouponAdapter.processCouponEffectsV2(updatedCustomerSession.effects);
+            const updatedProcessedCouponEffects = this.talonOneCouponAdapter.processCouponEffectsV2(
+                updatedCustomerSession.effects
+            );
             console.log('updatedProcessedCouponEffects', updatedProcessedCouponEffects);
 
             return { currentProcessedCouponEffects, updatedProcessedCouponEffects };
@@ -90,35 +112,38 @@ export class CartService {
                 throw error;
             }
 
-            throw createStandardizedError(
-                error,
-                'getCurrentAndUpdatedCouponEffects'
-            );
+            throw createStandardizedError(error, 'getCurrentAndUpdatedCouponEffects');
         }
     }
 
     /**
-      * Creates an anonymous cart.
-      *
-      * @param accessToken - The access token for authentication.
-      * @param body - The validated request body containing campaignGroup and journey.
-      * @returns A Promise resolving to an ICart object.
-      */
+     * Creates an anonymous cart.
+     *
+     * @param accessToken - The access token for authentication.
+     * @param body - The validated request body containing campaignGroup and journey.
+     * @returns A Promise resolving to an ICart object.
+     */
     public createAnonymousCart = async (
         accessToken: string,
         createAnonymousCartInput: CreateAnonymousCartInput,
-        headers: any,
+        headers: any
     ): Promise<ICart> => {
         try {
             const { campaignGroup, journey, locale, customerInfo } = createAnonymousCartInput;
 
-            const custInfo = customerInfo ?? {} as Record<string, string>
+            const custInfo = customerInfo ?? ({} as Record<string, string>);
 
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
 
-            const cart = await commercetoolsMeCartClient.createCart(campaignGroup, journey, locale, custInfo, headers.correlatorid);
+            const cart = await commercetoolsMeCartClient.createCart(
+                campaignGroup,
+                journey,
+                locale,
+                custInfo,
+                headers.correlatorid
+            );
 
-            await this.initialTalonOneSession(cart)
+            await this.initialTalonOneSession(cart);
 
             const iCart: ICart = commercetoolsMeCartClient.mapCartToICart(cart);
 
@@ -142,10 +167,12 @@ export class CartService {
                 return ctCart;
             }
 
-            const removeActions: CartUpdateAction[] = unselectedLineItems.map((lineItem: LineItem) => ({
-                action: 'removeLineItem',
-                lineItemId: lineItem.id,
-            }));
+            const removeActions: CartUpdateAction[] = unselectedLineItems.map(
+                (lineItem: LineItem) => ({
+                    action: 'removeLineItem',
+                    lineItemId: lineItem.id,
+                })
+            );
 
             const updatedCart = await CommercetoolsCartClient.updateCart(
                 ctCart.id,
@@ -169,68 +196,89 @@ export class CartService {
         }
     }
 
-    public createOrder = async (accessToken: any, payload: any, partailValidateList: any[] = []): Promise<any> => {
+    public createOrder = async (
+        accessToken: any,
+        payload: any,
+        partailValidateList: any[] = []
+    ): Promise<any> => {
+        let reservePayload: ReserveMsisdnRequest | undefined = undefined;
         try {
-
-
             const { cartId, client, headers } = payload;
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
-            const defaultValidateList = [
-                'BLACKLIST',
-                'CAMPAIGN',
-            ]
+            const defaultValidateList = ['BLACKLIST', 'CAMPAIGN'];
 
-            let validateList = defaultValidateList
+            let validateList = defaultValidateList;
             if (partailValidateList.length) {
-                validateList = partailValidateList
+                validateList = partailValidateList;
             }
 
-            let ctCart = await this.getCtCartById(accessToken, cartId)
-            let tsmSaveOrder = {}
+            let ctCart = await this.getCtCartById(accessToken, cartId);
+            let tsmSaveOrder = {};
 
-            const operator = ctCart.custom?.fields.operator
-            const orderNumber = await this.generateOrderNumber(operator)
+            const operator = ctCart.custom?.fields.operator;
+            const orderNumber = await this.generateOrderNumber(operator);
 
-            const isPreOrder = ctCart.custom?.fields.preOrder
-            const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS
+            const isPreOrder = ctCart.custom?.fields.preOrder;
+            const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS;
 
-            if ([CART_JOURNEYS.DEVICE_BUNDLE_EXISTING,
-            CART_JOURNEYS.DEVICE_BUNDLE_P2P,
-            CART_JOURNEYS.DEVICE_ONLY].includes(cartJourney)) {
+            if (
+                [
+                    CART_JOURNEYS.DEVICE_BUNDLE_EXISTING,
+                    CART_JOURNEYS.DEVICE_BUNDLE_P2P,
+                    CART_JOURNEYS.DEVICE_ONLY,
+                ].includes(cartJourney)
+            ) {
                 try {
-                    const mainProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'main_product') as LineItem
-                    const bundleProduct = ctCart.lineItems.find(item => item.custom?.fields.productType === 'product-bundle') as LineItem
+                    const mainProduct = ctCart.lineItems.find(
+                        (item) => item.custom?.fields.productType === 'main_product'
+                    ) as LineItem;
+                    const bundleProduct = ctCart.lineItems.find(
+                        (item) => item.custom?.fields.productType === 'product-bundle'
+                    ) as LineItem;
 
                     if (!mainProduct || !bundleProduct) {
                         throw {
                             statusCode: HTTP_STATUSES.BAD_REQUEST,
                             statusMessage: 'Main product or bundle product not found',
-                        }
+                        };
                     }
-                    const mainProductSku = mainProduct.variant.sku as string
-                    const bundleProductAttributes = bundleProduct.variant.attributes
-                    const campaignCode = bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value
-                    const propositionCode = bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value
-                    const promotionSetCode = bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value
-                    const agreementCode = bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
+                    const mainProductSku = mainProduct.variant.sku as string;
+                    const bundleProductAttributes = bundleProduct.variant.attributes;
+                    const campaignCode = bundleProductAttributes?.find(
+                        (attr) => attr.name === 'campaignCode'
+                    )?.value;
+                    const propositionCode = bundleProductAttributes?.find(
+                        (attr) => attr.name === 'propositionCode'
+                    )?.value;
+                    const promotionSetCode = bundleProductAttributes?.find(
+                        (attr) => attr.name === 'promotionSetCode'
+                    )?.value;
+                    const agreementCode = bundleProductAttributes?.find(
+                        (attr) => attr.name === 'agreementCode'
+                    )?.value;
 
                     const bundleProductInfo = {
                         campaignCode,
                         propositionCode,
                         promotionSetCode,
-                        agreementCode
-                    }
+                        agreementCode,
+                    };
 
-                    const eligibleResponse = await this.checkEligible(ctCart, mainProductSku, bundleProductInfo, headers)
+                    const eligibleResponse = await this.checkEligible(
+                        ctCart,
+                        mainProductSku,
+                        bundleProductInfo,
+                        headers
+                    );
 
-                    this.validateDiscounts(ctCart, eligibleResponse, mainProduct)
+                    this.validateDiscounts(ctCart, eligibleResponse, mainProduct);
 
-                    await this.closeSessionIfExist(ctCart.id)
+                    await this.closeSessionIfExist(ctCart.id);
                 } catch (error: any) {
                     if (error.status && error.message) {
                         throw error;
                     }
-                    throw createStandardizedError(error, 'createOrder')
+                    throw createStandardizedError(error, 'createOrder');
                 }
             }
 
@@ -238,44 +286,82 @@ export class CartService {
 
             // * STEP #2 - Validate Blacklist
             if (validateList.includes('BLACKLIST')) {
-                await this.validateBlacklist(ctCart, client)
+                await this.validateBlacklist(ctCart, client);
             }
 
             // * STEP #3 - Validate Campaign & Promotion Set
             if (validateList.includes('CAMPAIGN')) {
-                await this.validateCampaign()
+                await this.validateCampaign();
             }
 
             // * STEP #4 - Validate Available Quantity (Commercetools)
-            await this.validateAvailableQuantity(ctCart)
+            await this.validateAvailableQuantity(ctCart);
             ctCart = await this.handleAutoRemoveCoupons(ctCart);
             ctCart = await this.removeUnselectedItems(ctCart);
             await InventoryValidator.validateCart(ctCart);
 
+            // * STEP #4.1 Reserve Msis
+            const [customerInfo, simInfo] = await this.reserveMsisdnGetData(ctCart);
+            if (customerInfo && customerInfo.verifyCertificationStatus == 'success' && simInfo) {
+                const config = readConfiguration();
+                const apigeePrivateKeyEncryption = config.apigee.privateKeyEncryption;
+                const encryptedThaiId = customerInfo.verifyCertificationIdValue
+                    ? apigeeEncrypt(
+                          customerInfo.verifyCertificationIdValue,
+                          apigeePrivateKeyEncryption
+                      )
+                    : '';
+                const reqReserve: ReserveMsisdnRequest = {
+                    method: 'ECP-POS-SIM-DEVICE',
+                    id: ctCart.custom?.fields?.correlatorId || '',
+                    href: 'APIGW-ASCEND',
+                    relatedParty: {
+                        id: encryptedThaiId,
+                        type: customerInfo.verifyCertificationTypeValue,
+                    },
+                    reserve: {
+                        id: simInfo.number,
+                        href: config.onlineChannel,
+                    },
+                    pstId: simInfo.propositionCode,
+                };
+                const reserved = await reserveMsisdn(reqReserve);
+
+                // store reserve payload when reserved.code == 0
+                if (reserved.code == '0') reservePayload = reqReserve;
+            }
+
             if (!isPreOrder) {
                 // * STEP #5 - Create Order On TSM Sale
-                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart)
+                const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart);
 
                 if (!success) {
-                    await InventoryValidator.validateSafetyStock(ctCart)
+                    await InventoryValidator.validateSafetyStock(ctCart);
                 }
 
                 tsmSaveOrder = {
                     tsmOrderIsSaved: success,
-                    tsmOrderResponse: typeof response === 'string' ? response : JSON.stringify(response)
-                }
-
+                    tsmOrderResponse:
+                        typeof response === 'string' ? response : JSON.stringify(response),
+                };
             }
 
-
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart)
-            const { ctCart: cartWithUpdatedPrice, compared } = await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(ctCartWithChanged)
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(ctCart);
+            const { ctCart: cartWithUpdatedPrice, compared } =
+                await commercetoolsMeCartClient.updateCartChangeDataToCommerceTools(
+                    ctCartWithChanged
+                );
             await this.inventoryService.commitCartStock(ctCart);
-            const order = await commercetoolsOrderClient.createOrderFromCart(orderNumber, cartWithUpdatedPrice, tsmSaveOrder);
+            const order = await commercetoolsOrderClient.createOrderFromCart(
+                orderNumber,
+                cartWithUpdatedPrice,
+                tsmSaveOrder
+            );
             await this.createOrderAdditional(order, client);
             return { ...order, hasChanged: compared };
-
         } catch (error: any) {
+            if (reservePayload) await cancelReserveMsisdn(reservePayload);
+
             if (error.status && error.message) {
                 throw error;
             }
@@ -291,8 +377,12 @@ export class CartService {
         ctCart = updatedCart;
 
         // 2. Grab coupon data
-        const cartInfoForCouponValidation = await this.couponService.getCartInfoForCouponValidation(ctCart)
-        const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCart(ctCart, cartInfoForCouponValidation);
+        const cartInfoForCouponValidation =
+            await this.couponService.getCartInfoForCouponValidation(ctCart);
+        const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCart(
+            ctCart,
+            cartInfoForCouponValidation
+        );
 
         // 3. Construct updateActions from coupon effects
         const updateActions: CartUpdateAction[] = [];
@@ -314,7 +404,11 @@ export class CartService {
         );
         if (couponPriceChange.length > 0) {
             // Update customObject coupon information
-            await this.couponService.addCouponInformation(updateActions, ctCart.id, talonOneUpdateActions?.couponsInformation);
+            await this.couponService.addCouponInformation(
+                updateActions,
+                ctCart.id,
+                talonOneUpdateActions?.couponsInformation
+            );
             throw createStandardizedError(
                 {
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
@@ -334,7 +428,11 @@ export class CartService {
 
         // 5. Apply any updates
         if (updateActions.length > 0) {
-            return await CommercetoolsCartClient.updateCart(ctCart.id, ctCart.version, updateActions);
+            return await CommercetoolsCartClient.updateCart(
+                ctCart.id,
+                ctCart.version,
+                updateActions
+            );
         }
 
         return ctCart;
@@ -362,8 +460,12 @@ export class CartService {
                     statusMessage: 'Cart not found or has expired',
                 };
             }
-            const cartInfoForCouponValidation = await this.couponService.getCartInfoForCouponValidation(ctCart)
-            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCart(ctCart, cartInfoForCouponValidation);
+            const cartInfoForCouponValidation =
+                await this.couponService.getCartInfoForCouponValidation(ctCart);
+            const couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCart(
+                ctCart,
+                cartInfoForCouponValidation
+            );
 
             const { talonOneUpdateActions } =
                 await this.talonOneCouponAdapter.fetchCouponEffectsAndUpdateActionsByCtCart(
@@ -372,35 +474,43 @@ export class CartService {
                     couponEffects.coupons
                 );
 
-            const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
+            const { ctCart: cartWithCheckPublicPublish, notice } =
+                await CommercetoolsCartClient.validateProductIsPublished(ctCart);
             const { couponsInfomation } = cartWithCheckPublicPublish.custom?.fields ?? {};
-            const couponsInformation = couponsInfomation?.obj?.value ?? []
+            const couponsInformation = couponsInfomation?.obj?.value ?? [];
 
-            const validatedCoupon = await validateCouponLimit(couponsInformation.length, FUNC_CHECKOUT)
+            const validatedCoupon = await validateCouponLimit(
+                couponsInformation.length,
+                FUNC_CHECKOUT
+            );
             if (validatedCoupon) {
-                const removeFlag = notice !== '' || cartWithCheckPublicPublish.lineItems.length === 0
+                const removeFlag =
+                    notice !== '' || cartWithCheckPublicPublish.lineItems.length === 0;
 
-                await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithCheckPublicPublish, removeFlag)
+                await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(
+                    cartWithCheckPublicPublish,
+                    removeFlag
+                );
 
                 throw createStandardizedError(
                     {
                         statusCode: validatedCoupon.statusCode,
                         statusMessage: validatedCoupon.statusMessage,
-                        errorCode: validatedCoupon.errorCode
+                        errorCode: validatedCoupon.errorCode,
                     },
                     'checkout'
                 );
             }
 
             if (notice !== '') {
-                let errorCode
+                let errorCode;
 
                 switch (notice as CART_HAS_CHANGED_NOTICE_MESSAGE) {
                     case CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK:
-                        errorCode = 'DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK'
+                        errorCode = 'DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK';
                         break;
                     default:
-                        errorCode = 'CART_HAS_CHANGED'
+                        errorCode = 'CART_HAS_CHANGED';
                         break;
                 }
 
@@ -440,7 +550,8 @@ export class CartService {
                 });
             }
 
-            if (payment && payment?.key) { // no payment
+            if (payment && payment?.key) {
+                // no payment
                 const paymentTransaction = {
                     paymentOptionContainer: 'paymentOptions',
                     paymentOptionKey: payment.key, // e.g., 'installment', 'ccw', etc.
@@ -450,7 +561,10 @@ export class CartService {
                     createdAt: new Date().toISOString(),
                 };
 
-                await CommercetoolsCustomObjectClient.addPaymentTransaction(cartWithCheckPublicPublish.id, paymentTransaction);
+                await CommercetoolsCustomObjectClient.addPaymentTransaction(
+                    cartWithCheckPublicPublish.id,
+                    paymentTransaction
+                );
             } else if (!payment?.key && ctCart?.totalPrice?.centAmount <= 0) {
                 const paymentTransaction = {
                     paymentOptionContainer: 'paymentOptions',
@@ -461,30 +575,52 @@ export class CartService {
                     createdAt: new Date().toISOString(),
                 };
 
-                await CommercetoolsCustomObjectClient.addPaymentTransaction(cartWithCheckPublicPublish.id, paymentTransaction);
+                await CommercetoolsCustomObjectClient.addPaymentTransaction(
+                    cartWithCheckPublicPublish.id,
+                    paymentTransaction
+                );
             }
 
-            const updatedCart = await CommercetoolsCartClient.updateCart(cartWithCheckPublicPublish.id, cartWithCheckPublicPublish.version, updateActions);
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
-            const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
+            const updatedCart = await CommercetoolsCartClient.updateCart(
+                cartWithCheckPublicPublish.id,
+                cartWithCheckPublicPublish.version,
+                updateActions
+            );
+            const ctCartWithChanged =
+                await CommercetoolsProductClient.checkCartHasChanged(updatedCart);
+            const { ctCart: cartWithUpdatedPrice, compared } =
+                await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged);
 
-            const priceChange = await this.checkPriceChange(compared)
-            const validatedCouponDiscount = await validateCouponDiscount(cartWithUpdatedPrice, talonOneUpdateActions?.couponsInformation, FUNC_CHECKOUT)
+            const priceChange = await this.checkPriceChange(compared);
+            const validatedCouponDiscount = await validateCouponDiscount(
+                cartWithUpdatedPrice,
+                talonOneUpdateActions?.couponsInformation,
+                FUNC_CHECKOUT
+            );
 
             if (validatedCouponDiscount) {
-                const customerSession = await talonOneIntegrationAdapter.getCustomerSession(cartWithUpdatedPrice.id);
-                const updatedCartWithRemoveCoupon = await this.couponService.clearAllCoupons(cartWithUpdatedPrice, customerSession);
-                const ctCartWithRemoveCoupon = await CommercetoolsProductClient.checkCartHasChanged(updatedCartWithRemoveCoupon)
+                const customerSession = await talonOneIntegrationAdapter.getCustomerSession(
+                    cartWithUpdatedPrice.id
+                );
+                const updatedCartWithRemoveCoupon = await this.couponService.clearAllCoupons(
+                    cartWithUpdatedPrice,
+                    customerSession
+                );
+                const ctCartWithRemoveCoupon = await CommercetoolsProductClient.checkCartHasChanged(
+                    updatedCartWithRemoveCoupon
+                );
 
-                const { ctCart: cartWithRemoveCoupon, compared: comparedWithRemovecoupon } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithRemoveCoupon)
+                const { ctCart: cartWithRemoveCoupon, compared: comparedWithRemovecoupon } =
+                    await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithRemoveCoupon);
 
-                const iCartWithRemoveCoupon = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithRemoveCoupon);
+                const iCartWithRemoveCoupon =
+                    await commercetoolsMeCartClient.updateCartWithBenefit(cartWithRemoveCoupon);
 
                 throw createStandardizedError(
                     {
                         statusCode: validatedCouponDiscount.statusCode,
                         statusMessage: validatedCouponDiscount.statusMessage,
-                        errorCode: validatedCouponDiscount.errorCode
+                        errorCode: validatedCouponDiscount.errorCode,
                     },
                     'checkout'
                 );
@@ -496,13 +632,14 @@ export class CartService {
                     {
                         statusCode: priceChange.statusCode,
                         statusMessage: priceChange.statusMessage,
-                        errorCode: priceChange.errorCode
+                        errorCode: priceChange.errorCode,
                     },
                     'checkout'
                 );
             }
 
-            const iCartWithBenefit = await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
+            const iCartWithBenefit =
+                await commercetoolsMeCartClient.updateCartWithBenefit(cartWithUpdatedPrice);
 
             return { ...iCartWithBenefit, hasChanged: compared, couponsInformation, notice };
         } catch (error: any) {
@@ -519,7 +656,7 @@ export class CartService {
         accessToken: string,
         id: string,
         selectedOnly = false,
-        includeCoupons = false,
+        includeCoupons = false
     ): Promise<ICart> => {
         try {
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
@@ -530,13 +667,17 @@ export class CartService {
             if (!ctCart) {
                 throw createStandardizedError({
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'Cart not found or has expired'
+                    statusMessage: 'Cart not found or has expired',
                 });
             }
 
-            const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
-            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(cartWithCheckPublicPublish)
-            const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
+            const { ctCart: cartWithCheckPublicPublish, notice } =
+                await CommercetoolsCartClient.validateProductIsPublished(ctCart);
+            const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(
+                cartWithCheckPublicPublish
+            );
+            const { ctCart: cartWithUpdatedPrice, compared } =
+                await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged);
 
             // 2) Possibly auto-remove invalid coupons
             let cartAfterAutoRemove: Cart = cartWithUpdatedPrice;
@@ -548,22 +689,25 @@ export class CartService {
                 },
             };
 
-            let couponsInformation = []
+            let couponsInformation = [];
             if (includeCoupons) {
                 const {
                     updatedCart: _cartAfterAutoRemove,
-                    permanentlyInvalidRejectedCoupons: _permanentlyInvalidRejectedCoupons
-                } = await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(cartWithUpdatedPrice);
+                    permanentlyInvalidRejectedCoupons: _permanentlyInvalidRejectedCoupons,
+                } =
+                    await this.couponService.autoRemoveInvalidCouponsAndReturnOnce(
+                        cartWithUpdatedPrice
+                    );
 
                 if (notice !== '') {
-                    let errorCode
+                    let errorCode;
 
                     switch (notice as CART_HAS_CHANGED_NOTICE_MESSAGE) {
                         case CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK:
-                            errorCode = 'DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK'
+                            errorCode = 'DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK';
                             break;
                         default:
-                            errorCode = 'CART_HAS_CHANGED'
+                            errorCode = 'CART_HAS_CHANGED';
                             break;
                     }
 
@@ -580,30 +724,35 @@ export class CartService {
                 cartAfterAutoRemove = _cartAfterAutoRemove;
                 permanentlyInvalidRejectedCoupons = _permanentlyInvalidRejectedCoupons;
 
-                const cartInfoForCouponValidation = await this.couponService.getCartInfoForCouponValidation(cartAfterAutoRemove)
-                couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCart(cartAfterAutoRemove, cartInfoForCouponValidation);
+                const cartInfoForCouponValidation =
+                    await this.couponService.getCartInfoForCouponValidation(cartAfterAutoRemove);
+                couponEffects = await this.talonOneCouponAdapter.getCouponEffectsByCtCart(
+                    cartAfterAutoRemove,
+                    cartInfoForCouponValidation
+                );
 
                 // * I pushed expend (couponsInfomation) to update method in CT but CT return only object id without object value
-                const ctCartWithUpdateCouponEffect = await commercetoolsMeCartClient.getCartById(id);
+                const ctCartWithUpdateCouponEffect =
+                    await commercetoolsMeCartClient.getCartById(id);
                 if (!ctCartWithUpdateCouponEffect) {
                     throw createStandardizedError({
                         statusCode: HTTP_STATUSES.BAD_REQUEST,
-                        statusMessage: 'Cart not found or has expired'
+                        statusMessage: 'Cart not found or has expired',
                     });
                 }
                 const { couponsInfomation } = ctCartWithUpdateCouponEffect.custom?.fields ?? {};
-                couponsInformation = couponsInfomation?.obj.value || []
+                couponsInformation = couponsInfomation?.obj.value || [];
             }
 
             if (notice !== '') {
-                let errorCode
+                let errorCode;
 
                 switch (notice as CART_HAS_CHANGED_NOTICE_MESSAGE) {
                     case CART_HAS_CHANGED_NOTICE_MESSAGE.DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK:
-                        errorCode = 'DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK'
+                        errorCode = 'DUMMY_TO_PHYSICAL_INSUFFICIENT_STOCK';
                         break;
                     default:
-                        errorCode = 'CART_HAS_CHANGED'
+                        errorCode = 'CART_HAS_CHANGED';
                         break;
                 }
 
@@ -617,26 +766,33 @@ export class CartService {
                 );
             }
 
-            const selectedLineItems: LineItem[] = commercetoolsMeCartClient.filterSelectedLineItems(cartAfterAutoRemove.lineItems, selectedOnly);
-            const cartWithFilteredItems: Cart = { ...cartAfterAutoRemove, lineItems: selectedLineItems };
+            const selectedLineItems: LineItem[] = commercetoolsMeCartClient.filterSelectedLineItems(
+                cartAfterAutoRemove.lineItems,
+                selectedOnly
+            );
+            const cartWithFilteredItems: Cart = {
+                ...cartAfterAutoRemove,
+                lineItems: selectedLineItems,
+            };
 
             // 3) Map to ICartc
-            let iCartWithBenefit: ICart = await commercetoolsMeCartClient.getCartWithBenefit(cartWithFilteredItems);
+            let iCartWithBenefit: ICart =
+                await commercetoolsMeCartClient.getCartWithBenefit(cartWithFilteredItems);
             iCartWithBenefit = await attachPackageToCart(iCartWithBenefit, ctCart);
-            iCartWithBenefit = attachSimToCart(iCartWithBenefit, ctCart)
+            iCartWithBenefit = attachSimToCart(iCartWithBenefit, ctCart);
 
             const response = {
                 ...iCartWithBenefit,
                 hasChanged: compared,
                 hasChangedNote: notice,
                 ...couponEffects,
-                couponsInformation
+                couponsInformation,
             };
 
             if (includeCoupons && permanentlyInvalidRejectedCoupons.length > 0) {
                 response.coupons.rejectedCoupons = [
                     ...(response.coupons.rejectedCoupons ?? []),
-                    ...permanentlyInvalidRejectedCoupons
+                    ...permanentlyInvalidRejectedCoupons,
                 ];
             }
 
@@ -670,7 +826,7 @@ export class CartService {
                 };
             }
 
-            return ctCart
+            return ctCart;
         } catch (error: any) {
             if (error.status && error.message) {
                 throw error;
@@ -683,111 +839,114 @@ export class CartService {
     // TODO: final step
     private createTSMSaleOrder = async (orderNumber: string, cart: Cart) => {
         try {
-            const apigeeClientAdapter = new ApigeeClientAdapter
-            const config = readConfiguration()
+            const apigeeClientAdapter = new ApigeeClientAdapter();
+            const config = readConfiguration();
             // Get coupon information
-            const couponDiscounts = await this.getCouponInformation(orderNumber, COUPON_INFO_CONTAINER, cart.id)
-            const tsmOrder = new TsmOrderModel({ ctCart: cart, config, orderNumber, couponDiscounts })
-            const tsmOrderPayload = await tsmOrder.toPayload()
+            const couponDiscounts = await this.getCouponInformation(
+                orderNumber,
+                COUPON_INFO_CONTAINER,
+                cart.id
+            );
+            const tsmOrder = new TsmOrderModel({
+                ctCart: cart,
+                config,
+                orderNumber,
+                couponDiscounts,
+            });
+            const tsmOrderPayload = await tsmOrder.toPayload();
 
-            logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`)
+            logger.info(`tsmOrderPayload: ${JSON.stringify(tsmOrderPayload)}`);
 
-            const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload)
+            const response = await apigeeClientAdapter.saveOrderOnline(tsmOrderPayload);
 
             if (!response) {
                 return {
                     success: false,
-                    response: { message: 'Internal Server Error' }
-                }
+                    response: { message: 'Internal Server Error' },
+                };
             }
 
-            const { code } = response || {}
+            const { code } = response || {};
             return {
                 success: code === '0',
-                response
-            }
-
-
+                response,
+            };
         } catch (error: any) {
-            logger.info(`createTSMSaleOrder-error: ${JSON.stringify(error)}`)
-            let data = error?.response?.data
+            logger.info(`createTSMSaleOrder-error: ${JSON.stringify(error)}`);
+            let data = error?.response?.data;
             if (data) {
-                data = safelyParse(data)
+                data = safelyParse(data);
             }
 
             return {
                 success: false,
-                response: data
-            }
+                response: data,
+            };
         }
-    }
+    };
 
     private async validateBlacklist(ctCart: any, client: any) {
         try {
-            const { custom: cartCustomField, shippingAddress } = ctCart
-            const journey = cartCustomField?.fields?.journey
-            const { googleId, ip } = client || {}
+            const { custom: cartCustomField, shippingAddress } = ctCart;
+            const journey = cartCustomField?.fields?.journey;
+            const { googleId, ip } = client || {};
 
-            const paymentTransaction = await CommercetoolsCustomObjectClient.getPaymentTransaction(ctCart.id);
-            const paymentTransactions = paymentTransaction?.value || []
-            const latestPaymentTransaction = paymentTransactions.at(-1)
-            const {
-                paymentOptionKey,
-                additionalData
-            } = latestPaymentTransaction || {}
+            const paymentTransaction = await CommercetoolsCustomObjectClient.getPaymentTransaction(
+                ctCart.id
+            );
+            const paymentTransactions = paymentTransaction?.value || [];
+            const latestPaymentTransaction = paymentTransactions.at(-1);
+            const { paymentOptionKey, additionalData } = latestPaymentTransaction || {};
 
-            const {
-                firstDigits,
-                lastDigits,
-                phoneNumber,
-            } = additionalData || {}
+            const { firstDigits, lastDigits, phoneNumber } = additionalData || {};
 
-            let paymentTMNAccountNumber = null
+            let paymentTMNAccountNumber = null;
             let paymentCreditCardNumber = {
                 firstDigits: null,
-                lastDigits: null
-            }
+                lastDigits: null,
+            };
 
             if (['truemoney'].includes(paymentOptionKey)) {
-                paymentTMNAccountNumber = phoneNumber
+                paymentTMNAccountNumber = phoneNumber;
             }
 
             if (['ccw', 'installment'].includes(paymentOptionKey)) {
                 paymentCreditCardNumber = {
                     firstDigits,
-                    lastDigits
-                }
+                    lastDigits,
+                };
             }
 
-            const body: any =
-            {
-                journey, /* Mandarory */
+            const body: any = {
+                journey /* Mandarory */,
                 ...(['truemoney'].includes(paymentOptionKey) ? { paymentTMNAccountNumber } : {}),
-                ...(['ccw', 'installment'].includes(paymentOptionKey) ? { paymentCreditCardNumber } : {}),
+                ...(['ccw', 'installment'].includes(paymentOptionKey)
+                    ? { paymentCreditCardNumber }
+                    : {}),
                 ...(ip ? { ipAddress: ip } : {}),
                 ...(googleId ? { googleID: googleId } : {}),
                 shippingAddress: {
-                    city: shippingAddress.state, /* Mandarory */
-                    district: shippingAddress.city, /* Mandarory */
-                    postcode: shippingAddress.postalCode, /* Mandarory */
-                    subDistrict: shippingAddress.custom?.fields?.subDistrict /* Mandarory */
+                    city: shippingAddress.state /* Mandarory */,
+                    district: shippingAddress.city /* Mandarory */,
+                    postcode: shippingAddress.postalCode /* Mandarory */,
+                    subDistrict: shippingAddress.custom?.fields?.subDistrict /* Mandarory */,
                 },
-                email: shippingAddress.email, /* Mandarory */
-                deliveryContactNumber: shippingAddress.phone, /* Mandarory */
-                deliveryContactName: `${shippingAddress.firstName} ${shippingAddress.lastName}` /* Mandarory */
-            }
+                email: shippingAddress.email /* Mandarory */,
+                deliveryContactNumber: shippingAddress.phone /* Mandarory */,
+                deliveryContactName: `${shippingAddress.firstName} ${shippingAddress.lastName}` /* Mandarory */,
+            };
 
-            logger.info(`CartService-validateBlacklist-body: ${JSON.stringify(body)}`)
+            logger.info(`CartService-validateBlacklist-body: ${JSON.stringify(body)}`);
             const response = await this.blacklistService.checkBlacklist(body);
             if (!response?.status) {
                 throw new Error('Blacklist validation failed');
             }
         } catch (e) {
-            logger.info(`CartService-validateBlacklist-error: ${JSON.stringify(e)}`)
+            logger.info(`CartService-validateBlacklist-error: ${JSON.stringify(e)}`);
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: EXCEPTION_MESSAGES.BAD_REQUEST,
-                errorCode: 'BLACKLIST_VALIDATE_FAILED'
+                errorCode: 'BLACKLIST_VALIDATE_FAILED',
             };
         }
     }
@@ -796,25 +955,26 @@ export class CartService {
         try {
             return true;
         } catch (error: any) {
-            logger.error('CartService.validateCampaign.error', error)
+            logger.error('CartService.validateCampaign.error', error);
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
-                errorCode: 'CAMPAIGN_VALIDATE_FAILED'
+                statusMessage:
+                    error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
+                errorCode: 'CAMPAIGN_VALIDATE_FAILED',
             };
         }
     }
 
     private async validateAvailableQuantity(ctCart: Cart) {
-        const skipValidateProductType = ['promotion_set', 'bundle', 'product-bundle']
-        const cartJourney = ctCart.custom?.fields.journey
+        const skipValidateProductType = ['promotion_set', 'bundle', 'product-bundle'];
+        const cartJourney = ctCart.custom?.fields.journey;
         try {
-            const { lineItems } = ctCart
+            const { lineItems } = ctCart;
             for (const lineItem of lineItems) {
                 const productType = lineItem.custom?.fields?.productType;
 
                 if (skipValidateProductType.includes(productType)) {
-                    continue
+                    continue;
                 }
 
                 const sku = lineItem.variant.sku as string;
@@ -822,10 +982,17 @@ export class CartService {
                 const simInfo = lineItem.custom?.fields?.simInfo?.[0];
                 const simType = simInfo ? JSON.parse(simInfo).simType : null;
 
-                if (productType !== 'main_product' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING) {
-                    continue
-                } else if (productType !== 'main_product' && simType !== 'physical' && cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_NEW) {
-                    continue
+                if (
+                    productType !== 'main_product' &&
+                    cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_EXISTING
+                ) {
+                    continue;
+                } else if (
+                    productType !== 'main_product' &&
+                    simType !== 'physical' &&
+                    cartJourney === CART_JOURNEYS.DEVICE_BUNDLE_NEW
+                ) {
+                    continue;
                 }
 
                 const product = await CommercetoolsProductClient.getProductById(productId);
@@ -851,7 +1018,7 @@ export class CartService {
                     };
                 }
                 const inventory = inventories[0];
-                const { isDummyStock, isOutOfStock } = validateInventory(inventory)
+                const { isDummyStock, isOutOfStock } = validateInventory(inventory);
 
                 if (isOutOfStock && !isDummyStock) {
                     throw {
@@ -860,21 +1027,16 @@ export class CartService {
                     };
                 }
 
-                validateProductQuantity(
-                    productType,
-                    ctCart,
-                    sku,
-                    productId,
-                    variant,
-                )
+                validateProductQuantity(productType, ctCart, sku, productId, variant);
             }
-            return true
+            return true;
         } catch (error: any) {
-            console.error(error)
+            console.error(error);
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
-                errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED'
+                statusMessage:
+                    error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
+                errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
             };
         }
     }
@@ -891,49 +1053,48 @@ export class CartService {
 
         const key = `${companyAbbr}${currentDate.format('YYMM')}`;
 
-        const maxRetries = 3
-        let retries = 0
-        let newCounter = 1
+        const maxRetries = 3;
+        let retries = 0;
+        let newCounter = 1;
         while (retries < maxRetries) {
-
             try {
-                const existingObject = await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey(CONTAINER_KEY, key)
-                newCounter = existingObject.value + 1
+                const existingObject =
+                    await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey(
+                        CONTAINER_KEY,
+                        key
+                    );
+                newCounter = existingObject.value + 1;
                 await CommercetoolsCustomObjectClient.createOrUpdateCustomObject({
                     container: CONTAINER_KEY,
                     key,
                     value: newCounter,
-                    version: existingObject.version
-                })
+                    version: existingObject.version,
+                });
 
-                const runningNumber = newCounter % MAXIMUM_RUNNING_NUMBER || 99999
-                const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYMMDD')}${runningNumber.toString().padStart(5, '0')}`
+                const runningNumber = newCounter % MAXIMUM_RUNNING_NUMBER || 99999;
+                const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYMMDD')}${runningNumber.toString().padStart(5, '0')}`;
 
-                return orderNumberFormatted
+                return orderNumberFormatted;
             } catch (err: any) {
                 if (err.statusCode === 404) {
                     await CommercetoolsCustomObjectClient.createOrUpdateCustomObject({
                         container: CONTAINER_KEY,
                         key,
                         value: newCounter,
-                        version: 0
-                    })
-                    const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYMMDD')}${newCounter.toString().padStart(5, '0')}`
-                    return orderNumberFormatted
+                        version: 0,
+                    });
+                    const orderNumberFormatted = `${companyAbbr}${currentDate.format('YYMMDD')}${newCounter.toString().padStart(5, '0')}`;
+                    return orderNumberFormatted;
                 }
-                retries = retries + 1
-                continue // Retry on conflict
+                retries = retries + 1;
+                continue; // Retry on conflict
             }
         }
 
-        throw new Error("Failed after maximum retries")
+        throw new Error('Failed after maximum retries');
     }
 
-    public createOrderAdditional = async (
-        order: Order,
-        client: IClientInfo,
-    ) => {
-
+    public createOrderAdditional = async (order: Order, client: IClientInfo) => {
         const paymentInfo: IPaymentInfo = {
             tmhAccountNumber: '',
             bankAccount: '',
@@ -941,16 +1102,16 @@ export class CartService {
             creditCardNumber: '',
             created: new Date().toISOString(),
             paymentState: PAYMENT_STATES.PENDING,
-        }
+        };
 
         const orderAdditionalData: IOrderAdditional = {
             orderInfo: { journey: _.get(order, 'custom.fields.journey') },
             paymentInfo: [paymentInfo],
             customerInfo: {
                 ipAddress: _.get(client, 'ip', ''),
-                googleID: _.get(client, 'googleId', '')
+                googleID: _.get(client, 'googleId', ''),
             },
-        }
+        };
 
         await CommercetoolsCustomObjectClient.addOrderAdditional(order.id, orderAdditionalData);
 
@@ -958,53 +1119,68 @@ export class CartService {
     };
 
     private async getCouponInformation(orderNumber: string, container: string, cartId: string) {
-        let couponResult: any[] = []
+        let couponResult: any[] = [];
         try {
-            const customObjectCouponInformation = await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey(container, cartId)
+            const customObjectCouponInformation =
+                await CommercetoolsCustomObjectClient.getCustomObjectByContainerAndKey(
+                    container,
+                    cartId
+                );
             if (customObjectCouponInformation) {
-                couponResult = customObjectCouponInformation.value
+                couponResult = customObjectCouponInformation.value;
             }
         } catch (error: any) {
             logger.error(`CartService.createOrder.getCouponInformation.error`, error);
-            return { discounts: [], otherPayments: [] }
+            return { discounts: [], otherPayments: [] };
         }
 
-        const discounts: { id: string; no: string; code: string; amount: string; serial: string }[] = [];
-        const otherPayments: { id: string; no: string; code: string; amount: string; serial: string }[] = [];
+        const discounts: {
+            id: string;
+            no: string;
+            code: string;
+            amount: string;
+            serial: string;
+        }[] = [];
+        const otherPayments: {
+            id: string;
+            no: string;
+            code: string;
+            amount: string;
+            serial: string;
+        }[] = [];
         let discountNo = 1;
         let otherPaymentNo = 1;
 
-        couponResult.filter((item: any) => !item?.lineItemId).forEach((item: any) => {
+        couponResult
+            .filter((item: any) => !item?.lineItemId)
+            .forEach((item: any) => {
+                if (item.discountCode.toUpperCase() !== 'NULL') {
+                    discounts.push({
+                        id: orderNumber,
+                        no: discountNo.toString(),
+                        code: item.couponCode,
+                        amount: item.discountPrice.toString(),
+                        serial: '',
+                    });
+                    discountNo++;
+                }
 
-            if (item.discountCode.toUpperCase() !== "NULL") {
-                discounts.push({
-                    id: orderNumber,
-                    no: discountNo.toString(),
-                    code: item.couponCode,
-                    amount: item.discountPrice.toString(),
-                    serial: "",
-                });
-                discountNo++;
-            }
-
-            if (item.otherPaymentCode.toUpperCase() !== "NULL") {
-                otherPayments.push({
-                    id: orderNumber,
-                    no: otherPaymentNo.toString(),
-                    code: item.otherPaymentCode,
-                    amount: item.discountPrice.toString(),
-                    serial: "",
-                });
-                otherPaymentNo++;
-            }
-        });
+                if (item.otherPaymentCode.toUpperCase() !== 'NULL') {
+                    otherPayments.push({
+                        id: orderNumber,
+                        no: otherPaymentNo.toString(),
+                        code: item.otherPaymentCode,
+                        amount: item.discountPrice.toString(),
+                        serial: '',
+                    });
+                    otherPaymentNo++;
+                }
+            });
 
         return { discounts, otherPayments };
     }
 
-    public checkPriceChange = async (
-        compared: any,
-    ): Promise<void | ApiResponse> => {
+    public checkPriceChange = async (compared: any): Promise<void | ApiResponse> => {
         let priceUpdated = false;
         for (const item of compared) {
             let isPriceHasChange = item?.hasChange?.prices || false;
@@ -1016,21 +1192,18 @@ export class CartService {
         if (priceUpdated) {
             return {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
-                errorCode: "PRICE_HAS_BEEN_CHANGED",
+                errorCode: 'PRICE_HAS_BEEN_CHANGED',
                 statusMessage: 'price has changed',
             };
         }
     };
 
-    public checkUpdateCart = async (
-        accessToken: any,
-        body: any
-    ): Promise<any> => {
+    public checkUpdateCart = async (accessToken: any, body: any): Promise<any> => {
         try {
-            const { cartId, correlationid, redisData, flows } = body
+            const { cartId, correlationid, redisData, flows } = body;
 
             // step 1: Get Active flows
-            const activeFlows = Object.keys(flows).filter(key => flows[key]);
+            const activeFlows = Object.keys(flows).filter((key) => flows[key]);
 
             // step 2: Get Cart
             const commercetoolsMeCartClient = new CommercetoolsMeCartClient(accessToken);
@@ -1038,15 +1211,20 @@ export class CartService {
             if (!ctCart) {
                 throw createStandardizedError({
                     statusCode: HTTP_STATUSES.BAD_REQUEST,
-                    statusMessage: 'Cart not found or has expired'
+                    statusMessage: 'Cart not found or has expired',
                 });
             }
 
             // step 3: Map flows with redisData
-            const mapRedisData = activeFlows.reduce((result, key) => {
-                if (redisData[key]) { result[key] = redisData[key]; }
-                return result;
-            }, {} as Record<string, any>);
+            const mapRedisData = activeFlows.reduce(
+                (result, key) => {
+                    if (redisData[key]) {
+                        result[key] = redisData[key];
+                    }
+                    return result;
+                },
+                {} as Record<string, any>
+            );
 
             const updateActions: MyCartUpdateAction[] = [];
             for (const key of Object.keys(mapRedisData)) {
@@ -1057,7 +1235,10 @@ export class CartService {
                     case 'pdp':
                         compareed = await this.cartTransformer.comparePdpData(data, ctCart);
                         if (!compareed.isEqual) {
-                            const action = await this.cartTransformer.updatePdpData(compareed.dataChange, ctCart);
+                            const action = await this.cartTransformer.updatePdpData(
+                                compareed.dataChange,
+                                ctCart
+                            );
                             if (action.length > 0) {
                                 updateActions.push(...action);
                             }
@@ -1065,9 +1246,16 @@ export class CartService {
                         break;
 
                     case 'select_number':
-                        compareed = await this.cartTransformer.compareSelectNumberData(data, ctCart);
+                        compareed = await this.cartTransformer.compareSelectNumberData(
+                            data,
+                            ctCart
+                        );
                         if (!compareed.isEqual) {
-                            const action = await this.cartTransformer.updateSelectNumberData(compareed.dataChange, correlationid, ctCart);
+                            const action = await this.cartTransformer.updateSelectNumberData(
+                                compareed.dataChange,
+                                correlationid,
+                                ctCart
+                            );
                             if (action.length > 0) {
                                 updateActions.push(...action);
                             }
@@ -1075,7 +1263,10 @@ export class CartService {
                         break;
 
                     case 'verification':
-                        compareed = await this.cartTransformer.compareVerificationData(data, ctCart);
+                        compareed = await this.cartTransformer.compareVerificationData(
+                            data,
+                            ctCart
+                        );
                         // Add an update function to update data if changes are detected.
                         break;
 
@@ -1087,7 +1278,10 @@ export class CartService {
                     case 'offer':
                         compareed = await this.cartTransformer.compareOfferData(data, ctCart);
                         if (!compareed.isEqual) {
-                            const action = await this.cartTransformer.updateOfferData(compareed.dataChange, ctCart);
+                            const action = await this.cartTransformer.updateOfferData(
+                                compareed.dataChange,
+                                ctCart
+                            );
                             if (action.length > 0) {
                                 updateActions.push(...action);
                             }
@@ -1100,9 +1294,15 @@ export class CartService {
                         break;
 
                     case 'billing_info_address':
-                        compareed = await this.cartTransformer.compareBillingInfoAddressData(data, ctCart);
+                        compareed = await this.cartTransformer.compareBillingInfoAddressData(
+                            data,
+                            ctCart
+                        );
                         if (!compareed.isEqual) {
-                            const action = await this.cartTransformer.updateBillingInfoAddressData(compareed.dataChange, ctCart);
+                            const action = await this.cartTransformer.updateBillingInfoAddressData(
+                                compareed.dataChange,
+                                ctCart
+                            );
                             if (action.length > 0) {
                                 updateActions.push(...action);
                             }
@@ -1115,51 +1315,83 @@ export class CartService {
             }
 
             if (updateActions.length > 0) {
-                const { ctCart: cartWithCheckPublicPublish, notice } = await CommercetoolsCartClient.validateProductIsPublished(ctCart)
-                const updatedCart = await CommercetoolsCartClient.updateCart(cartWithCheckPublicPublish.id, cartWithCheckPublicPublish.version, updateActions);
-                const ctCartWithChanged = await CommercetoolsProductClient.checkCartHasChanged(updatedCart)
-                const { ctCart: cartWithUpdatedPrice, compared } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged)
-                const updateSelectItems = await this.cartTransformer.getUpdateSelectItem(cartWithUpdatedPrice);
-                const updatedCartSelected = await CommercetoolsCartClient.updateCart(cartWithUpdatedPrice.id, cartWithUpdatedPrice.version, updateSelectItems);
-                const ctCartWithSelected = await CommercetoolsProductClient.checkCartHasChanged(updatedCartSelected)
-                const { ctCart: cartWithSelected, compared: comparedSelected } = await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithSelected)
+                const { ctCart: cartWithCheckPublicPublish, notice } =
+                    await CommercetoolsCartClient.validateProductIsPublished(ctCart);
+                const updatedCart = await CommercetoolsCartClient.updateCart(
+                    cartWithCheckPublicPublish.id,
+                    cartWithCheckPublicPublish.version,
+                    updateActions
+                );
+                const ctCartWithChanged =
+                    await CommercetoolsProductClient.checkCartHasChanged(updatedCart);
+                const { ctCart: cartWithUpdatedPrice, compared } =
+                    await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithChanged);
+                const updateSelectItems =
+                    await this.cartTransformer.getUpdateSelectItem(cartWithUpdatedPrice);
+                const updatedCartSelected = await CommercetoolsCartClient.updateCart(
+                    cartWithUpdatedPrice.id,
+                    cartWithUpdatedPrice.version,
+                    updateSelectItems
+                );
+                const ctCartWithSelected =
+                    await CommercetoolsProductClient.checkCartHasChanged(updatedCartSelected);
+                const { ctCart: cartWithSelected, compared: comparedSelected } =
+                    await CommercetoolsCartClient.updateCartWithNewValue(ctCartWithSelected);
                 return cartWithSelected;
             } else {
                 return ctCart;
             }
         } catch (error: any) {
-            console.error(error)
+            console.error(error);
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
-                statusMessage: error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
-                errorCode: 'CHECK_UPDATE_CART_FAILED'
+                statusMessage:
+                    error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
+                errorCode: 'CHECK_UPDATE_CART_FAILED',
             };
         }
     };
 
     initialTalonOneSession = async (ctCart: Cart) => {
-        const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload()
+        const customerSessionPayload = talonOneIntegrationAdapter.buildCustomerSessionPayload();
 
-        const customerSessionId = ctCart?.id
-        const customerSession = await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, customerSessionPayload)
+        const customerSessionId = ctCart?.id;
+        const customerSession = await talonOneIntegrationAdapter.updateCustomerSession(
+            customerSessionId,
+            customerSessionPayload
+        );
 
-        return customerSession
-    }
+        return customerSession;
+    };
 
-    public async checkEligible(ctCart: Cart, mainProductSku: string, bundleProductInfo: { campaignCode: string, propositionCode: string, promotionSetCode: string, agreementCode: string }, headers: any): Promise<IHeadlessCheckEligibleResponse> {
-        const hlClient = new HeadlessClientAdapter()
-        const headlessPayload = this.buildPayloadEligible(ctCart, mainProductSku, bundleProductInfo);
-        logger.info(`[CHECK_ELIGIBLE] headlessPayload: ${JSON.stringify(headlessPayload)}`)
+    public async checkEligible(
+        ctCart: Cart,
+        mainProductSku: string,
+        bundleProductInfo: {
+            campaignCode: string;
+            propositionCode: string;
+            promotionSetCode: string;
+            agreementCode: string;
+        },
+        headers: any
+    ): Promise<IHeadlessCheckEligibleResponse> {
+        const hlClient = new HeadlessClientAdapter();
+        const headlessPayload = this.buildPayloadEligible(
+            ctCart,
+            mainProductSku,
+            bundleProductInfo
+        );
+        logger.info(`[CHECK_ELIGIBLE] headlessPayload: ${JSON.stringify(headlessPayload)}`);
         try {
-            const response = await hlClient.checkEligible(headlessPayload, headers)
+            const response = await hlClient.checkEligible(headlessPayload, headers);
 
-            return response.data
+            return response.data;
         } catch (e: any) {
-            logger.error('[CHECK_ELIGIBLE] Error', JSON.stringify(e))
+            logger.error('[CHECK_ELIGIBLE] Error', JSON.stringify(e));
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: 'Campaign is not eligible',
-            }
+            };
         }
     }
 
@@ -1167,55 +1399,87 @@ export class CartService {
         const customerSession = await talonOneIntegrationAdapter.getCustomerSession(ctCartId);
 
         if (customerSession && customerSession.effects.length > 0) {
-            const customerSessionId = customerSession.customerSession.id
+            const customerSessionId = customerSession.customerSession.id;
             await talonOneIntegrationAdapter.updateCustomerSession(customerSessionId, {
                 customerSession: {
-                    state: 'closed'
-                }
-            })
+                    state: 'closed',
+                },
+            });
         }
     }
 
-    private validateDiscounts(ctCart: Cart, eligibleResponse: IHeadlessCheckEligibleResponse, mainProduct: LineItem): void {
-        const eligibleDiscounts = eligibleResponse.prices.discounts.map((item) => item.type === 'discount' ? item : null).filter(Boolean).map((r) => {
-            return {
-                code: r?.code ?? '',
-                amount: r?.amount ? Number(r.amount * 100) : 0
-            }
-        })
+    private validateDiscounts(
+        ctCart: Cart,
+        eligibleResponse: IHeadlessCheckEligibleResponse,
+        mainProduct: LineItem
+    ): void {
+        const eligibleDiscounts = eligibleResponse.prices.discounts
+            .map((item) => (item.type === 'discount' ? item : null))
+            .filter(Boolean)
+            .map((r) => {
+                return {
+                    code: r?.code ?? '',
+                    amount: r?.amount ? Number(r.amount * 100) : 0,
+                };
+            });
 
-        const eligibleOtherPayments = eligibleResponse.prices.discounts.map((item) => item.type === 'otherPayment' ? item : null).filter(Boolean).map((r) => {
-            return {
-                code: r?.code ?? '',
-                amount: r?.amount ? Number(r.amount * 100) : 0
-            }
-        })
+        const eligibleOtherPayments = eligibleResponse.prices.discounts
+            .map((item) => (item.type === 'otherPayment' ? item : null))
+            .filter(Boolean)
+            .map((r) => {
+                return {
+                    code: r?.code ?? '',
+                    amount: r?.amount ? Number(r.amount * 100) : 0,
+                };
+            });
 
-        const cartDiscounts = ctCart.lineItems.find((lineItem: LineItem) => lineItem.productId === mainProduct.productId)?.custom?.fields?.discounts ?? []
-        const cartOtherPayments = ctCart.lineItems.find((lineItem: LineItem) => lineItem.productId === mainProduct.productId)?.custom?.fields?.otherPayments ?? []
+        const cartDiscounts =
+            ctCart.lineItems.find(
+                (lineItem: LineItem) => lineItem.productId === mainProduct.productId
+            )?.custom?.fields?.discounts ?? [];
+        const cartOtherPayments =
+            ctCart.lineItems.find(
+                (lineItem: LineItem) => lineItem.productId === mainProduct.productId
+            )?.custom?.fields?.otherPayments ?? [];
 
         // const cartDiscountsArray = [{ code: 'AAI0712_Device', amount: 5400 }, { code: 'AAI0713_Device', amount: 5400 }]
 
-        const cartDiscountsArray = cartDiscounts && Array.isArray(cartDiscounts) ? cartDiscounts.map((item) => JSON.parse(item)) : []
-        const cartOtherPaymentsArray = cartOtherPayments && Array.isArray(cartOtherPayments) ? cartOtherPayments.map((item) => JSON.parse(item)) : []
+        const cartDiscountsArray =
+            cartDiscounts && Array.isArray(cartDiscounts)
+                ? cartDiscounts.map((item) => JSON.parse(item))
+                : [];
+        const cartOtherPaymentsArray =
+            cartOtherPayments && Array.isArray(cartOtherPayments)
+                ? cartOtherPayments.map((item) => JSON.parse(item))
+                : [];
 
-        // check if eligible discounts all value are in cart 
-        const isEligibleDiscountsInCartDiscounts = areArraysEqual(eligibleDiscounts, cartDiscountsArray)
-        const isEligibleOtherPaymentsInCartOtherPayments = areArraysEqual(eligibleOtherPayments, cartOtherPaymentsArray)
+        // check if eligible discounts all value are in cart
+        const isEligibleDiscountsInCartDiscounts = areArraysEqual(
+            eligibleDiscounts,
+            cartDiscountsArray
+        );
+        const isEligibleOtherPaymentsInCartOtherPayments = areArraysEqual(
+            eligibleOtherPayments,
+            cartOtherPaymentsArray
+        );
 
         if (!isEligibleDiscountsInCartDiscounts || !isEligibleOtherPaymentsInCartOtherPayments) {
             throw createStandardizedError({
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: 'Discounts or other payments are not eligible',
-            })
+            });
         }
-
     }
 
     public buildPayloadEligible(
         ctCart: Cart,
         mainProductSku: string,
-        bundleProductInfo: { campaignCode: string, propositionCode: string, promotionSetCode: string, agreementCode: string }
+        bundleProductInfo: {
+            campaignCode: string;
+            propositionCode: string;
+            promotionSetCode: string;
+            agreementCode: string;
+        }
     ) {
         const bundleKey = `${bundleProductInfo.campaignCode}_${bundleProductInfo.propositionCode}_${bundleProductInfo.promotionSetCode}_${bundleProductInfo.agreementCode}`;
         const profile = [];
@@ -1234,7 +1498,7 @@ export class CartService {
         if (customerProfile.certificationId) {
             profile.push({
                 certificationId: customerProfile?.certificationId,
-                certificationType: customerProfile?.certificationType
+                certificationType: customerProfile?.certificationType,
             });
         }
 
@@ -1247,23 +1511,71 @@ export class CartService {
 
         const headlessPayload = {
             operator: customerProfile.operator,
-            ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile.companyCode && { companyCode: customerProfile.companyCode }),
+            ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY &&
+                customerProfile.companyCode && { companyCode: customerProfile.companyCode }),
             profile,
             productBundle: {
                 bundleKey: bundleKey,
                 sku: mainProductSku,
                 campaignGroup: campaignGroup,
                 customerJourney: cartJourney,
-                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.birthdate && { customerAge: calculateAge(customerProfile.birthdate ?? 0) }),
-                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.campaignByJourney && { campaignByJourney: customerProfile.campaignByJourney }),
-                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.poolNumberGroup && { poolNumberGroup: customerProfile.poolNumberGroup }),
-                ...(customerProfile?.customerLoyalty && { customerLoyalty: customerProfile.customerLoyalty }),
-                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.pricePlan && { pricePlan: customerProfile.pricePlan }),
-                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.ageOfUse && { ageOfUse: customerProfile.ageOfUse }),
-                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY && customerProfile?.packageContract && { packageContract: customerProfile.packageContract }),
-            }
-        }
+                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY &&
+                    customerProfile?.birthdate && {
+                        customerAge: calculateAge(customerProfile.birthdate ?? 0),
+                    }),
+                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY &&
+                    customerProfile?.campaignByJourney && {
+                        campaignByJourney: customerProfile.campaignByJourney,
+                    }),
+                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY &&
+                    customerProfile?.poolNumberGroup && {
+                        poolNumberGroup: customerProfile.poolNumberGroup,
+                    }),
+                ...(customerProfile?.customerLoyalty && {
+                    customerLoyalty: customerProfile.customerLoyalty,
+                }),
+                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY &&
+                    customerProfile?.pricePlan && { pricePlan: customerProfile.pricePlan }),
+                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY &&
+                    customerProfile?.ageOfUse && { ageOfUse: customerProfile.ageOfUse }),
+                ...(cartJourney !== CART_JOURNEYS.DEVICE_ONLY &&
+                    customerProfile?.packageContract && {
+                        packageContract: customerProfile.packageContract,
+                    }),
+            },
+        };
 
         return headlessPayload;
+    }
+
+    private async reserveMsisdnGetData(
+        ctCart: Cart
+    ): Promise<[CustomerInfo | null, SimInfo | null]> {
+        const [customerInfo, simInfo] = await Promise.all([
+            this.getCustomerInfo(ctCart),
+            this.getSimInfo(ctCart),
+        ]);
+
+        return [customerInfo, simInfo];
+    }
+
+    private async getCustomerInfo(ctCart: Cart): Promise<CustomerInfo | null> {
+        const raw = ctCart.custom?.fields?.customerInfo ?? '';
+        return this.extractJsonString<CustomerInfo>(raw);
+    }
+
+    private async getSimInfo(ctCart: Cart): Promise<SimInfo | null> {
+        const raw =
+            ctCart.lineItems.find((i) => i.custom?.fields?.productType === 'sim')?.custom?.fields
+                ?.simInfo?.[0] ?? '';
+        return this.extractJsonString<SimInfo>(raw);
+    }
+
+    private extractJsonString<T = unknown>(input: string): T | null {
+        try {
+            return JSON.parse(input) as T;
+        } catch (err) {
+            return null;
+        }
     }
 }
