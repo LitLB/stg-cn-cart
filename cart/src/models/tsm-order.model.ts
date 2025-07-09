@@ -1,6 +1,5 @@
-import _, { range } from 'lodash'
 import { apigeeEncrypt } from '../utils/apigeeEncrypt.utils'
-import { Cart, LineItem } from '@commercetools/platform-sdk'
+import { Attribute, Cart, LineItem } from '@commercetools/platform-sdk'
 import ctCustomObjectClient from '../adapters/ct-custom-object-client'
 import * as ORDER_CONSTANTS from '../constants/order.constant'
 import { logger } from '../utils/logger.utils'
@@ -61,7 +60,7 @@ export default class TsmOrderModel {
 			let sequenceCounter = 1
 			const filteredItem: LineItem[] = []
 			let productBundle: Partial<LineItem> = {}
-			let promotionSet: Partial<LineItem> = {}
+			const promotionSet: Record<string, Partial<LineItem>> = {}
 
 			for (const lineItem of lineItems) {
 				if (this.getProductType(lineItem.custom?.fields?.productType) !== 'O') {
@@ -71,7 +70,17 @@ export default class TsmOrderModel {
 				if (lineItem.custom?.fields?.productType === 'product-bundle') {
 					productBundle = lineItem
 				} else if (lineItem.custom?.fields?.productType === 'promotion_set') {
-					promotionSet = lineItem
+                    // in case journey is "single_product" and main_product difference promotion
+                    if (lineItem.variant.attributes) {
+                        lineItem.variant.attributes.forEach((attr: Attribute) => {
+                            if (attr.name === 'variants') {
+                                const variants = attr.value as string[]
+                                variants.forEach((variant: string) => {
+                                    promotionSet[variant] = lineItem
+                                })
+                            }
+                        })
+                    }
 				}
 			}			
 
@@ -82,11 +91,13 @@ export default class TsmOrderModel {
 
 
 			const sequenceItems = filteredItem.flatMap((lineItem: LineItem) => {
-				const productCode = lineItem.variant.sku
+				const productCode = lineItem.variant.sku!
 				const productGroup = lineItem.custom?.fields?.productGroup
 				const productType = lineItem.custom?.fields?.productType
 
-				const campaignVerifyValues = productBundle.variant?.attributes?.find(v => v.name === 'verifyKeys')?.value as string[]
+                const promotionSetMatched = promotionSet[productCode]
+
+				const campaignVerifyValues = (productBundle?.variant?.attributes?.find(v => v.name === 'verifyKeys')?.value || []) as string[]
 				const privilegeRequiredValue = campaignVerifyValues && campaignVerifyValues.length > 0 ? campaignVerifyValues.map(v => { return { name: v, value: v === 'MSISDN' ? mobile : thaiId } }) : []
 				
 				const newPrivilegeRequiredValue = privilegeRequiredValue.reduce((acc, v) => {
@@ -97,7 +108,7 @@ export default class TsmOrderModel {
 				let campaignName = '';
 
 
-				if (productBundle.variant?.attributes) {
+				if (productBundle?.variant?.attributes) {
 					for (const attribute of productBundle.variant.attributes) {
 						if (attribute.name === 'campaignCode') {
 							campaignCode = attribute.value
@@ -109,8 +120,8 @@ export default class TsmOrderModel {
 				}
 
 
-				if (promotionSet.variant?.attributes) {
-					for (const attribute of promotionSet.variant.attributes) {
+				if (promotionSetMatched?.variant?.attributes) {
+					for (const attribute of promotionSetMatched.variant.attributes) {
 						if (attribute.name === 'code') {
 							promotionSetCode = attribute.value
 						}
@@ -225,10 +236,12 @@ export default class TsmOrderModel {
 
 			if (advancePayment) {
 
-				const advancePaymentCode = productBundle.variant?.attributes?.find(v => v.name === 'payAdvanceServiceCode')?.value ?? ''
+                const promotionSetMatched = Object.values(promotionSet)[0]
 
-				if (promotionSet.variant?.attributes) {
-					for (const attribute of promotionSet.variant.attributes) {
+				const advancePaymentCode = productBundle?.variant?.attributes?.find(v => v.name === 'payAdvanceServiceCode')?.value ?? ''
+
+				if (promotionSetMatched?.variant?.attributes) {
+					for (const attribute of promotionSetMatched.variant.attributes) {
 						if (attribute.name === 'code') {
 							promotionSetCode = attribute.value
 						}
