@@ -107,9 +107,10 @@ export class InventoryService {
 
         for (const lineItem of ctCart.lineItems) {
             const itemJourney = (lineItem.custom?.fields?.journey as CART_JOURNEYS) || journey;
-            const productType = lineItem.custom?.fields?.productType;
-            const inventoryMode = lineItem.inventoryMode;
-            if (productType !== 'bundle' && (productType === 'sim' && inventoryMode === CART_INVENTORY_MODES.RESERVE_ON_ORDER)) await this.commitLineItemStockUsage(lineItem, itemJourney);
+            const inventoryMode = lineItem.inventoryMode as CART_INVENTORY_MODES;
+            if (inventoryMode !== CART_INVENTORY_MODES.NONE) {
+                await this.commitLineItemStockUsage(lineItem, itemJourney);
+            }
         }
     }
 }

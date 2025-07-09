@@ -471,6 +471,34 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       const product = await this.getProductById(productId);
       const variant = this.getVariantBySku(product, sku);
 
+      if (!variant) {
+        throw {
+          statusCode: HTTP_STATUSES.NOT_FOUND,
+          statusMessage: 'SKU not found in the specified product',
+        };
+      }
+
+      const isValidReleaseDate = validateProductReleaseDate(
+        variant.attributes,
+        now
+      );
+
+      if (!isValidReleaseDate) {
+        throw {
+          statusCode: HTTP_STATUSES.NOT_FOUND,
+          statusMessage: 'Product release date is not in period',
+        };
+      }
+
+      if (!variant.attributes || variant.attributes.length === 0) {
+        throw {
+          statusCode: HTTP_STATUSES.NOT_FOUND,
+          statusMessage: 'No attributes found for this variant',
+        };
+      }
+
+      validateSkuStatus(variant.attributes);
+
 
       this.validateDeviceBundleExisting(payload, cart, variant);
       let validPrice
@@ -524,7 +552,14 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       const inventories = await this.getInventories(sku);
       const inventory = inventories[0];
 
-      const { isDummyStock } = this.validateInventory(inventory);
+      const { isDummyStock, isOutOfStock } = this.validateInventory(inventory);
+
+       if (isOutOfStock && !isDummyStock) {
+        throw {
+          statusCode: HTTP_STATUSES.BAD_REQUEST,
+          statusMessage: 'Insufficient stock for the requested quantity',
+        };
+      }
 
       const actions: CartUpdateAction[] = [
         {
@@ -547,7 +582,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
               productType,
               productGroup,
               selected: true,
-              isPreOrder: false,
+              isPreOrder: isDummyStock,
               journey,
             },
           },
@@ -675,6 +710,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
 
       const lineItemId = updatedCart.lineItems.find((lineItem: LineItem) => lineItem.productId === productId)?.id
 
+
       const cartWithDiscount = await this.adapters.commercetoolsCartClient.updateCart(updatedCart.id, updatedCart.version, [
         {
           action: "setLineItemCustomField",
@@ -697,6 +733,11 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
               amount: otherPayment.amount * 100, // convert to cent
             })))
             : [],
+        },
+        {
+          action: "setCustomField",
+          name: "preOrder",
+          value: isDummyStock
         }
       ])
 
