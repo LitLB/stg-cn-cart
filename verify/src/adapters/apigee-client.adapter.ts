@@ -2,7 +2,7 @@ import axios, { AxiosResponse } from 'axios'
 import { readConfiguration } from "../utils/config.utils";
 import * as crypto from 'crypto';
 import { IGetProfileDtacRequest, IGetProfileTrueRequest, RequestOTPToApigee, VerifyOTPToApigee } from '../interfaces/otp.interface';
-import { VerifyDopaPOPStatusRequestBody, VerifyDopaPOPApiResponse } from '../interfaces/dopa.interface';
+import { VerifyDopaPOPStatusRequestBody, VerifyDopaPOPApiResponse, ProductOrderingResponse } from '../interfaces/dopa.interface';
 
 class ApigeeClientAdapter {
     private readonly client: any
@@ -261,6 +261,19 @@ class ApigeeClientAdapter {
         };
         const url = `/customerManagement/MDID/v1/customerId?fields=${payload}`;
         const response: AxiosResponse<VerifyDopaPOPApiResponse> = await this.client.get(`${url}`, { headers });
+        return response;
+    }
+
+    async getProductOrdering (id: string): Promise<AxiosResponse<ProductOrderingResponse>> {
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            'Cookies': 'ROUTEID=.'
+        };
+        const url = `/productOrdering/v1/productOrder/chngPackageGroup?relatedParty.id=${id}&relatedParty.href=PCN&relatedParty.type=TEL&channel.role=2&channel.type=N`;
+        const response: AxiosResponse<ProductOrderingResponse> = await this.client.get(`${url}`, { headers });
+        
         return response;
     }
 }

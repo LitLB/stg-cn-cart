@@ -72,7 +72,7 @@ export interface ICustomerProfile {
     packageCode?: string;
     ageOfUse?: string;
     contractRemainDays?: string;
-    
+    isBlockChangeMain?: boolean;
 }
 
 export interface Check3OperValue {
