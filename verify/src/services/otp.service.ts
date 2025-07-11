@@ -17,7 +17,7 @@ import { LOG_APPS, LOG_MSG } from "../constants/log.constant";
 import { OPERATOR } from "../constants/operator.constant";
 import { validateContractAndQuotaDtac, validateContractAndQuotaTrue, validateCustomerDtacProfile, validateCustomerTrueProfile, validateSharePlan } from "../validators/operator.validators";
 import { encryptedOFB } from "../utils/apigeeEncrypt.utils";
-import { CustomerVerificationData, CustomerVerifyQueryParams, ICustomerProfile, BLACKLIST_COLORS } from "../interfaces/verify.interface";
+import { CustomerVerificationData, CustomerVerifyQueryParams, BLACKLIST_COLORS } from "../interfaces/verify.interface";
 import { CART_JOURNEYS } from "../constants/cart.constant";
 import { STATUS_CODES } from "http";
 import { EXCEPTION_MESSAGES } from "../constants/messages.constant";
@@ -25,6 +25,8 @@ import { CUSTOMER_VERIFY_STATES } from "../constants/ct.constant";
 import { VERIFY_DOPA_POP_STATUS_CHANNEL, VERIFY_HL_CHANNEL, VERIFY_HL_CUSTOMER_TYPE, VERIFY_HL_VALIDATE_NAME, VERIFY_HL_VALIDATE_FUNCTION, VERIFY_HL_DEALERCODE, VERIFY_HL_COMPANY_CODE, VERIFY_HL_ACTIVITYFUNCTION, VERIFY_HL_ACTIVITYFUNCTIONTYPE, VERIFY_HL_USERLOGIN, VERIFY_HL_ACCOUNTYPE } from "../constants/verify.constant";
 import { DopaValidator } from "../validators/dopa.validator";
 import { HLValidator } from '../validators/hl.validator'
+import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
+import { Characteristic } from "../interfaces/otp.interface";
 
 dayjs.extend(utc);
 dayjs.extend(timezone); // Extend dayjs with timezone plugin
@@ -355,7 +357,7 @@ export class OtpService {
             }
         }
 
-        let customerProfile
+        let customerProfile: ICheckCustomerProfileResponse | undefined
 
 
         // Step 2: Check operator and Active company
@@ -420,7 +422,20 @@ export class OtpService {
                         ageOfUse: customerProfile.aging ?? undefined,
                         certificationId: decryptedThaiId,
                         certificationType: 'I',
+                        isBlockChangeMain: false,
                     }
+                }
+            }
+        }
+
+        // Step 3.5: Get Block change main (DTAC only)
+        if (steps.has("getBlockChangeMain")) {
+            if (operator === OPERATOR.DTAC) {
+                const blockChangeMain = await apigeeClientAdapter.getProductOrdering(mobileNumber)
+
+                const blockChangeMainItem = blockChangeMain.productCharacteristic.find((item: Characteristic) => item.name === "BLOC_CHNG_MAIN")
+                if (blockChangeMainItem) {
+                    response.customerProfile.isBlockChangeMain = blockChangeMainItem.value.toLocaleUpperCase() === 'Y' ? true : false
                 }
             }
         }
@@ -431,7 +446,7 @@ export class OtpService {
 
             if (steps.has("blacklist")) {
                 await this.checkBacklist(id, operator, certificationId, customerNo);
-                response.verifyResult.verifyBlacklistStatus = "success";
+                response.verifyResult.verifyBlacklistStatus = "success"; 
             }
 
             if (steps.has("contractAndQuota")) {

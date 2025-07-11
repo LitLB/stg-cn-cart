@@ -2,7 +2,8 @@ import axios, { AxiosResponse } from 'axios'
 import { readConfiguration } from "../utils/config.utils";
 import * as crypto from 'crypto';
 import { IGetProfileDtacRequest, IGetProfileTrueRequest, RequestOTPToApigee, VerifyOTPToApigee } from '../interfaces/otp.interface';
-import { VerifyDopaPOPStatusRequestBody, VerifyDopaPOPApiResponse } from '../interfaces/dopa.interface';
+import { VerifyDopaPOPStatusRequestBody, VerifyDopaPOPApiResponse, ProductOrderingResponse } from '../interfaces/dopa.interface';
+import { logger } from '../utils/logger.utils';
 
 class ApigeeClientAdapter {
     private readonly client: any
@@ -262,6 +263,39 @@ class ApigeeClientAdapter {
         const url = `/customerManagement/MDID/v1/customerId?fields=${payload}`;
         const response: AxiosResponse<VerifyDopaPOPApiResponse> = await this.client.get(`${url}`, { headers });
         return response;
+    }
+
+    async getProductOrdering (id: string): Promise<ProductOrderingResponse> {
+        try {
+            await this.init()
+            const headers = {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${this.accessToken}`,
+                'Cookies': 'ROUTEID=.'
+            };
+            const url = `/productOrdering/v1/productOrder/chngPackageGroup?relatedParty.id=${id}&relatedParty.href=PCN&relatedParty.type=TEL&channel.role=2&channel.type=N`;
+            const response: AxiosResponse<ProductOrderingResponse> = await this.client.get(`${url}`, { headers });
+
+            if (response.data && typeof response.data === 'object') {
+                return response.data;
+            }
+            
+            return {
+                productCharacteristic: []
+            };
+        } catch (error) {
+            let errorString = ''
+
+            // format error to simple for logging ex. message: error.message, stack: error.stack
+            if (axios.isAxiosError(error)) {
+                errorString = error.response?.data?.message || error.message;
+            } else {
+                errorString = error instanceof Error ? error.message : JSON.stringify(error);
+            }
+
+            logger.error(`getProductOrdering:${errorString}`);
+            throw error;
+        }
     }
 }
 
