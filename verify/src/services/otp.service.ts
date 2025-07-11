@@ -433,7 +433,7 @@ export class OtpService {
             if (operator === OPERATOR.DTAC) {
                 const blockChangeMain = await apigeeClientAdapter.getProductOrdering(mobileNumber)
 
-                const blockChangeMainItem = blockChangeMain.data.productCharacteristic.find((item: Characteristic) => item.name === "BLOC_CHNG_MAIN")
+                const blockChangeMainItem = blockChangeMain.productCharacteristic.find((item: Characteristic) => item.name === "BLOC_CHNG_MAIN")
                 if (blockChangeMainItem) {
                     response.customerProfile.isBlockChangeMain = blockChangeMainItem.value.toLocaleUpperCase() === 'Y' ? true : false
                 }
