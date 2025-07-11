@@ -1,7 +1,7 @@
 // verify/src/interfaces/dopa.interface.ts
 
 import { CART_JOURNEYS } from "../constants/cart.constant";
-import { VerificationStatus } from "./verify.interface"; // Import new type
+import { Characteristic } from "./otp.interface";
 
 /**
  * Request payload for the verifyDopaPOPstatus OMNI endpoint.
@@ -40,4 +40,8 @@ export interface PerformDopaPopStatusVerificationParams {
     idNumber: string;     // From certificationId (will be decrypted before use)
     dateOfBirth: string;  // From dateOfBirth (will be decrypted and formatted to DDMMYYYY for the API)
     journey: CART_JOURNEYS;
+}
+
+export interface ProductOrderingResponse {
+    productCharacteristic: Characteristic[];
 }
