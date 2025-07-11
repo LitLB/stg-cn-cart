@@ -85,6 +85,7 @@ export default class TsmOrderModel {
 			}			
 
 			const advancePayment = customLineItems && customLineItems.find(v => v.slug === 'advance-payment')
+			const extraAdvancePayment = customLineItems && customLineItems.find(v => v.slug === 'extra-advance-payment')
 
 			let promotionSetCode = ''
 			let promotionSetProposition = 999
@@ -201,6 +202,39 @@ export default class TsmOrderModel {
 					let netAmount = price * quantity
 					netAmount -= this.bahtToStang(discountAmountBaht)
 
+					if (productType === 'sim') {
+						return {
+							id: orderId,
+							sequence: sequence,
+							campaign: {
+								code: '',
+								name: '',
+							},
+							proposition: `${promotionSetProposition}`,
+							promotionSet: promotionSetCode,
+							promotionType: this.getPromotionType(productType),
+							group: '1',
+							product: {
+								productType: this.getProductType(productType),
+								productCode,
+							},
+							mobile: '',
+							price: '0',
+							quantity: '' + quantity,
+							totalAmount: '0',
+							installmentAmount: '0',
+							depositAmount: '0',
+							netAmount: '0',
+							discountAmount: '0',
+							otherPaymentAmount: '0',
+							privilegeRequiredValue: newPrivilegeRequiredValue,
+							discounts: [],
+							otherPayments: [],
+							serials: [],
+							range: [],
+						}
+					}
+
 					return {
 						id: orderId,
 						sequence: sequence,
@@ -270,6 +304,50 @@ export default class TsmOrderModel {
 					installmentAmount: "0",
 					depositAmount: "0",
 					netAmount: `${this.stangToBaht(advancePayment.money.centAmount)}`,
+					discountAmount: "0",
+					otherPaymentAmount: "0",
+					privilegeRequiredValue: "",
+					discounts: [],
+					otherPayments: [],
+					serials: [],
+					range: []
+				})
+			}
+
+			if (extraAdvancePayment) {
+
+				const extraAdvancePaymentCode = this.ctCart.custom?.fields?.packageAdditionalInfo?.obj?.value?.t1?.serviceCode;
+
+				if (promotionSet.variant?.attributes) {
+					for (const attribute of promotionSet.variant.attributes) {
+						if (attribute.name === 'code') {
+							promotionSetCode = attribute.value
+						}
+						if (attribute.name === 'propositionCode') {
+							promotionSetProposition = attribute.value
+						}
+					}
+				}
+
+				sequenceItems.push({
+					id: orderId,
+					sequence: `${sequenceCounter++}`.toString(),
+					campaign: { code: "", name: "" },
+					proposition: `${promotionSetProposition}`,
+					promotionSet: promotionSetCode,
+					promotionType: "0",
+					group: "1",
+					product: {
+						productType: "S",
+						productCode: extraAdvancePaymentCode
+					},
+					mobile: "",
+					price: `${this.stangToBaht(extraAdvancePayment.money.centAmount)}`,
+					quantity: "1",
+					totalAmount: `${this.stangToBaht(extraAdvancePayment.money.centAmount)}`,
+					installmentAmount: "0",
+					depositAmount: "0",
+					netAmount: `${this.stangToBaht(extraAdvancePayment.money.centAmount)}`,
 					discountAmount: "0",
 					otherPaymentAmount: "0",
 					privilegeRequiredValue: "",
@@ -356,10 +434,10 @@ export default class TsmOrderModel {
 			case 'product-bundle':
 			case 'package':
 			case 'promotion_set':
-			case 'sim':
 				return 'O'
 			case 'main_product':
 			case 'add_on':
+			case 'sim':
 			default:
 				return 'P'
 		}

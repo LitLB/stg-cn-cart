@@ -5,6 +5,7 @@ import {
   Product,
   ProductVariant,
   Attribute,
+  CartUpdateAction,
 } from '@commercetools/platform-sdk';
 import { CommercetoolsCartClient } from '../adapters/ct-cart-client';
 import { CommercetoolsInventoryClient } from '../adapters/ct-inventory-client';
@@ -32,6 +33,7 @@ import { attachPackageToCart, attachSimToCart } from '../helpers/cart.helper';
 import { AdapterConstructor } from '../interfaces/adapter.interface';
 import { CommercetoolsStandalonePricesClient } from '../adapters/ct-standalone-prices-client';
 import dayjs from 'dayjs';
+import { CartService } from '../services/cart.service';
 export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
   'commercetoolsMeCartClient': CommercetoolsMeCartClient,
   'commercetoolsProductClient': CommercetoolsProductClient,
@@ -544,8 +546,15 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
     return newProductGroup;
   };
 
-  public async addItem(cart: Cart, payload: any): Promise<any> {
+  public async addItem(cart: Cart, payload: any, headers: any): Promise<any> {
     try {
+
+      let eligibleResponse: any[] = []
+      let otherPayments: { code: string, amount: number }[] = []
+      let discounts: { code: string, amount: number }[] = []
+      let directDiscounts
+      
+      const cartService = new CartService()
       const now = new Date();
       const {
         package: packageInfo,
@@ -594,6 +603,22 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
         };
       }
 
+      const bundleProductAttributes = bundleProductInfo.masterData.current.masterVariant.attributes
+      const bundleProductData = {
+        campaignCode: bundleProductAttributes?.find(attr => attr.name === 'campaignCode')?.value,
+        propositionCode: bundleProductAttributes?.find(attr => attr.name === 'propositionCode')?.value,
+        promotionSetCode: bundleProductAttributes?.find(attr => attr.name === 'promotionSetCode')?.value,
+        agreementCode: bundleProductAttributes?.find(attr => attr.name === 'agreementCode')?.value
+      }
+
+      if (bundleProductInfo) {
+        const checkEligible = await cartService.checkEligible(cart, sku, bundleProductData, headers)
+        eligibleResponse = checkEligible?.prices?.discounts ?? []
+        otherPayments = eligibleResponse.filter((r: any) => r.type === 'otherPayment')
+        discounts = eligibleResponse.filter((r: any) => r.type === 'discount')
+        directDiscounts = eligibleResponse
+      }
+
       const advancePaymentList: string[] = bundleProductInfo.masterData.current.masterVariant.attributes?.find(r => r.name === 'payAdvanceServiceFee')?.value ?? "0"
 
       const advancePayment = this.findValidAdvancePayment(advancePaymentList)
@@ -610,14 +635,15 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
 
       const billingAddressInfo = await this.getBillingAddressInfo(cart, billingAddress)
       const ekycInfo = await this.getEkycInfo(cart, ekyc)
+
       this.validateReleaseDate(variant.attributes!, now);
       this.validateStatus(variant);
       this.validateQuantity(productType, cart, sku, product, variant, quantity);
 
-      // const inventories = await this.getInventories(sku);
-      // const inventory = inventories[0];
+      const inventories = await this.getInventories(sku);
+      const inventory = inventories[0];
 
-      // const { isDummyStock } = this.validateInventory(inventory);
+      const { isDummyStock } = this.validateInventory(inventory);
 
       // const newProductGroup = this.calculateProductGroup({
       //   cart,
@@ -626,190 +652,244 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
       //   productType,
       //   productGroup,
       // });
+      const actions: CartUpdateAction[] = [
+        {
+          action: 'addLineItem',
+          productId: product.id,
+          variantId: variant.id,
+          quantity: quantity,
+          supplyChannel: {
+            typeId: 'channel',
+            id: readConfiguration().ctpSupplyChannel,
+          },
+          inventoryMode: isDummyStock ? LINE_ITEM_INVENTORY_MODES.TRACK_ONLY : LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
+          externalPrice: validPrice.value,
+          custom: {
+            type: {
+              typeId: 'type',
+              key: 'lineItemCustomType',
+            },
+            fields: {
+              productType,
+              productGroup,
+              selected: false,
+              isPreOrder: false,
+              journey,
+            },
+          },
+        },
+        {
+          action: 'addLineItem',
+          productId: mainPackage.id,
+          variantId: mainPackage.masterData.current.masterVariant.id,
+          quantity: 1,
+          inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+          externalPrice: {
+            currencyCode: 'THB',
+            centAmount: 0,
+          },
+          custom: {
+            type: {
+              typeId: 'type',
+              key: 'lineItemCustomType',
+            },
+            fields: {
+              productType: 'package',
+              selected: false,
+            },
+          },
+        },
+        {
+          action: 'addLineItem',
+          productId: sim[0].id,
+          variantId: sim[1].id,
+          quantity: 1,
+          supplyChannel: {
+            typeId: 'channel',
+            id: readConfiguration().ctpSupplyChannel,
+          },
+          inventoryMode: this.selectSimInventoryMode(sim[1]),
+          externalPrice: {
+            currencyCode: 'THB',
+            centAmount: 0,
+          },
+          custom: {
+            type: {
+              typeId: 'type',
+              key: 'lineItemCustomType',
+            },
+            fields: {
+              productType: 'sim',
+              selected: false,
+              simInfo: [JSON.stringify(simInfo)]
+            },
+          },
+        },
+        {
+          action: 'addLineItem',
+          productId: bundleProductInfo.id,
+          variantId: bundleProductInfo.masterData.current.masterVariant.id,
+          quantity: 1,
+          inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+          externalPrice: {
+            currencyCode: 'THB',
+            centAmount: 0,
+          },
+          custom: {
+            type: {
+              typeId: 'type',
+              key: 'lineItemCustomType',
+            },
+            fields: {
+              productType: 'product-bundle',
+              selected: true,
+            },
+          },
+        },
+        {
+          action: 'addLineItem',
+          productId: promotionSetInfo.id,
+          variantId: promotionSetInfo.masterData.current.masterVariant.id,
+          quantity: 1,
+          inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+          externalPrice: {
+            currencyCode: 'THB',
+            centAmount: 0,
+          },
+          custom: {
+            type: {
+              typeId: 'type',
+              key: 'lineItemCustomType',
+            },
+            fields: {
+              productType: 'promotion_set',
+              selected: true,
+            },
+          },
+        },
+        {
+          action: "setDirectDiscounts",
+          discounts: directDiscounts && directDiscounts.length > 0 ? directDiscounts?.map(r => {
+            return {
+              value: {
+                type: "absolute",
+                money: [{
+                  centAmount: r.amount * 100,
+                  currencyCode: "THB",
+                  type: 'centPrecision',
+                  fractionDigits: 2,
+                }]
+              },
+              target: {
+                type: "lineItems",
+                predicate: `sku="${sku}"`
+              }
+            }
+          }) : []
+        },
+        {
+          action: 'setCustomField',
+          name: 'packageAdditionalInfo',
+          value: {
+            typeId: 'key-value-document',
+            id: packageAdditionalInfo.id,
+          },
+        },
+        {
+          action: 'setCustomField',
+          name: 'billingAddress',
+          value: {
+            typeId: 'key-value-document',
+            id: billingAddressInfo.id,
+          },
+        },
+        {
+          action: 'setCustomField',
+          name: 'ekyc',
+          value: {
+            typeId: 'key-value-document',
+            id: ekycInfo.id,
+          },
+        },
+      ]
 
-      const updatedCart =
-        await this.adapters.commercetoolsCartClient.updateCart(
+      if (advancePayment > 0) {
+        actions.push({
+          action: 'addCustomLineItem',
+          name: {
+            'en-US': 'Advanced Payment',
+            'th-TH': 'ค่าบริการล่วงหน้า',
+          },
+          quantity: 1,
+          money: {
+            currencyCode: 'THB',
+            centAmount: advancePayment,
+          },
+          slug: 'advance-payment',
+          taxCategory: {
+            typeId: 'tax-category',
+            id: readConfiguration().ctpTaxCategoryId,
+          },
+        })
+      }
+
+      if (extraAdvancedPaymentNew > 0) {
+        actions.push({
+          action: 'addCustomLineItem',
+          name: {
+            'en-US': 'Extra Advanced Payment',
+            'th-TH': 'ค่าบริการล่วงหน้าเพิ่มเติม',
+          },
+          quantity: 1,
+          money: {
+            currencyCode: 'THB',
+            centAmount: extraAdvancedPaymentNew,
+          },
+          slug: 'extra-advance-payment',
+          taxCategory: {
+            typeId: 'tax-category',
+            id: readConfiguration().ctpTaxCategoryId,
+          },
+        })
+      }
+      
+      const updatedCart = await this.adapters.commercetoolsCartClient.updateCart(
           cart.id,
           cart.version,
-          [
-            {
-              action: 'addLineItem',
-              productId: product.id,
-              variantId: variant.id,
-              quantity: quantity,
-              supplyChannel: {
-                typeId: 'channel',
-                id: readConfiguration().ctpSupplyChannel,
-              },
-              inventoryMode: LINE_ITEM_INVENTORY_MODES.RESERVE_ON_ORDER,
-              externalPrice: validPrice.value,
-              custom: {
-                type: {
-                  typeId: 'type',
-                  key: 'lineItemCustomType',
-                },
-                fields: {
-                  productType,
-                  productGroup,
-                  selected: false,
-                  isPreOrder: false,
-                  journey,
-                },
-              },
-            },
-            {
-              action: 'addLineItem',
-              productId: mainPackage.id,
-              variantId: mainPackage.masterData.current.masterVariant.id,
-              quantity: 1,
-              inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
-              externalPrice: {
-                currencyCode: 'THB',
-                centAmount: 0,
-              },
-              custom: {
-                type: {
-                  typeId: 'type',
-                  key: 'lineItemCustomType',
-                },
-                fields: {
-                  productType: 'package',
-                  selected: false,
-                },
-              },
-            },
-            {
-              action: 'addLineItem',
-              productId: sim[0].id,
-              variantId: sim[1].id,
-              quantity: 1,
-              supplyChannel: {
-                typeId: 'channel',
-                id: readConfiguration().ctpSupplyChannel,
-              },
-              inventoryMode: this.selectSimInventoryMode(sim[1]),
-              externalPrice: {
-                currencyCode: 'THB',
-                centAmount: 0,
-              },
-              custom: {
-                type: {
-                  typeId: 'type',
-                  key: 'lineItemCustomType',
-                },
-                fields: {
-                  productType: 'sim',
-                  selected: false,
-                  simInfo: [JSON.stringify(simInfo)]
-                },
-              },
-            },
-            {
-              action: 'addLineItem',
-              productId: bundleProductInfo.id,
-              variantId: bundleProductInfo.masterData.current.masterVariant.id,
-              quantity: 1,
-              inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
-              externalPrice: {
-                currencyCode: 'THB',
-                centAmount: 0,
-              },
-              custom: {
-                type: {
-                  typeId: 'type',
-                  key: 'lineItemCustomType',
-                },
-                fields: {
-                  productType: 'product-bundle',
-                  selected: true,
-                },
-              },
-            },
-            {
-              action: 'addLineItem',
-              productId: promotionSetInfo.id,
-              variantId: promotionSetInfo.masterData.current.masterVariant.id,
-              quantity: 1,
-              inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
-              externalPrice: {
-                currencyCode: 'THB',
-                centAmount: 0,
-              },
-              custom: {
-                type: {
-                  typeId: 'type',
-                  key: 'lineItemCustomType',
-                },
-                fields: {
-                  productType: 'promotion_set',
-                  selected: true,
-                },
-              },
-            },
-            {
-              action: 'addCustomLineItem',
-              name: {
-                'en-US': 'Advanced Payment',
-                'th-TH': 'ค่าบริการล่วงหน้า',
-              },
-              quantity: 1,
-              money: {
-                currencyCode: 'THB',
-                centAmount: advancePayment,
-              },
-              slug: 'advance-payment',
-              taxCategory: {
-                typeId: 'tax-category',
-                id: readConfiguration().ctpTaxCategoryId,
-              },
-            },
-            {
-              action: 'addCustomLineItem',
-              name: {
-                'en-US': 'Extra Advanced Payment',
-                'th-TH': 'ค่าบริการล่วงหน้าเพิ่มเติม',
-              },
-              quantity: 1,
-              money: {
-                currencyCode: 'THB',
-                centAmount: extraAdvancedPaymentNew,
-              },
-              slug: 'extra-advance-payment',
-              taxCategory: {
-                typeId: 'tax-category',
-                id: readConfiguration().ctpTaxCategoryId,
-              },
-            },
-            {
-              action: 'setCustomField',
-              name: 'packageAdditionalInfo',
-              value: {
-                typeId: 'key-value-document',
-                id: packageAdditionalInfo.id,
-              },
-            },
-            {
-              action: 'setCustomField',
-              name: 'billingAddress',
-              value: {
-                typeId: 'key-value-document',
-                id: billingAddressInfo.id,
-              },
-            },
-            {
-              action: 'setCustomField',
-              name: 'ekyc',
-              value: {
-                typeId: 'key-value-document',
-                id: ekycInfo.id,
-              },
-            },
-          ]
-        );
+          actions
+      );
+
+      const lineItemId = updatedCart.lineItems.find((lineItem: LineItem) => lineItem.productId === productId)?.id
+
+      const cartWithDiscount = await this.adapters.commercetoolsCartClient.updateCart(updatedCart.id, updatedCart.version, [
+        {
+          action: "setLineItemCustomField",
+          lineItemId: lineItemId,
+          name: "discounts",
+          value: (discounts && Array.isArray(discounts))
+            ? discounts.map((discount: any) => (JSON.stringify({
+              code: discount.code,
+              amount: discount.amount * 100, // convert to cent
+            })))
+            : [],
+        },
+        {
+          action: "setLineItemCustomField",
+          lineItemId: lineItemId,
+          name: "otherPayments",
+          value: (otherPayments && Array.isArray(otherPayments))
+            ? otherPayments.map((otherPayment: any) => (JSON.stringify({
+              code: otherPayment.code,
+              amount: otherPayment.amount * 100, // convert to cent
+            })))
+            : [],
+        }
+      ])
+
       // let iCart: ICart = this.adapters.commercetoolsMeCartClient.mapCartToICart(updatedCart);
       const ctCartWithChanged: Cart =
         await this.adapters.commercetoolsProductClient.checkCartHasChanged(
-          updatedCart
+          cartWithDiscount
         );
       const { ctCart: cartWithUpdatedPrice, compared } =
         await this.adapters.commercetoolsCartClient.updateCartWithNewValue(
