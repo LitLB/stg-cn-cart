@@ -315,11 +315,12 @@ export default class TsmOrderModel {
 			}
 
 			if (extraAdvancePayment) {
+				const promotionSetMatched = Object.values(promotionSet)[0]
 
 				const extraAdvancePaymentCode = this.ctCart.custom?.fields?.packageAdditionalInfo?.obj?.value?.t1?.serviceCode;
 
-				if (promotionSet.variant?.attributes) {
-					for (const attribute of promotionSet.variant.attributes) {
+				if (promotionSetMatched?.variant?.attributes) {
+					for (const attribute of promotionSetMatched.variant.attributes) {
 						if (attribute.name === 'code') {
 							promotionSetCode = attribute.value
 						}
