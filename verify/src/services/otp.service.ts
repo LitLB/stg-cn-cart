@@ -436,6 +436,8 @@ export class OtpService {
                 const blockChangeMainItem = blockChangeMain.productCharacteristic.find((item: Characteristic) => item.name === "BLOC_CHNG_MAIN")
                 if (blockChangeMainItem) {
                     response.customerProfile.isBlockChangeMain = blockChangeMainItem.value.toLocaleUpperCase() === 'Y' ? true : false
+                } else {
+                    response.customerProfile.isBlockChangeMain = true
                 }
             }
         }

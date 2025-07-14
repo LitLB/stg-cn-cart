@@ -294,7 +294,10 @@ class ApigeeClientAdapter {
             }
 
             logger.error(`getProductOrdering:${errorString}`);
-            throw error;
+
+            return {
+                productCharacteristic: []
+            };
         }
     }
 }
