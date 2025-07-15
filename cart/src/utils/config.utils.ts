@@ -63,8 +63,6 @@ export const readConfiguration = () => {
     },
     headless: {
       baseUrl: process.env.HEADLESS_BASE_URL as string,
-      apiKey: process.env.HEADLESS_API_KEY as string,
-      hashKey: process.env.HEADLESS_PRIVATE_KEY_ENCRYPTION as string,
     }
   };
 
