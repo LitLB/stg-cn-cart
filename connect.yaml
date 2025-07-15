@@ -113,12 +113,6 @@ deployAs:
         - key: APIGW_PRIVATE_KEY_ENCRYPTION
           description: Apigee private key encryption
           required: true
-        - key: HEADLESS_API_KEY
-          description: Headless Api Key
-          required: true
-        - key: HEADLESS_PRIVATE_KEY_ENCRYPTION
-          description: Headless private key encryption
-          required: true
   - name: coupon
     applicationType: service
     endpoint: /coupon
