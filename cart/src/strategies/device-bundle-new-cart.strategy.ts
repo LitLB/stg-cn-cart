@@ -499,7 +499,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
       const validEndDate: boolean = (now.isSame(endDate) || now.isBefore(endDate))
 
       return validStartDate && validEndDate
-    }).fee.concat("00") // ? convert bath to cent
+    })?.fee.concat("00") // ? convert bath to cent
 
     return Number(validAdvancePayment ?? 0)
   }
