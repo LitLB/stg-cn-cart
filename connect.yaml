@@ -76,6 +76,9 @@ deployAs:
         - key: HEADLESS_BASE_URL
           description: Headless Base Url
           required: true
+        - key: HL_BASE_URL
+          description: Hl Base Url
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: Commercetools project key identifying your specific project
@@ -112,6 +115,9 @@ deployAs:
           required: true
         - key: APIGW_PRIVATE_KEY_ENCRYPTION
           description: Apigee private key encryption
+          required: true
+        - key: HL_API_KEY
+          description: Hl Api Key
           required: true
   - name: coupon
     applicationType: service
