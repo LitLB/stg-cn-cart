@@ -506,7 +506,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       if (productType === 'main_product') {
         validPrice = await this.getValidPrice(variant, now);
       }
-      const mainPackage = await this.getPackageByCode(packageInfo.code);
+      
       const promotionSetInfo = await this.getPromotionSetByCode(bundleProduct.promotionSetCode)
       const bundleProductInfo = await this.getBundleProductByKey(bundleProduct.key)
 
@@ -535,15 +535,20 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       }
 
       const advancePaymentList: string[] = bundleProductInfo.masterData.current.masterVariant.attributes?.find(r => r.name === 'payAdvanceServiceFee')?.value ?? []
-
       const advancePayment = this.findValidAdvancePayment(advancePaymentList)
 
-      const packageAdditionalInfo = await this.getPackageAdditionalInfo(
-        cart,
-        mainPackage.masterData.current.masterVariant,
-        bundleProductInfo.masterData.current.masterVariant,
-        advancePayment
-      );
+      const isChangePackage = bundleProductAttributes?.find(attr => attr.name === 'isChangePackage')?.value
+      let mainPackage = null
+      let packageAdditionalInfo = null
+      if (isChangePackage) {
+        mainPackage = await this.getPackageByCode(packageInfo.code);
+        packageAdditionalInfo = await this.getPackageAdditionalInfo(
+          cart,
+          mainPackage.masterData.current.masterVariant,
+          bundleProductInfo.masterData.current.masterVariant,
+          advancePayment
+        );
+      }
 
       this.validateReleaseDate(variant.attributes!, now);
       this.validateStatus(variant);
@@ -584,27 +589,6 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
               selected: true,
               isPreOrder: isDummyStock,
               journey,
-            },
-          },
-        },
-        {
-          action: 'addLineItem',
-          productId: mainPackage.id,
-          variantId: mainPackage.masterData.current.masterVariant.id,
-          quantity: 1,
-          inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
-          externalPrice: {
-            currencyCode: 'THB',
-            centAmount: 0,
-          },
-          custom: {
-            type: {
-              typeId: 'type',
-              key: 'lineItemCustomType',
-            },
-            fields: {
-              productType: 'package',
-              selected: true,
             },
           },
         },
@@ -651,14 +635,6 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
           },
         },
         {
-          action: 'setCustomField',
-          name: 'packageAdditionalInfo',
-          value: {
-            typeId: 'key-value-document',
-            id: packageAdditionalInfo.id,
-          },
-        },
-        {
           action: "setDirectDiscounts",
           discounts: directDiscounts && directDiscounts.length > 0 ? directDiscounts?.map(r => {
             return {
@@ -679,6 +655,41 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
           }) : []
         },
       ]
+
+      if (mainPackage) {
+        actions.push({
+          action: 'addLineItem',
+          productId: mainPackage.id,
+          variantId: mainPackage.masterData.current.masterVariant.id,
+          quantity: 1,
+          inventoryMode: LINE_ITEM_INVENTORY_MODES.NONE,
+          externalPrice: {
+            currencyCode: 'THB',
+            centAmount: 0,
+          },
+          custom: {
+            type: {
+              typeId: 'type',
+              key: 'lineItemCustomType',
+            },
+            fields: {
+              productType: 'package',
+              selected: true,
+            },
+          },
+        })
+      }
+
+      if (packageAdditionalInfo) {
+        actions.push({
+          action: 'setCustomField',
+          name: 'packageAdditionalInfo',
+          value: {
+            typeId: 'key-value-document',
+            id: packageAdditionalInfo.id,
+          },
+        })
+      }
 
       if (advancePayment > 0) {
         actions.push(
@@ -914,9 +925,18 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
           package: packageInfo,
           sku,
           productType,
-          productGroup,
+          bundleProduct,
           selected,
         } = item;
+
+        const bundleProductInfo = await this.getBundleProductByKey(bundleProduct.key)
+
+        if (!bundleProductInfo) {
+          throw {
+            statusCode: HTTP_STATUSES.NOT_FOUND,
+            statusMessage: 'Bundle product notfound.',
+          };
+        }
 
         if (!packageInfo) {
           throw {
@@ -929,7 +949,6 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         const lineItem = cart.lineItems.find((lineItem: any) => {
           return (
             lineItem.variant.sku === sku &&
-            // && lineItem.custom?.fields?.productGroup == productGroup
             lineItem.custom?.fields?.productType === productType
           );
         });
@@ -940,6 +959,8 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
               attribute.value === packageInfo.code
           );
         });
+        const bundleProductAttributes = bundleProductInfo.masterData.current.masterVariant.attributes
+        const isChangePackage = bundleProductAttributes?.find(attr => attr.name === 'isChangePackage')?.value
 
         if (!lineItem) {
           throw {
@@ -947,23 +968,26 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
             statusMessage: `Line item with SKU ${sku} not found in the cart.`,
           };
         }
-        if (!packageItem) {
-          throw {
-            statusCode: HTTP_STATUSES.NOT_FOUND,
-            statusMessage: `Line item with SKU ${sku} not found in the cart.`,
-          };
+
+        if (isChangePackage) {
+          if (!packageItem) {
+            throw {
+              statusCode: HTTP_STATUSES.NOT_FOUND,
+              statusMessage: `Line item with SKU ${sku} not found in the cart.`,
+            };
+          }
+
+          updateActions.push({
+            action: 'setLineItemCustomField',
+            lineItemId: packageItem.id,
+            name: 'selected',
+            value: selected,
+          });
         }
 
         updateActions.push({
           action: 'setLineItemCustomField',
           lineItemId: lineItem.id,
-          name: 'selected',
-          value: selected,
-        });
-
-        updateActions.push({
-          action: 'setLineItemCustomField',
-          lineItemId: packageItem.id,
           name: 'selected',
           value: selected,
         });
