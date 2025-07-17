@@ -421,7 +421,7 @@ export class OtpService {
                         birthdate: customerProfile.birthOfDate,
                         ageOfUse: customerProfile.aging ?? undefined,
                         certificationId: decryptedThaiId,
-                        certificationType: 'I',
+                        certificationType: String(customerProfile.certificationType ?? "I").toUpperCase(),
                         isBlockChangeMain: false,
                     }
                 }
