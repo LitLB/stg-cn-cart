@@ -673,7 +673,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
               productType,
               productGroup,
               selected: false,
-              isPreOrder: false,
+              isPreOrder: isDummyStock,
               journey,
             },
           },
@@ -883,6 +883,11 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
               amount: otherPayment.amount * 100, // convert to cent
             })))
             : [],
+        },
+        {
+          action: "setCustomField",
+          name: "preOrder",
+          value: isDummyStock
         }
       ])
 
