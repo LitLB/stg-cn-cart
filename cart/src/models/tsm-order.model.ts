@@ -64,7 +64,16 @@ export default class TsmOrderModel {
 
 			for (const lineItem of lineItems) {
 				if (this.getProductType(lineItem.custom?.fields?.productType) !== 'O') {
-					filteredItem.push(lineItem)
+					const isSimProduct = this.getProductType(lineItem.custom?.fields?.productType) === 'P' && lineItem.custom?.fields?.productType === 'sim';
+                    if (isSimProduct) {
+                        const simInfoRaw = lineItem.custom?.fields?.simInfo?.[0] ?? '';
+                        const simInfo = JSON.parse(simInfoRaw);
+                        if (simInfo.simType === 'physical') {
+                            filteredItem.push(lineItem);
+                        }
+                    } else {
+                        filteredItem.push(lineItem)
+                    }
 				}
 
 				if (lineItem.custom?.fields?.productType === 'product-bundle') {
