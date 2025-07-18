@@ -86,7 +86,7 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
 
     return {
         certificationId: data.engagedParty.id,
-        certificationType: data.relatedParty.customer?.type || 'I', // ! TBC
+        certificationType: data.engagedParty.type || 'I', // ! TBC
         customerNo: data.relatedParty.href,
         customerType: customerType,
         companyCode: "DTN", // ? FIX
@@ -194,7 +194,7 @@ export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileRes
 
         return {
             certificationId: data.engagedParty.id,
-            certificationType: data.relatedParty.customer.type,
+            certificationType: data.engagedParty.type,
             customerNo: data.relatedParty.account.id,
             customerType: data.relatedParty.customer.type,
             companyCode: companyCode.value,
