@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import { Characteristic } from "../interfaces/otp.interface";
 import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
 import { convertToDDMMYYYY } from "../utils/formatter.utils";
+import { formatCertificateType } from "./helpers.validators";
 
 
 export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileResponse => {
@@ -86,7 +87,7 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
 
     return {
         certificationId: data.engagedParty.id,
-        certificationType: data.engagedParty.type || 'I', // ! TBC
+        certificationType: formatCertificateType(data.engagedParty.type || '01'), // ! TBC
         customerNo: data.relatedParty.href,
         customerType: customerType,
         companyCode: "DTN", // ? FIX
@@ -97,6 +98,8 @@ export const validateCustomerDtacProfile = (data: any): ICheckCustomerProfileRes
     }
 
 }
+
+
 
 export const validateCustomerTrueProfile = (data: any): ICheckCustomerProfileResponse => {
 
@@ -258,7 +261,7 @@ export const validateContractAndQuotaDtac = (data: any) => {
     if (allowFlag || (!allowFlag && quotaStatusFlag && totalContractActiveFlag)) {
         return {
             contractRemainDays: '0' // ? DEFAULT "0" not exist in DTAC
-        } 
+        }
     } else {
         throw {
             statusCode: '400.4013',

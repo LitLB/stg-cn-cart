@@ -10,23 +10,23 @@ import { ValidatorCreator, Wrapper } from '../types/index.types';
 
 const required: Wrapper =
   (fn) =>
-  (value, ...args) =>
-    !(value === undefined || value === null) && fn(...[String(value), ...args]);
+    (value, ...args) =>
+      !(value === undefined || value === null) && fn(...[String(value), ...args]);
 
 export const standardString: ValidatorCreator = (
   path,
   message,
   overrideConfig = {}
 ) => [
-  path,
-  [
+    path,
     [
-      required(validator.isLength),
-      message,
-      [{ min: 2, max: 20, ...overrideConfig }],
+      [
+        required(validator.isLength),
+        message,
+        [{ min: 2, max: 20, ...overrideConfig }],
+      ],
     ],
-  ],
-];
+  ];
 
 export const standardEmail: ValidatorCreator = (path, message) => [
   path,
@@ -99,34 +99,34 @@ export const getValidateMessages = (validatorConfigs, item) =>
 
 export const optional =
   (fn) =>
-  (...args) => {
-    const [path, validators] = fn(...args);
-    return [
-      path,
-      validators.map(([fn, message, validatorArgs]) => [
-        (value, ...args) =>
-          value === undefined ? true : fn(...[value, ...args]),
-        message,
-        validatorArgs,
-      ]),
-    ];
-  };
+    (...args) => {
+      const [path, validators] = fn(...args);
+      return [
+        path,
+        validators.map(([fn, message, validatorArgs]) => [
+          (value, ...args) =>
+            value === undefined ? true : fn(...[value, ...args]),
+          message,
+          validatorArgs,
+        ]),
+      ];
+    };
 
 export const array =
   (fn) =>
-  (...args) => {
-    const [path, validators] = fn(...args);
-    return [
-      path,
-      validators.map(([fn, message, validatorArgs]) => [
-        (value, ...args) =>
-          Array.isArray(value) &&
-          value.every((value) => fn(...[value, ...args])),
-        message,
-        validatorArgs,
-      ]),
-    ];
-  };
+    (...args) => {
+      const [path, validators] = fn(...args);
+      return [
+        path,
+        validators.map(([fn, message, validatorArgs]) => [
+          (value, ...args) =>
+            Array.isArray(value) &&
+            value.every((value) => fn(...[value, ...args])),
+          message,
+          validatorArgs,
+        ]),
+      ];
+    };
 
 export const region: ValidatorCreator = (path, message) => [
   path,
@@ -147,3 +147,35 @@ export const region: ValidatorCreator = (path, message) => [
     ],
   ],
 ];
+
+
+// C=หนังสือรับรองบริษัท/ห้างฯ
+// G=บัตรประจำตัวข้าราชการ
+// M=ใบสุทธิ
+//16 : P=หนังสือเดินทาง
+// T=ทะเบียนวัด
+//01 : I=บัตรประชาชน                   
+// J=หนังสือรับรองการจัดตั้งสมาคม
+// B=บัญชีมูลนิธิ
+// O=ทะเบียนพาณิชย์
+// D=บัตรประจำตัวพนักงานรัฐวิสาหกิจ
+//15 : A=บัตรประจำตัวคนต่างด้าว
+// H=อื่นๆ
+// F=บัตรนักเรียน-นักศึกษา
+// E=ใบขับขี่
+// S=TempPassportบัตรไม่ระบุสัญชาติ
+// V=รหัสหน่วยงานราชการ/รัฐวิสาหกิจ
+
+export const formatCertificateType = (input: string) => {
+  switch (input) {
+    case "01":
+      return 'I'
+    case "15":
+      return 'A'
+    case "16":
+      return 'P'
+    
+    default:
+      return 'X' //! TBC not solution yet :  july 18 2025
+  }
+}
