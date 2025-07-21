@@ -140,7 +140,7 @@ export type AddItemCartBodyRequest = {
     },
     extraAdvancedPayment?: number;
     serviceCode?: string;
-    ekyc?: EKYCData;
+    ekyc?: EKYCData & Record<string, any>;
 };
 
 export type EKYCData = {
@@ -168,7 +168,7 @@ export type EKYCData = {
     uppassDocNumber: string;
     idCardOcrStatus: string;
     faceCompareStatus:string;
-    address: Address;
+    address: Address & Record<string, any>;
 };
 
 export type Address = {
@@ -356,53 +356,7 @@ export function validateAddItemCartBody(body: any) {
         }).optional(),
         extraAdvancedPayment: Joi.number().integer().min(0).optional(),
         serviceCode: Joi.string().allow(''),
-        ekyc: Joi.object({
-            sessionId: Joi.string().required(),
-            uppassSlug: Joi.string().allow(''),
-            uppassForm: Joi.string().allow(''),
-            language: Joi.string().allow(''),
-            journey: Joi.string().allow(''),
-            dopaBypass: Joi.string().allow(''),
-            dopaFlag: Joi.string().allow(''),
-            dopaLaserFlag: Joi.string().allow(''),
-            docType: Joi.string().allow(''),
-            docNumber: Joi.string().allow(''),
-            correlationId: Joi.string().allow(''),
-            resultStatus: Joi.string().allow(''),
-            createAt: Joi.string().allow(''),
-            updateAt: Joi.string().allow(''),
-            faceScoreValue: Joi.string().allow(''),
-            faceCompareResult: Joi.string().allow(''),
-            urlLiveness: Joi.string().allow(''),
-            urlIdentity: Joi.string().allow(''),
-            uppassDopaStatus: Joi.string().allow(''),
-            uppassDocType: Joi.string().allow(''),
-            uppassMode: Joi.string().allow(''),
-            uppassDocNumber: Joi.string().allow(''),
-            idCardOcrStatus: Joi.string().allow(''),
-            faceCompareStatus: Joi.string().allow(''),
-            address: Joi.object({
-                gender: Joi.string().allow(''),
-                prefix: Joi.string().allow(''),
-                firstName: Joi.string().allow(''),
-                lastName: Joi.string().allow(''),
-                firstNameEn: Joi.string().allow(''),
-                lastNameEn: Joi.string().allow(''),
-                dateOfBirth: Joi.string().allow(''),
-                houseNo: Joi.string().allow(''),
-                moo: Joi.string().allow(''),
-                village: Joi.string().allow(''),
-                building: Joi.string().allow(''),
-                floor: Joi.string().allow(''),
-                roomNo: Joi.string().allow(''),
-                soi: Joi.string().allow(''),
-                streetName: Joi.string().allow(''),
-                city: Joi.string().allow(''),
-                subDistrict: Joi.string().allow(''),
-                state: Joi.string().allow(''),
-                postalCode: Joi.string().allow(''),
-            }).optional(),
-        }).optional()
+        ekyc: Joi.object().unknown(true).optional(),
     }).validate(body, { abortEarly: false });
 }
 
