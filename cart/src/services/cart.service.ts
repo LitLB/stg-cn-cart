@@ -315,55 +315,55 @@ export class CartService {
 
             // * STEP #4.1 - (VECOM-5680) Check hlPreverFull again requirement from Khun'P
             const [customerInfo, simInfo] = await this.reserveMsisdnGetData(ctCart);
-            // if (cartJourney == CART_JOURNEYS.DEVICE_BUNDLE_NEW && customerInfo && simInfo) {
-            //     const config = readConfiguration();
-            //     const apigeePrivateKeyEncryption = config.apigee.privateKeyEncryption;
-            //     const encryptedThaiId = customerInfo.verifyCertificationIdValue
-            //         ? apigeeEncrypt(
-            //               customerInfo.verifyCertificationIdValue,
-            //               apigeePrivateKeyEncryption
-            //           )
-            //         : '';
-            //     const encryptedBirthdate = customerInfo.verifyBirthdateValue
-            //         ? apigeeEncrypt(formatDateFromString(customerInfo.verifyBirthdateValue), apigeePrivateKeyEncryption)
-            //         : '';
+            if (cartJourney == CART_JOURNEYS.DEVICE_BUNDLE_NEW && customerInfo && simInfo) {
+                const config = readConfiguration();
+                const apigeePrivateKeyEncryption = config.apigee.privateKeyEncryption;
+                const encryptedThaiId = customerInfo.verifyCertificationIdValue
+                    ? apigeeEncrypt(
+                          customerInfo.verifyCertificationIdValue,
+                          apigeePrivateKeyEncryption
+                      )
+                    : '';
+                const encryptedBirthdate = customerInfo.verifyBirthdateValue
+                    ? apigeeEncrypt(formatDateFromString(customerInfo.verifyBirthdateValue), apigeePrivateKeyEncryption)
+                    : '';
 
-            //     const r = await hlVerifyStatus({
-            //         correlationId: ctCart.custom?.fields?.correlatorId || '',
-            //         channel: VERIFY_HL_CHANNEL.ECP,
-            //         dealerCode: config.onlineChannel,
-            //         companyCode: VERIFY_HL_COMPANY_CODE.AL,
-            //         propoId: simInfo.propositionCode,
-            //         activityFunction: VERIFY_HL_ACTIVITYFUNCTION.NEW,
-            //         activityFunctionType: VERIFY_HL_ACTIVITYFUNCTIONTYPE.PRIVILEGE,
-            //         userLogin: VERIFY_HL_USERLOGIN.CVECOM03,
-            //         customerInfo: {
-            //             identification: encryptedThaiId,
-            //             identificationType: customerInfo.verifyCertificationTypeValue,
-            //             birthDate: encryptedBirthdate,
-            //             customerType: VERIFY_HL_CUSTOMER_TYPE.I,
-            //             accountType: VERIFY_HL_ACCOUNTYPE.RPI,
-            //             requestSubscriber: '1',
-            //         },
-            //         validate: [
-            //             {
-            //                 name: VERIFY_HL_VALIDATE_NAME.PREVERFULLRESULT,
-            //                 function: [],
-            //             },
-            //         ],
-            //     });
+                const r = await hlVerifyStatus({
+                    correlationId: ctCart.custom?.fields?.correlatorId || '',
+                    channel: VERIFY_HL_CHANNEL.ECP,
+                    dealerCode: config.onlineChannel,
+                    companyCode: VERIFY_HL_COMPANY_CODE.AL,
+                    propoId: simInfo.propositionCode,
+                    activityFunction: VERIFY_HL_ACTIVITYFUNCTION.NEW,
+                    activityFunctionType: VERIFY_HL_ACTIVITYFUNCTIONTYPE.PRIVILEGE,
+                    userLogin: VERIFY_HL_USERLOGIN.CVECOM03,
+                    customerInfo: {
+                        identification: encryptedThaiId,
+                        identificationType: customerInfo.verifyCertificationTypeValue,
+                        birthDate: encryptedBirthdate,
+                        customerType: VERIFY_HL_CUSTOMER_TYPE.I,
+                        accountType: VERIFY_HL_ACCOUNTYPE.RPI,
+                        requestSubscriber: '1',
+                    },
+                    validate: [
+                        {
+                            name: VERIFY_HL_VALIDATE_NAME.PREVERFULLRESULT,
+                            function: [],
+                        },
+                    ],
+                });
                 
-            //     if (r?.code != '200') {
-            //         throw createStandardizedError(
-            //             {
-            //                 statusCode: HttpStatusCode.BadRequest,
-            //                 statusMessage: r?.description || 'Something went wrong',
-            //                 errorCode: r?.code,
-            //             },
-            //             'verifyHLStatus'
-            //         );
-            //     }
-            // }
+                if (r?.code != '200') {
+                    throw createStandardizedError(
+                        {
+                            statusCode: HttpStatusCode.BadRequest,
+                            statusMessage: r?.description || 'Something went wrong',
+                            errorCode: r?.code,
+                        },
+                        'verifyHLStatus'
+                    );
+                }
+            }
 
             // * STEP #4.2 Reserve Msis
             if (customerInfo && customerInfo.verifyCertificationStatus == 'success' && simInfo) {
