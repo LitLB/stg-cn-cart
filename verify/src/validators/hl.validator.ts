@@ -41,6 +41,12 @@ export class HLValidator {
                     statusMessage: 'Invalid activated less than 45 days ago',
                     errorCode: 'INVALID_ACTIVATED_LESS_THEN_45_DAYS_AGO'
                 }
+            case "107":
+                return {
+                    statusCode: STATUS_CODES.UNDER_18_YEARS_OLD,
+                    statusMessage: 'under 18 years old',
+                    errorCode: 'UNDER_18_YEARS_OLD'
+                }
             case "116":
                 return {
                     statusCode: STATUS_CODES.NBTC_1_ID_5_NUMBER,

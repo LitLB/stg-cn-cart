@@ -637,7 +637,7 @@ export class CommercetoolsCartClient implements IAdapter {
             const isPreOrder = lineItem.custom?.fields.isPreOrder;
             const productType = lineItem.custom?.fields.productType ?? "";
 
-            if (productType.includes(['main_product', 'sim', 'add_on'])) {
+            if (['main_product', 'sim', 'add_on'].includes(productType)) {
 
                 const matchedInventory = inventories.find((inv: InventoryEntry) => inv.sku === lineItem.variant.sku);
 
