@@ -60,6 +60,7 @@ export const readConfiguration = () => {
       shopCode: process.env.TSM_ORDER_SHOP_CODE as string,
       saleCode: process.env.TSM_ORDER_SALE_CODE as string,
       saleName: process.env.TSM_ORDER_SALE_NAME as string,
+      discountCodeDtac: process.env.TSM_ORDER_DISCOUNT_CODE_DTAC as string,
     },
     headless: {
       baseUrl: process.env.HEADLESS_BASE_URL as string,

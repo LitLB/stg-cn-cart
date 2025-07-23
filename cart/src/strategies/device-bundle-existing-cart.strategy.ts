@@ -14,7 +14,7 @@ import CommercetoolsMeCartClient from '../adapters/me/ct-me-cart-client';
 import { BaseCartStrategy } from './base-cart.strategy';
 import { createStandardizedError } from '../utils/error.utils';
 import { InventoryValidator } from '../validators/inventory.validator';
-import { CART_JOURNEYS } from '../constants/cart.constant';
+import { CART_JOURNEYS, CART_OPERATOS} from '../constants/cart.constant';
 import { HTTP_STATUSES } from '../constants/http.constant';
 import {
   validateBulkDeleteCartItemBody,
@@ -459,6 +459,8 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         bundleProduct
       } = payload;
       const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
+      const customerInfo = JSON.parse(cart.custom?.fields.customerInfo);
+      const operator = customerInfo && customerInfo?.customerProfile?.operator?.toUpperCase() || ''
 
       await InventoryValidator.validateLineItemUpsert(
         cart,
@@ -534,7 +536,8 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         directDiscounts = eligibleResponse
       }
 
-      const advancePaymentList: string[] = bundleProductInfo.masterData.current.masterVariant.attributes?.find(r => r.name === 'payAdvanceServiceFee')?.value ?? []
+      let advancePaymentList: string[] = bundleProductInfo.masterData.current.masterVariant.attributes?.find(r => r.name === 'payAdvanceServiceFee')?.value ?? []
+      if (operator === CART_OPERATOS.DTAC) advancePaymentList = [];
       const advancePayment = this.findValidAdvancePayment(advancePaymentList)
 
       const isChangePackage = bundleProductAttributes?.find(attr => attr.name === 'isChangePackage')?.value

@@ -1,7 +1,8 @@
 import { apigeeEncrypt } from '../utils/apigeeEncrypt.utils'
-import { Attribute, Cart, LineItem } from '@commercetools/platform-sdk'
+import { Attribute, Cart, Money, LineItem, DirectDiscount } from '@commercetools/platform-sdk'
 import ctCustomObjectClient from '../adapters/ct-custom-object-client'
 import * as ORDER_CONSTANTS from '../constants/order.constant'
+import { CART_OPERATOS } from '../constants/cart.constant'
 import { logger } from '../utils/logger.utils'
 
 export default class TsmOrderModel {
@@ -36,20 +37,21 @@ export default class TsmOrderModel {
 			const shopCode = this.config.tsmOrder.shopCode
 			const saleCode = this.config.tsmOrder.saleCode
 			const saleName = this.config.tsmOrder.saleName
+			const discountCodeDtac = this.config.tsmOrder.discountCodeDtac;
 
 			const apigeePrivateKeyEncryption = this.config.apigee.privateKeyEncryption
 
 			// ! Generate
 			const orderId = this.orderNumber
-
+			
 			// ! Cart
-			const { shippingAddress, lineItems, customLineItems } = this.ctCart as Cart
+			const { shippingAddress, lineItems, customLineItems, directDiscounts } = this.ctCart as Cart
 			const customerInfo = JSON.parse(this.ctCart.custom?.fields.customerInfo)
 			const thaiId = customerInfo && customerInfo?.customerProfile?.certificationId || customerInfo?.verifyCertificationIdValue || ''
 			const mobile = customerInfo && customerInfo?.verifyMobileNumberValue || ''
 			const encryptedThaiId = thaiId ? apigeeEncrypt(thaiId, apigeePrivateKeyEncryption) : ''
 			const encryptedMobileNumber = mobile ? apigeeEncrypt(mobile, apigeePrivateKeyEncryption) : ''
-			
+			const operator = customerInfo && customerInfo?.customerProfile?.operator?.toUpperCase() || ''
 			const customer = {
 				thaiId: encryptedThaiId,
 				firstName: shippingAddress?.firstName,
@@ -155,9 +157,14 @@ export default class TsmOrderModel {
 				return Array.from({ length: noOfItem }, () => {
 					const sequence = `${sequenceCounter++}`.toString()
 
-					if (sequence !== '1') {
+					if (sequence !== '1' || operator === CART_OPERATOS.DTAC) {
 						campaignCode = ''
 						campaignName = ''
+					}
+
+					if (operator === CART_OPERATOS.DTAC) {
+						promotionSetCode = ''
+						promotionSetProposition = 999
 					}
 
 					if (productType === 'free_gift') {
@@ -209,7 +216,7 @@ export default class TsmOrderModel {
 
 					//! items.netAmount = ค่า (price * quantity) - discountAmount
 					let netAmount = price * quantity
-					netAmount -= this.bahtToStang(discountAmountBaht)
+					if (operator === CART_OPERATOS.TRUE) netAmount -= this.bahtToStang(discountAmountBaht)
 
 					if (productType === 'sim') {
 						return {
@@ -266,11 +273,11 @@ export default class TsmOrderModel {
 						installmentAmount: '0',
 						depositAmount: '0',
 						netAmount: `${this.stangToBaht(netAmount)}`,
-						discountAmount: `${discountAmountBaht}`,
-						otherPaymentAmount: `${otherPaymentAmountBaht}`,
-						privilegeRequiredValue: newPrivilegeRequiredValue,
-						discounts,
-						otherPayments,
+						discountAmount: operator === CART_OPERATOS.TRUE ? `${discountAmountBaht}` : 0,
+						otherPaymentAmount: operator === CART_OPERATOS.TRUE ? `${otherPaymentAmountBaht}` : 0,
+						privilegeRequiredValue: operator === CART_OPERATOS.TRUE ? newPrivilegeRequiredValue : '',
+						discounts: operator === CART_OPERATOS.TRUE ? discounts : [],
+						otherPayments: operator === CART_OPERATOS.TRUE ? otherPayments : [],
 						serials: [],
 						range: [],
 					}
@@ -373,6 +380,20 @@ export default class TsmOrderModel {
 
 			//! From Custom Object
 			const { discounts, otherPayments } = this.couponDiscounts
+
+			if (operator === CART_OPERATOS.DTAC) {
+				const totalDirectDiscount = this.getDirectDiscounts(directDiscounts);
+
+				if (totalDirectDiscount > 0) {
+					discounts.push({
+						id: orderId,
+						no: (discounts.length + 1).toString(),
+						code: discountCodeDtac,
+						amount: this.stangToBaht(totalDirectDiscount).toString(),
+						serial: '',
+					});
+				}
+			}
 
 			//! ค่า discounts (นอก items) ทั้งหมดรวมกัน
 			const discountAmount = discounts.reduce((total: number, discount: any) => total + Number(discount.amount), 0)
@@ -612,4 +633,14 @@ export default class TsmOrderModel {
 	private buildCustomObjectQuery(container: string, keys: string[]) {
 		return `container = "${container}" AND key in (${keys.map(v => `"${v}"`).join(', ')})`.replace(/\s/g, ' ');
 	}
+
+	private getDirectDiscounts(directDiscounts: DirectDiscount[]): number {
+		const totalDirectDiscount = directDiscounts.reduce((total: number, directDiscount: any) => {
+			const money: Money = directDiscount?.value?.money?.[0];
+			return total + (money?.centAmount ?? 0);
+		}, 0);
+
+		return totalDirectDiscount;
+	}
 }
+
