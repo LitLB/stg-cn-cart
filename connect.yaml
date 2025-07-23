@@ -67,6 +67,9 @@ deployAs:
         - key: TSM_ORDER_SALE_NAME
           description: Tsm order sale name
           required: true
+        - key: TSM_ORDER_DISCOUNT_CODE_DTAC
+          description: Tsm order discount code dtac
+          required: true  
         - key: APIGW_BASE_URL
           description: Apigee base url
           required: true
