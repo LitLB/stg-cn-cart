@@ -1100,7 +1100,7 @@ export class CartService {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage:
                     error?.statusMessage || error.message || EXCEPTION_MESSAGES.BAD_REQUEST,
-                errorCode: 'CREATE_ORDER_ON_TSM_SALE_FAILED',
+                errorCode: 'INSUFFICIENT_STOCK',
             };
         }
     }
