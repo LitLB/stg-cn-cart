@@ -3,8 +3,7 @@ import { Characteristic } from "../interfaces/otp.interface";
 import { ICheckCustomerProfileResponse } from "../interfaces/validate-response.interface";
 import { convertToDDMMYYYY } from "../utils/formatter.utils";
 import { formatCertificateType } from "./helpers.validators";
-import { STATUS_CODES } from "http";
-import { STATUS_MESSAGES } from "../constants/http.constant";
+import { STATUS_MESSAGES, STATUS_CODES } from "../constants/http.constant";
 import { logger } from "../utils/logger.utils";
 
 
