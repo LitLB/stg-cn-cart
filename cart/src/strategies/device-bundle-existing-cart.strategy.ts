@@ -456,11 +456,11 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
         productType,
         productGroup,
         campaignVerifyValues,
-        bundleProduct
+        bundleProduct,
       } = payload;
       const journey = cart.custom?.fields?.journey as CART_JOURNEYS;
       const customerInfo = JSON.parse(cart.custom?.fields.customerInfo);
-      const operator = customerInfo && customerInfo?.customerProfile?.operator?.toUpperCase() || ''
+      const operator: string = customerInfo && customerInfo?.customerProfile?.operator?.toUpperCase() || ''
 
       await InventoryValidator.validateLineItemUpsert(
         cart,
@@ -767,7 +767,7 @@ export class DeviceBundleExistingCartStrategy extends BaseCartStrategy<{
       const updateCartWithOperator =
         await this.adapters.commercetoolsCartClient.updateCartWithOperator(
           cartWithUpdatedPrice,
-          payload.operator
+          operator || payload.operator
         );
       const iCartWithBenefit =
         await this.adapters.commercetoolsMeCartClient.updateCartWithBenefit(
