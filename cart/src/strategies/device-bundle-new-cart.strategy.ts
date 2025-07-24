@@ -364,7 +364,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
     );
 
     const contractTerm = bundle.attributes?.find((attr) => attr.name === 'contractTerm')
-    const penalty = bundle.attributes?.find((attr) => attr.name === 'contractFee')
+    const penalty = bundle.attributes?.find((attr) => attr.name === 'contractFee')?.value * 100 
 
     const packageCustomObj =
       await this.adapters.commercetoolsCustomObjectClient.createOrUpdateCustomObject(
@@ -376,7 +376,7 @@ export class DeviceBundleNewCartStrategy extends BaseCartStrategy<{
             name: packageName?.value,
             t1: {
               priceplanRcc: priceplanRc?.value,
-              penalty: penalty?.value,
+              penalty: penalty,
               advancedPayment: advancePayment,
               extraAdvancedPayment: extraAdvancedPayment || 0,
               contractTerm: contractTerm?.value || 12,
