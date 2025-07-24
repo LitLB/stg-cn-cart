@@ -131,3 +131,14 @@ export enum STATUS_CODES {
     APIGEE_CUSTOMER_FRAUD_FLAGGED = "400.050.0016",                 // (Input for transformError, maps to CUSTOMER_FRAUD_FLAGGED - 400.4043)
     APIGEE_OFFER_NOT_FOUND = "400.087.0008",                        // (Input for transformError, maps to OFFER_PACKAGE_NOT_FOUND - 400.4014)
 }
+
+export enum STATUS_MESSAGES {
+   CUSTOMER_TYPE_NOT_ELIGIBLE = "Customer type is not eligible",
+   NUMBER_CANCELLED_OR_PREPAID_SWITCH = "This number requested service cancellation or switch from a postpaid to a prepaid plan",
+   CUSTOMER_SUSPENDED = "Customer is suspended",
+   SUBSCRIBER_TYPE_NOT_POSTPAID = "Subscriber type is not postpaid",
+   AGE_OF_USE_DOES_NOT_MEET_CRITERIA = "The age of use does not meet the required criteria",
+   PACKAGE_IS_SHARE_PLAN = "Package is share plan",
+   GET_PROFILE_INFO_FAIL = "Get profile info fail",
+   NOT_ALLOWED_TO_EXTEND_CONTRACT = "Not allowed to extend contract",
+}

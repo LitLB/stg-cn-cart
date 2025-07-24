@@ -79,7 +79,7 @@ export class OtpController {
         LogModel.initialize(logModel);
 
         try {
-            const { mobileNumber, journey } = req.query as unknown as checkCustomerProfileRequest;
+            const { mobileNumber } = req.query as unknown as checkCustomerProfileRequest;
 
             const { correlatorid } = req.headers
 
