@@ -55,6 +55,8 @@ export const readConfiguration = () => {
       clientId: process.env.APIGW_CLIENT_ID as string,
       clientSecret: process.env.APIGW_CLIENT_SECRET as string,
       privateKeyEncryption: process.env.APIGW_PRIVATE_KEY_ENCRYPTION as string,
+      makeUsePrivilegeProductCode: process.env.APIGW_MARK_USE_PRIVILEGE_PRODUCT_CODE as string,
+      xChannel: process.env.APIGW_X_CHANNEL as string,
     },
     tsmOrder: {
       shopCode: process.env.TSM_ORDER_SHOP_CODE as string,

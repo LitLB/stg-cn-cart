@@ -233,7 +233,7 @@ export class CartService {
 
             const isPreOrder = ctCart.custom?.fields.preOrder;
             const cartJourney = ctCart.custom?.fields.journey as CART_JOURNEYS;
-
+            let bundleProductInfo
             if (
                 [
                     CART_JOURNEYS.DEVICE_BUNDLE_EXISTING,
@@ -270,7 +270,7 @@ export class CartService {
                         (attr) => attr.name === 'agreementCode'
                     )?.value;
 
-                    const bundleProductInfo = {
+                    bundleProductInfo = {
                         campaignCode,
                         propositionCode,
                         promotionSetCode,
@@ -394,8 +394,15 @@ export class CartService {
                 // store reserve payload when reserved.code == 0
                 if (reserved.code == '0') reservePayload = reqReserve;
             }
-
+            let makeUsePrivilegeRefId = ''
             if (!isPreOrder) {
+                if ([CART_JOURNEYS.DEVICE_BUNDLE_EXISTING].includes(cartJourney) && operator.toLowerCase() === 'dtac') {
+                    const makeUsePrivilege = await this.checkMakeUsePrivilege(ctCart, bundleProductInfo?.campaignCode)
+                    if (makeUsePrivilege && makeUsePrivilege.code == 0) {
+                        makeUsePrivilegeRefId = makeUsePrivilege.refId
+                    }
+                }
+
                 // * STEP #5 - Create Order On TSM Sale
                 const { success, response } = await this.createTSMSaleOrder(orderNumber, ctCart);
 
@@ -1455,6 +1462,64 @@ export class CartService {
             throw {
                 statusCode: HTTP_STATUSES.BAD_REQUEST,
                 statusMessage: 'Campaign is not eligible',
+            };
+        }
+    }
+    public async checkMakeUsePrivilege(
+        ctCart: Cart,
+        campaignCode : string
+        ): Promise<any> {
+
+        const customerInfo = JSON.parse(ctCart.custom?.fields.customerInfo);
+        if (!customerInfo) {
+            logger.error(`[MAKE_USE_PRIVILEGE] Customer Not Found`);
+            throw {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                statusMessage: 'Make Use Privilege Not Found Customer Info',
+            };
+        }
+        if (!campaignCode) {
+            logger.error(`[MAKE_USE_PRIVILEGE] Campaign Code Not Found`);
+            throw {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                statusMessage: 'Make Use Privilege Not Found Campaign Code',
+            };
+        }
+        
+        try {
+            const config = readConfiguration();
+            const apigeePrivateKeyEncryption = config.apigee.privateKeyEncryption;
+            const makeUsePrivilegeProductCode = config.apigee.makeUsePrivilegeProductCode;
+            const encryptedThaiId =  apigeeEncrypt(customerInfo.customerProfile.certificationId, apigeePrivateKeyEncryption);
+            const requestDateTime = dayjs().tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss');
+    
+            const body = {
+                "campaignCode": campaignCode,
+                "productCode": makeUsePrivilegeProductCode,
+                "verification": [
+                    {
+                        "name": "ThaiId",
+                        "value": encryptedThaiId
+                    }
+                ],
+                "quantity": 1,
+                "requestDateTime": requestDateTime,
+                "reservationFlag": "1"
+            }
+            
+            logger.info(`[MAKE_USE_PRIVILEGE] apigeePayload: ${JSON.stringify(body)}`);
+
+            const apigeeClientAdapter = new ApigeeClientAdapter();
+            const response = await apigeeClientAdapter.makeUsePrivilege(body);
+
+            logger.info(`[MAKE_USE_PRIVILEGE] success: ${JSON.stringify(response.data)}`);
+
+            return response.data;
+        } catch (error: any) {
+            logger.error('[MAKE_USE_PRIVILEGE] Error', JSON.stringify(error));
+            throw {
+                statusCode: HTTP_STATUSES.BAD_REQUEST,
+                statusMessage: 'Campaign is not Make Use Privilege',
             };
         }
     }

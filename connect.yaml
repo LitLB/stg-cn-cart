@@ -82,6 +82,12 @@ deployAs:
         - key: HL_BASE_URL
           description: Hl Base Url
           required: true
+        - key: APIGW_MARK_USE_PRIVILEGE_PRODUCT_CODE
+          description: Apigee mark use privilege product code
+          required: true
+        - key: APIGW_X_CHANNEL
+          description: Apigee x channel
+          required: true
       securedConfiguration:
         - key: CTP_PROJECT_KEY
           description: Commercetools project key identifying your specific project

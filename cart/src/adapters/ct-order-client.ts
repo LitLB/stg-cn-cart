@@ -117,7 +117,7 @@ class CommercetoolsOrderClient {
      * @param cart - The Cart object to convert into an Order.
      * @param tsmSaveOrder - The detail of TSM save order.
      */
-    public async createOrderFromCart(orderNumber: string, cart: Cart, tsmSaveOrder?: any): Promise<Order> {
+    public async createOrderFromCart(orderNumber: string, cart: Cart, tsmSaveOrder?: any, privilegeReserveRefId?: string): Promise<Order> {
         const isPreOrder = cart.custom?.fields.preOrder
         const { tsmOrderIsSaved, tsmOrderResponse } = tsmSaveOrder || {}
         const orderDraft: OrderFromCartDraft = {
@@ -142,6 +142,7 @@ class CommercetoolsOrderClient {
                 fields: {
                     ...(tsmOrderIsSaved !== undefined && tsmOrderIsSaved !== null ? { tsmOrderIsSaved } : {}),
                     ...(tsmOrderResponse ? { tsmOrderResponse } : {}),
+                    ...(privilegeReserveRefId ? {privilegeReserveRefId} : {}),
                 }
             }
         };

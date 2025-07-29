@@ -56,6 +56,25 @@ class ApigeeClientAdapter {
 
         return response.data;
     }
+    
+    async makeUsePrivilege(body: any) {
+        await this.init()
+        const headers = {
+            'Content-Type': 'application/json',
+            'x-channel': this.apigeeConfig.xChannel,
+            Authorization: `Bearer ${this.accessToken}`,
+        };
+
+        console.log('----headers-ssd--', headers)
+        const url = 'privilege/v2/useWithReserve';
+        const response: AxiosResponse = await this.client.post(
+            `${url}`,
+            body,
+            { headers }
+        );
+
+        return response.data;
+    }
 }
 
 export default ApigeeClientAdapter
